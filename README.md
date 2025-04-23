@@ -1,297 +1,89 @@
-Imagine a tag for pets that holds their medical history,Vaccination dates and upcoming vax. 
-Imagine that information stored on the blockchain for transparency and so the true health status of pets is no longer a matter left to chance. 
-
-Concept Overview:
-
-Blockchain-Based Pet Medical History and Vaccination Tracker built on  StarkNet. 
-Imagine building a decentralized, secure, and accessible system for storing and managing pet medical histories, vaccinations, and upcoming vaccination schedules.
-The system leverages StarkNet, a Layer 2 scaling solution for Ethereum, to store the data on the blockchain, ensuring immutability, transparency, and security. The information is tied to a scannable pet tag or card(kept by the pet owner) (e.g., QR code or NFC tag) that can be attached to the pet's collar or ID tag. 
-This tag allows anyone with a smartphone or scanner to access the pet's medical information securely.
-How It Works
-      1. Data Entry via Hospital Software:   
- * Veterinarians or pet hospitals use a dedicated software application to input the pet's medical history, vaccination 
-  records, and upcoming vaccination schedules.
- * The software encrypts the data and stores it on the StarkNet blockchain, ensuring it is tamper-proof and secure.
-  
-      2. Scannable Tag:
- * Each pet is assigned a unique scannable tag/card (QR code or NFC tag) linked to their blockchain-stored medical records.
- * The tag contains a unique identifier (e.g., a hash or token ID) that points to the pet's data on the blockchain.
-   
-      3. Accessing the Data:
- * When the tag is scanned, the scanner (e.g., a smartphone app) retrieves the unique identifier and queries the StarkNet 
-  blockchain to fetch the pet's medical information.
- * The data is displayed in a user-friendly format, accessible to anyone with permission (e.g., pet owners, veterinarians, or 
-  emergency responders).
-
-      4. Decentralized and Permissioned Access:
- * The system can be designed to allow different levels of access. For example:
- * Public Access: Basic information 
-  like vaccination status (useful for boarding facilities or groomers).
- * Private Access: Full medical history accessible only to the pet owner and authorised veterinarians (secured via 
-  cryptographic keys).
-
-                                                      Key Features
-      1. Immutability and Security:
- * Data stored on the blockchain is immutable, meaning it cannot be altered or deleted, ensuring the integrity of the pet's 
-   medical records.
-* StarkNet's Layer 2 solution ensures low transaction costs and high scalability while maintaining Ethereum-level 
-  security.
-  
-      2. Accessibility:
-* The scannable tag makes it easy for anyone (e.g., pet owners, veterinarians, or emergency responders) to access critical 
-  medical information in real-time.
-  
-      3. Interoperability:
-* The system can integrate with existing hospital management software, making it easy for veterinarians to adopt and use.
-  
-      4. Privacy:
-* The system can use zero-knowledge proofs (ZKPs) to ensure that sensitive information is only accessible to authorized 
-  parties.
-  
-      5. Upcoming Vaccination Reminders:
-* The software can send automated reminders to pet owners about upcoming vaccinations, ensuring pets stay up-to-date with 
-  their shots.
-
-                                                     Pros of the Product
-
-     1. Enhanced Pet Care:
-* Veterinarians can access complete medical histories, enabling better diagnosis and treatment.
-* Emergency responders can quickly access critical information (e.g., allergies or chronic conditions) in case of an 
-  emergency.
-  
-     2. Transparency and Trust:
-* Blockchain ensures that the data is tamper-proof, building trust between pet owners and veterinarians.
-  
-     3. Convenience:
-* The scannable tag eliminates the need for physical medical records, making it easier to manage and share information.
-  
-     4. Scalability:
-* StarkNet's Layer 2 solution ensures the system can handle a large number of pets and transactions without high costs or 
-  delays.
-  
-     5. Global Accessibility:
-* The system can be accessed from anywhere in the world, making it ideal for pet owners who travel or relocate.Cons of the 
-  Product1.
-
-                                                       Adoption Barriers:
-     1. Veterinarians and pet owners may be hesitant to adopt new technology, especially if they are unfamiliar with blockchain.
-   
-     2. Cost of Implementation:
-* Developing the software, integrating it with hospital systems, and deploying the blockchain infrastructure may require 
-  significant upfront investment.
-  
-     3. Dependence on Technology:
-* The system relies on smartphones, scanners, and internet access, which may not be available in all situations (e.g., rural 
-  areas or during power outages).
-  
-     4. Privacy Concerns:
-* While blockchain ensures data security, some users may still be concerned about storing sensitive information on a 
-  decentralized network.
-  
-     5. Tag/Card Durability:
-* Scannable tags/cards (QR codes or NFC tags) may wear out or get damaged over time, requiring replacement.
-  
-                                      Use Cases1.
-     1. Veterinary Clinics:
-* Streamline record-keeping and improve the accuracy of medical histories.
-         
-     2. Pet Boarding and Grooming Facilities:
- * Quickly verify vaccination status and medical needs.
-        
-     3. Emergency Situations:
-* Provide first responders with critical information about the pet's health.
-        
-     4. Pet Owners:
-* Keep track of vaccinations and medical history in one secure, accessible place.
-        
-                                        Conclusion
-  This blockchain-based pet medical history and vaccination tracker offers an innovative solutions to a common problem in pet care.
-  By leveraging StarkNet's scalability and security, the system ensures that pet medical records are immutable, accessible, 
-  and easy to manage. While there are challenges to adoption and implementation, the benefits of enhanced pet care, 
-  transparency, and convenience make this a compelling product for pet owners, veterinarians, and pet care facilities alike. 
-  With proper education and user-friendly design, this system has the potential to revolutionise how pet medical records are 
-  managed and accessed.
-              Contribution Guide
-Tech Stack
-
-Frontend
-Framework: Next.js (React-based) TypeScript
-Styling: Tailwind CSS 
-
-Smart Contracts
-
-Language: Cairo for Starknet contract development
-
-Backend:
-
-Framework: NestJS for scalable and modular backend development
-Database: PostgreSQL for storing user data
-ORM: TypeORM for managing database models and migrations.
-
-Deployment
-Frontend Hosting**: Vercel 
-Backend Hosting: AWS, Heroku
-Blockchain: Starknet for smart contract deployment
-
-Installation
-Clone the Repository. we have four repos holding code for the following; 
-
-Frontend: https://github.com/DogStark/pet-medical-tracka.git
-Backend:  https://github.com/DogStark/PetMedTraka-Backend.git
-Contracts: https://github.com/DogStark/PetMedTracka-Contracts.git
-MobileApp: https://github.com/DogStark/PetMedTracka-MobileApp.git
-
-
-
- UI/UX DESIGNER SCOPE
-
-
-Project Overview
-
-PetChain is a blockchain-based platform that securely stores and manage pet medical records, vaccination history, and treatment schedules. 
-
-It consists of:
-
-Hospital/Veterinary Dashboard – For vet facilities to input and manage pet health records.
-
-Pet Owner Dashboard – For pet owners to view their pet’s medical history, upcoming vaccinations, and treatment reminders.
-
-The UI/UX designer will create an intuitive, visually appealing, and user-friendly interface for both sides of the application.
-
-Scope of Work
-
-1. Research & Discovery
-Conduct user research (interviews/surveys) with:
-
-Veterinarians & hospital staff (primary users of the hospital dashboard).
-
-Pet owners (primary users of the owner dashboard).
-
-Analyze competitor platforms (e.g., PetDesk, VetLink) for UX best practices.
-
-Define user personas and user journeys for both vets and pet owners.
-
-2. Wireframing & Prototyping
-Low-fidelity wireframes (Balsamiq, Figma, or Adobe XD) for:
-
-Hospital Dashboard:
-
-Pet registration & medical record entry.
-
-Vaccination & treatment scheduling.
-
-Blockchain data verification UI.
-
-Pet Owner Dashboard:
-
-Pet profile & medical history view.
-
-QR code/NFC scanning for emergency access.
-
-Vaccination reminders & appointment booking.
-
-High-fidelity prototypes with:
-
-Interactive elements (buttons, forms, navigation).
-
-Responsive design (desktop, tablet, mobile).
-
-3. Visual Design & Branding
-Define a color scheme (pet-friendly, professional yet warm).
-
-Choose typography (readable, modern sans-serif fonts).
-
-Design icons, illustrations, and UI components (buttons, cards, modals).
-
-Ensure accessibility (WCAG compliance for color contrast, text size).
-
-4. Hospital Dashboard (Veterinary Side)
-Key Screens to Design:
-
-Login/Authentication (vet staff access control).
-
-Pet Registration Form (input fields for breed, age, medical conditions).
-
-Medical Record Entry (structured input for treatments, prescriptions).
-
-Vaccination Scheduler (calendar integration, reminders).
-
-Blockchain Data Verification (visual confirmation of on-chain records).
-
-Emergency Access View (quick access to critical pet info).
-
-5. Pet Owner Dashboard
-Key Screens to Design:
-
-Pet Profile Overview (summary of health records, recent visits).
-
-QR/NFC Scanner (for emergency access to pet records).
-
-Vaccination Tracker (upcoming/due vaccinations with alerts).
-
-Appointment Booking (integration with vet clinics).
-
-Medical History Timeline (visual timeline of treatments, tests).
-
-6. Mobile Responsiveness & Cross-Platform Design
-Ensure seamless experience across:
-
-Desktop (for hospital staff managing records).
-
-Mobile (for pet owners on-the-go).
-
-Design mobile-first where necessary (e.g., QR scanning feature).
-
-7. Usability Testing & Iteration
-Conduct user testing sessions with:
-
-Veterinarians (testing hospital dashboard workflows).
-
-Pet owners (testing ease of access to records).
-
-Gather feedback and refine UI/UX based on findings.
-
-8. Handoff to Developers
-Provide design specs (Figma/XD links, style guides).
-
-Export SVG/PNG assets for icons, illustrations.
-
-Ensure developer-friendly documentation (spacing, breakpoints, interactions).
-
-Suggested Additions;
-
-Dark/Light Mode Toggle – For better accessibility.
-
-Multilingual Support – If targeting global users.
-
-Pet ID Badge Generator – For owners to print pet tags with QR codes.
-
-Emergency Mode – Quick-access UI for vets during critical care.
-
-Deliverables
-✅ User research report & personas
-✅ Low & high-fidelity wireframes (Figma/XD links)
-✅ Interactive prototype (for both dashboards)
-✅ UI component library & style guide
-✅ Usability test reports & iterations
-✅ Final design assets (icons, illustrations, etc.)
-
-
-Success Metrics
-
-Hospital Staff: Reduced time to input/access records.
-
-Pet Owners: Increased engagement with vaccination reminders.
-
-Overall: High user satisfaction (measured via surveys/NPS).
-
-This scope ensures a user-centric, functional, and visually cohesive design for both vets and pet owners. Let me know if you'd like to adjust priorities or add features! 
-
-
-
-
-NB; More issues are being created to handle different features in all repos.
-Thanks for your interest in contributing. 
-
-
-
+<p align="center">
+  <img src="./assets/PETCHAIN.jpeg" width='200' />
+ </p>
+ 
+ <h1 align="center">PetChain- Smart Health Tracking For Your Pet</h1>
+ 
+ <p align="center">
+   <a href="https://cairo-lang.org">
+     <img src="https://img.shields.io/badge/-%F0%9F%90%AB%20%20Cairo-black?style=for-the-badge&flat&logo=Cairo" alt="Cairo">
+   </a>
+   <a href="https://www.postgresql.org/">
+     <img src="https://img.shields.io/badge/-Postgresql-black?style=for-the-badge&flat&logo=postgresql" alt="PostgreSQL">
+   </a>
+   <a href="https://nextjs.org/">
+     <img src="https://img.shields.io/badge/-Next.js-black?style=for-the-badge&flat&logo=next.js" alt="Next.js">
+   </a>
+ </p>
+ 
+ <p align="center">
+   <a href="https://t.me/+fLbWYLN8jZw3ZTNk">
+     <img src="https://img.shields.io/badge/-Telegram-blue?style=for-the-badge&flat&logo=telegram" alt="Telegram">
+   </a>
+ </p>
+
+## Overview
+PetChain is a decentralized platform on StarkNet that securely manages pet medical records.
+Today, health data is often scattered, lost, or stuck in outdated systems—making it hard to track vaccinations, manage treatments, or respond quickly in emergencies.
+
+By making records tamper-proof and universally accessible, PetChain keeps vets and pet owners aligned—no matter where the pet is or who’s treating them.
+Pets get a scannable tag for quick access to key medical details. This tag can act as a tracker if pet goes missing.
+
+## Features
+**1. Scannable Pet Tags:** Each pet gets a unique QR code and tag linked to its medical history—instantly scannable by vets or emergency responders. The tag displays key info and a customizable message from the owner, doubling as a tracker if the pet goes missing.
+
+**2. Always-Available Records:** Medical history is stored on StarkNet, ensuring records are tamper-proof, permanent, and accessible anytime.
+
+**3. Controlled Access:** Pet owners control who sees what, share vaccination status publicly or give full access to a vet when needed.
+
+**4. Smart Notifications:** Get automatic alerts for upcoming vaccinations and routine check-ups, so you never miss a date.
+
+**5. Vet-Ready Integration:** Designed to plug into existing vet or hospital software with minimal friction.
+
+**6. Offline Mode** – View essential info even without internet.
+
+**7. Privacy:** Uses advanced cryptography (like ZKPs) to keep sensitive data secure, even on-chain.
+
+## 🛠 Tech Stack
+* **Frontend:** 
+  - Framework: Next.js (React + TypeScript)
+  - Styling: Tailwind CSS
+  - Hosting: Vercel
+* **Backend:** NestJS, AWS, Heroku
+* **Database:** PostgreSQL, TypeORM
+* **BlockChain:** Cairo, StarkNetJs
+
+## 🚀 Getting Started
+This repository serves as the main repo, specifically tailored for **FRONTEND** contributions to the PetChain project.
+
+To get this project up and running locally, ensure the following are installed on your system:
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
+- Docker (optional, for DB or backend setup)
+
+## 🤝 Contributing 
+To contribute effectively, make sure to read through our [**Contribution Guide**](./contributing.md), which outlines 
+* ✅ Code of Conduct
+* 🧭 Step-by-step contribution process 
+* 📋 Open tasks and other ways to get involved
+
+## 🔗 Related Repositories
+To work on other parts of the project, you can find the related repositories below:
+* Backend – [GitHub Link](https://github.com/DogStark/PetMedTraka-Backend)
+* Smart Contracts – [GitHub Link](https://github.com/DogStark/PetMedTracka-Contracts)
+* Mobile App – [GitHub Link](https://github.com/DogStark/PetMedTracka-MobileApp)
+
+
+## 📬 Contact & Support
+For feedback, questions or collaboration:
+
+* Contact project lead: [@llins_x](https://t.me/llins_x)
+* Join Community Chat: [@PetChain Telegram Group](https://t.me/+fLbWYLN8jZw3ZTNk) 
+*  Report Issues: Submit bug reports or feature requests via [GitHub Issues](https://github.com/DogStark/PetMedTracka-Contracts/issues).
+
+⭐️ Star our [GitHub Repository](https://github.com/DogStark/pet-medical-tracka) to stay updated on new features and releases.
+
+## Licence
+PetChain is licensed under the MIT License.
