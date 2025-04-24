@@ -71,7 +71,7 @@ To contribute effectively, make sure to read through our [**Contribution Guide**
 
 ## 🔗 Related Repositories
 To work on other parts of the project, you can find the related repositories below:
-* Backend – [GitHub Link](https://github.com/DogStark/PetMedTraka-Backend)
+* Backend – [GitHub Link](https://github.com/DogStark/petchain_api)
 * Smart Contracts – [GitHub Link](https://github.com/DogStark/PetMedTracka-Contracts)
 * Mobile App – [GitHub Link](https://github.com/DogStark/PetMedTracka-MobileApp)
 
