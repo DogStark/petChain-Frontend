@@ -85,5 +85,5 @@ For feedback, questions or collaboration:
 
 ⭐️ Star our [GitHub Repository](https://github.com/DogStark/pet-medical-tracka) to stay updated on new features and releases.
 
-## 📜 Licence
+## 📜 License
 PetChain is licensed under the MIT License.
