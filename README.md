@@ -5,8 +5,8 @@
  <h1 align="center">PetChain- Smart Health Tracking For Your Pet</h1>
  
  <p align="center">
-   <a href="https://cairo-lang.org">
-     <img src="https://img.shields.io/badge/-%F0%9F%90%AB%20%20Cairo-black?style=for-the-badge&flat&logo=Cairo" alt="Cairo">
+   <a href="https://rust-lang.org">
+     <img src="https://img.shields.io/badge/-%F0%9F%90%AB%20%20Rust-black?style=for-the-badge&flat&logo=Rust" alt="Rust">
    </a>
    <a href="https://www.postgresql.org/">
      <img src="https://img.shields.io/badge/-Postgresql-black?style=for-the-badge&flat&logo=postgresql" alt="PostgreSQL">
@@ -51,7 +51,7 @@ Pets get a scannable tag for quick access to key medical details. This tag can a
   - Hosting: Vercel
 * **Backend:** NestJS, AWS, Heroku
 * **Database:** PostgreSQL, TypeORM
-* **BlockChain:** Cairo, StellarJs
+* **BlockChain:** Rust, StellarJs
 
 ## 🚀 Getting Started
 This repository serves as the main repo, specifically tailored for **FRONTEND** contributions to the PetChain project.
