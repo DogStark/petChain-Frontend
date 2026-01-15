@@ -10,9 +10,9 @@ const FEATURES = [
   },
   {
     title: 'Always-Available Records',
-    desc: 'Medical history stored on StarkNet—tamper-proof, permanent, and accessible anytime.',
+    desc: 'Medical history stored on Stellar—tamper-proof, permanent, and accessible anytime.',
     icon: '🔗',
-    details: 'All medical records are securely stored on StarkNet, ensuring they are tamper-proof and always accessible. No more lost or scattered records—access your pet’s health history from anywhere, at any time.'
+    details: 'All medical records are securely stored on Stellar, ensuring they are tamper-proof and always accessible. No more lost or scattered records—access your pet’s health history from anywhere, at any time.'
   },
   {
     title: 'Controlled Access',
@@ -94,7 +94,7 @@ export default function Home() {
         <h2 className="text-3xl font-bold text-center text-blue-700 mb-8">Tech & Security</h2>
         <div className="flex flex-col md:flex-row justify-center items-center gap-8">
           <div className="flex-1 text-center">
-            <h3 className="text-xl font-semibold mb-2">Powered by StarkNet</h3>
+            <h3 className="text-xl font-semibold mb-2">Powered by Stellar</h3>
             <p className="text-gray-700">Blockchain ensures records are tamper-proof, permanent, and universally accessible.</p>
           </div>
           <div className="flex-1 text-center">
