@@ -58,7 +58,7 @@ To work on other parts of the project, you can find the related repositories bel
 For feedback, questions or collaboration:
 
 * Contact project lead: [@llins_x](https://t.me/llins_x)
-* Join Community Chat: [@PetChain Telegram Group](https://t.me/+fLbWYLN8jZw3ZTNk) 
+* Join Community Chat: [@PetChain Telegram Group](https://t.me/+Jw8HkvUhinw2YjE0) 
 *  Report Issues: Submit bug reports or feature requests via [GitHub Issues](https://github.com/DogStark/PetMedTracka-Contracts/issues).
 
  Star our [GitHub Repository](https://github.com/DogStark/pet-medical-tracka) to stay updated on new features and releases.
