@@ -232,7 +232,7 @@ Use a cron job or NestJS scheduler to run batch processing:
 
 ```typescript
 // Recommended: Daily at 8 AM
-POST / api / reminders / batch / process;
+POST /api/reminders/batch/process;
 ```
 
 ---
