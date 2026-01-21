@@ -5,7 +5,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
+
+// Feature Modules
 import { UsersModule } from './modules/users/users.module';
+import { PetsModule } from './modules/pets/pets.module';
+import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
+import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
 
 @Module({
   imports: [
@@ -31,6 +38,11 @@ import { UsersModule } from './modules/users/users.module';
 
     // Feature Modules
     UsersModule,
+    PetsModule,
+    VaccinationsModule,
+    RemindersModule,
+    VetClinicsModule,
+    CertificatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
