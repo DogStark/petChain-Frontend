@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, In, Not, IsNull } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 import {
   VaccinationReminder,
   ReminderStatus,
