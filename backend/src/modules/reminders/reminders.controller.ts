@@ -76,9 +76,9 @@ export class RemindersController {
 
   /**
    * Get reminder statistics
-   * GET /reminders/stats
+   * GET /reminders/statistics
    */
-  @Get('stats')
+  @Get('statistics')
   async getStatistics() {
     return await this.batchProcessingService.getStatistics();
   }
