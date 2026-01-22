@@ -28,7 +28,7 @@ export class DeviceFingerprintUtil {
   static extractFromRequest(req: any): DeviceFingerprintData {
     return {
       userAgent: req.headers['user-agent'] || '',
-      ipAddress: req.ip || req.connection.remoteAddress || '',
+      ipAddress: req.ip || req.connection?.remoteAddress || '',
       acceptLanguage: req.headers['accept-language'] || '',
       acceptEncoding: req.headers['accept-encoding'] || '',
     };

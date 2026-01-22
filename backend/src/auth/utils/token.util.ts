@@ -20,6 +20,10 @@ export class TokenUtil {
    */
   static verifyToken(token: string, hash: string): boolean {
     const tokenHash = this.hashToken(token);
+    // Ensure buffers are the same length for timingSafeEqual
+    if (tokenHash.length !== hash.length) {
+      return false;
+    }
     return crypto.timingSafeEqual(
       Buffer.from(tokenHash),
       Buffer.from(hash),
