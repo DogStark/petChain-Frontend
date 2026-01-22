@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Breed } from './entities/breed.entity';
 import { CreateBreedDto } from './dto/create-breed.dto';
 import { UpdateBreedDto } from './dto/update-breed.dto';
-import { PetSpecies } from './entities/pet.entity';
+import { PetSpecies } from './entities/pet-species.enum';
 
 @Injectable()
 export class BreedsService {
