@@ -16,13 +16,15 @@ import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { blockchainConfig } from './config/blockchain.config';
+import { BlockchainSyncModule } from './modules/blockchain/blockchain-sync.module';
 
 @Module({
   imports: [
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig],
+      load: [appConfig, authConfig, databaseConfig, blockchainConfig],
       envFilePath: '.env',
     }),
 
@@ -48,6 +50,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    BlockchainSyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],

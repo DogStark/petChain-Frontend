@@ -44,7 +44,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
         signOptions: {
           expiresIn: configService.get<string>('auth.jwtAccessExpiration') || '15m',
         },
-      }),
+      } as any),
     }),
     UsersModule,
   ],

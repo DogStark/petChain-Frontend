@@ -1,11 +1,7 @@
-export interface EmailService {
+export abstract class EmailService {
   /**
    * Send email verification email
    */
-  sendVerificationEmail(email: string, token: string): Promise<void>;
-
-  /**
-   * Send password reset email
-   */
-  sendPasswordResetEmail(email: string, token: string): Promise<void>;
+  abstract sendVerificationEmail(email: string, token: string): Promise<void>;
+  abstract sendPasswordResetEmail(email: string, token: string): Promise<void>;
 }
