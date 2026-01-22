@@ -6,6 +6,11 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { UsersModule } from './modules/users/users.module';
+import { PetsModule } from './modules/pets/pets.module';
+import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
+import { VetsModule } from './modules/vets/vets.module';
+import { EmergencyServicesModule } from './modules/emergency-services/emergency-services.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -31,6 +36,11 @@ import { UsersModule } from './modules/users/users.module';
 
     // Feature Modules
     UsersModule,
+    PetsModule,
+    MedicalRecordsModule,
+    VetsModule,
+    EmergencyServicesModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
