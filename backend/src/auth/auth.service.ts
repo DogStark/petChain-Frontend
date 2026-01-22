@@ -17,6 +17,7 @@ import { RegisterDto, LoginDto, RefreshDto, VerifyEmailDto, ForgotPasswordDto } 
 import { PasswordUtil } from './utils/password.util';
 import { DeviceFingerprintUtil, DeviceFingerprintData } from './utils/device-fingerprint.util';
 import { TokenUtil } from './utils/token.util';
+import { Inject } from '@nestjs/common';
 import { EmailService } from './interfaces/email-service.interface';
 import { JwtPayload } from './strategies/jwt.strategy';
 
@@ -38,6 +39,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject(EmailService)
     private readonly emailService: EmailService,
   ) {}
 
