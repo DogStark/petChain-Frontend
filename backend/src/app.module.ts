@@ -6,13 +6,11 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
- feat/jwt-auth-with-refresh-tokens
 import { AuthModule } from './auth/auth.module';
 
-
 // Feature Modules
- main
 import { UsersModule } from './modules/users/users.module';
+import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
@@ -44,6 +42,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     // Feature Modules
     AuthModule,
     UsersModule,
+    QRCodesModule,
     PetsModule,
     VaccinationsModule,
     RemindersModule,
