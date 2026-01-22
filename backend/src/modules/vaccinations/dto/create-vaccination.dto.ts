@@ -1,4 +1,35 @@
 import {
+<<<<<<< HEAD
+  IsString,
+  IsDateString,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
+
+export class CreateVaccinationDto {
+  @IsUUID()
+  petId: string;
+
+  @IsString()
+  vaccineName: string;
+
+  @IsDateString()
+  dateAdministered: string;
+
+  @IsDateString()
+  nextDueDate: string;
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
+  @IsOptional()
+  @IsUUID()
+  administeredBy?: string;
+
+  @IsOptional()
+  @IsString()
+=======
   IsNotEmpty,
   IsString,
   IsOptional,
@@ -45,5 +76,6 @@ export class CreateVaccinationDto {
 
   @IsString()
   @IsOptional()
+>>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
   notes?: string;
 }

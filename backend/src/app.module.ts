@@ -12,10 +12,16 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
+import { VetsModule } from './modules/vets/vets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
+import { AllergiesModule } from './modules/allergies/allergies.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -44,10 +50,16 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     UsersModule,
     QRCodesModule,
     PetsModule,
+    VetsModule,
     VaccinationsModule,
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    MedicalRecordsModule,
+    AllergiesModule,
+    PrescriptionsModule,
+    AppointmentsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],
