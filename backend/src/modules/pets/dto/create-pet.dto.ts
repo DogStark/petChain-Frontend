@@ -1,4 +1,5 @@
 import {
+<<<<<<< HEAD
   IsString,
   IsEnum,
   IsOptional,
@@ -49,4 +50,50 @@ export class CreatePetDto {
   @IsOptional()
   @IsString()
   profilePhoto?: string;
+=======
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsDate,
+  IsNumber,
+  IsUUID,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { PetSpecies } from '../entities/pet.entity';
+
+export class CreatePetDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsEnum(PetSpecies)
+  @IsNotEmpty()
+  species: PetSpecies;
+
+  @IsUUID()
+  @IsOptional()
+  breedId?: string;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsNotEmpty()
+  dateOfBirth: Date;
+
+  @IsNumber()
+  @IsOptional()
+  weight?: number;
+
+  @IsString()
+  @IsOptional()
+  color?: string;
+
+  @IsString()
+  @IsOptional()
+  microchipNumber?: string;
+
+  @IsUUID()
+  @IsOptional()
+  ownerId?: string;
+>>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
 }
