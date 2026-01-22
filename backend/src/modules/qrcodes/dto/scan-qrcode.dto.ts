@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber, IsLatitude, IsLongitude } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsLatitude,
+  IsLongitude,
+} from 'class-validator';
 
 /**
  * DTO for recording a QR code scan

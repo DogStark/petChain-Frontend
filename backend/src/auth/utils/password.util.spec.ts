@@ -31,18 +31,30 @@ describe('PasswordUtil', () => {
     it('should return true for matching passwords', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await PasswordUtil.comparePassword('password123', '$2b$12$hashed');
+      const result = await PasswordUtil.comparePassword(
+        'password123',
+        '$2b$12$hashed',
+      );
 
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', '$2b$12$hashed');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'password123',
+        '$2b$12$hashed',
+      );
       expect(result).toBe(true);
     });
 
     it('should return false for non-matching passwords', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      const result = await PasswordUtil.comparePassword('wrongpassword', '$2b$12$hashed');
+      const result = await PasswordUtil.comparePassword(
+        'wrongpassword',
+        '$2b$12$hashed',
+      );
 
-      expect(bcrypt.compare).toHaveBeenCalledWith('wrongpassword', '$2b$12$hashed');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'wrongpassword',
+        '$2b$12$hashed',
+      );
       expect(result).toBe(false);
     });
   });

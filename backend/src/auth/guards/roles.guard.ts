@@ -23,10 +23,10 @@ export class RolesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Get required roles and permissions from route metadata
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
@@ -70,11 +70,12 @@ export class RolesGuard implements CanActivate {
       );
 
       // Check if user has all required permissions
-      const hasAllPermissions = requiredPermissions.every((requiredPermission) =>
-        this.permissionsService.checkPermissionAccess(
-          userPermissions,
-          requiredPermission,
-        ),
+      const hasAllPermissions = requiredPermissions.every(
+        (requiredPermission) =>
+          this.permissionsService.checkPermissionAccess(
+            userPermissions,
+            requiredPermission,
+          ),
       );
 
       if (!hasAllPermissions) {

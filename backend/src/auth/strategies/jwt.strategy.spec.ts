@@ -46,7 +46,7 @@ describe('JwtStrategy', () => {
     configService = module.get<ConfigService>(ConfigService);
 
     jest.clearAllMocks();
-    
+
     // Reset mock implementation after clear
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'auth.jwtSecret') {
@@ -88,7 +88,9 @@ describe('JwtStrategy', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockUsersService.findOne.mockRejectedValue(new Error('User not found'));
 
-      await expect(strategy.validate(mockPayload)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user is inactive', async () => {
@@ -100,7 +102,9 @@ describe('JwtStrategy', () => {
 
       mockUsersService.findOne.mockResolvedValue(inactiveUser);
 
-      await expect(strategy.validate(mockPayload)).rejects.toThrow(UnauthorizedException);
+      await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

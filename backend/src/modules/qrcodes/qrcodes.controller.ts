@@ -32,7 +32,9 @@ export class QRCodesController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createQRCodeDto: CreateQRCodeDto): Promise<QRCodeResponseDto> {
+  async create(
+    @Body() createQRCodeDto: CreateQRCodeDto,
+  ): Promise<QRCodeResponseDto> {
     const qrcode = await this.qrcodesService.create(createQRCodeDto);
     return QRCodeResponseDto.fromEntity(qrcode);
   }
@@ -43,7 +45,9 @@ export class QRCodesController {
    */
   @Post('batch')
   @HttpCode(HttpStatus.CREATED)
-  async createBatch(@Body() batchDto: BatchCreateQRCodeDto): Promise<QRCodeResponseDto[]> {
+  async createBatch(
+    @Body() batchDto: BatchCreateQRCodeDto,
+  ): Promise<QRCodeResponseDto[]> {
     const qrcodes = await this.qrcodesService.createBatch(batchDto);
     return qrcodes.map((qrcode) => QRCodeResponseDto.fromEntity(qrcode));
   }
@@ -89,25 +93,41 @@ export class QRCodesController {
       if (isPrintReady) {
         // Print-ready format
         const printFormat = format === 'pdf' ? 'png' : 'png';
-        const buffer = await this.qrcodesService.generatePrintReadyQRCode(id, printFormat);
+        const buffer = await this.qrcodesService.generatePrintReadyQRCode(
+          id,
+          printFormat,
+        );
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Content-Disposition', `attachment; filename="qrcode-${id}-print.png"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="qrcode-${id}-print.png"`,
+        );
         res.send(buffer);
       } else {
-        const imageData = await this.qrcodesService.generateQRCodeImage(id, format, {
-          width: imageWidth,
-        });
+        const imageData = await this.qrcodesService.generateQRCodeImage(
+          id,
+          format,
+          {
+            width: imageWidth,
+          },
+        );
 
         if (format === 'pdf' || Buffer.isBuffer(imageData)) {
           res.setHeader('Content-Type', 'image/png');
-          res.setHeader('Content-Disposition', `attachment; filename="qrcode-${id}.png"`);
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="qrcode-${id}.png"`,
+          );
           res.send(imageData);
         } else {
           // PNG as base64 data URL
-          const base64Data = (imageData as string).replace(/^data:image\/png;base64,/, '');
+          const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
           const buffer = Buffer.from(base64Data, 'base64');
           res.setHeader('Content-Type', 'image/png');
-          res.setHeader('Content-Disposition', `attachment; filename="qrcode-${id}.png"`);
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="qrcode-${id}.png"`,
+          );
           res.send(buffer);
         }
       }
@@ -130,7 +150,9 @@ export class QRCodesController {
    * GET /qrcodes/:id/analytics
    */
   @Get(':id/analytics')
-  async getScanAnalytics(@Param('id') id: string): Promise<ScanAnalyticsResponseDto> {
+  async getScanAnalytics(
+    @Param('id') id: string,
+  ): Promise<ScanAnalyticsResponseDto> {
     return await this.qrcodesService.getScanAnalytics(id);
   }
 
@@ -154,7 +176,10 @@ export class QRCodesController {
     @Param('id') id: string,
     @Body() scanDto: ScanQRCodeDto,
   ): Promise<ScanRecordResponseDto> {
-    const result = await this.qrcodesService.recordScan({ ...scanDto, qrCodeId: id });
+    const result = await this.qrcodesService.recordScan({
+      ...scanDto,
+      qrCodeId: id,
+    });
     return {
       qrcode: QRCodeResponseDto.fromEntity(result.qrcode),
       scan: {
