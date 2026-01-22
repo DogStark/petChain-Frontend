@@ -6,13 +6,15 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Breed } from './breed.entity';
+import { PetSpecies } from './pet-species.enum';
+
+// Re-export for convenience
+export { PetSpecies } from './pet-species.enum';
 
 @Entity('pets')
-@Index(['breed', 'age'])
-@Index(['location'])
 export class Pet {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,45 +22,41 @@ export class Pet {
   @Column()
   name: string;
 
-  @Column()
-  breed: string;
-
-  @Column()
-  species: string; // Dog, Cat, Bird, etc.
-
-  @Column('int')
-  age: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  latitude: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  longitude: number;
+  @Column({
+    type: 'enum',
+    enum: PetSpecies,
+    default: PetSpecies.DOG,
+  })
+  species: PetSpecies;
 
   @Column({ nullable: true })
-  location: string; // City, State, Country
+  breedId: string;
+
+  @ManyToOne(() => Breed, (breed) => breed.pets, { nullable: true })
+  @JoinColumn({ name: 'breedId' })
+  breed: Breed;
+
+  @Column({ type: 'date' })
+  dateOfBirth: Date;
 
   @Column({ nullable: true })
-  chipId: string; // Unique chip/tag identifier
+  weight: number;
 
   @Column({ nullable: true })
-  qrCode: string; // QR code identifier
+  color: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+  @Column({ nullable: true })
+  microchipNumber: string;
 
-  @Column({ default: 'active' })
-  status: string; // active, missing, deceased
+  @Column({ nullable: true })
+  ownerId: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>; // Additional searchable metadata
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'ownerId' })
   owner: User;
 
-  @Column()
-  ownerId: string;
+  @Column({ default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

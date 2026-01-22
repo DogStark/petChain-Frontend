@@ -36,17 +36,18 @@ export class SearchService {
 
     const queryBuilder = this.petRepository
       .createQueryBuilder('pet')
-      .leftJoinAndSelect('pet.owner', 'owner');
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.breed', 'breed');
 
     // Full-text search
     if (queryDto.query) {
       queryBuilder.where(
         `(
           pet.name ILIKE :query OR 
-          pet.breed ILIKE :query OR 
-          pet.species ILIKE :query OR 
-          pet.description ILIKE :query OR
-          pet.location ILIKE :query
+          breed.name ILIKE :query OR 
+          pet.species::text ILIKE :query OR 
+          pet.color ILIKE :query OR
+          pet.microchipNumber ILIKE :query
         )`,
         { query: `%${queryDto.query}%` },
       );
@@ -54,48 +55,32 @@ export class SearchService {
 
     // Apply filters
     if (queryDto.breed) {
-      queryBuilder.andWhere('pet.breed ILIKE :breed', {
+      queryBuilder.andWhere('breed.name ILIKE :breed', {
         breed: `%${queryDto.breed}%`,
       });
     }
 
     if (queryDto.minAge !== undefined || queryDto.maxAge !== undefined) {
-      const minAge = queryDto.minAge || 0;
-      const maxAge = queryDto.maxAge || 100;
-      queryBuilder.andWhere('pet.age BETWEEN :minAge AND :maxAge', {
-        minAge,
-        maxAge,
-      });
+      const currentDate = new Date();
+      
+      if (queryDto.minAge !== undefined) {
+        const maxDate = new Date();
+        maxDate.setFullYear(currentDate.getFullYear() - queryDto.minAge);
+        queryBuilder.andWhere('pet.dateOfBirth <= :maxDate', { maxDate });
+      }
+      
+      if (queryDto.maxAge !== undefined) {
+        const minDate = new Date();
+        minDate.setFullYear(currentDate.getFullYear() - queryDto.maxAge - 1);
+        queryBuilder.andWhere('pet.dateOfBirth > :minDate', { minDate });
+      }
     }
 
-    if (queryDto.location) {
-      queryBuilder.andWhere('pet.location ILIKE :location', {
-        location: `%${queryDto.location}%`,
-      });
-    }
+    // Note: Location/geolocation removed as Pet entity no longer has latitude/longitude fields
 
-    // Geolocation search
-    if (queryDto.latitude && queryDto.longitude && queryDto.radius) {
-      const radiusInDegrees = queryDto.radius / 111; // Approximate conversion
-      queryBuilder.andWhere(
-        `(
-          6371 * acos(
-            cos(radians(:lat)) * cos(radians(pet.latitude)) *
-            cos(radians(pet.longitude) - radians(:lng)) +
-            sin(radians(:lat)) * sin(radians(pet.latitude))
-          )
-        ) <= :radius`,
-        {
-          lat: queryDto.latitude,
-          lng: queryDto.longitude,
-          radius: queryDto.radius,
-        },
-      );
-    }
-
-    // Status filter
+    // Status filter (use isActive instead of status)
     if (!queryDto.includeInactive) {
-      queryBuilder.andWhere('pet.status = :status', { status: 'active' });
+      queryBuilder.andWhere('pet.isActive = :isActive', { isActive: true });
     }
 
     // Sorting

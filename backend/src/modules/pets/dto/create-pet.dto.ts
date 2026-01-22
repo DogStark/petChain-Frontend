@@ -1,69 +1,46 @@
 import {
-  IsString,
+  IsEnum,
   IsNotEmpty,
-  IsNumber,
+  IsString,
   IsOptional,
-  Min,
-  Max,
+  IsDate,
+  IsNumber,
   IsUUID,
-  IsIn,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { PetSpecies } from '../entities/pet.entity';
 
 export class CreatePetDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @IsString()
+  @IsEnum(PetSpecies)
   @IsNotEmpty()
-  breed: string;
-
-  @IsString()
-  @IsNotEmpty()
-  species: string;
-
-  @IsNumber()
-  @Min(0)
-  @Max(50)
-  age: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(-90)
-  @Max(90)
-  latitude?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(-180)
-  @Max(180)
-  longitude?: number;
-
-  @IsString()
-  @IsOptional()
-  location?: string;
-
-  @IsString()
-  @IsOptional()
-  chipId?: string;
-
-  @IsString()
-  @IsOptional()
-  qrCode?: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['active', 'missing', 'deceased'])
-  status?: string;
+  species: PetSpecies;
 
   @IsUUID()
-  @IsNotEmpty()
-  ownerId: string;
-
   @IsOptional()
-  metadata?: Record<string, any>;
+  breedId?: string;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsNotEmpty()
+  dateOfBirth: Date;
+
+  @IsNumber()
+  @IsOptional()
+  weight?: number;
+
+  @IsString()
+  @IsOptional()
+  color?: string;
+
+  @IsString()
+  @IsOptional()
+  microchipNumber?: string;
+
+  @IsUUID()
+  @IsOptional()
+  ownerId?: string;
 }

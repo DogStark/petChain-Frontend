@@ -7,6 +7,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
+  // Trust proxy for correct IP address detection
+  app.set('trust proxy', true);
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
