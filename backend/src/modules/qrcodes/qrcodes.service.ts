@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QRCode } from './entities/qrcode.entity';
@@ -21,7 +25,9 @@ export class QRCodesService {
     private scanRepository: Repository<QRCodeScan>,
   ) {
     // In production, use environment variable for encryption key
-    this.encryptionKey = process.env.QR_ENCRYPTION_KEY || 'default-encryption-key-change-in-production';
+    this.encryptionKey =
+      process.env.QR_ENCRYPTION_KEY ||
+      'default-encryption-key-change-in-production';
   }
 
   /**
@@ -65,11 +71,13 @@ export class QRCodesService {
    */
   async create(createQRCodeDto: CreateQRCodeDto): Promise<QRCode> {
     const qrCodeId = this.generateQRCodeId();
-    
+
     const qrcode = this.qrcodeRepository.create({
       ...createQRCodeDto,
       qrCodeId,
-      expiresAt: createQRCodeDto.expiresAt ? new Date(createQRCodeDto.expiresAt) : undefined,
+      expiresAt: createQRCodeDto.expiresAt
+        ? new Date(createQRCodeDto.expiresAt)
+        : undefined,
     });
 
     // Encrypt the payload
@@ -108,7 +116,7 @@ export class QRCodesService {
     options?: { width?: number; margin?: number },
   ): Promise<string | Buffer> {
     const qrcode = await this.findOne(qrCodeId);
-    
+
     if (!qrcode) {
       throw new NotFoundException('QR code not found');
     }
@@ -144,7 +152,7 @@ export class QRCodesService {
     format: 'png' | 'pdf' = 'png',
   ): Promise<Buffer> {
     const qrcode = await this.findOne(qrCodeId);
-    
+
     if (!qrcode) {
       throw new NotFoundException('QR code not found');
     }
@@ -170,14 +178,14 @@ export class QRCodesService {
    */
   async regenerate(qrCodeId: string): Promise<QRCode> {
     const qrcode = await this.findOne(qrCodeId);
-    
+
     if (!qrcode) {
       throw new NotFoundException('QR code not found');
     }
 
     // Generate new QR code ID
     qrcode.qrCodeId = this.generateQRCodeId();
-    
+
     // Re-encrypt with new payload
     const payload = this.createQRCodePayload(qrcode);
     qrcode.encryptedData = this.encryptData(payload);
@@ -226,12 +234,17 @@ export class QRCodesService {
   /**
    * Update QR code
    */
-  async update(qrCodeId: string, updateQRCodeDto: UpdateQRCodeDto): Promise<QRCode> {
+  async update(
+    qrCodeId: string,
+    updateQRCodeDto: UpdateQRCodeDto,
+  ): Promise<QRCode> {
     const qrcode = await this.findOne(qrCodeId);
 
     Object.assign(qrcode, {
       ...updateQRCodeDto,
-      expiresAt: updateQRCodeDto.expiresAt ? new Date(updateQRCodeDto.expiresAt) : qrcode.expiresAt,
+      expiresAt: updateQRCodeDto.expiresAt
+        ? new Date(updateQRCodeDto.expiresAt)
+        : qrcode.expiresAt,
     });
 
     // Re-encrypt if data changed
@@ -247,7 +260,9 @@ export class QRCodesService {
    * Record a QR code scan
    * Validates QR code is active and not expired before recording
    */
-  async recordScan(scanDto: ScanQRCodeDto): Promise<{ qrcode: QRCode; scan: QRCodeScan }> {
+  async recordScan(
+    scanDto: ScanQRCodeDto,
+  ): Promise<{ qrcode: QRCode; scan: QRCodeScan }> {
     if (!scanDto.qrCodeId) {
       throw new BadRequestException('QR code ID is required');
     }
@@ -289,18 +304,25 @@ export class QRCodesService {
     recentScans: QRCodeScan[];
   }> {
     const qrcode = await this.findOne(qrCodeId);
-    
+
     const scans = await this.scanRepository.find({
       where: { qrcodeId: qrcode.id },
       order: { scannedAt: 'DESC' },
     });
 
     // Group by location
-    const locationMap = new Map<string, { city: string; country: string; count: number }>();
+    const locationMap = new Map<
+      string,
+      { city: string; country: string; count: number }
+    >();
     scans.forEach((scan) => {
       if (scan.city && scan.country) {
         const key = `${scan.city}-${scan.country}`;
-        const existing = locationMap.get(key) || { city: scan.city, country: scan.country, count: 0 };
+        const existing = locationMap.get(key) || {
+          city: scan.city,
+          country: scan.country,
+          count: 0,
+        };
         existing.count += 1;
         locationMap.set(key, existing);
       }
@@ -310,7 +332,10 @@ export class QRCodesService {
     const deviceMap = new Map<string, number>();
     scans.forEach((scan) => {
       if (scan.deviceType) {
-        deviceMap.set(scan.deviceType, (deviceMap.get(scan.deviceType) || 0) + 1);
+        deviceMap.set(
+          scan.deviceType,
+          (deviceMap.get(scan.deviceType) || 0) + 1,
+        );
       }
     });
 
@@ -318,10 +343,12 @@ export class QRCodesService {
       totalScans: scans.length,
       scans,
       scansByLocation: Array.from(locationMap.values()),
-      scansByDevice: Array.from(deviceMap.entries()).map(([deviceType, count]) => ({
-        deviceType,
-        count,
-      })),
+      scansByDevice: Array.from(deviceMap.entries()).map(
+        ([deviceType, count]) => ({
+          deviceType,
+          count,
+        }),
+      ),
       recentScans: scans.slice(0, 10),
     };
   }
@@ -348,12 +375,13 @@ export class QRCodesService {
     const qrcode = await this.findOne(qrCodeId);
     const decrypted = this.decryptData(qrcode.encryptedData);
     const parsed = JSON.parse(decrypted);
-    
+
     // Return in format matching QRCodeData interface
     return {
       qrCodeId: parsed.qrCodeId,
       petId: parsed.petId,
-      emergencyContact: parsed.emergencyContact || qrcode.emergencyContact || '',
+      emergencyContact:
+        parsed.emergencyContact || qrcode.emergencyContact || '',
       customMessage: parsed.customMessage || qrcode.customMessage || '',
       expiresAt: parsed.expiresAt,
     };

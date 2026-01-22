@@ -92,8 +92,13 @@ describe('AuthController', () => {
 
       const result = await controller.login(loginDto, mockRequest as any);
 
-      expect(DeviceFingerprintUtil.extractFromRequest).toHaveBeenCalledWith(mockRequest);
-      expect(authService.login).toHaveBeenCalledWith(loginDto, expect.any(Object));
+      expect(DeviceFingerprintUtil.extractFromRequest).toHaveBeenCalledWith(
+        mockRequest,
+      );
+      expect(authService.login).toHaveBeenCalledWith(
+        loginDto,
+        expect.any(Object),
+      );
       expect(result).toEqual(expectedResponse);
     });
   });
@@ -128,8 +133,13 @@ describe('AuthController', () => {
 
       const result = await controller.refresh(refreshDto, mockRequest as any);
 
-      expect(DeviceFingerprintUtil.extractFromRequest).toHaveBeenCalledWith(mockRequest);
-      expect(authService.refresh).toHaveBeenCalledWith(refreshDto, expect.any(Object));
+      expect(DeviceFingerprintUtil.extractFromRequest).toHaveBeenCalledWith(
+        mockRequest,
+      );
+      expect(authService.refresh).toHaveBeenCalledWith(
+        refreshDto,
+        expect.any(Object),
+      );
       expect(result).toEqual(expectedResponse);
     });
   });
@@ -149,7 +159,10 @@ describe('AuthController', () => {
 
       const result = await controller.logout(logoutDto, mockUser as any);
 
-      expect(authService.logout).toHaveBeenCalledWith(logoutDto.refreshToken, mockUser.id);
+      expect(authService.logout).toHaveBeenCalledWith(
+        logoutDto.refreshToken,
+        mockUser.id,
+      );
       expect(result).toEqual({ message: 'Logged out successfully' });
     });
   });
@@ -179,7 +192,9 @@ describe('AuthController', () => {
 
       const result = await controller.forgotPassword(forgotPasswordDto);
 
-      expect(authService.forgotPassword).toHaveBeenCalledWith(forgotPasswordDto);
+      expect(authService.forgotPassword).toHaveBeenCalledWith(
+        forgotPasswordDto,
+      );
       expect(result).toEqual({
         message: 'If the email exists, a password reset link has been sent',
       });

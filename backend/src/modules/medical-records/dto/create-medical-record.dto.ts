@@ -1,99 +1,39 @@
 import {
   IsString,
-  IsNotEmpty,
-  IsOptional,
+  IsEnum,
   IsDateString,
-  IsNumber,
-  IsArray,
+  IsOptional,
   IsUUID,
-  IsIn,
-  ValidateNested,
+  IsArray,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class MedicationDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  dosage: string;
-
-  @IsString()
-  @IsNotEmpty()
-  frequency: string;
-}
-
-class AttachmentDto {
-  @IsString()
-  @IsNotEmpty()
-  type: string;
-
-  @IsString()
-  @IsNotEmpty()
-  url: string;
-
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-}
+import { RecordType } from '../entities/medical-record.entity';
 
 export class CreateMedicalRecordDto {
-  @IsString()
-  @IsNotEmpty()
-  condition: string;
-
-  @IsString()
-  @IsNotEmpty()
-  treatment: string;
-
-  @IsString()
-  @IsOptional()
-  diagnosis?: string;
-
-  @IsString()
-  @IsOptional()
-  notes?: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => MedicationDto)
-  @IsOptional()
-  medications?: MedicationDto[];
-
-  @IsDateString()
-  @IsNotEmpty()
-  recordDate: string;
-
-  @IsString()
-  @IsOptional()
-  vetName?: string;
-
-  @IsString()
-  @IsOptional()
-  clinicName?: string;
-
-  @IsNumber()
-  @IsOptional()
-  cost?: number;
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['active', 'archived'])
-  status?: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AttachmentDto)
-  @IsOptional()
-  attachments?: AttachmentDto[];
-
   @IsUUID()
-  @IsNotEmpty()
   petId: string;
 
-  @IsUUID()
   @IsOptional()
+  @IsUUID()
   vetId?: string;
+
+  @IsEnum(RecordType)
+  recordType: RecordType;
+
+  @IsDateString()
+  date: string;
+
+  @IsString()
+  diagnosis: string;
+
+  @IsString()
+  treatment: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachments?: string[];
 }

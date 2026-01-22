@@ -63,14 +63,20 @@ export class PasswordUtil {
   /**
    * Hash a password using bcrypt
    */
-  static async hashPassword(password: string, rounds: number = 12): Promise<string> {
+  static async hashPassword(
+    password: string,
+    rounds: number = 12,
+  ): Promise<string> {
     return bcrypt.hash(password, rounds);
   }
 
   /**
    * Compare a plain text password with a hashed password
    */
-  static async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+  static async comparePassword(
+    plainPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 }

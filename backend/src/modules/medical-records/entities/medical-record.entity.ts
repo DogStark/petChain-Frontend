@@ -4,78 +4,70 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import { Pet } from '../../pets/entities/pet.entity';
-import { User } from '../../users/entities/user.entity';
+import { Vet } from '../../vets/entities/vet.entity';
+
+export enum RecordType {
+  CHECKUP = 'checkup',
+  SURGERY = 'surgery',
+  EMERGENCY = 'emergency',
+  DIAGNOSTIC = 'diagnostic',
+  OTHER = 'other',
+}
 
 @Entity('medical_records')
-@Index(['condition', 'treatment'])
-@Index(['recordDate'])
 export class MedicalRecord {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  condition: string;
+  @Column({ type: 'uuid' })
+  petId: string;
 
-  @Column()
-  treatment: string;
+  @ManyToOne(() => Pet)
+  @JoinColumn({ name: 'petId' })
+  pet: Pet;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  vetId: string;
+
+  @ManyToOne(() => Vet)
+  @JoinColumn({ name: 'vetId' })
+  vet: Vet;
+
+  @Column({
+    type: 'enum',
+    enum: RecordType,
+  })
+  recordType: RecordType;
+
+  @Column({ type: 'date' })
+  date: Date;
+
+  @Column({ type: 'text' })
   diagnosis: string;
+
+  @Column({ type: 'text' })
+  treatment: string;
 
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  medications: Array<{
-    name: string;
-    dosage: string;
-    frequency: string;
-  }>;
-
-  @Column({ type: 'date' })
-  recordDate: Date;
+  @Column({ type: 'simple-json', nullable: true })
+  attachments: string[];
 
   @Column({ nullable: true })
-  vetName: string;
-
-  @Column({ nullable: true })
-  clinicName: string;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  cost: number;
-
-  @Column({ default: 'active' })
-  status: string; // active, archived
-
-  @Column({ type: 'jsonb', nullable: true })
-  attachments: Array<{
-    type: string;
-    url: string;
-    name: string;
-  }>;
-
-  @ManyToOne(() => Pet, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'petId' })
-  pet: Pet;
-
-  @Column()
-  petId: string;
-
-  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'vetId' })
-  vet: User;
-
-  @Column({ nullable: true })
-  vetId: string;
+  qrCode: string;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }

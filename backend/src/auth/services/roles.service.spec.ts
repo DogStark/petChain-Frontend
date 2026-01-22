@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { PermissionsService } from './permissions.service';
 import { Role } from '../entities/role.entity';
 import { PermissionEntity } from '../entities/permission.entity';
 import { UserRole } from '../entities/user-role.entity';
-import { RoleAuditLog, RoleAuditAction } from '../entities/role-audit-log.entity';
+import {
+  RoleAuditLog,
+  RoleAuditAction,
+} from '../entities/role-audit-log.entity';
 import { RoleName } from '../constants/roles.enum';
 import { Permission } from '../constants/permissions.enum';
 

@@ -5,19 +5,26 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Breed } from './breed.entity';
+import { PetPhoto } from './pet-photo.entity';
 import { PetSpecies } from './pet-species.enum';
-
-// Re-export for convenience
-export { PetSpecies } from './pet-species.enum';
+import { PetGender } from './pet-gender.enum';
 
 @Entity('pets')
 export class Pet {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'uuid' })
+  ownerId: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'ownerId' })
+  owner: User;
 
   @Column()
   name: string;
@@ -29,7 +36,7 @@ export class Pet {
   })
   species: PetSpecies;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   breedId: string;
 
   @ManyToOne(() => Breed, (breed) => breed.pets, { nullable: true })
@@ -39,21 +46,37 @@ export class Pet {
   @Column({ type: 'date' })
   dateOfBirth: Date;
 
+  @Column({
+    type: 'enum',
+    enum: PetGender,
+    default: PetGender.UNKNOWN,
+  })
+  gender: PetGender;
+
+  @Column({ nullable: true, unique: true })
+  microchipNumber: string;
+
   @Column({ nullable: true })
+  tagId: string;
+
+  @Column({ type: 'decimal', precision: 6, scale: 2, nullable: true })
   weight: number;
 
   @Column({ nullable: true })
   color: string;
 
-  @Column({ nullable: true })
-  microchipNumber: string;
+  @Column({ type: 'text', nullable: true })
+  specialNeeds: string;
 
+  // New fields based on requirements
   @Column({ nullable: true })
-  ownerId: string;
+  insurancePolicy: string;
 
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'ownerId' })
-  owner: User;
+  @Column('text', { nullable: true })
+  behaviorNotes: string;
+
+  @OneToMany(() => PetPhoto, (photo) => photo.pet)
+  photos: PetPhoto[];
 
   @Column({ default: true })
   isActive: boolean;

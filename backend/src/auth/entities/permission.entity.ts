@@ -26,7 +26,10 @@ export class PermissionEntity {
   @Column()
   action: string;
 
-  @OneToMany(() => RolePermission, (rolePermission) => rolePermission.permission)
+  @OneToMany(
+    () => RolePermission,
+    (rolePermission) => rolePermission.permission,
+  )
   rolePermissions: RolePermission[];
 
   @CreateDateColumn()

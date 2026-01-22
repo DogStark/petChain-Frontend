@@ -1,89 +1,40 @@
 import {
   IsString,
-  IsNotEmpty,
   IsEmail,
-  IsOptional,
-  IsNumber,
   IsArray,
-  IsBoolean,
-  Min,
-  Max,
-  IsIn,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateVetDto {
   @IsString()
-  @IsNotEmpty()
-  name: string;
+  clinicName: string;
+
+  @IsString()
+  vetName: string;
+
+  @IsString()
+  licenseNumber: string;
 
   @IsEmail()
-  @IsNotEmpty()
   email: string;
 
   @IsString()
-  @IsOptional()
-  phone?: string;
+  phone: string;
 
   @IsString()
-  @IsNotEmpty()
-  specialty: string;
+  address: string;
 
+  @IsString()
+  city: string;
+
+  @IsString()
+  state: string;
+
+  @IsString()
+  zipCode: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  specialties?: string[];
-
-  @IsString()
-  @IsOptional()
-  clinicName?: string;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(-90)
-  @Max(90)
-  latitude?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(-180)
-  @Max(180)
-  longitude?: number;
-
-  @IsString()
-  @IsOptional()
-  location?: string;
-
-  @IsString()
-  @IsOptional()
-  address?: string;
-
-  @IsString()
-  @IsOptional()
-  bio?: string;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  yearsOfExperience?: number;
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  languages?: string[];
-
-  @IsOptional()
-  workingHours?: Record<string, any>;
-
-  @IsBoolean()
-  @IsOptional()
-  isAvailable?: boolean;
-
-  @IsString()
-  @IsOptional()
-  licenseNumber?: string;
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['active', 'inactive', 'suspended'])
-  status?: string;
+  specializations?: string[];
 }

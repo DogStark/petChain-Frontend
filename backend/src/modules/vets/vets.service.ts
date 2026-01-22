@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Vet } from './entities/vet.entity';
 import { CreateVetDto } from './dto/create-vet.dto';
 import { UpdateVetDto } from './dto/update-vet.dto';
@@ -17,7 +17,16 @@ export class VetsService {
     return await this.vetRepository.save(vet);
   }
 
-  async findAll(): Promise<Vet[]> {
+  async findAll(search?: string): Promise<Vet[]> {
+    if (search) {
+      return await this.vetRepository.find({
+        where: [
+          { vetName: Like(`%${search}%`) },
+          { clinicName: Like(`%${search}%`) },
+          { city: Like(`%${search}%`) },
+        ],
+      });
+    }
     return await this.vetRepository.find();
   }
 
@@ -27,14 +36,6 @@ export class VetsService {
       throw new NotFoundException(`Vet with ID ${id} not found`);
     }
     return vet;
-  }
-
-  async findBySpecialty(specialty: string): Promise<Vet[]> {
-    return await this.vetRepository
-      .createQueryBuilder('vet')
-      .where('vet.specialty = :specialty', { specialty })
-      .orWhere(':specialty = ANY(vet.specialties)', { specialty })
-      .getMany();
   }
 
   async update(id: string, updateVetDto: UpdateVetDto): Promise<Vet> {

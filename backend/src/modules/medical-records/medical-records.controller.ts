@@ -6,14 +6,16 @@ import {
   Patch,
   Param,
   Delete,
-  HttpCode,
-  HttpStatus,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { MedicalRecordsService } from './medical-records.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
-import { MedicalRecord } from './entities/medical-record.entity';
+import { RecordType } from './entities/medical-record.entity';
+import { PetSpecies } from '../pets/entities/pet.entity';
 
 @Controller('medical-records')
 export class MedicalRecordsController {
@@ -22,37 +24,62 @@ export class MedicalRecordsController {
   ) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FilesInterceptor('files', 10))
   async create(
     @Body() createMedicalRecordDto: CreateMedicalRecordDto,
-  ): Promise<MedicalRecord> {
-    return await this.medicalRecordsService.create(createMedicalRecordDto);
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    // Handle file uploads
+    if (files && files.length > 0) {
+      const attachments = await Promise.all(
+        files.map((file) => this.medicalRecordsService.saveAttachment(file)),
+      );
+      createMedicalRecordDto.attachments = attachments;
+    }
+
+    return this.medicalRecordsService.create(createMedicalRecordDto);
   }
 
   @Get()
-  async findAll(@Query('petId') petId?: string): Promise<MedicalRecord[]> {
-    if (petId) {
-      return await this.medicalRecordsService.findByPet(petId);
-    }
-    return await this.medicalRecordsService.findAll();
+  findAll(
+    @Query('petId') petId?: string,
+    @Query('recordType') recordType?: RecordType,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.medicalRecordsService.findAll(
+      petId,
+      recordType,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('templates/:petType')
+  getTemplates(@Param('petType') petType: PetSpecies) {
+    return this.medicalRecordsService.getTemplatesByPetType(petType);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<MedicalRecord> {
-    return await this.medicalRecordsService.findOne(id);
+  findOne(@Param('id') id: string) {
+    return this.medicalRecordsService.findOne(id);
+  }
+
+  @Get(':id/qr')
+  getQRCode(@Param('id') id: string) {
+    return this.medicalRecordsService.getQRCode(id);
   }
 
   @Patch(':id')
-  async update(
+  update(
     @Param('id') id: string,
     @Body() updateMedicalRecordDto: UpdateMedicalRecordDto,
-  ): Promise<MedicalRecord> {
-    return await this.medicalRecordsService.update(id, updateMedicalRecordDto);
+  ) {
+    return this.medicalRecordsService.update(id, updateMedicalRecordDto);
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string): Promise<void> {
-    return await this.medicalRecordsService.remove(id);
+  remove(@Param('id') id: string) {
+    return this.medicalRecordsService.remove(id);
   }
 }
