@@ -103,7 +103,9 @@ describe('PermissionsService', () => {
 
       mockPermissionRepository.findOne.mockResolvedValue(mockPermission);
 
-      const result = await service.getPermissionByName(Permission.READ_OWN_PETS);
+      const result = await service.getPermissionByName(
+        Permission.READ_OWN_PETS,
+      );
 
       expect(permissionRepository.findOne).toHaveBeenCalledWith({
         where: { name: Permission.READ_OWN_PETS },
@@ -114,7 +116,9 @@ describe('PermissionsService', () => {
     it('should return null if permission not found', async () => {
       mockPermissionRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.getPermissionByName(Permission.READ_OWN_PETS);
+      const result = await service.getPermissionByName(
+        Permission.READ_OWN_PETS,
+      );
 
       expect(result).toBeNull();
     });

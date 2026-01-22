@@ -172,11 +172,9 @@ describe('RolesGuard', () => {
         mockRolesService.getUserPermissions.mockResolvedValue(userPermissions);
         mockPermissionsService.checkPermissionAccess.mockReturnValue(true);
 
-        const context = createMockExecutionContext(
-          mockUser,
-          undefined,
-          ['READ_OWN_PETS'],
-        );
+        const context = createMockExecutionContext(mockUser, undefined, [
+          'READ_OWN_PETS',
+        ]);
 
         const result = await guard.canActivate(context);
 
@@ -192,11 +190,9 @@ describe('RolesGuard', () => {
         mockRolesService.getUserPermissions.mockResolvedValue(userPermissions);
         mockPermissionsService.checkPermissionAccess.mockReturnValue(true);
 
-        const context = createMockExecutionContext(
-          mockUser,
-          undefined,
-          ['READ_OWN_PETS'],
-        );
+        const context = createMockExecutionContext(mockUser, undefined, [
+          'READ_OWN_PETS',
+        ]);
 
         const result = await guard.canActivate(context);
 
@@ -209,11 +205,9 @@ describe('RolesGuard', () => {
         mockRolesService.getUserPermissions.mockResolvedValue(userPermissions);
         mockPermissionsService.checkPermissionAccess.mockReturnValue(false);
 
-        const context = createMockExecutionContext(
-          mockUser,
-          undefined,
-          ['CREATE_PETS'],
-        );
+        const context = createMockExecutionContext(mockUser, undefined, [
+          'CREATE_PETS',
+        ]);
 
         await expect(guard.canActivate(context)).rejects.toThrow(
           ForbiddenException,
@@ -228,11 +222,10 @@ describe('RolesGuard', () => {
           .mockReturnValueOnce(true) // READ_OWN_PETS
           .mockReturnValueOnce(false); // CREATE_PETS
 
-        const context = createMockExecutionContext(
-          mockUser,
-          undefined,
-          ['READ_OWN_PETS', 'CREATE_PETS'],
-        );
+        const context = createMockExecutionContext(mockUser, undefined, [
+          'READ_OWN_PETS',
+          'CREATE_PETS',
+        ]);
 
         await expect(guard.canActivate(context)).rejects.toThrow(
           ForbiddenException,

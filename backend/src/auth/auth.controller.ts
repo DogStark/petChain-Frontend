@@ -7,7 +7,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -49,10 +49,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(
-    @Body() logoutDto: LogoutDto,
-    @CurrentUser() user: User,
-  ) {
+  async logout(@Body() logoutDto: LogoutDto, @CurrentUser() user: User) {
     await this.authService.logout(logoutDto.refreshToken, user.id);
     return { message: 'Logged out successfully' };
   }
@@ -68,6 +65,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     await this.authService.forgotPassword(forgotPasswordDto);
-    return { message: 'If the email exists, a password reset link has been sent' };
+    return {
+      message: 'If the email exists, a password reset link has been sent',
+    };
   }
 }

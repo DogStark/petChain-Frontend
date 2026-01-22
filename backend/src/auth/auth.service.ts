@@ -13,18 +13,41 @@ import { UsersService } from '../modules/users/users.service';
 import { User } from '../modules/users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Session } from './entities/session.entity';
-import { RegisterDto, LoginDto, RefreshDto, VerifyEmailDto, ForgotPasswordDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  VerifyEmailDto,
+  ForgotPasswordDto,
+} from './dto/auth.dto';
 import { PasswordUtil } from './utils/password.util';
-import { DeviceFingerprintUtil, DeviceFingerprintData } from './utils/device-fingerprint.util';
+import {
+  DeviceFingerprintUtil,
+  DeviceFingerprintData,
+} from './utils/device-fingerprint.util';
 import { TokenUtil } from './utils/token.util';
 import { Inject } from '@nestjs/common';
-import { EmailService } from './interfaces/email-service.interface';
+import {
+  EMAIL_SERVICE,
+  type IEmailService,
+} from './interfaces/email-service.interface';
 import { JwtPayload } from './strategies/jwt.strategy';
+
+/**
+ * User data without sensitive fields
+ */
+export type SafeUser = Omit<
+  User,
+  | 'password'
+  | 'emailVerificationToken'
+  | 'passwordResetToken'
+  | 'getActiveRoles'
+>;
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: Omit<User, 'password' | 'emailVerificationToken' | 'passwordResetToken'>;
+  user: SafeUser;
 }
 
 @Injectable()
@@ -39,14 +62,14 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(EmailService)
-    private readonly emailService: EmailService,
+    @Inject(EMAIL_SERVICE)
+    private readonly emailService: IEmailService,
   ) {}
 
   /**
    * Register a new user
    */
-  async register(registerDto: RegisterDto): Promise<Omit<User, 'password' | 'emailVerificationToken' | 'passwordResetToken'>> {
+  async register(registerDto: RegisterDto): Promise<SafeUser> {
     // Check if user already exists
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
@@ -54,17 +77,29 @@ export class AuthService {
     }
 
     // Hash password
-    const bcryptRounds = this.configService.get<number>('auth.bcryptRounds') || 12;
-    const hashedPassword = await PasswordUtil.hashPassword(registerDto.password, bcryptRounds);
+    const bcryptRounds =
+      this.configService.get<number>('auth.bcryptRounds') || 12;
+    const hashedPassword = await PasswordUtil.hashPassword(
+      registerDto.password,
+      bcryptRounds,
+    );
 
     // Generate email verification token
     const verificationToken = TokenUtil.generateToken();
     const verificationExpires = new Date();
-    const expirationStr = this.configService.get<string>('auth.emailVerificationExpiration') || '24h';
+    const expirationStr =
+      this.configService.get<string>('auth.emailVerificationExpiration') ||
+      '24h';
     if (expirationStr.endsWith('h')) {
-      verificationExpires.setHours(verificationExpires.getHours() + parseInt(expirationStr.replace('h', ''), 10));
+      verificationExpires.setHours(
+        verificationExpires.getHours() +
+          parseInt(expirationStr.replace('h', ''), 10),
+      );
     } else if (expirationStr.endsWith('d')) {
-      verificationExpires.setDate(verificationExpires.getDate() + parseInt(expirationStr.replace('d', ''), 10));
+      verificationExpires.setDate(
+        verificationExpires.getDate() +
+          parseInt(expirationStr.replace('d', ''), 10),
+      );
     } else {
       verificationExpires.setHours(verificationExpires.getHours() + 24); // Default 24 hours
     }
@@ -86,14 +121,23 @@ export class AuthService {
 
     // Send verification email
     try {
-      await this.emailService.sendVerificationEmail(savedUser.email, verificationToken);
+      await this.emailService.sendVerificationEmail(
+        savedUser.email,
+        verificationToken,
+      );
     } catch (error) {
       // Log error but don't fail registration
       console.error('Failed to send verification email:', error);
     }
 
     // Return user without sensitive data
-    const { password, emailVerificationToken, passwordResetToken, ...userResponse } = savedUser;
+    const {
+      password,
+      emailVerificationToken,
+      passwordResetToken,
+      getActiveRoles,
+      ...userResponse
+    } = savedUser as User & { getActiveRoles: unknown };
     return userResponse;
   }
 
@@ -112,8 +156,12 @@ export class AuthService {
 
     // Check if account is locked
     if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new ForbiddenException(`Account is locked. Try again in ${minutesLeft} minute(s).`);
+      const minutesLeft = Math.ceil(
+        (user.lockedUntil.getTime() - Date.now()) / 60000,
+      );
+      throw new ForbiddenException(
+        `Account is locked. Try again in ${minutesLeft} minute(s).`,
+      );
     }
 
     // Check if account is active
@@ -122,18 +170,26 @@ export class AuthService {
     }
 
     // Verify password
-    if (!user.password || !(await PasswordUtil.comparePassword(loginDto.password, user.password))) {
+    if (
+      !user.password ||
+      !(await PasswordUtil.comparePassword(loginDto.password, user.password))
+    ) {
       // Increment failed attempts
       user.failedLoginAttempts += 1;
-      const maxAttempts = this.configService.get<number>('auth.maxFailedLoginAttempts') || 5;
+      const maxAttempts =
+        this.configService.get<number>('auth.maxFailedLoginAttempts') || 5;
 
       if (user.failedLoginAttempts >= maxAttempts) {
         // Lock account
-        const lockoutDuration = this.configService.get<string>('auth.accountLockoutDuration') || '15m';
+        const lockoutDuration =
+          this.configService.get<string>('auth.accountLockoutDuration') ||
+          '15m';
         const lockoutMinutes = parseInt(lockoutDuration.replace('m', ''), 10);
         user.lockedUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
         await this.userRepository.save(user);
-        throw new ForbiddenException(`Account locked due to too many failed attempts. Try again in ${lockoutMinutes} minutes.`);
+        throw new ForbiddenException(
+          `Account locked due to too many failed attempts. Try again in ${lockoutMinutes} minutes.`,
+        );
       }
 
       await this.userRepository.save(user);
@@ -143,7 +199,7 @@ export class AuthService {
     // Reset failed attempts on successful login
     if (user.failedLoginAttempts > 0) {
       user.failedLoginAttempts = 0;
-      user.lockedUntil = null;
+      (user as { lockedUntil: Date | null }).lockedUntil = null;
       await this.userRepository.save(user);
     }
 
@@ -153,16 +209,28 @@ export class AuthService {
     // }
 
     // Create device fingerprint
-    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(deviceFingerprintData);
+    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
+      deviceFingerprintData,
+    );
 
     // Manage sessions (enforce concurrent session limit)
-    await this.manageSessions(user.id, deviceFingerprint, deviceFingerprintData);
+    await this.manageSessions(
+      user.id,
+      deviceFingerprint,
+      deviceFingerprintData,
+    );
 
     // Generate tokens
     const tokens = await this.generateTokens(user, deviceFingerprint);
 
     // Return response
-    const { password, emailVerificationToken, passwordResetToken, ...userResponse } = user;
+    const {
+      password,
+      emailVerificationToken,
+      passwordResetToken,
+      getActiveRoles,
+      ...userResponse
+    } = user as User & { getActiveRoles: unknown };
     return {
       ...tokens,
       user: userResponse,
@@ -172,7 +240,10 @@ export class AuthService {
   /**
    * Refresh access token
    */
-  async refresh(refreshDto: RefreshDto, deviceFingerprintData: DeviceFingerprintData): Promise<AuthResponse> {
+  async refresh(
+    refreshDto: RefreshDto,
+    deviceFingerprintData: DeviceFingerprintData,
+  ): Promise<AuthResponse> {
     // Find refresh token
     const refreshTokenHash = TokenUtil.hashToken(refreshDto.refreshToken);
     const refreshToken = await this.refreshTokenRepository.findOne({
@@ -196,7 +267,9 @@ export class AuthService {
     }
 
     // Verify device fingerprint
-    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(deviceFingerprintData);
+    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
+      deviceFingerprintData,
+    );
     if (refreshToken.deviceFingerprint !== deviceFingerprint) {
       throw new UnauthorizedException('Device fingerprint mismatch');
     }
@@ -221,7 +294,13 @@ export class AuthService {
       await this.sessionRepository.save(session);
     }
 
-    const { password, emailVerificationToken, passwordResetToken, ...userResponse } = user;
+    const {
+      password,
+      emailVerificationToken,
+      passwordResetToken,
+      getActiveRoles,
+      ...userResponse
+    } = user as User & { getActiveRoles: unknown };
     return {
       ...newTokens,
       user: userResponse,
@@ -247,7 +326,9 @@ export class AuthService {
       // Remove the session matching the device fingerprint from the token
       const deviceFingerprint = token?.deviceFingerprint;
       if (deviceFingerprint) {
-        const session = sessions.find((s) => s.deviceFingerprint === deviceFingerprint);
+        const session = sessions.find(
+          (s) => s.deviceFingerprint === deviceFingerprint,
+        );
         if (session) {
           await this.sessionRepository.remove(session);
         }
@@ -268,13 +349,19 @@ export class AuthService {
       throw new BadRequestException('Invalid verification token');
     }
 
-    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+    if (
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires < new Date()
+    ) {
       throw new BadRequestException('Verification token has expired');
     }
 
     user.emailVerified = true;
-    user.emailVerificationToken = null;
-    user.emailVerificationExpires = null;
+    (user as { emailVerificationToken: string | null }).emailVerificationToken =
+      null;
+    (
+      user as { emailVerificationExpires: Date | null }
+    ).emailVerificationExpires = null;
     await this.userRepository.save(user);
   }
 
@@ -294,7 +381,12 @@ export class AuthService {
     const resetExpires = new Date();
     resetExpires.setHours(
       resetExpires.getHours() +
-        parseInt(this.configService.get<string>('auth.passwordResetExpiration')?.replace('h', '') || '1', 10),
+        parseInt(
+          this.configService
+            .get<string>('auth.passwordResetExpiration')
+            ?.replace('h', '') || '1',
+          10,
+        ),
     );
 
     user.passwordResetToken = TokenUtil.hashToken(resetToken);
@@ -312,14 +404,41 @@ export class AuthService {
   /**
    * Generate access and refresh tokens
    */
-  private async generateTokens(user: User, deviceFingerprint: string): Promise<{ accessToken: string; refreshToken: string }> {
+  private async generateTokens(
+    user: User,
+    deviceFingerprint: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
     };
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('auth.jwtAccessExpiration') || '15m',
+    // Parse duration string to seconds
+    const expiresInStr =
+      this.configService.get<string>('auth.jwtAccessExpiration') || '15m';
+    const match = expiresInStr.match(/^(\d+)([smhd])$/);
+    let expiresInSeconds = 900; // Default 15 minutes
+    if (match) {
+      const value = parseInt(match[1], 10);
+      const unit = match[2];
+      switch (unit) {
+        case 's':
+          expiresInSeconds = value;
+          break;
+        case 'm':
+          expiresInSeconds = value * 60;
+          break;
+        case 'h':
+          expiresInSeconds = value * 3600;
+          break;
+        case 'd':
+          expiresInSeconds = value * 86400;
+          break;
+      }
+    }
+
+    const accessToken = this.jwtService.sign(payload as object, {
+      expiresIn: expiresInSeconds,
     });
 
     // Generate refresh token
@@ -327,11 +446,18 @@ export class AuthService {
     const refreshTokenHash = TokenUtil.hashToken(refreshTokenValue);
 
     const refreshTokenExpires = new Date();
-    const refreshExpiration = this.configService.get<string>('auth.jwtRefreshExpiration') || '7d';
+    const refreshExpiration =
+      this.configService.get<string>('auth.jwtRefreshExpiration') || '7d';
     if (refreshExpiration.endsWith('d')) {
-      refreshTokenExpires.setDate(refreshTokenExpires.getDate() + parseInt(refreshExpiration.replace('d', ''), 10));
+      refreshTokenExpires.setDate(
+        refreshTokenExpires.getDate() +
+          parseInt(refreshExpiration.replace('d', ''), 10),
+      );
     } else if (refreshExpiration.endsWith('h')) {
-      refreshTokenExpires.setHours(refreshTokenExpires.getHours() + parseInt(refreshExpiration.replace('h', ''), 10));
+      refreshTokenExpires.setHours(
+        refreshTokenExpires.getHours() +
+          parseInt(refreshExpiration.replace('h', ''), 10),
+      );
     }
 
     // Save refresh token
@@ -357,14 +483,17 @@ export class AuthService {
     deviceFingerprint: string,
     deviceFingerprintData: DeviceFingerprintData,
   ): Promise<void> {
-    const maxSessions = this.configService.get<number>('auth.maxConcurrentSessions') || 3;
+    const maxSessions =
+      this.configService.get<number>('auth.maxConcurrentSessions') || 3;
     const existingSessions = await this.sessionRepository.find({
       where: { userId },
       order: { lastActivityAt: 'ASC' },
     });
 
     // Check if session already exists for this device
-    const existingSession = existingSessions.find((s) => s.deviceFingerprint === deviceFingerprint);
+    const existingSession = existingSessions.find(
+      (s) => s.deviceFingerprint === deviceFingerprint,
+    );
 
     if (existingSession) {
       // Update existing session
