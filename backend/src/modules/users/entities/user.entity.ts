@@ -2,9 +2,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserRole } from '../../../auth/entities/user-role.entity';
 
 @Entity('users')
 export class User {
@@ -47,9 +49,19 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires: Date;
 
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  userRoles: UserRole[];
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  /**
+   * Get active role assignments
+   */
+  getActiveRoles(): UserRole[] {
+    return this.userRoles?.filter((ur) => ur.isActive) || [];
+  }
 }
