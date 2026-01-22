@@ -17,6 +17,8 @@ import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { blockchainConfig } from './config/blockchain.config';
+import { BlockchainSyncModule } from './modules/blockchain/blockchain-sync.module';
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
@@ -28,7 +30,7 @@ import { AuditModule } from './modules/audit/audit.module';
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig],
+      load: [appConfig, authConfig, databaseConfig, blockchainConfig],
       envFilePath: '.env',
     }),
 
@@ -55,6 +57,7 @@ import { AuditModule } from './modules/audit/audit.module';
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    BlockchainSyncModule,
     MedicalRecordsModule,
     AllergiesModule,
     PrescriptionsModule,

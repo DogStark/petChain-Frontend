@@ -99,19 +99,19 @@ export class RolesPermissionsSeeder implements OnModuleInit {
     });
 
     if (!role) {
-      role = this.roleRepository.create(data);
-      await this.roleRepository.save(role);
+      role = this.roleRepository.create(data as any) as any;
+      await this.roleRepository.save(role as any);
       console.log(`Created role: ${data.name}`);
     } else {
       // Update existing role
       role.description = data.description;
-      role.parentRoleId = data.parentRoleId;
+      role.parentRoleId = data.parentRoleId as any;
       role.isSystemRole = data.isSystemRole;
       await this.roleRepository.save(role);
       console.log(`Updated role: ${data.name}`);
     }
 
-    return role;
+    return role as any;
   }
 
   private async assignPermissionsToRoles(): Promise<void> {

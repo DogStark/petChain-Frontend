@@ -94,7 +94,7 @@ export class AuthService {
 
     // Return user without sensitive data
     const { password, emailVerificationToken, passwordResetToken, ...userResponse } = savedUser;
-    return userResponse;
+    return userResponse as any;
   }
 
   /**
@@ -165,7 +165,7 @@ export class AuthService {
     const { password, emailVerificationToken, passwordResetToken, ...userResponse } = user;
     return {
       ...tokens,
-      user: userResponse,
+      user: userResponse as any,
     };
   }
 
@@ -224,7 +224,7 @@ export class AuthService {
     const { password, emailVerificationToken, passwordResetToken, ...userResponse } = user;
     return {
       ...newTokens,
-      user: userResponse,
+      user: userResponse as any,
     };
   }
 
@@ -320,7 +320,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: this.configService.get<string>('auth.jwtAccessExpiration') || '15m',
-    });
+    } as any);
 
     // Generate refresh token
     const refreshTokenValue = TokenUtil.generateToken(64);
