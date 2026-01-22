@@ -26,6 +26,27 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  emailVerified: boolean;
+
+  @Column({ nullable: true })
+  emailVerificationToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerificationExpires: Date;
+
+  @Column({ default: 0 })
+  failedLoginAttempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lockedUntil: Date;
+
+  @Column({ nullable: true })
+  passwordResetToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetExpires: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 
