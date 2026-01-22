@@ -72,6 +72,10 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    MedicalRecordsModule,
+    VetsModule,
+    EmergencyServicesModule,
+    SearchModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
