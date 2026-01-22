@@ -6,6 +6,14 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { UsersModule } from './modules/users/users.module';
+import { PetsModule } from './modules/pets/pets.module';
+import { VetsModule } from './modules/vets/vets.module';
+import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
+import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
+import { AllergiesModule } from './modules/allergies/allergies.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -31,6 +39,14 @@ import { UsersModule } from './modules/users/users.module';
 
     // Feature Modules
     UsersModule,
+    PetsModule,
+    VetsModule,
+    MedicalRecordsModule,
+    VaccinationsModule,
+    AllergiesModule,
+    PrescriptionsModule,
+    AppointmentsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],
