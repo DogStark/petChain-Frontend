@@ -3,9 +3,9 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsNumber,
+  IsArray,
 } from 'class-validator';
-import { PetSpecies } from '../entities/pet.entity';
+import { PetSpecies } from '../entities/pet-species.enum';
 
 export class CreateBreedDto {
   @IsString()
@@ -20,9 +20,9 @@ export class CreateBreedDto {
   @IsOptional()
   description?: string;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  averageLifespan?: number;
+  lifeExpectancy?: string;
 
   @IsString()
   @IsOptional()
@@ -30,5 +30,14 @@ export class CreateBreedDto {
 
   @IsString()
   @IsOptional()
-  size?: string;
+  sizeCategory?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  commonHealthIssues?: string[];
+
+  @IsString()
+  @IsOptional()
+  careRequirements?: string;
 }
