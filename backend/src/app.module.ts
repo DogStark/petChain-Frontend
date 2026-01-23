@@ -6,14 +6,30 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
+import { storageConfig } from './config/storage.config';
+import { processingConfig } from './config/processing.config';
+import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { AuthModule } from './auth/auth.module';
+
+// Feature Modules
 import { UsersModule } from './modules/users/users.module';
+import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+
+// File Upload & Storage Modules
+import { StorageModule } from './modules/storage/storage.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { ValidationModule } from './modules/validation/validation.module';
+import { SecurityModule } from './modules/security/security.module';
+import { ProcessingModule } from './modules/processing/processing.module';
+import { CdnModule } from './modules/cdn/cdn.module';
+import { FilesModule } from './modules/files/files.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
@@ -21,7 +37,15 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig, stellarConfig],
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        storageConfig,
+        processingConfig,
+        cdnConfig,
+        stellarConfig,
+      ],
       envFilePath: '.env',
     }),
 
@@ -41,11 +65,22 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     // Feature Modules
     AuthModule,
     UsersModule,
+    QRCodesModule,
     PetsModule,
     VaccinationsModule,
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+
+    // File Upload, Storage, Security & Processing
+    StorageModule,
+    UploadModule,
+    ValidationModule,
+    SecurityModule,
+    ProcessingModule,
+    CdnModule,
+    FilesModule,
+    RealtimeModule,
     WalletsModule,
   ],
   controllers: [AppController],

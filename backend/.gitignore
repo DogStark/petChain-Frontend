@@ -54,3 +54,5 @@ tmp/
 # Database
 *.sqlite
 *.db
+
+package-lock.json

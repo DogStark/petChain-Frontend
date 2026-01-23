@@ -32,7 +32,9 @@ export class PermissionsService {
   /**
    * Get permission by name
    */
-  async getPermissionByName(name: Permission): Promise<PermissionEntity | null> {
+  async getPermissionByName(
+    name: Permission,
+  ): Promise<PermissionEntity | null> {
     return await this.permissionRepository.findOne({
       where: { name },
     });

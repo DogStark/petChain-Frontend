@@ -19,56 +19,49 @@ import { Pet } from './entities/pet.entity';
 export class PetsController {
   constructor(private readonly petsService: PetsService) {}
 
-  /**
-   * Create a new pet
-   * POST /pets
-   */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createPetDto: CreatePetDto): Promise<Pet> {
-    return await this.petsService.create(createPetDto);
+  create(@Body() createPetDto: CreatePetDto): Promise<Pet> {
+    return this.petsService.create(createPetDto);
   }
 
-  /**
-   * Get all pets
-   * GET /pets
-   */
   @Get()
-  async findAll(@Query('ownerId') ownerId?: string): Promise<Pet[]> {
-    if (ownerId) {
-      return await this.petsService.findByOwner(ownerId);
-    }
-    return await this.petsService.findAll();
+  findAll(@Query('ownerId') ownerId?: string): Promise<Pet[]> {
+    return this.petsService.findAll(ownerId);
   }
 
-  /**
-   * Get a single pet by ID
-   * GET /pets/:id
-   */
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Pet> {
-    return await this.petsService.findOne(id);
+  findOne(@Param('id') id: string): Promise<Pet> {
+    return this.petsService.findOne(id);
   }
 
-  /**
-   * Update a pet
-   * PATCH /pets/:id
-   */
+  @Get(':id/health-summary')
+  async getHealthSummary(@Param('id') id: string) {
+    const pet = await this.petsService.findOne(id);
+    const age = this.petsService.calculateAge(pet.dateOfBirth);
+    const lifeStage = this.petsService.getLifeStage(pet.dateOfBirth, pet.species);
+    
+    return {
+      petId: id,
+      name: pet.name,
+      age,
+      lifeStage,
+      breedHealthIssues: pet.breed?.commonHealthIssues || [],
+      insurancePolicy: pet.insurancePolicy,
+    };
+  }
+
   @Patch(':id')
-  async update(
+  update(
     @Param('id') id: string,
     @Body() updatePetDto: UpdatePetDto,
   ): Promise<Pet> {
-    return await this.petsService.update(id, updatePetDto);
+    return this.petsService.update(id, updatePetDto);
   }
 
-  /**
-   * Delete a pet
-   * DELETE /pets/:id
-   */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string): Promise<void> {
-    return await this.petsService.remove(id);
+  remove(@Param('id') id: string): Promise<void> {
+    return this.petsService.remove(id);
   }
 }
