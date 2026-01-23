@@ -8,7 +8,10 @@ import { Repository, In } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { PermissionEntity } from '../entities/permission.entity';
 import { UserRole } from '../entities/user-role.entity';
-import { RoleAuditLog, RoleAuditAction } from '../entities/role-audit-log.entity';
+import {
+  RoleAuditLog,
+  RoleAuditAction,
+} from '../entities/role-audit-log.entity';
 import { RoleName } from '../constants/roles.enum';
 import { Permission } from '../constants/permissions.enum';
 import { PermissionsService } from './permissions.service';
@@ -112,7 +115,12 @@ export class RolesService {
   async getUserRoles(userId: string): Promise<Role[]> {
     const userRoles = await this.userRoleRepository.find({
       where: { userId, isActive: true },
-      relations: ['role', 'role.parentRole', 'role.rolePermissions', 'role.rolePermissions.permission'],
+      relations: [
+        'role',
+        'role.parentRole',
+        'role.rolePermissions',
+        'role.rolePermissions.permission',
+      ],
     });
 
     return userRoles.map((ur) => ur.role);
@@ -289,7 +297,11 @@ export class RolesService {
    */
   async getAllRoles(): Promise<Role[]> {
     return await this.roleRepository.find({
-      relations: ['parentRole', 'rolePermissions', 'rolePermissions.permission'],
+      relations: [
+        'parentRole',
+        'rolePermissions',
+        'rolePermissions.permission',
+      ],
     });
   }
 }

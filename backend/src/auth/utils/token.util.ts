@@ -24,9 +24,6 @@ export class TokenUtil {
     if (tokenHash.length !== hash.length) {
       return false;
     }
-    return crypto.timingSafeEqual(
-      Buffer.from(tokenHash),
-      Buffer.from(hash),
-    );
+    return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
   }
 }

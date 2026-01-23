@@ -21,7 +21,10 @@ export class RolesPermissionsSeeder implements OnModuleInit {
 
   async onModuleInit() {
     // Only seed if in development or if explicitly enabled
-    if (process.env.SEED_ROLES_PERMISSIONS === 'true' || process.env.NODE_ENV === 'development') {
+    if (
+      process.env.SEED_ROLES_PERMISSIONS === 'true' ||
+      process.env.NODE_ENV === 'development'
+    ) {
       await this.seed();
     }
   }
@@ -99,13 +102,20 @@ export class RolesPermissionsSeeder implements OnModuleInit {
     });
 
     if (!role) {
-      role = this.roleRepository.create(data);
+      role = this.roleRepository.create({
+        name: data.name,
+        description: data.description,
+        parentRoleId: data.parentRoleId ?? undefined,
+        isSystemRole: data.isSystemRole,
+      });
       await this.roleRepository.save(role);
       console.log(`Created role: ${data.name}`);
     } else {
       // Update existing role
       role.description = data.description;
-      role.parentRoleId = data.parentRoleId;
+      if (data.parentRoleId !== null) {
+        role.parentRoleId = data.parentRoleId;
+      }
       role.isSystemRole = data.isSystemRole;
       await this.roleRepository.save(role);
       console.log(`Updated role: ${data.name}`);
@@ -182,9 +192,7 @@ export class RolesPermissionsSeeder implements OnModuleInit {
         permissionId: permission.id,
       });
       await this.rolePermissionRepository.save(rolePermission);
-      console.log(
-        `Assigned permission ${permissionName} to role ${roleId}`,
-      );
+      console.log(`Assigned permission ${permissionName} to role ${roleId}`);
     }
   }
 }

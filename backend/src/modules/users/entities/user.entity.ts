@@ -41,16 +41,16 @@ export class User {
   emailVerified: boolean;
 
   @Column({ nullable: true })
-  emailVerificationToken: string;
+  emailVerificationToken: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  emailVerificationExpires: Date;
+  emailVerificationExpires: Date | null;
 
   @Column({ default: 0 })
   failedLoginAttempts: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  lockedUntil: Date;
+  lockedUntil: Date | null;
 
   @Column({ nullable: true })
   passwordResetToken: string;
