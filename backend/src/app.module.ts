@@ -6,25 +6,22 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
- feat/jwt-auth-with-refresh-tokens
+import { stellarConfig } from './config/stellar.config';
 import { AuthModule } from './auth/auth.module';
-
-
-// Feature Modules
- main
 import { UsersModule } from './modules/users/users.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
   imports: [
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig],
+      load: [appConfig, authConfig, databaseConfig, stellarConfig],
       envFilePath: '.env',
     }),
 
@@ -49,6 +46,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
