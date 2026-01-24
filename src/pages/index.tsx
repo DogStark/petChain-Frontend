@@ -51,7 +51,7 @@ export default function Home() {
           <Image src="/PETCHAIN.jpeg" alt="PetChain Logo" width={120} height={120} className="rounded-2xl shadow-lg" />
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold text-blue-700 mb-4 drop-shadow-sm">PetChain</h1>
-        <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mb-6">
+        <div className="text-xl md:text-2xl text-gray-700 max-w-2xl mb-6">
           Smart, secure, and always-available health tracking for your pet. <br />
           <div className="relative w-full overflow-x-hidden mt-4">
             <div className="animate-marquee whitespace-nowrap">
@@ -60,7 +60,7 @@ export default function Home() {
               </span>
             </div>
           </div>
-        </p>
+        </div>
       </section>
 
       {/* Features Section */}
