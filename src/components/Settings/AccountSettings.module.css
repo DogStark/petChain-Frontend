@@ -1,0 +1,377 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.content {
+  background: white;
+  border-radius: 8px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.sectionTitle {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.sectionDescription {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.dangerSection {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sessionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.sessionItem.active {
+  opacity: 1;
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.sessionInfo {
+  flex: 1;
+}
+
+.deviceName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sessionDetails {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.revokeBtn {
+  padding: 8px 16px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.revokeBtn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.revokeBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.revokeOthersBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #fbbf24;
+  color: #78350f;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.revokeOthersBtn:hover:not(:disabled) {
+  background-color: #f59e0b;
+}
+
+.revokeOthersBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.actionBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.actionBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.dangerBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.dangerBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.deleteBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.deleteBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-radius: 6px;
+}
+
+.success {
+  padding: 12px 16px;
+  background-color: #d1fae5;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  color: #047857;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 8px;
+  padding: 28px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+.modalContent h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modalContent p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.warning {
+  color: #dc2626;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.confirmInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: monospace;
+  margin-bottom: 20px;
+}
+
+.confirmInput:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: #e5e7eb;
+  color: #1f2937;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background-color: #d1d5db;
+}
+
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmDangerBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirmDangerBtn:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.confirmDangerBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.deleteConfirmBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.deleteConfirmBtn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.deleteConfirmBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 16px;
+  }
+
+  .sessionItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .revokeBtn {
+    align-self: flex-end;
+    margin-top: 12px;
+  }
+}
