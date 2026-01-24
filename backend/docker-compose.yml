@@ -16,6 +16,18 @@ services:
     networks:
       - petchain_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: petchain_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - petchain_network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: petchain_pgadmin

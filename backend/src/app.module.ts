@@ -20,6 +20,10 @@ import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
+import { VetsModule } from './modules/vets/vets.module';
+import { EmergencyServicesModule } from './modules/emergency-services/emergency-services.module';
+import { SearchModule } from './modules/search/search.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -71,6 +75,10 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
+    MedicalRecordsModule,
+    VetsModule,
+    EmergencyServicesModule,
+    SearchModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
