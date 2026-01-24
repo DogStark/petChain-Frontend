@@ -9,6 +9,7 @@ import { databaseConfig } from './config/database.config';
 import { storageConfig } from './config/storage.config';
 import { processingConfig } from './config/processing.config';
 import { cdnConfig } from './config/cdn.config';
+import { stellarConfig } from './config/stellar.config';
 import { AuthModule } from './auth/auth.module';
 
 // Feature Modules
@@ -29,6 +30,7 @@ import { ProcessingModule } from './modules/processing/processing.module';
 import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
   imports: [
@@ -42,6 +44,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
         storageConfig,
         processingConfig,
         cdnConfig,
+        stellarConfig,
       ],
       envFilePath: '.env',
     }),
@@ -78,6 +81,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     CdnModule,
     FilesModule,
     RealtimeModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
