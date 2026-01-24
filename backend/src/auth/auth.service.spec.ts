@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { ConflictException, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
 import { UsersService } from '../modules/users/users.service';
@@ -101,8 +106,12 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    refreshTokenRepository = module.get<Repository<RefreshToken>>(getRepositoryToken(RefreshToken));
-    sessionRepository = module.get<Repository<Session>>(getRepositoryToken(Session));
+    refreshTokenRepository = module.get<Repository<RefreshToken>>(
+      getRepositoryToken(RefreshToken),
+    );
+    sessionRepository = module.get<Repository<Session>>(
+      getRepositoryToken(Session),
+    );
     usersService = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
@@ -122,9 +131,15 @@ describe('AuthService', () => {
 
     it('should register a new user successfully', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
-      jest.spyOn(PasswordUtil, 'hashPassword').mockResolvedValue('hashedPassword');
-      jest.spyOn(TokenUtil, 'generateToken').mockReturnValue('verification-token');
-      jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('hashed-verification-token');
+      jest
+        .spyOn(PasswordUtil, 'hashPassword')
+        .mockResolvedValue('hashedPassword');
+      jest
+        .spyOn(TokenUtil, 'generateToken')
+        .mockReturnValue('verification-token');
+      jest
+        .spyOn(TokenUtil, 'hashToken')
+        .mockReturnValue('hashed-verification-token');
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.emailVerificationExpiration') return '24h';
         return null;
@@ -146,7 +161,9 @@ describe('AuthService', () => {
 
       const result = await service.register(registerDto);
 
-      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(registerDto.email);
+      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(
+        registerDto.email,
+      );
       expect(PasswordUtil.hashPassword).toHaveBeenCalled();
       expect(mockUserRepository.create).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
@@ -158,7 +175,9 @@ describe('AuthService', () => {
       const existingUser = { id: 'existing-id', email: registerDto.email };
       mockUsersService.findByEmail.mockResolvedValue(existingUser);
 
-      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(mockUserRepository.create).not.toHaveBeenCalled();
     });
   });
@@ -187,7 +206,9 @@ describe('AuthService', () => {
     };
 
     beforeEach(() => {
-      jest.spyOn(DeviceFingerprintUtil, 'createFingerprint').mockReturnValue('device-fingerprint');
+      jest
+        .spyOn(DeviceFingerprintUtil, 'createFingerprint')
+        .mockReturnValue('device-fingerprint');
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.jwtAccessExpiration') return '15m';
         if (key === 'auth.jwtRefreshExpiration') return '7d';
@@ -195,8 +216,12 @@ describe('AuthService', () => {
         return null;
       });
       mockJwtService.sign.mockReturnValue('access-token');
-      jest.spyOn(TokenUtil, 'generateToken').mockReturnValue('refresh-token-value');
-      jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('hashed-refresh-token');
+      jest
+        .spyOn(TokenUtil, 'generateToken')
+        .mockReturnValue('refresh-token-value');
+      jest
+        .spyOn(TokenUtil, 'hashToken')
+        .mockReturnValue('hashed-refresh-token');
       mockSessionRepository.find.mockResolvedValue([]);
       mockRefreshTokenRepository.create.mockReturnValue({});
       mockRefreshTokenRepository.save.mockResolvedValue({});
@@ -209,7 +234,10 @@ describe('AuthService', () => {
       const result = await service.login(loginDto, deviceFingerprintData);
 
       expect(mockUsersService.findByEmail).toHaveBeenCalledWith(loginDto.email);
-      expect(PasswordUtil.comparePassword).toHaveBeenCalledWith(loginDto.password, mockUser.password);
+      expect(PasswordUtil.comparePassword).toHaveBeenCalledWith(
+        loginDto.password,
+        mockUser.password,
+      );
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
       expect(result.user.email).toBe(loginDto.email);
@@ -217,15 +245,23 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for invalid credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
-      (PasswordUtil.comparePassword as jest.MockedFunction<typeof PasswordUtil.comparePassword>).mockResolvedValue(false);
+      (
+        PasswordUtil.comparePassword as jest.MockedFunction<
+          typeof PasswordUtil.comparePassword
+        >
+      ).mockResolvedValue(false);
 
-      await expect(service.login(loginDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.login(loginDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if user does not exist', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
-      await expect(service.login(loginDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.login(loginDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw ForbiddenException if account is locked', async () => {
@@ -235,35 +271,52 @@ describe('AuthService', () => {
       };
       mockUsersService.findByEmail.mockResolvedValue(lockedUser);
 
-      await expect(service.login(loginDto, deviceFingerprintData)).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.login(loginDto, deviceFingerprintData),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should increment failed login attempts on wrong password', async () => {
       const userWithAttempts = { ...mockUser, failedLoginAttempts: 3 };
       mockUsersService.findByEmail.mockResolvedValue(userWithAttempts);
-      (PasswordUtil.comparePassword as jest.MockedFunction<typeof PasswordUtil.comparePassword>).mockResolvedValue(false);
+      (
+        PasswordUtil.comparePassword as jest.MockedFunction<
+          typeof PasswordUtil.comparePassword
+        >
+      ).mockResolvedValue(false);
       mockUserRepository.save.mockResolvedValue(userWithAttempts);
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.maxFailedLoginAttempts') return 5;
         return null;
       });
 
-      await expect(service.login(loginDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.login(loginDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
       expect(mockUserRepository.save).toHaveBeenCalled();
     });
 
     it('should lock account after max failed attempts', async () => {
       const userWithAttempts = { ...mockUser, failedLoginAttempts: 4 };
       mockUsersService.findByEmail.mockResolvedValue(userWithAttempts);
-      (PasswordUtil.comparePassword as jest.MockedFunction<typeof PasswordUtil.comparePassword>).mockResolvedValue(false);
+      (
+        PasswordUtil.comparePassword as jest.MockedFunction<
+          typeof PasswordUtil.comparePassword
+        >
+      ).mockResolvedValue(false);
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.maxFailedLoginAttempts') return 5;
         if (key === 'auth.accountLockoutDuration') return '15m';
         return null;
       });
-      mockUserRepository.save.mockResolvedValue({ ...userWithAttempts, lockedUntil: new Date() });
+      mockUserRepository.save.mockResolvedValue({
+        ...userWithAttempts,
+        lockedUntil: new Date(),
+      });
 
-      await expect(service.login(loginDto, deviceFingerprintData)).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.login(loginDto, deviceFingerprintData),
+      ).rejects.toThrow(ForbiddenException);
       expect(mockUserRepository.save).toHaveBeenCalled();
     });
   });
@@ -293,15 +346,21 @@ describe('AuthService', () => {
     };
 
     beforeEach(() => {
-      (TokenUtil.hashToken as jest.MockedFunction<typeof TokenUtil.hashToken>).mockReturnValue('hashed-refresh-token');
-      jest.spyOn(DeviceFingerprintUtil, 'createFingerprint').mockReturnValue('device-fingerprint');
+      (
+        TokenUtil.hashToken as jest.MockedFunction<typeof TokenUtil.hashToken>
+      ).mockReturnValue('hashed-refresh-token');
+      jest
+        .spyOn(DeviceFingerprintUtil, 'createFingerprint')
+        .mockReturnValue('device-fingerprint');
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.jwtAccessExpiration') return '15m';
         if (key === 'auth.jwtRefreshExpiration') return '7d';
         return null;
       });
       mockJwtService.sign.mockReturnValue('new-access-token');
-      jest.spyOn(TokenUtil, 'generateToken').mockReturnValue('new-refresh-token');
+      jest
+        .spyOn(TokenUtil, 'generateToken')
+        .mockReturnValue('new-refresh-token');
       mockSessionRepository.findOne.mockResolvedValue({});
       mockSessionRepository.save.mockResolvedValue({});
     });
@@ -323,7 +382,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       mockRefreshTokenRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.refresh(refreshDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refresh(refreshDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for expired refresh token', async () => {
@@ -333,7 +394,9 @@ describe('AuthService', () => {
       };
       mockRefreshTokenRepository.findOne.mockResolvedValue(expiredToken);
 
-      await expect(service.refresh(refreshDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refresh(refreshDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
       expect(mockRefreshTokenRepository.remove).toHaveBeenCalled();
     });
 
@@ -344,14 +407,22 @@ describe('AuthService', () => {
       };
       mockRefreshTokenRepository.findOne.mockResolvedValue(replacedToken);
 
-      await expect(service.refresh(refreshDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refresh(refreshDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for device fingerprint mismatch', async () => {
-      (DeviceFingerprintUtil.createFingerprint as jest.MockedFunction<typeof DeviceFingerprintUtil.createFingerprint>).mockReturnValue('different-fingerprint');
+      (
+        DeviceFingerprintUtil.createFingerprint as jest.MockedFunction<
+          typeof DeviceFingerprintUtil.createFingerprint
+        >
+      ).mockReturnValue('different-fingerprint');
       mockRefreshTokenRepository.findOne.mockResolvedValue(mockRefreshToken);
 
-      await expect(service.refresh(refreshDto, deviceFingerprintData)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refresh(refreshDto, deviceFingerprintData),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -370,7 +441,10 @@ describe('AuthService', () => {
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
       mockUserRepository.findOne.mockResolvedValue(mockUser);
-      mockUserRepository.save.mockResolvedValue({ ...mockUser, emailVerified: true });
+      mockUserRepository.save.mockResolvedValue({
+        ...mockUser,
+        emailVerified: true,
+      });
 
       await service.verifyEmail(verifyEmailDto);
 
@@ -383,7 +457,9 @@ describe('AuthService', () => {
       jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('hashed-token');
       mockUserRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(BadRequestException);
+      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException for expired token', async () => {
@@ -395,7 +471,9 @@ describe('AuthService', () => {
       };
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(BadRequestException);
+      await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -410,8 +488,14 @@ describe('AuthService', () => {
         email: 'test@example.com',
       };
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
-      (TokenUtil.generateToken as jest.MockedFunction<typeof TokenUtil.generateToken>).mockReturnValue('reset-token');
-      (TokenUtil.hashToken as jest.MockedFunction<typeof TokenUtil.hashToken>).mockReturnValue('hashed-reset-token');
+      (
+        TokenUtil.generateToken as jest.MockedFunction<
+          typeof TokenUtil.generateToken
+        >
+      ).mockReturnValue('reset-token');
+      (
+        TokenUtil.hashToken as jest.MockedFunction<typeof TokenUtil.hashToken>
+      ).mockReturnValue('hashed-reset-token');
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.passwordResetExpiration') return '1h';
         return null;
@@ -420,7 +504,9 @@ describe('AuthService', () => {
 
       await service.forgotPassword(forgotPasswordDto);
 
-      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(forgotPasswordDto.email);
+      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(
+        forgotPasswordDto.email,
+      );
       expect(TokenUtil.generateToken).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
     });
@@ -428,7 +514,9 @@ describe('AuthService', () => {
     it('should not throw error if user does not exist (security)', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
-      await expect(service.forgotPassword(forgotPasswordDto)).resolves.not.toThrow();
+      await expect(
+        service.forgotPassword(forgotPasswordDto),
+      ).resolves.not.toThrow();
       expect(mockUserRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -443,7 +531,9 @@ describe('AuthService', () => {
         deviceFingerprint: 'device-fingerprint',
       });
       mockRefreshTokenRepository.remove.mockResolvedValue({});
-      mockSessionRepository.find.mockResolvedValue([{ deviceFingerprint: 'device-fingerprint' }]);
+      mockSessionRepository.find.mockResolvedValue([
+        { deviceFingerprint: 'device-fingerprint' },
+      ]);
       mockSessionRepository.remove.mockResolvedValue({});
 
       await service.logout(refreshToken, userId);

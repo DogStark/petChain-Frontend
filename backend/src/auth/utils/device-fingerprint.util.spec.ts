@@ -1,4 +1,7 @@
-import { DeviceFingerprintUtil, DeviceFingerprintData } from './device-fingerprint.util';
+import {
+  DeviceFingerprintUtil,
+  DeviceFingerprintData,
+} from './device-fingerprint.util';
 import * as crypto from 'crypto';
 
 describe('DeviceFingerprintUtil', () => {

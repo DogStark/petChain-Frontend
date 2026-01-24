@@ -6,31 +6,46 @@ import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
 import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
+import { storageConfig } from './config/storage.config';
+import { processingConfig } from './config/processing.config';
+import { cdnConfig } from './config/cdn.config';
+import { stellarConfig } from './config/stellar.config';
 import { AuthModule } from './auth/auth.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
-import { VetsModule } from './modules/vets/vets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
-import { blockchainConfig } from './config/blockchain.config';
-import { BlockchainSyncModule } from './modules/blockchain/blockchain-sync.module';
-import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
-import { AllergiesModule } from './modules/allergies/allergies.module';
-import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
-import { AppointmentsModule } from './modules/appointments/appointments.module';
-import { AuditModule } from './modules/audit/audit.module';
+
+// File Upload & Storage Modules
+import { StorageModule } from './modules/storage/storage.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { ValidationModule } from './modules/validation/validation.module';
+import { SecurityModule } from './modules/security/security.module';
+import { ProcessingModule } from './modules/processing/processing.module';
+import { CdnModule } from './modules/cdn/cdn.module';
+import { FilesModule } from './modules/files/files.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
   imports: [
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig, blockchainConfig],
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        storageConfig,
+        processingConfig,
+        cdnConfig,
+        stellarConfig,
+      ],
       envFilePath: '.env',
     }),
 
@@ -52,17 +67,21 @@ import { AuditModule } from './modules/audit/audit.module';
     UsersModule,
     QRCodesModule,
     PetsModule,
-    VetsModule,
     VaccinationsModule,
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
-    BlockchainSyncModule,
-    MedicalRecordsModule,
-    AllergiesModule,
-    PrescriptionsModule,
-    AppointmentsModule,
-    AuditModule,
+
+    // File Upload, Storage, Security & Processing
+    StorageModule,
+    UploadModule,
+    ValidationModule,
+    SecurityModule,
+    ProcessingModule,
+    CdnModule,
+    FilesModule,
+    RealtimeModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

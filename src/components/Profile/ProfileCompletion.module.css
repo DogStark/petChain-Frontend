@@ -1,0 +1,84 @@
+.container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.score {
+  font-size: 24px;
+  font-weight: bold;
+  color: #3b82f6;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.message {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.missingFields {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.missingFields h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.missingFields ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.missingFields li {
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 5px;
+}
+
+.missingFields li:before {
+  content: '○ ';
+  margin-right: 8px;
+  color: #f59e0b;
+}
+
+.missingFields li:last-child {
+  margin-bottom: 0;
+}

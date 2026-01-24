@@ -14,7 +14,7 @@ import { BreedsService } from './breeds.service';
 import { CreateBreedDto } from './dto/create-breed.dto';
 import { UpdateBreedDto } from './dto/update-breed.dto';
 import { Breed } from './entities/breed.entity';
-import { PetSpecies } from './entities/pet.entity';
+import { PetSpecies } from './entities/pet-species.enum';
 
 @Controller('breeds')
 export class BreedsController {

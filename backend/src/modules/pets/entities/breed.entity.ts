@@ -29,13 +29,19 @@ export class Breed {
   description: string;
 
   @Column({ nullable: true })
-  averageLifespan: number;
+  lifeExpectancy: string;
 
   @Column({ nullable: true })
   averageWeight: string;
 
   @Column({ nullable: true })
-  size: string;
+  sizeCategory: string;
+
+  @Column('jsonb', { nullable: true })
+  commonHealthIssues: string[];
+
+  @Column('text', { nullable: true })
+  careRequirements: string;
 
   @OneToMany(() => Pet, (pet) => pet.breed)
   pets: Pet[];

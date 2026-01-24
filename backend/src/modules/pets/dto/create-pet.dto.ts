@@ -1,68 +1,21 @@
 import {
-<<<<<<< HEAD
   IsString,
   IsEnum,
-  IsOptional,
-  IsDateString,
-  IsNumber,
-  IsUUID,
-} from 'class-validator';
-import { PetGender, PetSpecies } from '../entities/pet.entity';
-
-export class CreatePetDto {
-  @IsUUID()
-  ownerId: string;
-
-  @IsString()
-  name: string;
-
-  @IsEnum(PetSpecies)
-  species: PetSpecies;
-
-  @IsOptional()
-  @IsString()
-  breed?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dateOfBirth?: string;
-
-  @IsEnum(PetGender)
-  @IsOptional()
-  gender?: PetGender;
-
-  @IsOptional()
-  @IsString()
-  microchipNumber?: string;
-
-  @IsOptional()
-  @IsNumber()
-  weight?: number;
-
-  @IsOptional()
-  @IsString()
-  color?: string;
-
-  @IsOptional()
-  @IsString()
-  specialNeeds?: string;
-
-  @IsOptional()
-  @IsString()
-  profilePhoto?: string;
-=======
-  IsEnum,
-  IsNotEmpty,
-  IsString,
   IsOptional,
   IsDate,
   IsNumber,
   IsUUID,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PetSpecies } from '../entities/pet.entity';
+import { PetGender } from '../entities/pet-gender.enum';
+import { PetSpecies } from '../entities/pet-species.enum';
 
 export class CreatePetDto {
+  @IsUUID()
+  @IsNotEmpty()
+  ownerId: string;
+
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -80,6 +33,18 @@ export class CreatePetDto {
   @IsNotEmpty()
   dateOfBirth: Date;
 
+  @IsEnum(PetGender)
+  @IsOptional()
+  gender?: PetGender;
+
+  @IsString()
+  @IsOptional()
+  microchipNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  tagId?: string;
+
   @IsNumber()
   @IsOptional()
   weight?: number;
@@ -90,10 +55,13 @@ export class CreatePetDto {
 
   @IsString()
   @IsOptional()
-  microchipNumber?: string;
+  specialNeeds?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
-  ownerId?: string;
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
+  insurancePolicy?: string;
+
+  @IsString()
+  @IsOptional()
+  behaviorNotes?: string;
 }

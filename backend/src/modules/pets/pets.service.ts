@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
+import { PetSpecies } from './entities/pet-species.enum';
 
 @Injectable()
 export class PetsService {
@@ -12,100 +13,90 @@ export class PetsService {
     private readonly petRepository: Repository<Pet>,
   ) {}
 
-<<<<<<< HEAD
-=======
-  /**
-   * Create a new pet
-   */
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
   async create(createPetDto: CreatePetDto): Promise<Pet> {
     const pet = this.petRepository.create(createPetDto);
     return await this.petRepository.save(pet);
   }
 
-<<<<<<< HEAD
   async findAll(ownerId?: string): Promise<Pet[]> {
-    if (ownerId) {
-      return await this.petRepository.find({ where: { ownerId } });
-    }
-    return await this.petRepository.find();
-  }
-
-  async findOne(id: string): Promise<Pet> {
-    const pet = await this.petRepository.findOne({ where: { id } });
-=======
-  /**
-   * Get all pets
-   */
-  async findAll(): Promise<Pet[]> {
+    const where = ownerId ? { ownerId } : {};
     return await this.petRepository.find({
-      relations: ['breed', 'owner'],
+      where,
+      relations: ['breed', 'owner', 'photos'],
     });
   }
 
-  /**
-   * Get pets by owner ID
-   */
-  async findByOwner(ownerId: string): Promise<Pet[]> {
-    return await this.petRepository.find({
-      where: { ownerId },
-      relations: ['breed'],
-    });
-  }
-
-  /**
-   * Get a single pet by ID
-   */
   async findOne(id: string): Promise<Pet> {
     const pet = await this.petRepository.findOne({
       where: { id },
-      relations: ['breed', 'owner'],
+      relations: ['breed', 'owner', 'photos'],
     });
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
     if (!pet) {
       throw new NotFoundException(`Pet with ID ${id} not found`);
     }
     return pet;
   }
 
-<<<<<<< HEAD
-=======
-  /**
-   * Update a pet
-   */
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
   async update(id: string, updatePetDto: UpdatePetDto): Promise<Pet> {
     const pet = await this.findOne(id);
     Object.assign(pet, updatePetDto);
     return await this.petRepository.save(pet);
   }
 
-<<<<<<< HEAD
-=======
-  /**
-   * Delete a pet
-   */
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
   async remove(id: string): Promise<void> {
     const pet = await this.findOne(id);
     await this.petRepository.remove(pet);
   }
 
-<<<<<<< HEAD
   async verifyOwnership(petId: string, ownerId: string): Promise<boolean> {
     const pet = await this.petRepository.findOne({
       where: { id: petId, ownerId },
     });
     return !!pet;
-=======
-  /**
-   * Calculate pet's age in weeks (for vaccination scheduling)
-   */
+  }
+
+  calculateAge(dateOfBirth: Date): { years: number; months: number } {
+    const now = new Date();
+    const dob = new Date(dateOfBirth);
+    let years = now.getFullYear() - dob.getFullYear();
+    let months = now.getMonth() - dob.getMonth();
+
+    if (months < 0 || (months === 0 && now.getDate() < dob.getDate())) {
+      years--;
+      months += 12;
+    }
+    
+    // Adjust months if days are less
+    if (now.getDate() < dob.getDate()) {
+        months--;
+    }
+    if (months < 0) {
+        months += 12;
+    }
+    
+    return { years, months };
+  }
+
   calculateAgeInWeeks(dateOfBirth: Date): number {
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - dateOfBirth.getTime());
+    const dob = new Date(dateOfBirth);
+    const diffTime = Math.abs(now.getTime() - dob.getTime());
     const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
     return diffWeeks;
->>>>>>> 2740dfc9f1ae7475a6ba260b78e15df3336d9c8b
+  }
+
+  getLifeStage(dateOfBirth: Date, species: PetSpecies): string {
+    const { years } = this.calculateAge(dateOfBirth);
+    
+    if (species === PetSpecies.DOG || species === PetSpecies.CAT) {
+      if (years < 1) return 'Junior'; // Puppy/Kitten
+      if (years < 7) return 'Adult';
+      return 'Senior';
+    }
+    
+    // Generic
+    if (years < 1) return 'Young';
+    if (years < 5) return 'Adult';
+    return 'Senior';
   }
 }

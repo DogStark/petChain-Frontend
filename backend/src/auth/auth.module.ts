@@ -18,7 +18,7 @@ import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { RoleAuditLog } from './entities/role-audit-log.entity';
 import { EmailServiceImpl } from './services/email.service';
-import { EmailService } from './interfaces/email-service.interface';
+import { EMAIL_SERVICE } from './interfaces/email-service.interface';
 import { RolesService } from './services/roles.service';
 import { PermissionsService } from './services/permissions.service';
 import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
@@ -39,12 +39,39 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('auth.jwtSecret'),
-        signOptions: {
-          expiresIn: configService.get<string>('auth.jwtAccessExpiration') || '15m',
-        },
-      } as any),
+      useFactory: (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('auth.jwtSecret') || 'fallback-secret';
+        const expiresIn =
+          configService.get<string>('auth.jwtAccessExpiration') || '15m';
+        // Parse duration to seconds
+        const match = expiresIn.match(/^(\d+)([smhd])$/);
+        let expiresInSeconds = 900; // Default 15 minutes
+        if (match) {
+          const value = parseInt(match[1], 10);
+          const unit = match[2];
+          switch (unit) {
+            case 's':
+              expiresInSeconds = value;
+              break;
+            case 'm':
+              expiresInSeconds = value * 60;
+              break;
+            case 'h':
+              expiresInSeconds = value * 3600;
+              break;
+            case 'd':
+              expiresInSeconds = value * 86400;
+              break;
+          }
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: expiresInSeconds,
+          },
+        };
+      },
     }),
     UsersModule,
   ],
@@ -58,7 +85,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
     PermissionsService,
     RolesPermissionsSeeder,
     {
-      provide: EmailService,
+      provide: EMAIL_SERVICE,
       useClass: EmailServiceImpl,
     },
   ],
