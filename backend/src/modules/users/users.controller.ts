@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Query,
   Post,
   Body,
   Patch,
@@ -8,6 +9,8 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Header,
+  StreamableFile,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -17,6 +20,7 @@ import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SearchUsersDto } from './dto/search-users.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { User } from './entities/user.entity';
@@ -32,7 +36,7 @@ export class UsersController {
     private readonly activityLogService: UserActivityLogService,
   ) {}
 
-  /**
+   /**
    * Create a new user
    * POST /users
    */
@@ -55,6 +59,27 @@ export class UsersController {
   }
 
   /**
+   * Search users with filters, sorting, and pagination
+   * GET /users/search?q=john&role=admin&status=active&sort=createdAt_desc
+   * ⚠️ MUST come before @Get(':id')
+   */
+  @Get('search')
+  async searchUsers(@Query() query: SearchUsersDto) {
+    return await this.usersService.searchUsers(query);
+  }
+
+  /**
+   * Export search results to CSV
+   * GET /users/export?q=john&role=admin
+   * ⚠️ MUST come before @Get(':id')
+   */
+  @Get('export')
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="users-export.csv"')
+  async exportUsers(@Query() query: SearchUsersDto): Promise<StreamableFile> {
+    const csv = await this.usersService.exportUsers(query);
+    const buffer = Buffer.from(csv, 'utf-8');
+    return new StreamableFile(buffer);
    * Get current user profile
    * GET /users/me/profile
    */
@@ -420,6 +445,7 @@ export class UsersController {
   /**
    * Get a single user by ID
    * GET /users/:id
+   * ⚠️ MUST come after specific routes like /search and /export
    */
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<User> {
@@ -448,3 +474,4 @@ export class UsersController {
     return await this.usersService.remove(id);
   }
 }
+
