@@ -2,6 +2,7 @@
 /dist
 /node_modules
 /build
+/npm-cache
 
 # Logs
 logs
@@ -53,3 +54,5 @@ tmp/
 # Database
 *.sqlite
 *.db
+
+package-lock.json
