@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
@@ -73,7 +73,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
         };
       },
     }),
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
   providers: [

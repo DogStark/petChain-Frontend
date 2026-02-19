@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
@@ -11,6 +11,8 @@ import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
 import { FileUploadService } from './services/file-upload.service';
+import { UserSearchService } from './services/user-search.service';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { FileUploadService } from './services/file-upload.service';
       UserSession,
       UserActivityLog,
     ]),
+    forwardRef(() => AuthModule),
   ],
   controllers: [UsersController, UploadsController],
   providers: [
@@ -28,6 +31,7 @@ import { FileUploadService } from './services/file-upload.service';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    UserSearchService,
   ],
   exports: [
     UsersService,
@@ -35,6 +39,7 @@ import { FileUploadService } from './services/file-upload.service';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    UserSearchService,
   ],
 })
 export class UsersModule {}
