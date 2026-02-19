@@ -7,10 +7,12 @@ import { User } from './entities/user.entity';
 import { UserPreference } from './entities/user-preference.entity';
 import { UserSession } from './entities/user-session.entity';
 import { UserActivityLog } from './entities/user-activity-log.entity';
+import { UserOnboarding } from './entities/user-onboarding.entity';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
 import { FileUploadService } from './services/file-upload.service';
+import { OnboardingService } from './services/onboarding.service';
 import { UserSearchService } from './services/user-search.service';
 import { AuthModule } from '../../auth/auth.module';
 
@@ -21,6 +23,7 @@ import { AuthModule } from '../../auth/auth.module';
       UserPreference,
       UserSession,
       UserActivityLog,
+      UserOnboarding,
     ]),
     forwardRef(() => AuthModule),
   ],
@@ -31,6 +34,7 @@ import { AuthModule } from '../../auth/auth.module';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    OnboardingService,
     UserSearchService,
   ],
   exports: [
@@ -39,6 +43,7 @@ import { AuthModule } from '../../auth/auth.module';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    OnboardingService,
     UserSearchService,
   ],
 })

@@ -456,6 +456,50 @@ export class UsersController {
   }
 
   /**
+   * Get current user onboarding status
+   * GET /users/me/onboarding
+   */
+  @Get('me/onboarding')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingStatus(@CurrentUser() user: User) {
+    return this.onboardingService.getOrCreate(user.id);
+  }
+
+  /**
+   * Mark an onboarding step as complete
+   * POST /users/me/onboarding/steps/:stepId/complete
+   */
+  @Post('me/onboarding/steps/:stepId/complete')
+  @UseGuards(JwtAuthGuard)
+  async completeOnboardingStep(
+    @CurrentUser() user: User,
+    @Param('stepId') stepId: OnboardingStepId,
+  ) {
+    return this.onboardingService.completeStep(user.id, stepId);
+  }
+
+  /**
+   * Skip onboarding entirely
+   * POST /users/me/onboarding/skip
+   */
+  @Post('me/onboarding/skip')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async skipOnboarding(@CurrentUser() user: User): Promise<void> {
+    await this.onboardingService.skip(user.id);
+  }
+
+  /**
+   * Get onboarding analytics (aggregate across all users)
+   * GET /users/me/onboarding/analytics
+   */
+  @Get('me/onboarding/analytics')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingAnalytics() {
+    return this.onboardingService.getAnalytics();
+  }
+
+  /**
    * Get a single user by ID
    * GET /users/:id
    * ⚠️ MUST come after specific routes like /search and /export
