@@ -18,6 +18,8 @@ import { UsersService } from './users.service';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
+import { OnboardingService } from './services/onboarding.service';
+import { OnboardingStepId } from './entities/user-onboarding.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
@@ -34,6 +36,7 @@ export class UsersController {
     private readonly preferenceService: UserPreferenceService,
     private readonly sessionService: UserSessionService,
     private readonly activityLogService: UserActivityLogService,
+    private readonly onboardingService: OnboardingService,
   ) {}
 
    /**
@@ -440,6 +443,50 @@ export class UsersController {
       activityLogs: activity,
       exportedAt: new Date(),
     };
+  }
+
+  /**
+   * Get current user onboarding status
+   * GET /users/me/onboarding
+   */
+  @Get('me/onboarding')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingStatus(@CurrentUser() user: User) {
+    return this.onboardingService.getOrCreate(user.id);
+  }
+
+  /**
+   * Mark an onboarding step as complete
+   * POST /users/me/onboarding/steps/:stepId/complete
+   */
+  @Post('me/onboarding/steps/:stepId/complete')
+  @UseGuards(JwtAuthGuard)
+  async completeOnboardingStep(
+    @CurrentUser() user: User,
+    @Param('stepId') stepId: OnboardingStepId,
+  ) {
+    return this.onboardingService.completeStep(user.id, stepId);
+  }
+
+  /**
+   * Skip onboarding entirely
+   * POST /users/me/onboarding/skip
+   */
+  @Post('me/onboarding/skip')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async skipOnboarding(@CurrentUser() user: User): Promise<void> {
+    await this.onboardingService.skip(user.id);
+  }
+
+  /**
+   * Get onboarding analytics (aggregate across all users)
+   * GET /users/me/onboarding/analytics
+   */
+  @Get('me/onboarding/analytics')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingAnalytics() {
+    return this.onboardingService.getAnalytics();
   }
 
   /**

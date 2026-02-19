@@ -7,10 +7,12 @@ import { User } from './entities/user.entity';
 import { UserPreference } from './entities/user-preference.entity';
 import { UserSession } from './entities/user-session.entity';
 import { UserActivityLog } from './entities/user-activity-log.entity';
+import { UserOnboarding } from './entities/user-onboarding.entity';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
 import { FileUploadService } from './services/file-upload.service';
+import { OnboardingService } from './services/onboarding.service';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { FileUploadService } from './services/file-upload.service';
       UserPreference,
       UserSession,
       UserActivityLog,
+      UserOnboarding,
     ]),
   ],
   controllers: [UsersController, UploadsController],
@@ -28,6 +31,7 @@ import { FileUploadService } from './services/file-upload.service';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    OnboardingService,
   ],
   exports: [
     UsersService,
@@ -35,6 +39,7 @@ import { FileUploadService } from './services/file-upload.service';
     UserSessionService,
     UserActivityLogService,
     FileUploadService,
+    OnboardingService,
   ],
 })
 export class UsersModule {}
