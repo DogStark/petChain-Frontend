@@ -1,10 +1,15 @@
 import { Controller, Get, Post, Param, Query, Body, NotFoundException } from '@nestjs/common';
 import { BlockchainSyncService } from './blockchain-sync.service';
+import { StellarService } from './stellar.service';
 import { RecordType } from './entities/blockchain-sync.entity';
+import { xdr } from '@stellar/stellar-sdk';
 
 @Controller('blockchain-sync')
 export class BlockchainSyncController {
-  constructor(private readonly syncService: BlockchainSyncService) {}
+  constructor(
+    private readonly syncService: BlockchainSyncService,
+    private readonly stellarService: StellarService,
+  ) {}
 
   @Get('status/:recordId')
   async getStatus(@Param('recordId') recordId: string) {
@@ -20,8 +25,6 @@ export class BlockchainSyncController {
     return this.syncService.verifyRecord(recordId, recordType, data);
   }
 
-  // Note: Usually sync is triggered by internal events or hooks in other modules,
-  // but we expose an endpoint for manual sync as per requirements.
   @Post('trigger/:recordId')
   async triggerSync(
     @Param('recordId') recordId: string,
@@ -29,5 +32,36 @@ export class BlockchainSyncController {
     @Body('data') data: any,
   ) {
     return this.syncService.syncRecord(recordId, recordType, data);
+  }
+
+  @Post('contract/deploy')
+  async deployContract(@Body('wasmHash') wasmHash: string) {
+    return this.stellarService.deployContract(wasmHash);
+  }
+
+  @Post('contract/invoke')
+  async invokeContract(
+    @Body('contractId') contractId: string,
+    @Body('method') method: string,
+    @Body('params') params?: any[],
+  ) {
+    return this.stellarService.invokeContract(contractId, method, params);
+  }
+
+  @Post('contract/upgrade')
+  async upgradeContract(
+    @Body('contractId') contractId: string,
+    @Body('newWasmHash') newWasmHash: string,
+  ) {
+    return this.stellarService.upgradeContract(contractId, newWasmHash);
+  }
+
+  @Post('contract/estimate-gas')
+  async estimateGas(
+    @Body('contractId') contractId: string,
+    @Body('method') method: string,
+    @Body('params') params?: any[],
+  ) {
+    return this.stellarService.estimateGas(contractId, method, params);
   }
 }
