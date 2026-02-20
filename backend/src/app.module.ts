@@ -35,6 +35,7 @@ import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -90,8 +91,10 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     FilesModule,
     RealtimeModule,
     WalletsModule,
+    // Notifications
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
