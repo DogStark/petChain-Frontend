@@ -12,12 +12,12 @@ import {
   Header,
   StreamableFile,
   UseGuards,
-  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
+import { UserSearchService } from './services/user-search.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
@@ -25,6 +25,9 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { RoleName } from '../../auth/constants/roles.enum';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('users')
@@ -34,9 +37,10 @@ export class UsersController {
     private readonly preferenceService: UserPreferenceService,
     private readonly sessionService: UserSessionService,
     private readonly activityLogService: UserActivityLogService,
+    private readonly searchService: UserSearchService,
   ) {}
 
-   /**
+  /**
    * Create a new user
    * POST /users
    */
@@ -59,27 +63,34 @@ export class UsersController {
   }
 
   /**
-   * Search users with filters, sorting, and pagination
-   * GET /users/search?q=john&role=admin&status=active&sort=createdAt_desc
+   * Search users with filters, sorting, and pagination (admin only)
+   * GET /users/search?q=john&role=Admin&status=active&sort=createdAt_desc
    * ⚠️ MUST come before @Get(':id')
    */
   @Get('search')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.Admin)
   async searchUsers(@Query() query: SearchUsersDto) {
-    return await this.usersService.searchUsers(query);
+    return await this.searchService.searchUsers(query);
   }
 
   /**
-   * Export search results to CSV
-   * GET /users/export?q=john&role=admin
+   * Export search results to CSV (admin only)
+   * GET /users/export?q=john&role=Admin
    * ⚠️ MUST come before @Get(':id')
    */
   @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.Admin)
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="users-export.csv"')
   async exportUsers(@Query() query: SearchUsersDto): Promise<StreamableFile> {
-    const csv = await this.usersService.exportUsers(query);
+    const csv = await this.searchService.exportUsers(query);
     const buffer = Buffer.from(csv, 'utf-8');
     return new StreamableFile(buffer);
+  }
+
+  /**
    * Get current user profile
    * GET /users/me/profile
    */
@@ -241,7 +252,10 @@ export class UsersController {
    */
   @Patch('me/preferences/privacy')
   @UseGuards(JwtAuthGuard)
-  async updatePrivacySettings(@CurrentUser() user: User, @Body() settings: any) {
+  async updatePrivacySettings(
+    @CurrentUser() user: User,
+    @Body() settings: any,
+  ) {
     return await this.preferenceService.updatePrivacySettings(
       user.id,
       settings,
@@ -403,8 +417,7 @@ export class UsersController {
     await this.activityLogService.logActivity({
       userId: user.id,
       activityType: 'DATA_DELETION' as any,
-      description:
-        'Account deleted (data retained for 30 days as per policy)',
+      description: 'Account deleted (data retained for 30 days as per policy)',
     });
 
     // Soft delete user
@@ -443,6 +456,50 @@ export class UsersController {
   }
 
   /**
+   * Get current user onboarding status
+   * GET /users/me/onboarding
+   */
+  @Get('me/onboarding')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingStatus(@CurrentUser() user: User) {
+    return this.onboardingService.getOrCreate(user.id);
+  }
+
+  /**
+   * Mark an onboarding step as complete
+   * POST /users/me/onboarding/steps/:stepId/complete
+   */
+  @Post('me/onboarding/steps/:stepId/complete')
+  @UseGuards(JwtAuthGuard)
+  async completeOnboardingStep(
+    @CurrentUser() user: User,
+    @Param('stepId') stepId: OnboardingStepId,
+  ) {
+    return this.onboardingService.completeStep(user.id, stepId);
+  }
+
+  /**
+   * Skip onboarding entirely
+   * POST /users/me/onboarding/skip
+   */
+  @Post('me/onboarding/skip')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async skipOnboarding(@CurrentUser() user: User): Promise<void> {
+    await this.onboardingService.skip(user.id);
+  }
+
+  /**
+   * Get onboarding analytics (aggregate across all users)
+   * GET /users/me/onboarding/analytics
+   */
+  @Get('me/onboarding/analytics')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingAnalytics() {
+    return this.onboardingService.getAnalytics();
+  }
+
+  /**
    * Get a single user by ID
    * GET /users/:id
    * ⚠️ MUST come after specific routes like /search and /export
@@ -474,4 +531,3 @@ export class UsersController {
     return await this.usersService.remove(id);
   }
 }
-
