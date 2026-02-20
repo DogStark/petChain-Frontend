@@ -56,6 +56,9 @@ export class Vaccination {
   @Column({ nullable: true })
   certificateCode: string;
 
+  @Column({ default: false })
+  reminderSent: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

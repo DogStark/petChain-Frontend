@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
@@ -38,6 +39,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -55,6 +57,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
       ],
       envFilePath: '.env',
     }),
+
+    // Scheduler Module
+    ScheduleModule.forRoot(),
 
     // TypeORM Module
     TypeOrmModule.forRootAsync({
@@ -98,8 +103,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     EmailModule,
     // Notifications
     NotificationsModule,
+    // Analytics
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

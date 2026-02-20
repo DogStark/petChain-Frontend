@@ -2,13 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
 import {
-  VaccinationReminder,
+  Reminder,
   ReminderStatus,
-} from './entities/vaccination-reminder.entity';
+  ReminderType,
+} from './entities/reminder.entity';
 import { CreateReminderDto } from './dto/create-reminder.dto';
 import { UpdateReminderDto } from './dto/update-reminder.dto';
 import { Pet } from '../pets/entities/pet.entity';
 import { VaccinationSchedule } from '../vaccinations/entities/vaccination-schedule.entity';
+import { User } from '../users/entities/user.entity';
 
 /**
  * Notification payload for external notification services
@@ -17,35 +19,36 @@ export interface ReminderNotification {
   reminderId: string;
   petId: string;
   petName: string;
-  ownerId: string;
-  ownerEmail?: string;
-  vaccineName: string;
+  userId: string;
+  userEmail?: string;
+  type: ReminderType;
+  title: string;
   dueDate: Date;
   daysUntilDue: number;
-  escalationLevel: 'FIRST' | 'SECOND' | 'FINAL' | 'OVERDUE';
+  level: 'FIRST' | 'SECOND' | 'THIRD' | 'FINAL' | 'OVERDUE';
   message: string;
 }
 
 @Injectable()
 export class ReminderService {
-  // Default reminder intervals: 7 days, 3 days, and day of
-  private readonly DEFAULT_INTERVALS = [7, 3, 0];
+  // Default reminder intervals: 7 days, 3 days, 1 day, and day of
+  private readonly DEFAULT_INTERVALS = [7, 3, 1, 0];
 
   constructor(
-    @InjectRepository(VaccinationReminder)
-    private readonly reminderRepository: Repository<VaccinationReminder>,
+    @InjectRepository(Reminder)
+    private readonly reminderRepository: Repository<Reminder>,
     @InjectRepository(Pet)
     private readonly petRepository: Repository<Pet>,
     @InjectRepository(VaccinationSchedule)
     private readonly scheduleRepository: Repository<VaccinationSchedule>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   /**
    * Create a new reminder
    */
-  async create(
-    createReminderDto: CreateReminderDto,
-  ): Promise<VaccinationReminder> {
+  async create(createReminderDto: any): Promise<Reminder> {
     const reminder = this.reminderRepository.create({
       ...createReminderDto,
       customIntervalDays:
@@ -57,9 +60,9 @@ export class ReminderService {
   /**
    * Get all reminders
    */
-  async findAll(): Promise<VaccinationReminder[]> {
+  async findAll(): Promise<Reminder[]> {
     return await this.reminderRepository.find({
-      relations: ['pet', 'vaccinationSchedule'],
+      relations: ['pet', 'user'],
       order: { dueDate: 'ASC' },
     });
   }
@@ -67,41 +70,34 @@ export class ReminderService {
   /**
    * Get reminders by pet
    */
-  async findByPet(petId: string): Promise<VaccinationReminder[]> {
+  async findByPet(petId: string): Promise<Reminder[]> {
     return await this.reminderRepository.find({
       where: { petId },
-      relations: ['vaccinationSchedule'],
       order: { dueDate: 'ASC' },
     });
   }
 
   /**
-   * Get reminders by owner (through pets)
+   * Get reminders by user
    */
-  async findByOwner(ownerId: string): Promise<VaccinationReminder[]> {
-    const pets = await this.petRepository.find({ where: { ownerId } });
-    const petIds = pets.map((p) => p.id);
-
-    if (petIds.length === 0) return [];
-
+  async findByUser(userId: string): Promise<Reminder[]> {
     return await this.reminderRepository.find({
-      where: { petId: In(petIds) },
-      relations: ['pet', 'vaccinationSchedule'],
+      where: { userId },
+      relations: ['pet'],
       order: { dueDate: 'ASC' },
     });
   }
 
   /**
-   * Get upcoming reminders (pending and not overdue)
+   * Get upcoming reminders
    */
-  async findUpcoming(daysAhead: number = 30): Promise<VaccinationReminder[]> {
+  async findUpcoming(daysAhead: number = 30): Promise<Reminder[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
     return await this.reminderRepository
       .createQueryBuilder('reminder')
       .leftJoinAndSelect('reminder.pet', 'pet')
-      .leftJoinAndSelect('reminder.vaccinationSchedule', 'schedule')
       .where('reminder.dueDate <= :futureDate', { futureDate })
       .andWhere('reminder.status NOT IN (:...excludedStatuses)', {
         excludedStatuses: [ReminderStatus.COMPLETED, ReminderStatus.CANCELLED],
@@ -113,10 +109,10 @@ export class ReminderService {
   /**
    * Get a single reminder
    */
-  async findOne(id: string): Promise<VaccinationReminder> {
+  async findOne(id: string): Promise<Reminder> {
     const reminder = await this.reminderRepository.findOne({
       where: { id },
-      relations: ['pet', 'vaccinationSchedule'],
+      relations: ['pet', 'user'],
     });
     if (!reminder) {
       throw new NotFoundException(`Reminder with ID ${id} not found`);
@@ -127,10 +123,7 @@ export class ReminderService {
   /**
    * Update a reminder
    */
-  async update(
-    id: string,
-    updateReminderDto: UpdateReminderDto,
-  ): Promise<VaccinationReminder> {
+  async update(id: string, updateReminderDto: any): Promise<Reminder> {
     const reminder = await this.findOne(id);
     Object.assign(reminder, updateReminderDto);
     return await this.reminderRepository.save(reminder);
@@ -147,15 +140,12 @@ export class ReminderService {
   /**
    * Mark reminder as complete
    */
-  async markComplete(
-    id: string,
-    vaccinationId?: string,
-  ): Promise<VaccinationReminder> {
+  async markComplete(id: string, metadataUpdate?: any): Promise<Reminder> {
     const reminder = await this.findOne(id);
     reminder.status = ReminderStatus.COMPLETED;
     reminder.completedAt = new Date();
-    if (vaccinationId) {
-      reminder.vaccinationId = vaccinationId;
+    if (metadataUpdate) {
+      reminder.metadata = { ...reminder.metadata, ...metadataUpdate };
     }
     return await this.reminderRepository.save(reminder);
   }
@@ -163,7 +153,7 @@ export class ReminderService {
   /**
    * Snooze a reminder
    */
-  async snooze(id: string, days: number = 1): Promise<VaccinationReminder> {
+  async snooze(id: string, days: number = 1): Promise<Reminder> {
     const reminder = await this.findOne(id);
     const snoozedUntil = new Date();
     snoozedUntil.setDate(snoozedUntil.getDate() + days);
@@ -173,32 +163,16 @@ export class ReminderService {
   }
 
   /**
-   * Set custom reminder intervals
+   * Generate vaccination reminders for a pet based on breed schedules
    */
-  async setCustomIntervals(
-    id: string,
-    intervals: number[],
-  ): Promise<VaccinationReminder> {
-    const reminder = await this.findOne(id);
-    // Sort intervals in descending order (largest first)
-    reminder.customIntervalDays = [...intervals].sort((a, b) => b - a);
-    return await this.reminderRepository.save(reminder);
-  }
-
-  /**
-   * Generate reminders for a pet based on breed schedules
-   */
-  async generateRemindersForPet(petId: string): Promise<VaccinationReminder[]> {
+  async generateVaccinationReminders(petId: string): Promise<Reminder[]> {
     const pet = await this.petRepository.findOne({
       where: { id: petId },
       relations: ['breed'],
     });
 
-    if (!pet) {
-      throw new NotFoundException(`Pet with ID ${petId} not found`);
-    }
+    if (!pet) throw new NotFoundException(`Pet with ID ${petId} not found`);
 
-    // Get applicable vaccination schedules
     let schedules: VaccinationSchedule[];
     if (pet.breedId) {
       schedules = await this.scheduleRepository
@@ -216,22 +190,24 @@ export class ReminderService {
         .getMany();
     }
 
-    const reminders: VaccinationReminder[] = [];
+    const reminders: Reminder[] = [];
     const petAgeWeeks = this.calculateAgeInWeeks(pet.dateOfBirth);
 
     for (const schedule of schedules) {
-      // Check if reminder already exists for this pet and schedule
       const existingReminder = await this.reminderRepository.findOne({
         where: {
           petId,
-          vaccinationScheduleId: schedule.id,
+          type: ReminderType.VACCINATION,
           status: Not(In([ReminderStatus.COMPLETED, ReminderStatus.CANCELLED])),
         },
       });
+      // Simple check for schedule in metadata - could be more robust
+      if (
+        existingReminder &&
+        existingReminder.metadata?.vaccinationScheduleId === schedule.id
+      )
+        continue;
 
-      if (existingReminder) continue;
-
-      // Calculate due date based on pet's age and schedule
       const dueDate = this.calculateDueDate(
         pet.dateOfBirth,
         schedule,
@@ -241,10 +217,13 @@ export class ReminderService {
       if (dueDate) {
         const reminder = this.reminderRepository.create({
           petId,
-          vaccinationScheduleId: schedule.id,
-          vaccineName: schedule.vaccineName,
+          userId: pet.ownerId,
+          type: ReminderType.VACCINATION,
+          title: `${schedule.vaccineName} Vaccination`,
+          description: `Upcoming ${schedule.vaccineName} vaccination for ${pet.name}.`,
           dueDate,
           customIntervalDays: this.DEFAULT_INTERVALS,
+          metadata: { vaccinationScheduleId: schedule.id },
         });
         reminders.push(await this.reminderRepository.save(reminder));
       }
@@ -254,35 +233,32 @@ export class ReminderService {
   }
 
   /**
-   * Process reminder escalation (7 days, 3 days, day of)
-   * Returns notifications to be sent
+   * Process reminder escalation for all types
    */
   async processReminderEscalation(): Promise<ReminderNotification[]> {
     const now = new Date();
     const notifications: ReminderNotification[] = [];
 
-    // Get all active reminders
+    const activeStatuses = [
+      ReminderStatus.PENDING,
+      ReminderStatus.SENT_7_DAYS,
+      ReminderStatus.SENT_3_DAYS,
+      ReminderStatus.SENT_1_DAY,
+    ];
+
     const reminders = await this.reminderRepository.find({
-      where: {
-        status: In([
-          ReminderStatus.PENDING,
-          ReminderStatus.SENT_7_DAYS,
-          ReminderStatus.SENT_3_DAYS,
-        ]),
-      },
-      relations: ['pet', 'pet.owner'],
+      where: { status: In(activeStatuses) },
+      relations: ['pet', 'user'],
     });
 
     for (const reminder of reminders) {
       const dueDate = new Date(reminder.dueDate);
-      const daysUntilDue = Math.floor(
-        (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const diffTime = dueDate.getTime() - now.getTime();
+      const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       const intervals = reminder.customIntervalDays || this.DEFAULT_INTERVALS;
       let notification: ReminderNotification | null = null;
 
-      // Check for overdue
       if (daysUntilDue < 0) {
         reminder.status = ReminderStatus.OVERDUE;
         notification = this.createNotification(
@@ -290,17 +266,19 @@ export class ReminderService {
           daysUntilDue,
           'OVERDUE',
         );
-      }
-      // Check for day of (0 days)
-      else if (
-        daysUntilDue <= (intervals[2] ?? 0) &&
+      } else if (
+        daysUntilDue <= (intervals[3] ?? 0) &&
         reminder.status !== ReminderStatus.SENT_DAY_OF
       ) {
         reminder.status = ReminderStatus.SENT_DAY_OF;
         notification = this.createNotification(reminder, daysUntilDue, 'FINAL');
-      }
-      // Check for 3 days
-      else if (
+      } else if (
+        daysUntilDue <= (intervals[2] ?? 1) &&
+        reminder.status === ReminderStatus.SENT_3_DAYS
+      ) {
+        reminder.status = ReminderStatus.SENT_1_DAY;
+        notification = this.createNotification(reminder, daysUntilDue, 'THIRD');
+      } else if (
         daysUntilDue <= (intervals[1] ?? 3) &&
         reminder.status === ReminderStatus.SENT_7_DAYS
       ) {
@@ -310,9 +288,7 @@ export class ReminderService {
           daysUntilDue,
           'SECOND',
         );
-      }
-      // Check for 7 days
-      else if (
+      } else if (
         daysUntilDue <= (intervals[0] ?? 7) &&
         reminder.status === ReminderStatus.PENDING
       ) {
@@ -321,11 +297,9 @@ export class ReminderService {
       }
 
       if (notification) {
-        // Record when reminder was sent
         const sentAt = reminder.reminderSentAt || [];
         sentAt.push(now.toISOString());
         reminder.reminderSentAt = sentAt;
-
         await this.reminderRepository.save(reminder);
         notifications.push(notification);
       }
@@ -334,62 +308,51 @@ export class ReminderService {
     return notifications;
   }
 
-  /**
-   * Create notification payload
-   */
   private createNotification(
-    reminder: VaccinationReminder,
+    reminder: Reminder,
     daysUntilDue: number,
-    level: 'FIRST' | 'SECOND' | 'FINAL' | 'OVERDUE',
+    level: 'FIRST' | 'SECOND' | 'THIRD' | 'FINAL' | 'OVERDUE',
   ): ReminderNotification {
     const messages = {
-      FIRST: `Reminder: ${reminder.pet?.name}'s ${reminder.vaccineName} vaccination is due in ${daysUntilDue} days.`,
-      SECOND: `Upcoming: ${reminder.pet?.name}'s ${reminder.vaccineName} vaccination is due in ${daysUntilDue} days. Please schedule an appointment.`,
-      FINAL: `Today: ${reminder.pet?.name}'s ${reminder.vaccineName} vaccination is due today!`,
-      OVERDUE: `Overdue: ${reminder.pet?.name}'s ${reminder.vaccineName} vaccination is ${Math.abs(daysUntilDue)} days overdue. Please vaccinate immediately.`,
+      FIRST: `Reminder: ${reminder.title} for ${reminder.pet?.name} is due in ${daysUntilDue} days.`,
+      SECOND: `Upcoming: ${reminder.title} for ${reminder.pet?.name} is due in ${daysUntilDue} days.`,
+      THIRD: `Tomorrow: ${reminder.title} for ${reminder.pet?.name} is due tomorrow!`,
+      FINAL: `Today: ${reminder.title} for ${reminder.pet?.name} is due today!`,
+      OVERDUE: `Overdue: ${reminder.title} for ${reminder.pet?.name} is ${Math.abs(daysUntilDue)} days overdue!`,
     };
 
     return {
       reminderId: reminder.id,
       petId: reminder.petId,
       petName: reminder.pet?.name || 'Unknown',
-      ownerId: reminder.pet?.ownerId || '',
-      ownerEmail: reminder.pet?.owner?.email,
-      vaccineName: reminder.vaccineName,
+      userId: reminder.userId,
+      userEmail: reminder.user?.email,
+      type: reminder.type,
+      title: reminder.title,
       dueDate: reminder.dueDate,
       daysUntilDue,
-      escalationLevel: level,
+      level,
       message: messages[level],
     };
   }
 
-  /**
-   * Calculate age in weeks
-   */
   private calculateAgeInWeeks(dateOfBirth: Date): number {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - new Date(dateOfBirth).getTime());
     return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
   }
 
-  /**
-   * Calculate due date for vaccination
-   */
   private calculateDueDate(
     dateOfBirth: Date,
     schedule: VaccinationSchedule,
     currentAgeWeeks: number,
   ): Date | null {
     const birthDate = new Date(dateOfBirth);
-
-    // If pet is younger than recommended age, set due date at recommended age
     if (currentAgeWeeks < schedule.recommendedAgeWeeks) {
       const dueDate = new Date(birthDate);
       dueDate.setDate(dueDate.getDate() + schedule.recommendedAgeWeeks * 7);
       return dueDate;
     }
-
-    // If pet is older and schedule has interval, calculate next due date
     if (schedule.intervalWeeks) {
       const weeksSinceRecommended =
         currentAgeWeeks - schedule.recommendedAgeWeeks;
@@ -399,13 +362,10 @@ export class ReminderService {
       const nextIntervalWeeks =
         schedule.recommendedAgeWeeks +
         (intervalsPassed + 1) * schedule.intervalWeeks;
-
       const dueDate = new Date(birthDate);
       dueDate.setDate(dueDate.getDate() + nextIntervalWeeks * 7);
       return dueDate;
     }
-
-    // One-time vaccine already past due
     return null;
   }
 }
