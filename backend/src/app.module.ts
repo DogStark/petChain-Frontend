@@ -39,6 +39,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -102,6 +103,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     EmailModule,
     // Notifications
     NotificationsModule,
+    // Analytics
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
