@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserPreference } from './entities/user-preference.entity';
+import { UserPreference } from '../entities/user-preference.entity';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 
 @Injectable()

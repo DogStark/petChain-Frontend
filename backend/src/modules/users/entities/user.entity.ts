@@ -31,6 +31,19 @@ export class User {
   @Column({ nullable: true })
   avatarUrl: string;
 
+  // additional profile fields
+  @Column({ type: 'date', nullable: true })
+  dateOfBirth: Date | null;
+
+  @Column({ nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  city: string;
+
+  @Column({ nullable: true })
+  country: string;
+
   @Column({ nullable: true })
   password: string;
 
@@ -90,5 +103,32 @@ export class User {
    */
   getActiveRoles(): UserRole[] {
     return this.userRoles?.filter((ur) => ur.isActive) || [];
+  }
+
+  /**
+   * Get profile completion score based on required fields. Added new fields.
+   */
+  getProfileCompletionScore(): number {
+    let score = 0;
+    const fields = [
+      this.firstName,
+      this.lastName,
+      this.email,
+      this.phone,
+      this.avatarUrl,
+      this.dateOfBirth,
+      this.address,
+      this.city,
+      this.country,
+    ];
+
+    fields.forEach((field) => {
+      if (field) {
+        score += Math.floor(100 / fields.length);
+      }
+    });
+
+    // Ensure score is not greater than 100
+    return Math.min(score, 100);
   }
 }

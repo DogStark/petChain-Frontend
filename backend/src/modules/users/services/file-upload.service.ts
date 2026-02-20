@@ -1,8 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { StorageService } from '../../storage/storage.service';
+import { UploadResult } from '../../storage/interfaces/storage-types.interface';
 
 @Injectable()
 export class FileUploadService {
@@ -14,8 +16,12 @@ export class FileUploadService {
     'image/webp',
     'image/gif',
   ];
+  private readonly logger = new Logger(FileUploadService.name);
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private storageService: StorageService,
+  ) {
     this.uploadsDir = this.configService.get<string>(
       'UPLOADS_DIR',
       './uploads/avatars',
@@ -42,8 +48,33 @@ export class FileUploadService {
     this.validateFile(file);
 
     const filename = this.generateFilename(userId, file);
-    const filepath = path.join(this.uploadsDir, filename);
 
+    // if storage provider is s3/gcs use the storage service
+    if (
+      this.storageService &&
+      ['s3', 'gcs'].includes(this.storageService.providerName)
+    ) {
+      const key = this.storageService.generateKey({
+        prefix: 'avatars',
+        ownerId: userId,
+        filename,
+      });
+      try {
+        const result: UploadResult = await this.storageService.upload({
+          key,
+          body: file.buffer,
+          contentType: file.mimetype,
+        });
+        // return public url if available or key path
+        return result.url || key;
+      } catch (err) {
+        this.logger.error('Failed to upload avatar to storage', err);
+        throw new BadRequestException('Failed to upload avatar');
+      }
+    }
+
+    // fallback to local filesystem
+    const filepath = path.join(this.uploadsDir, filename);
     try {
       fs.writeFileSync(filepath, file.buffer);
       return `/uploads/avatars/${filename}`;

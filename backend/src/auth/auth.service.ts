@@ -42,6 +42,7 @@ export type SafeUser = Omit<
   | 'emailVerificationToken'
   | 'passwordResetToken'
   | 'getActiveRoles'
+  | 'getProfileCompletionScore' // method added on User entity, omit for type safety
 >;
 
 export interface AuthResponse {

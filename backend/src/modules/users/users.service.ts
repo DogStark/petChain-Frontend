@@ -76,6 +76,12 @@ export class UsersService {
       }
     }
 
+    // if dateOfBirth provided as string, convert to Date object
+    if (updateProfileDto.dateOfBirth) {
+      // allow either Date or string
+      user.dateOfBirth = new Date(updateProfileDto.dateOfBirth as any);
+    }
+
     Object.assign(user, updateProfileDto);
     return await this.userRepository.save(user);
   }
@@ -117,6 +123,11 @@ export class UsersService {
    * Get profile completion score
    */
   getProfileCompletionScore(user: User): number {
+    // Use entity helper if available
+    if (typeof user.getProfileCompletionScore === 'function') {
+      return user.getProfileCompletionScore();
+    }
+
     let score = 0;
     const fields = [
       user.firstName,
@@ -124,15 +135,20 @@ export class UsersService {
       user.email,
       user.phone,
       user.avatarUrl,
+      user.dateOfBirth,
+      user.address,
+      user.city,
+      user.country,
     ];
 
+    const increment = Math.floor(100 / fields.length);
     fields.forEach((field) => {
       if (field) {
-        score += 20;
+        score += increment;
       }
     });
 
-    return score;
+    return Math.min(score, 100);
   }
 
   /**
@@ -142,16 +158,21 @@ export class UsersService {
     const user = await this.findOne(userId);
     const score = this.getProfileCompletionScore(user);
 
+    const missing = [];
+    if (!user.firstName) missing.push('firstName');
+    if (!user.lastName) missing.push('lastName');
+    if (!user.email) missing.push('email');
+    if (!user.phone) missing.push('phone');
+    if (!user.avatarUrl) missing.push('avatarUrl');
+    if (!user.dateOfBirth) missing.push('dateOfBirth');
+    if (!user.address) missing.push('address');
+    if (!user.city) missing.push('city');
+    if (!user.country) missing.push('country');
+
     return {
       completionScore: score,
       isComplete: score === 100,
-      missingFields: [
-        !user.firstName ? 'firstName' : null,
-        !user.lastName ? 'lastName' : null,
-        !user.email ? 'email' : null,
-        !user.phone ? 'phone' : null,
-        !user.avatarUrl ? 'avatarUrl' : null,
-      ].filter(Boolean),
+      missingFields: missing,
     };
   }
 
