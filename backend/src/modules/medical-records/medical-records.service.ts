@@ -75,6 +75,16 @@ export class MedicalRecordsService {
     return record;
   }
 
+  async findByIds(ids: string[]): Promise<MedicalRecord[]> {
+    if (!ids.length) return [];
+    const records = await this.medicalRecordRepository.find({
+      where: ids.map((id) => ({ id })),
+      relations: ['pet', 'vet'],
+      order: { date: 'DESC' },
+    });
+    return records;
+  }
+
   async update(
     id: string,
     updateMedicalRecordDto: UpdateMedicalRecordDto,

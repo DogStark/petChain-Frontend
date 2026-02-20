@@ -17,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
@@ -36,6 +37,7 @@ import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { EmailModule } from './modules/email/email.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -73,6 +75,7 @@ import { EmailModule } from './modules/email/email.module';
     QRCodesModule,
     PetsModule,
     VaccinationsModule,
+    PrescriptionsModule,
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
@@ -93,6 +96,8 @@ import { EmailModule } from './modules/email/email.module';
     WalletsModule,
     // Email
     EmailModule,
+    // Notifications
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

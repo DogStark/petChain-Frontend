@@ -87,3 +87,5 @@ export class Pet {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
+export { PetSpecies };
