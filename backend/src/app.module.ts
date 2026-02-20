@@ -17,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { VetClinicsModule } from './modules/vet-clinics/vet-clinics.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
@@ -72,6 +73,7 @@ import { WalletsModule } from './modules/wallets/wallets.module';
     QRCodesModule,
     PetsModule,
     VaccinationsModule,
+    PrescriptionsModule,
     RemindersModule,
     VetClinicsModule,
     CertificatesModule,
