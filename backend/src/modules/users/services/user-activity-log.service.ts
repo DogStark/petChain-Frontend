@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { UserActivityLog, ActivityType } from './entities/user-activity-log.entity';
+import { UserActivityLog, ActivityType } from '../entities/user-activity-log.entity';
 
 export interface CreateActivityLogDto {
   userId: string;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
-import { UserSession } from './entities/user-session.entity';
+import { UserSession } from '../entities/user-session.entity';
 
 export interface CreateSessionDto {
   userId: string;

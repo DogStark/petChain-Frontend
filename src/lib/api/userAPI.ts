@@ -41,6 +41,10 @@ export interface UpdateUserProfileDto {
   email?: string;
   phone?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  country?: string;
 }
 
 export interface UpdateUserPreferencesDto {
@@ -67,6 +71,10 @@ export interface UserProfile {
   lastName: string;
   phone?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  country?: string;
   createdAt: string;
   updatedAt: string;
   profileCompletion?: {
@@ -148,9 +156,9 @@ class UserManagementAPI {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Use uploads endpoint
+    // hit new users/avatar route
     const uploadsApi = axios.create({
-      baseURL: `${API_BASE_URL}/uploads`,
+      baseURL: `${API_BASE_URL}/users`,
       withCredentials: true,
     });
 
