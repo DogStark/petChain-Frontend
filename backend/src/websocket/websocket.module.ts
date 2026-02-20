@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -10,6 +10,7 @@ import { WebSocketRateLimitService } from './services/websocket-rate-limit.servi
 import { NotificationsGateway } from './gateways/notifications.gateway';
 import { LocationGateway } from './gateways/location.gateway';
 import { EmergencyGateway } from './gateways/emergency.gateway';
+import { NotificationsModule } from 'src/modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { EmergencyGateway } from './gateways/emergency.gateway';
       max: 10000,
     }),
     ScheduleModule.forRoot(),
+    forwardRef(() => NotificationsModule),
   ],
   providers: [
     WebSocketConnectionService,
@@ -36,4 +38,4 @@ import { EmergencyGateway } from './gateways/emergency.gateway';
     EmergencyGateway,
   ],
 })
-export class WebSocketModule {}
+export class WebSocketModule { }
