@@ -36,6 +36,7 @@ import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
@@ -93,6 +94,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     FilesModule,
     RealtimeModule,
     WalletsModule,
+    // Email
+    EmailModule,
     // Notifications
     NotificationsModule,
   ],
