@@ -82,6 +82,11 @@ GET    /medical-records/:id/qr  - Get/generate QR code for sharing
 GET    /medical-records/templates/:petType - Get templates by pet type
 PATCH  /medical-records/:id     - Update record
 DELETE /medical-records/:id     - Soft delete record
+
+# Export (PDF, CSV, FHIR; batch; includes attachments)
+GET    /medical-records/export  - Export by query (format, petId, recordIds, dates)
+POST   /medical-records/export - Export by body (format, recordIds or petId + filters)
+POST   /medical-records/export/email - Export and send by email (body: format, to?, recordIds or petId, etc.)
 ```
 
 ### Vaccinations
@@ -169,6 +174,36 @@ curl http://localhost:3000/prescriptions/pet/{petId}/active
 ### Generate QR Code for Medical Record
 ```bash
 curl http://localhost:3000/medical-records/{recordId}/qr
+```
+
+### Export Medical Records
+Export supports **PDF**, **CSV**, and **FHIR** (R4 Bundle) formats. All exports can include attachment metadata and support **batch export** by pet or by record IDs. Optionally, the export can be **emailed**.
+
+**GET export** (query params – use for single pet or small filters):
+```bash
+# PDF for a pet (batch)
+curl -o records.pdf "http://localhost:3000/medical-records/export?format=pdf&petId=PET_UUID"
+
+# CSV with date range
+curl -o records.csv "http://localhost:3000/medical-records/export?format=csv&petId=PET_UUID&startDate=2024-01-01&endDate=2024-12-31"
+
+# FHIR JSON for specific records
+curl -o records.json "http://localhost:3000/medical-records/export?format=fhir&recordIds=ID1,ID2"
+```
+
+**POST export** (body – use for many record IDs or full options):
+```bash
+curl -X POST http://localhost:3000/medical-records/export \
+  -H "Content-Type: application/json" \
+  -d '{"format":"pdf","recordIds":["uuid1","uuid2"],"includeAttachments":true}' \
+  -o records.pdf
+```
+
+**Email export** (requires MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS in .env):
+```bash
+curl -X POST http://localhost:3000/medical-records/export/email \
+  -H "Content-Type: application/json" \
+  -d '{"format":"csv","petId":"PET_UUID","to":"user@example.com","message":"Your records are attached."}'
 ```
 
 ## Database Schema
