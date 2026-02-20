@@ -1,42 +1,10 @@
 import {
-<<<<<<< HEAD
-  IsString,
-  IsDateString,
-  IsOptional,
-  IsUUID,
-} from 'class-validator';
-
-export class CreateVaccinationDto {
-  @IsUUID()
-  petId: string;
-
-  @IsString()
-  vaccineName: string;
-
-  @IsDateString()
-  dateAdministered: string;
-
-  @IsDateString()
-  nextDueDate: string;
-
-  @IsOptional()
-  @IsString()
-  batchNumber?: string;
-
-  @IsOptional()
-  @IsUUID()
-  administeredBy?: string;
-
-  @IsOptional()
-  @IsString()
-=======
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsDate,
   IsUUID,
+  IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateVaccinationDto {
   @IsUUID()
@@ -49,22 +17,23 @@ export class CreateVaccinationDto {
 
   @IsString()
   @IsOptional()
+  manufacturer?: string;
+
+  @IsString()
+  @IsOptional()
   batchNumber?: string;
 
-  @IsDate()
-  @Type(() => Date)
+  @IsDateString()
   @IsNotEmpty()
-  administeredDate: Date;
+  dateAdministered: string;
 
-  @IsDate()
-  @Type(() => Date)
+  @IsDateString()
   @IsOptional()
-  expirationDate?: Date;
+  nextDueDate?: string;
 
-  @IsDate()
-  @Type(() => Date)
+  @IsDateString()
   @IsOptional()
-  nextDueDate?: Date;
+  expirationDate?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -73,6 +42,15 @@ export class CreateVaccinationDto {
   @IsUUID()
   @IsOptional()
   vetClinicId?: string;
+
+  @IsString()
+  @IsOptional()
+  site?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
 
   @IsString()
   @IsOptional()
