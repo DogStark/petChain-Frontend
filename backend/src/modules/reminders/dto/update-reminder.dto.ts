@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateReminderDto } from './create-reminder.dto';
-import { IsEnum, IsOptional, IsDate, IsUUID } from 'class-validator';
-import { ReminderStatus } from '../entities/vaccination-reminder.entity';
+import { IsEnum, IsOptional, IsDate } from 'class-validator';
+import { ReminderStatus } from '../entities/reminder.entity';
 import { Type } from 'class-transformer';
 
 export class UpdateReminderDto extends PartialType(CreateReminderDto) {
@@ -13,8 +13,4 @@ export class UpdateReminderDto extends PartialType(CreateReminderDto) {
   @Type(() => Date)
   @IsOptional()
   snoozedUntil?: Date;
-
-  @IsUUID()
-  @IsOptional()
-  vaccinationId?: string;
 }
