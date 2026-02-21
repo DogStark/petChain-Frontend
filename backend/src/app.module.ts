@@ -27,6 +27,8 @@ import { VetsModule } from './modules/vets/vets.module';
 import { EmergencyServicesModule } from './modules/emergency-services/emergency-services.module';
 import { SearchModule } from './modules/search/search.module';
 import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
+import { AllergiesModule } from './modules/allergies/allergies.module';
+import { ConditionsModule } from './modules/conditions/conditions.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -90,6 +92,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     EmergencyServicesModule,
     SearchModule,
     LostPetsModule,
+    AllergiesModule,
+    ConditionsModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
