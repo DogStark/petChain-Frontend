@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { appConfig } from './config/app.config';
@@ -25,6 +26,7 @@ import { MedicalRecordsModule } from './modules/medical-records/medical-records.
 import { VetsModule } from './modules/vets/vets.module';
 import { EmergencyServicesModule } from './modules/emergency-services/emergency-services.module';
 import { SearchModule } from './modules/search/search.module';
+import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -36,7 +38,9 @@ import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -54,6 +58,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
       ],
       envFilePath: '.env',
     }),
+
+    // Scheduler Module
+    ScheduleModule.forRoot(),
 
     // TypeORM Module
     TypeOrmModule.forRootAsync({
@@ -82,6 +89,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     VetsModule,
     EmergencyServicesModule,
     SearchModule,
+    LostPetsModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
@@ -93,10 +101,14 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     FilesModule,
     RealtimeModule,
     WalletsModule,
+    // Email
+    EmailModule,
     // Notifications
     NotificationsModule,
+    // Analytics
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

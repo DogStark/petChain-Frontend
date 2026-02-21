@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
@@ -9,6 +11,7 @@ import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { VetClinicsService } from './vet-clinics.service';
+import { AppointmentWaitlistService } from '../appointment-waitlist/appointment-waitlist.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -16,6 +19,8 @@ export class AppointmentsService {
     @InjectRepository(Appointment)
     private readonly appointmentRepository: Repository<Appointment>,
     private readonly vetClinicsService: VetClinicsService,
+    @Inject(forwardRef(() => AppointmentWaitlistService))
+    private readonly appointmentWaitlistService: AppointmentWaitlistService,
   ) {}
 
   /**
@@ -193,7 +198,14 @@ export class AppointmentsService {
   async cancel(id: string): Promise<Appointment> {
     const appointment = await this.findOne(id);
     appointment.status = AppointmentStatus.CANCELLED;
-    return await this.appointmentRepository.save(appointment);
+    const saved = await this.appointmentRepository.save(appointment);
+
+    // Notify waitlist users that a slot is available
+    await this.appointmentWaitlistService
+      .notifyOnSlotAvailable(appointment.vetClinicId, appointment)
+      .catch(() => {});
+
+    return saved;
   }
 
   /**

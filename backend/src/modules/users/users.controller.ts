@@ -3,6 +3,7 @@ import {
   Get,
   Query,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -12,12 +13,16 @@ import {
   Header,
   StreamableFile,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
 import { UserSearchService } from './services/user-search.service';
+import { FileUploadService } from './services/file-upload.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
@@ -38,6 +43,7 @@ export class UsersController {
     private readonly sessionService: UserSessionService,
     private readonly activityLogService: UserActivityLogService,
     private readonly searchService: UserSearchService,
+    private readonly fileUploadService?: FileUploadService, // optional injection for direct avatar upload
   ) {}
 
   /**
@@ -91,6 +97,16 @@ export class UsersController {
   }
 
   /**
+   * Get current user profile (alias)
+   * GET /users/me
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getMe(@CurrentUser() user: User) {
+    return this.usersService.findOne(user.id);
+  }
+
+  /**
    * Get current user profile
    * GET /users/me/profile
    */
@@ -113,6 +129,19 @@ export class UsersController {
   @Get(':id/profile')
   async getUserProfile(@Param('id') id: string) {
     return await this.usersService.getPublicProfile(id);
+  }
+
+  /**
+   * Update current user profile (alias)
+   * PUT /users/me
+   */
+  @Put('me')
+  @UseGuards(JwtAuthGuard)
+  async replaceProfile(
+    @CurrentUser() user: User,
+    @Body() updateProfileDto: UpdateUserProfileDto,
+  ): Promise<User> {
+    return this.updateProfile(user, updateProfileDto);
   }
 
   /**
@@ -141,7 +170,7 @@ export class UsersController {
   }
 
   /**
-   * Update user avatar
+   * Update user avatar by URL
    * PATCH /users/me/avatar
    */
   @Patch('me/avatar')
@@ -364,6 +393,44 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getSuspiciousActivities(@CurrentUser() user: User) {
     return await this.activityLogService.getSuspiciousActivities(user.id);
+  }
+
+  /**
+   * Upload avatar file (direct to users route)
+   * POST /users/avatar
+   */
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.CREATED)
+  async uploadAvatarDirect(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: User,
+  ) {
+    if (!this.fileUploadService) {
+      throw new Error('FileUploadService not available');
+    }
+    const avatarUrl = await this.fileUploadService.uploadAvatar(
+      file,
+      user.id,
+    );
+
+    // Update user profile with new avatar
+    const updated = await this.usersService.updateAvatar(user.id, avatarUrl);
+
+    // Log activity
+    await this.activityLogService.logActivity({
+      userId: user.id,
+      activityType: 'AVATAR_UPLOAD' as any,
+      description: 'Avatar uploaded successfully',
+      metadata: { avatarUrl },
+    });
+
+    return {
+      message: 'Avatar uploaded successfully',
+      avatarUrl,
+      user: updated,
+    };
   }
 
   /**

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
+import Link from "next/link";
 
 const FEATURES = [
   {
@@ -43,6 +44,14 @@ const FEATURES = [
     icon: "🛡️",
     details:
       "Access critical information even without an internet connection. Advanced cryptography, including zero-knowledge proofs, ensures your pet’s sensitive data remains private and secure—even on the blockchain.",
+  },
+  {
+    // Task #53: Session Management Dashboard
+    title: "Active Session Manager",
+    desc: "Monitor and control your active logins across multiple devices and locations.",
+    icon: "📱",
+    details: "Click 'Manage Sessions' below to view and revoke active logins.",
+    isTask: true, // Internal flag for conditional rendering
   },
 ];
 
@@ -171,12 +180,22 @@ export default function Home() {
             <p className="text-gray-700 text-lg mb-4">
               {modal.feature.details}
             </p>
-            <button
-              className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all"
-              onClick={() => setModal({ open: false })}
-            >
-              Close
-            </button>
+            {/* If it's the task card, show a link to the page instead of just closing */}
+            {modal.feature.title === "Active Session Manager" ? (
+              <Link
+                href="/sessions"
+                className="mt-2 inline-block px-6 py-2 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-all"
+              >
+                Manage Sessions
+              </Link>
+            ) : (
+              <button
+                className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all"
+                onClick={() => setModal({ open: false })}
+              >
+                Close
+              </button>
+            )}
           </div>
         </Modal>
       )}
@@ -211,7 +230,6 @@ function FeatureCard({
       <p className="text-gray-600 transition-colors group-hover:text-blue-700">
         {desc}
       </p>
-      {/* Optional: Extra info or icon animation on hover */}
       <span className="mt-2 text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
         Click for more info
       </span>
