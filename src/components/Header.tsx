@@ -7,10 +7,10 @@ export default function HeaderComponent() {
         <nav>
           <ul className="flex space-x-4">
             <li><a href="/" className="hover:text-blue-200">Home</a></li>
+            <li><a href="/notifications" className="hover:text-blue-200">Notifications</a></li>
             <li><a href="/search" className="hover:text-blue-200">Search</a></li>
             <li><a href="/dental" className="hover:text-blue-200 flex items-center gap-1">🦷 Dental</a></li>
-            <li><a href="#" className="hover:text-blue-200">About</a></li>
-            <li><a href="#" className="hover:text-blue-200">Contact</a></li>
+            <li><a href="/preferences" className="hover:text-blue-200">Settings</a></li>
           </ul>
         </nav>
       </div>

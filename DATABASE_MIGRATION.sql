@@ -89,6 +89,22 @@ CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expiresAt);
 CREATE INDEX idx_user_sessions_active ON user_sessions(isActive);
 
 -- ============================================================================
+-- DEVICE TOKENS TABLE (FOR PUSH NOTIFICATIONS)
+-- ============================================================================
+
+CREATE TABLE device_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    userId VARCHAR(255) NOT NULL, -- UUID in some contexts, but varchar based on current setup
+    token VARCHAR(500) UNIQUE NOT NULL,
+    platform VARCHAR(50), -- ios, android, web
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_device_tokens_user_id ON device_tokens(userId);
+CREATE INDEX idx_device_tokens_token ON device_tokens(token);
+
+-- ============================================================================
 -- USER ACTIVITY LOGS TABLE
 -- ============================================================================
 
