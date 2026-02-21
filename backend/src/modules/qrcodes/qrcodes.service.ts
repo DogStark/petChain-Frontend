@@ -247,8 +247,11 @@ export class QRCodesService {
         : qrcode.expiresAt,
     });
 
-    // Re-encrypt if data changed
-    if (updateQRCodeDto.emergencyContact || updateQRCodeDto.customMessage) {
+    // Re-encrypt if data changed (including explicit clear with '' or null)
+    const dataChanged =
+      'emergencyContact' in updateQRCodeDto ||
+      'customMessage' in updateQRCodeDto;
+    if (dataChanged) {
       const payload = this.createQRCodePayload(qrcode);
       qrcode.encryptedData = this.encryptData(payload);
     }
