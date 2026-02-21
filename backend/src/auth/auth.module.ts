@@ -17,6 +17,7 @@ import { PermissionEntity } from './entities/permission.entity';
 import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { RoleAuditLog } from './entities/role-audit-log.entity';
+import { FailedLoginAttempt } from './entities/failed-login-attempt.entity';
 import { EmailServiceImpl } from './services/email.service';
 import { EMAIL_SERVICE } from './interfaces/email-service.interface';
 import { RolesService } from './services/roles.service';
@@ -34,6 +35,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
       UserRole,
       RolePermission,
       RoleAuditLog,
+      FailedLoginAttempt,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
