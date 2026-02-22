@@ -28,7 +28,8 @@ import { EmergencyServicesModule } from './modules/emergency-services/emergency-
 import { AppointmentWaitlistModule } from './modules/appointment-waitlist/appointment-waitlist.module';
 import { SearchModule } from './modules/search/search.module';
 import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
-import { BehaviorModule } from './behavior/behavior.module';
+import { AllergiesModule } from './modules/allergies/allergies.module';
+import { ConditionsModule } from './modules/conditions/conditions.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -94,7 +95,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     AppointmentWaitlistModule,
     SearchModule,
     LostPetsModule,
-    BehaviorModule,
+    AllergiesModule,
+    ConditionsModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
