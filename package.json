@@ -9,11 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@stellar/stellar-sdk": "^14.4.3",
-    "date-fns": "^4.1.0",
-    "firebase": "^12.9.0",
+    "browser-image-compression": "^2.0.2",
     "lucide-react": "^0.563.0",
     "next": "^15.3.5",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.7.0"

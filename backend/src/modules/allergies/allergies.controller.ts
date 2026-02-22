@@ -31,6 +31,21 @@ export class AllergiesController {
     return this.allergiesService.findByPet(petId);
   }
 
+  @Get('pet/:petId/vet-alerts')
+  findAllergiesWithVetAlert(@Param('petId') petId: string) {
+    return this.allergiesService.findAllergiesWithVetAlert(petId);
+  }
+
+  @Get('pet/:petId/severe')
+  findSevereAllergies(@Param('petId') petId: string) {
+    return this.allergiesService.findSevereAllergies(petId);
+  }
+
+  @Get('pet/:petId/summary')
+  getAllergySummary(@Param('petId') petId: string) {
+    return this.allergiesService.getAllergySummary(petId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.allergiesService.findOne(id);

@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsOptional,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
 import { AllergySeverity } from '../entities/allergy.entity';
 
@@ -23,4 +24,24 @@ export class CreateAllergyDto {
 
   @IsDateString()
   discoveredDate: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  testingResults?: string;
+
+  @IsOptional()
+  @IsDateString()
+  testingDate?: string;
+
+  @IsOptional()
+  @IsString()
+  testedBy?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  alertVeterinarian?: boolean;
 }
