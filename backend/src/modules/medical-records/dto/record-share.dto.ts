@@ -85,7 +85,7 @@ export class RecordShareResponseDto {
   medicalRecordId: string;
   recipientEmail?: string;
   permission: SharePermission;
-  expiresAt?: Date;
+  expiresAt?: Date | null;
   createdAt: Date;
   isExpired: boolean;
   isRevoked: boolean;

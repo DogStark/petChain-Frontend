@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { RecordShare, SharePermission } from '../entities/record-share.entity';
@@ -96,7 +96,7 @@ export class RecordShareService {
 
     const savedShare = await this.shareRepository.save(share);
 
-    return this.toResponseDto(savedShare);
+    return this.toResponseDto(Array.isArray(savedShare) ? savedShare[0] : savedShare);
   }
 
   /**
@@ -227,7 +227,7 @@ export class RecordShareService {
    */
   async revokeAllSharesForRecord(medicalRecordId: string, userId: string): Promise<number> {
     const result = await this.shareRepository.update(
-      { medicalRecordId, createdById: userId, revokedAt: null },
+      { medicalRecordId, createdById: userId, revokedAt: IsNull() },
       { revokedAt: new Date() },
     );
 

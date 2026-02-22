@@ -161,8 +161,14 @@ export class RecordShareController {
     await this.emailService.queueEmail({
       type: EmailType.SYSTEM_NOTIFICATION,
       recipientEmail: dto.recipientEmail,
-      subject: dto.subject || `${user.firstName} shared a medical record with you`,
-      htmlBody: this.buildShareEmailHtml(share.shareUrl, user, dto.message, share.expiresAt),
+      data: {
+        recipientName: dto.recipientEmail.split('@')[0],
+        title: dto.subject || `${user.firstName} shared a medical record with you`,
+        message: dto.message || 'A medical record has been shared with you. Click the button below to view it.',
+        severity: 'info',
+        actionLabel: 'View Medical Record',
+        actionUrl: share.shareUrl,
+      },
       metadata: {
         shareId: share.id,
         medicalRecordId: recordId,
@@ -241,7 +247,7 @@ export class RecordShareController {
           breed: medicalRecord.pet.breed,
         } : undefined,
         vet: medicalRecord.vet ? {
-          name: medicalRecord.vet.name,
+          name: medicalRecord.vet.vetName,
           clinicName: medicalRecord.vet.clinicName,
         } : undefined,
       },

@@ -62,10 +62,10 @@ export class RecordShare {
   permission: SharePermission;
 
   @Column({ type: 'timestamp', nullable: true })
-  expiresAt: Date;
+  expiresAt: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  revokedAt: Date;
+  revokedAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
   message: string;
