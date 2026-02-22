@@ -1,51 +1,61 @@
-import { IsOptional, IsString, IsBoolean, IsDateString, IsInt, Min, Max, IsIn } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsInt,
+  Min,
+  Max,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { RoleName } from '../../../auth/constants/roles.enum';
 
 export class SearchUsersDto {
   @IsOptional()
   @IsString()
-  q?: string; // Full-text search across name, email, etc.
+  q?: string;
 
   @IsOptional()
-  @IsString()
-  role?: string; // Filter by role (admin, user, etc.)
+  @IsIn(Object.values(RoleName))
+  role?: string;
 
   @IsOptional()
-  @IsString()
-  @IsIn(['active', 'inactive', 'all'])
-  status?: string; // Activity status filter
-
-  @IsOptional()
-  @IsDateString()
-  from?: string; // Registration date from
+  @IsIn(['active', 'inactive', 'deactivated', 'deleted', 'all'])
+  status?: string;
 
   @IsOptional()
   @IsDateString()
-  to?: string; // Registration date to
+  from?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
+  to?: string;
+
+  @IsOptional()
   @IsIn([
     'createdAt_asc',
     'createdAt_desc',
     'name_asc',
     'name_desc',
+    'firstName_asc',
+    'firstName_desc',
+    'lastName_asc',
+    'lastName_desc',
     'email_asc',
     'email_desc',
     'lastActive_asc',
     'lastActive_desc',
   ])
-  sort?: string; // Sort criteria
+  sort?: string;
 
   @IsOptional()
   @IsString()
-  cursor?: string; // Cursor for pagination
+  cursor?: string;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100) // Prevent abuse
-  limit?: number; // Results per page
+  @Max(100)
+  limit?: number;
 }
-

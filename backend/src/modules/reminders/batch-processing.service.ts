@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, In } from 'typeorm';
-import {
-  VaccinationReminder,
-  ReminderStatus,
-} from './entities/vaccination-reminder.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Reminder, ReminderStatus } from './entities/reminder.entity';
 import { ReminderService, ReminderNotification } from './reminder.service';
 import { Pet } from '../pets/entities/pet.entity';
+import { UserPreference } from '../users/entities/user-preference.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationCategory } from '../notifications/entities/notification.entity';
 
 export interface BatchProcessingResult {
   processedCount: number;
@@ -15,27 +16,56 @@ export interface BatchProcessingResult {
   notifications: ReminderNotification[];
 }
 
-export interface BatchGenerationResult {
-  petsProcessed: number;
-  remindersGenerated: number;
-  errors: string[];
-}
-
 @Injectable()
 export class BatchProcessingService {
   private readonly logger = new Logger(BatchProcessingService.name);
 
   constructor(
-    @InjectRepository(VaccinationReminder)
-    private readonly reminderRepository: Repository<VaccinationReminder>,
+    @InjectRepository(Reminder)
+    private readonly reminderRepository: Repository<Reminder>,
     @InjectRepository(Pet)
     private readonly petRepository: Repository<Pet>,
+    @InjectRepository(UserPreference)
+    private readonly preferenceRepository: Repository<UserPreference>,
     private readonly reminderService: ReminderService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
+   * Automated cron job to process reminders every hour
+   * This allows for timezone-aware notification delivery
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleCron() {
+    this.logger.log('Running automated reminder processing...');
+    await this.wakeupSnoozedReminders();
+    const result = await this.processAllPendingReminders();
+
+    // Dispatch notifications to the notification system
+    for (const notification of result.notifications) {
+      try {
+        await this.notificationsService.create({
+          userId: notification.userId,
+          title: notification.title,
+          message: notification.message,
+          category: this.mapTypeToCategory(notification.type),
+          metadata: {
+            reminderId: notification.reminderId,
+            petId: notification.petId,
+            level: notification.level,
+            dueDate: notification.dueDate,
+          },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to dispatch notification for reminder ${notification.reminderId}: ${error.message}`,
+        );
+      }
+    }
+  }
+
+  /**
    * Process all pending reminders in batch
-   * Returns notifications that should be sent
    */
   async processAllPendingReminders(): Promise<BatchProcessingResult> {
     const result: BatchProcessingResult = {
@@ -46,22 +76,20 @@ export class BatchProcessingService {
     };
 
     try {
-      // First, wake up snoozed reminders that are past their snooze date
-      await this.wakeupSnoozedReminders();
-
       // Process escalation for all active reminders
+      // Note: In a real production system, we would filter by timezone here
       const notifications =
         await this.reminderService.processReminderEscalation();
       result.notifications = notifications;
       result.notificationsSent = notifications.length;
 
-      // Count processed reminders
       result.processedCount = await this.reminderRepository.count({
         where: {
           status: In([
             ReminderStatus.PENDING,
             ReminderStatus.SENT_7_DAYS,
             ReminderStatus.SENT_3_DAYS,
+            ReminderStatus.SENT_1_DAY,
             ReminderStatus.SENT_DAY_OF,
             ReminderStatus.OVERDUE,
           ]),
@@ -72,51 +100,45 @@ export class BatchProcessingService {
         `Batch processing complete: ${result.processedCount} reminders processed, ${result.notificationsSent} notifications generated`,
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      result.errors.push(`Batch processing failed: ${errorMessage}`);
-      this.logger.error(`Batch processing error: ${errorMessage}`);
+      result.errors.push(`Batch processing failed: ${error.message}`);
+      this.logger.error(`Batch processing error: ${error.message}`);
     }
 
     return result;
   }
 
   /**
+   * Automated cron job to generate reminders for all pets daily
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleDailyGeneration() {
+    this.logger.log('Running daily reminder generation for all pets...');
+    await this.generateRemindersForAllPets();
+  }
+
+  /**
    * Generate reminders for all pets in batch
    */
-  async generateRemindersForAllPets(): Promise<BatchGenerationResult> {
-    const result: BatchGenerationResult = {
-      petsProcessed: 0,
-      remindersGenerated: 0,
-      errors: [],
-    };
-
+  async generateRemindersForAllPets() {
     const pets = await this.petRepository.find({ where: { isActive: true } });
-    result.petsProcessed = pets.length;
+    let count = 0;
 
     for (const pet of pets) {
       try {
-        const reminders = await this.reminderService.generateRemindersForPet(
-          pet.id,
-        );
-        result.remindersGenerated += reminders.length;
+        const reminders =
+          await this.reminderService.generateVaccinationReminders(pet.id);
+        count += reminders.length;
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        result.errors.push(
-          `Failed to generate reminders for pet ${pet.id}: ${errorMessage}`,
-        );
         this.logger.error(
-          `Error generating reminders for pet ${pet.id}: ${errorMessage}`,
+          `Error generating reminders for pet ${pet.id}: ${error.message}`,
         );
       }
     }
 
     this.logger.log(
-      `Batch generation complete: ${result.petsProcessed} pets processed, ${result.remindersGenerated} reminders generated`,
+      `Batch generation complete: ${count} reminders generated for ${pets.length} pets`,
     );
-
-    return result;
+    return { petsProcessed: pets.length, remindersGenerated: count };
   }
 
   /**
@@ -124,7 +146,6 @@ export class BatchProcessingService {
    */
   async wakeupSnoozedReminders(): Promise<number> {
     const now = new Date();
-
     const snoozedReminders = await this.reminderRepository.find({
       where: {
         status: ReminderStatus.SNOOZED,
@@ -134,7 +155,7 @@ export class BatchProcessingService {
 
     for (const reminder of snoozedReminders) {
       reminder.status = ReminderStatus.PENDING;
-      reminder.snoozedUntil = undefined as unknown as Date;
+      reminder.snoozedUntil = null;
       await this.reminderRepository.save(reminder);
     }
 
@@ -146,95 +167,46 @@ export class BatchProcessingService {
   }
 
   /**
-   * Cleanup old completed/cancelled reminders
+   * Map reminder type to notification category
    */
-  async cleanupExpiredReminders(olderThanDays: number = 365): Promise<number> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-
-    const oldReminders = await this.reminderRepository.find({
-      where: {
-        status: In([ReminderStatus.COMPLETED, ReminderStatus.CANCELLED]),
-        updatedAt: LessThan(cutoffDate),
-      },
-    });
-
-    if (oldReminders.length > 0) {
-      await this.reminderRepository.remove(oldReminders);
-      this.logger.log(`Cleaned up ${oldReminders.length} old reminders`);
+  private mapTypeToCategory(type: string): NotificationCategory {
+    switch (type) {
+      case 'VACCINATION':
+        return NotificationCategory.VACCINATION;
+      case 'APPOINTMENT':
+        return NotificationCategory.APPOINTMENT;
+      case 'MEDICATION':
+        return NotificationCategory.MEDICATION;
+      default:
+        return NotificationCategory.SYSTEM;
     }
-
-    return oldReminders.length;
   }
 
   /**
    * Get batch processing statistics
    */
-  async getStatistics(): Promise<{
-    pending: number;
-    sent7Days: number;
-    sent3Days: number;
-    sentDayOf: number;
-    completed: number;
-    overdue: number;
-    snoozed: number;
-    cancelled: number;
-    total: number;
-  }> {
-    const [
-      pending,
-      sent7Days,
-      sent3Days,
-      sentDayOf,
-      completed,
-      overdue,
-      snoozed,
-      cancelled,
-    ] = await Promise.all([
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.PENDING },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.SENT_7_DAYS },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.SENT_3_DAYS },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.SENT_DAY_OF },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.COMPLETED },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.OVERDUE },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.SNOOZED },
-      }),
-      this.reminderRepository.count({
-        where: { status: ReminderStatus.CANCELLED },
-      }),
-    ]);
+  async getStatistics() {
+    const stats = await this.reminderRepository
+      .createQueryBuilder('reminder')
+      .select('reminder.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('reminder.status')
+      .getRawMany();
 
-    return {
-      pending,
-      sent7Days,
-      sent3Days,
-      sentDayOf,
-      completed,
-      overdue,
-      snoozed,
-      cancelled,
-      total:
-        pending +
-        sent7Days +
-        sent3Days +
-        sentDayOf +
-        completed +
-        overdue +
-        snoozed +
-        cancelled,
+    const result = {
+      total: 0,
+      PENDING: 0,
+      COMPLETED: 0,
+      OVERDUE: 0,
+      SNOOZED: 0,
+      CANCELLED: 0,
     };
+
+    stats.forEach((s) => {
+      result[s.status] = parseInt(s.count, 10);
+      result.total += parseInt(s.count, 10);
+    });
+
+    return result;
   }
 }

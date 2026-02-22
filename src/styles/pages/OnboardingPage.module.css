@@ -1,0 +1,72 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 50%, #fdf4ff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.brand {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.brandName {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1d4ed8;
+  letter-spacing: -0.5px;
+}
+
+.loading {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 40px 60px;
+  font-size: 15px;
+  color: #6b7280;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.errorBox {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  max-width: 360px;
+}
+
+.errorBox p {
+  font-size: 14px;
+  color: #dc2626;
+  margin: 0 0 16px;
+}
+
+.retryBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.retryBtn:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 0;
+    justify-content: flex-start;
+  }
+
+  .brand {
+    padding-top: 24px;
+  }
+}

@@ -9,7 +9,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Trust proxy for correct IP address detection
-  // Trust proxy for correct IP address detection
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
 
   // Global validation pipe

@@ -3,6 +3,7 @@ import {
   Get,
   Query,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -12,12 +13,16 @@ import {
   Header,
   StreamableFile,
   UseGuards,
-  Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
+import { UserSearchService } from './services/user-search.service';
+import { FileUploadService } from './services/file-upload.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
@@ -25,6 +30,9 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { RoleName } from '../../auth/constants/roles.enum';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller('users')
@@ -34,9 +42,11 @@ export class UsersController {
     private readonly preferenceService: UserPreferenceService,
     private readonly sessionService: UserSessionService,
     private readonly activityLogService: UserActivityLogService,
+    private readonly searchService: UserSearchService,
+    private readonly fileUploadService?: FileUploadService, // optional injection for direct avatar upload
   ) {}
 
-   /**
+  /**
    * Create a new user
    * POST /users
    */
@@ -59,27 +69,44 @@ export class UsersController {
   }
 
   /**
-   * Search users with filters, sorting, and pagination
-   * GET /users/search?q=john&role=admin&status=active&sort=createdAt_desc
+   * Search users with filters, sorting, and pagination (admin only)
+   * GET /users/search?q=john&role=Admin&status=active&sort=createdAt_desc
    * ⚠️ MUST come before @Get(':id')
    */
   @Get('search')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.Admin)
   async searchUsers(@Query() query: SearchUsersDto) {
-    return await this.usersService.searchUsers(query);
+    return await this.searchService.searchUsers(query);
   }
 
   /**
-   * Export search results to CSV
-   * GET /users/export?q=john&role=admin
+   * Export search results to CSV (admin only)
+   * GET /users/export?q=john&role=Admin
    * ⚠️ MUST come before @Get(':id')
    */
   @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.Admin)
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="users-export.csv"')
   async exportUsers(@Query() query: SearchUsersDto): Promise<StreamableFile> {
-    const csv = await this.usersService.exportUsers(query);
+    const csv = await this.searchService.exportUsers(query);
     const buffer = Buffer.from(csv, 'utf-8');
     return new StreamableFile(buffer);
+  }
+
+  /**
+   * Get current user profile (alias)
+   * GET /users/me
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getMe(@CurrentUser() user: User) {
+    return this.usersService.findOne(user.id);
+  }
+
+  /**
    * Get current user profile
    * GET /users/me/profile
    */
@@ -102,6 +129,19 @@ export class UsersController {
   @Get(':id/profile')
   async getUserProfile(@Param('id') id: string) {
     return await this.usersService.getPublicProfile(id);
+  }
+
+  /**
+   * Update current user profile (alias)
+   * PUT /users/me
+   */
+  @Put('me')
+  @UseGuards(JwtAuthGuard)
+  async replaceProfile(
+    @CurrentUser() user: User,
+    @Body() updateProfileDto: UpdateUserProfileDto,
+  ): Promise<User> {
+    return this.updateProfile(user, updateProfileDto);
   }
 
   /**
@@ -130,7 +170,7 @@ export class UsersController {
   }
 
   /**
-   * Update user avatar
+   * Update user avatar by URL
    * PATCH /users/me/avatar
    */
   @Patch('me/avatar')
@@ -241,7 +281,10 @@ export class UsersController {
    */
   @Patch('me/preferences/privacy')
   @UseGuards(JwtAuthGuard)
-  async updatePrivacySettings(@CurrentUser() user: User, @Body() settings: any) {
+  async updatePrivacySettings(
+    @CurrentUser() user: User,
+    @Body() settings: any,
+  ) {
     return await this.preferenceService.updatePrivacySettings(
       user.id,
       settings,
@@ -353,6 +396,44 @@ export class UsersController {
   }
 
   /**
+   * Upload avatar file (direct to users route)
+   * POST /users/avatar
+   */
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.CREATED)
+  async uploadAvatarDirect(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: User,
+  ) {
+    if (!this.fileUploadService) {
+      throw new Error('FileUploadService not available');
+    }
+    const avatarUrl = await this.fileUploadService.uploadAvatar(
+      file,
+      user.id,
+    );
+
+    // Update user profile with new avatar
+    const updated = await this.usersService.updateAvatar(user.id, avatarUrl);
+
+    // Log activity
+    await this.activityLogService.logActivity({
+      userId: user.id,
+      activityType: 'AVATAR_UPLOAD' as any,
+      description: 'Avatar uploaded successfully',
+      metadata: { avatarUrl },
+    });
+
+    return {
+      message: 'Avatar uploaded successfully',
+      avatarUrl,
+      user: updated,
+    };
+  }
+
+  /**
    * Deactivate account
    * POST /users/me/deactivate
    */
@@ -403,8 +484,7 @@ export class UsersController {
     await this.activityLogService.logActivity({
       userId: user.id,
       activityType: 'DATA_DELETION' as any,
-      description:
-        'Account deleted (data retained for 30 days as per policy)',
+      description: 'Account deleted (data retained for 30 days as per policy)',
     });
 
     // Soft delete user
@@ -443,6 +523,50 @@ export class UsersController {
   }
 
   /**
+   * Get current user onboarding status
+   * GET /users/me/onboarding
+   */
+  @Get('me/onboarding')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingStatus(@CurrentUser() user: User) {
+    return this.onboardingService.getOrCreate(user.id);
+  }
+
+  /**
+   * Mark an onboarding step as complete
+   * POST /users/me/onboarding/steps/:stepId/complete
+   */
+  @Post('me/onboarding/steps/:stepId/complete')
+  @UseGuards(JwtAuthGuard)
+  async completeOnboardingStep(
+    @CurrentUser() user: User,
+    @Param('stepId') stepId: OnboardingStepId,
+  ) {
+    return this.onboardingService.completeStep(user.id, stepId);
+  }
+
+  /**
+   * Skip onboarding entirely
+   * POST /users/me/onboarding/skip
+   */
+  @Post('me/onboarding/skip')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async skipOnboarding(@CurrentUser() user: User): Promise<void> {
+    await this.onboardingService.skip(user.id);
+  }
+
+  /**
+   * Get onboarding analytics (aggregate across all users)
+   * GET /users/me/onboarding/analytics
+   */
+  @Get('me/onboarding/analytics')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingAnalytics() {
+    return this.onboardingService.getAnalytics();
+  }
+
+  /**
    * Get a single user by ID
    * GET /users/:id
    * ⚠️ MUST come after specific routes like /search and /export
@@ -474,4 +598,3 @@ export class UsersController {
     return await this.usersService.remove(id);
   }
 }
-

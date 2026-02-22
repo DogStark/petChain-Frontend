@@ -2,12 +2,49 @@ import axios, { AxiosInstance } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+export type OnboardingStepId = 'welcome' | 'profile_setup' | 'add_pet' | 'notifications' | 'explore';
+
+export interface OnboardingStep {
+  id: OnboardingStepId;
+  title: string;
+  completed: boolean;
+  skipped: boolean;
+  completedAt?: string;
+}
+
+export interface OnboardingStatus {
+  userId: string;
+  isCompleted: boolean;
+  isSkipped: boolean;
+  currentStep: OnboardingStepId;
+  completedSteps: OnboardingStepId[];
+  skippedSteps: OnboardingStepId[];
+  progressPercent: number;
+  steps: OnboardingStep[];
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface OnboardingAnalytics {
+  totalStarted: number;
+  totalCompleted: number;
+  totalSkipped: number;
+  completionRate: number;
+  averageTimeToCompleteMs: number;
+  stepDropoffRates: Partial<Record<OnboardingStepId, number>>;
+  mostSkippedStep?: OnboardingStepId;
+}
+
 export interface UpdateUserProfileDto {
   firstName?: string;
   lastName?: string;
   email?: string;
   phone?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  country?: string;
 }
 
 export interface UpdateUserPreferencesDto {
@@ -34,6 +71,10 @@ export interface UserProfile {
   lastName: string;
   phone?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  country?: string;
   createdAt: string;
   updatedAt: string;
   profileCompletion?: {
@@ -115,9 +156,9 @@ class UserManagementAPI {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Use uploads endpoint
+    // hit new users/avatar route
     const uploadsApi = axios.create({
-      baseURL: `${API_BASE_URL}/uploads`,
+      baseURL: `${API_BASE_URL}/users`,
       withCredentials: true,
     });
 
@@ -248,6 +289,26 @@ class UserManagementAPI {
 
   async exportData(): Promise<any> {
     const response = await this.api.get('/me/export');
+    return response.data;
+  }
+
+  // Onboarding endpoints
+  async getOnboardingStatus(): Promise<OnboardingStatus> {
+    const response = await this.api.get('/me/onboarding');
+    return response.data;
+  }
+
+  async completeOnboardingStep(stepId: OnboardingStepId): Promise<OnboardingStatus> {
+    const response = await this.api.post(`/me/onboarding/steps/${stepId}/complete`);
+    return response.data;
+  }
+
+  async skipOnboarding(): Promise<void> {
+    await this.api.post('/me/onboarding/skip');
+  }
+
+  async getOnboardingAnalytics(): Promise<OnboardingAnalytics> {
+    const response = await this.api.get('/me/onboarding/analytics');
     return response.data;
   }
 }

@@ -29,6 +29,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     email: '',
     phone: '',
     avatarUrl: '',
+    dateOfBirth: '',
+    address: '',
+    city: '',
+    country: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,6 +48,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         email: user.email || '',
         phone: user.phone || '',
         avatarUrl: user.avatarUrl || '',
+        dateOfBirth: user.dateOfBirth || '',
+        address: user.address || '',
+        city: user.city || '',
+        country: user.country || '',
       });
 
       // Simulate profile completion data
@@ -65,6 +73,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       userData.email,
       userData.phone,
       userData.avatarUrl,
+      userData.dateOfBirth,
+      userData.address,
+      userData.city,
+      userData.country,
     ];
     fields.forEach((field) => {
       if (field) score += 20;
@@ -79,6 +91,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     if (!userData.email) missing.push('email');
     if (!userData.phone) missing.push('phone');
     if (!userData.avatarUrl) missing.push('avatarUrl');
+    if (!userData.dateOfBirth) missing.push('dateOfBirth');
+    if (!userData.address) missing.push('address');
+    if (!userData.city) missing.push('city');
+    if (!userData.country) missing.push('country');
     return missing;
   };
 
@@ -98,6 +114,13 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
     if (formData.phone && !/^[\d\s\-+()]+$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone number';
+    }
+    // date of birth validation
+    if (
+      formData.dateOfBirth &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)
+    ) {
+      newErrors.dateOfBirth = 'Invalid date (YYYY-MM-DD)';
     }
 
     setErrors(newErrors);
@@ -272,6 +295,87 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             />
             {errors.phone && (
               <p className={styles.error}>{errors.phone}</p>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="dateOfBirth" className={styles.label}>
+              Date of Birth (YYYY-MM-DD)
+            </label>
+            <input
+              type="date"
+              id="dateOfBirth"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              className={`${styles.input} ${
+                errors.dateOfBirth ? styles.inputError : ''
+              }`}
+              disabled={isSubmitting || isLoading}
+            />
+            {errors.dateOfBirth && (
+              <p className={styles.error}>{errors.dateOfBirth}</p>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="address" className={styles.label}>
+              Address (Optional)
+            </label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className={`${styles.input} ${
+                errors.address ? styles.inputError : ''
+              }`}
+              placeholder="123 Main St"
+              disabled={isSubmitting || isLoading}
+            />
+            {errors.address && (
+              <p className={styles.error}>{errors.address}</p>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="city" className={styles.label}>
+              City (Optional)
+            </label>
+            <input
+              type="text"
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              className={`${styles.input} ${
+                errors.city ? styles.inputError : ''
+              }`}
+              placeholder="New York"
+              disabled={isSubmitting || isLoading}
+            />
+            {errors.city && <p className={styles.error}>{errors.city}</p>}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="country" className={styles.label}>
+              Country (Optional)
+            </label>
+            <input
+              type="text"
+              id="country"
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+              className={`${styles.input} ${
+                errors.country ? styles.inputError : ''
+              }`}
+              placeholder="USA"
+              disabled={isSubmitting || isLoading}
+            />
+            {errors.country && (
+              <p className={styles.error}>{errors.country}</p>
             )}
           </div>
         </div>

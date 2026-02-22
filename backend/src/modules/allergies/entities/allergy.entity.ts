@@ -43,6 +43,21 @@ export class Allergy {
   @Column({ type: 'date' })
   discoveredDate: Date;
 
+  @Column({ type: 'text', nullable: true })
+  notes: string;
+
+  @Column({ type: 'text', nullable: true })
+  testingResults: string;
+
+  @Column({ type: 'date', nullable: true })
+  testingDate: Date;
+
+  @Column({ nullable: true })
+  testedBy: string;
+
+  @Column({ default: false })
+  alertVeterinarian: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
