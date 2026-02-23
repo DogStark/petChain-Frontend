@@ -9,21 +9,14 @@ import { RecordShareService } from './services/record-share.service';
 import { RecordShareController } from './controllers/record-share.controller';
 import { MedicalRecord } from './entities/medical-record.entity';
 import { RecordTemplate } from './entities/record-template.entity';
-import { RecordShare } from './entities/record-share.entity';
-import { RecordShareAccess } from './entities/record-share-access.entity';
-import { EmailModule } from '../email/email.module';
+import { RecordVersion } from './entities/record-version.entity';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      MedicalRecord,
-      RecordTemplate,
-      RecordShare,
-      RecordShareAccess,
-    ]),
+    TypeOrmModule.forFeature([MedicalRecord, RecordTemplate, RecordVersion]),
     ConfigModule,
-    JwtModule.register({}),
-    EmailModule,
+    AuditModule,
   ],
   controllers: [MedicalRecordsController, RecordShareController],
   providers: [
@@ -33,4 +26,4 @@ import { EmailModule } from '../email/email.module';
   ],
   exports: [MedicalRecordsService, RecordShareService],
 })
-export class MedicalRecordsModule {}
+export class MedicalRecordsModule { }
