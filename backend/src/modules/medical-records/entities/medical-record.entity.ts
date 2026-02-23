@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Pet } from '../../pets/entities/pet.entity';
 import { Vet } from '../../vets/entities/vet.entity';
@@ -16,7 +17,19 @@ export enum RecordType {
   SURGERY = 'surgery',
   EMERGENCY = 'emergency',
   DIAGNOSTIC = 'diagnostic',
+  VACCINATION = 'vaccination',
+  DENTAL = 'dental',
+  LABORATORY = 'laboratory',
+  IMAGING = 'imaging',
+  PRESCRIPTION = 'prescription',
+  FOLLOW_UP = 'follow_up',
   OTHER = 'other',
+}
+
+export enum AccessLevel {
+  PUBLIC = 'public',
+  RESTRICTED = 'restricted',
+  CONFIDENTIAL = 'confidential',
 }
 
 @Entity('medical_records')
@@ -44,8 +57,8 @@ export class MedicalRecord {
   })
   recordType: RecordType;
 
-  @Column({ type: 'date' })
-  date: Date;
+  @Column({ type: 'date', name: 'visit_date' })
+  visitDate: Date;
 
   @Column({ type: 'text' })
   diagnosis: string;
@@ -61,6 +74,41 @@ export class MedicalRecord {
 
   @Column({ nullable: true })
   qrCode: string;
+
+  // --- Vet Verification / Signature ---
+  @Column({ type: 'boolean', default: false })
+  verified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  verifiedAt: Date;
+
+  @Column({ type: 'uuid', nullable: true })
+  verifiedByVetId: string;
+
+  @ManyToOne(() => Vet, { nullable: true })
+  @JoinColumn({ name: 'verifiedByVetId' })
+  verifiedByVet: Vet;
+
+  @Column({ type: 'text', nullable: true })
+  digitalSignature: string;
+
+  // --- Record Versioning ---
+  @VersionColumn()
+  version: number;
+
+  @Column({ type: 'uuid', nullable: true })
+  previousVersionId: string;
+
+  // --- HIPAA Compliance ---
+  @Column({
+    type: 'enum',
+    enum: AccessLevel,
+    default: AccessLevel.RESTRICTED,
+  })
+  accessLevel: AccessLevel;
+
+  @Column({ nullable: true })
+  encryptionKeyId: string;
 
   @CreateDateColumn()
   createdAt: Date;
