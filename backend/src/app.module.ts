@@ -45,6 +45,7 @@ import { StellarWalletManagementModule } from './modules/stellar-wallet-manageme
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 
 @Module({
   imports: [
@@ -115,6 +116,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     NotificationsModule,
     // Analytics
     AnalyticsModule,
+    // API Keys
+    ApiKeysModule,
   ],
   controllers: [AppController],
   providers: [AppService],
