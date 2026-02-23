@@ -127,7 +127,7 @@ export class MedicalRecordsExportService {
           .text(`Record ${i + 1}: ${r.recordType}`, { underline: true });
         doc.moveDown(0.5);
         doc.fontSize(10);
-        doc.text(`Date: ${new Date(r.date).toLocaleDateString()}`);
+        doc.text(`Visit Date: ${new Date(r.visitDate).toLocaleDateString()}`);
         doc.text(`Pet: ${(r.pet as { name?: string })?.name ?? 'N/A'}`);
         if (r.vet) {
           const vet = r.vet as { vetName?: string; clinicName?: string };
@@ -136,6 +136,17 @@ export class MedicalRecordsExportService {
         doc.text(`Diagnosis: ${r.diagnosis}`);
         doc.text(`Treatment: ${r.treatment}`);
         if (r.notes) doc.text(`Notes: ${r.notes}`);
+
+        // Verification status
+        doc.text(`Verified: ${r.verified ? 'Yes' : 'No'}`);
+        if (r.verified && r.verifiedAt) {
+          doc.text(`Verified At: ${new Date(r.verifiedAt).toLocaleDateString()}`);
+          if (r.verifiedByVet) {
+            const verifier = r.verifiedByVet as { vetName?: string };
+            doc.text(`Verified By: ${verifier.vetName ?? 'N/A'}`);
+          }
+        }
+
         if (includeAttachments && r.attachments?.length) {
           doc.moveDown(0.5).text('Attachments:', { continued: false });
           r.attachments.forEach((a) => doc.text(`  - ${a}`, { indent: 20 }));
@@ -159,10 +170,14 @@ export class MedicalRecordsExportService {
       vetId: r.vetId ?? '',
       vetName: (r.vet as { vetName?: string })?.vetName ?? '',
       recordType: r.recordType,
-      date: new Date(r.date).toISOString().split('T')[0],
+      visitDate: new Date(r.visitDate).toISOString().split('T')[0],
       diagnosis: r.diagnosis,
       treatment: r.treatment,
       notes: r.notes ?? '',
+      verified: r.verified ? 'Yes' : 'No',
+      verifiedAt: r.verifiedAt
+        ? new Date(r.verifiedAt).toISOString()
+        : '',
       attachments:
         include && r.attachments?.length ? r.attachments.join('; ') : '',
     }));
@@ -175,10 +190,12 @@ export class MedicalRecordsExportService {
         'vetId',
         'vetName',
         'recordType',
-        'date',
+        'visitDate',
         'diagnosis',
         'treatment',
         'notes',
+        'verified',
+        'verifiedAt',
         ...(include ? ['attachments'] : []),
       ],
     });
@@ -204,7 +221,7 @@ export class MedicalRecordsExportService {
       const docRef = {
         resourceType: 'DocumentReference',
         id,
-        status: 'current',
+        status: r.verified ? 'current' : 'preliminary',
         type: {
           coding: [
             {
@@ -218,8 +235,14 @@ export class MedicalRecordsExportService {
           reference: `Patient/${r.petId}`,
           display: (r.pet as { name?: string })?.name,
         },
-        date: new Date(r.date).toISOString(),
+        date: new Date(r.visitDate).toISOString(),
         description: `${r.recordType}: ${r.diagnosis}`,
+        authenticator: r.verified
+          ? {
+            reference: `Practitioner/${r.verifiedByVetId}`,
+            display: (r.verifiedByVet as { vetName?: string })?.vetName,
+          }
+          : undefined,
         content: [
           {
             attachment: {
@@ -233,8 +256,8 @@ export class MedicalRecordsExportService {
         ],
         context: {
           period: {
-            start: new Date(r.date).toISOString(),
-            end: new Date(r.date).toISOString(),
+            start: new Date(r.visitDate).toISOString(),
+            end: new Date(r.visitDate).toISOString(),
           },
           facilityType: (r.vet as { clinicName?: string })?.clinicName,
           practiceSetting: 'veterinary',

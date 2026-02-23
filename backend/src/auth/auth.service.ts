@@ -19,6 +19,7 @@ import {
   RefreshDto,
   VerifyEmailDto,
   ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { PasswordUtil } from './utils/password.util';
 import {
@@ -400,6 +401,49 @@ export class AuthService {
     } catch (error) {
       console.error('Failed to send password reset email:', error);
     }
+  }
+
+  /**
+   * Reset password
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const tokenHash = TokenUtil.hashToken(resetPasswordDto.token);
+    const user = await this.userRepository.findOne({
+      where: { passwordResetToken: tokenHash },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid reset token');
+    }
+
+    if (
+      !user.passwordResetExpires ||
+      user.passwordResetExpires < new Date()
+    ) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    // Hash new password
+    const bcryptRounds =
+      this.configService.get<number>('auth.bcryptRounds') || 12;
+    const hashedPassword = await PasswordUtil.hashPassword(
+      resetPasswordDto.newPassword,
+      bcryptRounds,
+    );
+
+    // Update user
+    user.password = hashedPassword;
+    user.passwordResetToken = null as any;
+    user.passwordResetExpires = null as any;
+    user.failedLoginAttempts = 0; // Reset failed attempts
+    (user as { lockedUntil: Date | null }).lockedUntil = null; // Unlock account
+    await this.userRepository.save(user);
+
+    // Invalidate all refresh tokens for security
+    await this.refreshTokenRepository.delete({ userId: user.id });
+
+    // Invalidate all sessions for security
+    await this.sessionRepository.delete({ userId: user.id });
   }
 
   /**

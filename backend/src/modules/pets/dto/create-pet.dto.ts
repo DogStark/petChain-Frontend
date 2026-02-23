@@ -5,6 +5,7 @@ import {
   IsDate,
   IsNumber,
   IsUUID,
+  IsBoolean,
   IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -12,10 +13,6 @@ import { PetGender } from '../entities/pet-gender.enum';
 import { PetSpecies } from '../entities/pet-species.enum';
 
 export class CreatePetDto {
-  @IsUUID()
-  @IsNotEmpty()
-  ownerId: string;
-
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -41,6 +38,11 @@ export class CreatePetDto {
   @IsOptional()
   microchipNumber?: string;
 
+  // Backward-compatible alias for microchipNumber
+  @IsString()
+  @IsOptional()
+  microchipId?: string;
+
   @IsString()
   @IsOptional()
   tagId?: string;
@@ -64,4 +66,8 @@ export class CreatePetDto {
   @IsString()
   @IsOptional()
   behaviorNotes?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  neutered?: boolean;
 }
