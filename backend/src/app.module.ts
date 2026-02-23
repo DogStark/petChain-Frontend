@@ -25,8 +25,11 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module';
 import { VetsModule } from './modules/vets/vets.module';
 import { EmergencyServicesModule } from './modules/emergency-services/emergency-services.module';
+import { AppointmentWaitlistModule } from './modules/appointment-waitlist/appointment-waitlist.module';
 import { SearchModule } from './modules/search/search.module';
 import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
+import { AllergiesModule } from './modules/allergies/allergies.module';
+import { ConditionsModule } from './modules/conditions/conditions.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -38,6 +41,7 @@ import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { StellarWalletManagementModule } from './modules/stellar-wallet-management/stellar-wallet-management.module';
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -88,8 +92,11 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     MedicalRecordsModule,
     VetsModule,
     EmergencyServicesModule,
+    AppointmentWaitlistModule,
     SearchModule,
     LostPetsModule,
+    AllergiesModule,
+    ConditionsModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
@@ -101,6 +108,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     FilesModule,
     RealtimeModule,
     WalletsModule,
+    StellarWalletManagementModule,
     // Email
     EmailModule,
     // Notifications
@@ -111,4 +119,4 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

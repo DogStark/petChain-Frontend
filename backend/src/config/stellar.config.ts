@@ -10,6 +10,8 @@ export interface StellarNetworkConfig {
 export interface StellarConfig {
   defaultNetwork: StellarNetwork;
   networks: Record<StellarNetwork, StellarNetworkConfig>;
+  /** Base64-encoded 32-byte key for AES-256 wallet encryption at rest */
+  walletMasterKey?: string;
   hsm?: {
     enabled: boolean;
     provider?: 'aws-cloudhsm' | 'azure-keyvault' | 'custom';
@@ -42,6 +44,7 @@ export const stellarConfig = registerAs(
     },
     // HSM integration configuration (provider-agnostic)
     // When enabled, wallet operations can route to HSM for key management
+    walletMasterKey: process.env.STELLAR_WALLET_MASTER_KEY || undefined,
     hsm: {
       enabled: process.env.HSM_ENABLED === 'true',
       provider: (process.env.HSM_PROVIDER as any) || undefined,

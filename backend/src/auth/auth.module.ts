@@ -21,6 +21,7 @@ import { FailedLoginAttempt } from './entities/failed-login-attempt.entity';
 import { EmailServiceImpl } from './services/email.service';
 import { EMAIL_SERVICE } from './interfaces/email-service.interface';
 import { RolesService } from './services/roles.service';
+import { RolesController } from './controllers/roles.controller';
 import { PermissionsService } from './services/permissions.service';
 import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
 
@@ -77,7 +78,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
     }),
     forwardRef(() => UsersModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, RolesController],
   providers: [
     AuthService,
     JwtStrategy,
