@@ -11,6 +11,12 @@ export default function PreferencesPage() {
     'notifications',
   );
   const [notificationPrefs, setNotificationPrefs] = useState(null);
+  const [smsUsage, setSmsUsage] = useState<{
+    sent: number;
+    delivered: number;
+    costCents: number;
+    limitCents: number | null;
+  } | null>(null);
   const [privacyPrefs, setPrivacyPrefs] = useState(null);
   const [preferences, setPreferences] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,15 +25,27 @@ export default function PreferencesPage() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const prefs = await userAPI.getPreferences();
+        const [prefs, usage] = await Promise.all([
+          userAPI.getPreferences(),
+          userAPI.getSMSUsage().catch(() => null),
+        ]);
         setPreferences(prefs);
         setNotificationPrefs({
           emailNotifications: prefs.emailNotifications,
           smsNotifications: prefs.smsNotifications,
+          smsEmergencyAlerts: prefs.smsEmergencyAlerts,
+          smsReminderAlerts: prefs.smsReminderAlerts,
           pushNotifications: prefs.pushNotifications,
           marketingEmails: prefs.marketingEmails,
           activityEmails: prefs.activityEmails,
         });
+        if (usage)
+          setSmsUsage({
+            sent: usage.sent,
+            delivered: usage.delivered,
+            costCents: usage.costCents,
+            limitCents: usage.limitCents,
+          });
         setPrivacyPrefs(prefs.privacySettings || {});
       } catch (err: any) {
         setError(err.message || 'Failed to load preferences');
@@ -120,6 +138,7 @@ export default function PreferencesPage() {
         {activeTab === 'notifications' && notificationPrefs && (
           <NotificationPreferences
             preferences={notificationPrefs}
+            smsUsage={smsUsage ?? undefined}
             onSubmit={handleNotificationPreferencesSubmit}
             isLoading={isLoading}
           />

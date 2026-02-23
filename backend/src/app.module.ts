@@ -11,6 +11,7 @@ import { storageConfig } from './config/storage.config';
 import { processingConfig } from './config/processing.config';
 import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
+import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
 
 // Feature Modules
@@ -45,6 +46,8 @@ import { StellarWalletManagementModule } from './modules/stellar-wallet-manageme
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { SmsModule } from './modules/sms/sms.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -59,6 +62,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
         processingConfig,
         cdnConfig,
         stellarConfig,
+        smsConfig,
       ],
       envFilePath: '.env',
     }),
@@ -109,12 +113,11 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     RealtimeModule,
     WalletsModule,
     StellarWalletManagementModule,
-    // Email
     EmailModule,
-    // Notifications
     NotificationsModule,
-    // Analytics
     AnalyticsModule,
+    SmsModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
