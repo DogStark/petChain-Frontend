@@ -24,14 +24,15 @@ export default function HeaderComponent() {
             <li><Link href="/" className="hover:text-blue-200">Home</Link></li>
             <li><Link href="/search" className="hover:text-blue-200">Search</Link></li>
             <li><Link href="/dental" className="hover:text-blue-200 flex items-center gap-1">🦷 Dental</Link></li>
-            
+
             {isAuthenticated ? (
               <>
                 <li><Link href="/dashboard" className="hover:text-blue-200">Dashboard</Link></li>
                 <li><Link href="/sessions" className="hover:text-blue-200">Sessions</Link></li>
+                <li><Link href="/admin/reports" className="hover:text-blue-200 text-yellow-300 font-semibold flex items-center gap-1">📊 Reports</Link></li>
                 <li className="text-blue-200">Welcome, {user?.firstName}!</li>
                 <li>
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="hover:text-blue-200 bg-blue-700 px-3 py-1 rounded"
                   >
@@ -43,8 +44,8 @@ export default function HeaderComponent() {
               <>
                 <li><Link href="/login" className="hover:text-blue-200">Login</Link></li>
                 <li>
-                  <Link 
-                    href="/register" 
+                  <Link
+                    href="/register"
                     className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded"
                   >
                     Register
