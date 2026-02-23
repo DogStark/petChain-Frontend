@@ -42,19 +42,6 @@ services:
     networks:
       - petchain_network
 
-  # Redis for BullMQ job queues (Milestone 3)
-  redis:
-    image: redis:7-alpine
-    container_name: petchain_redis
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - petchain_network
-
   # ClamAV antivirus daemon for file scanning
   clamav:
     image: clamav/clamav:latest
