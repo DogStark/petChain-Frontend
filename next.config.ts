@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -7,8 +8,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
-  // Fix for workspace root detection warning
-  outputFileTracingRoot: undefined,
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 };
 
 export default nextConfig;
