@@ -15,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
+import { BreedsModule } from './modules/breeds/breeds.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
@@ -82,6 +83,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     // Feature Modules
     AuthModule,
     UsersModule,
+    BreedsModule,
     QRCodesModule,
     PetsModule,
     VaccinationsModule,
