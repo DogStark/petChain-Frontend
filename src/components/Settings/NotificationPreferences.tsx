@@ -1,41 +1,68 @@
 import React, { useState, useEffect } from 'react';
+import styles from '../../styles/pages/PreferencesPage.module.css';
 import styles from './NotificationPreferences.module.css';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface NotificationPreferencesProps {
+  userId: string;
   preferences?: {
     emailNotifications: boolean;
     smsNotifications: boolean;
+    smsEmergencyAlerts?: boolean;
+    smsReminderAlerts?: boolean;
     pushNotifications: boolean;
     marketingEmails: boolean;
     activityEmails: boolean;
   };
+  smsUsage?: { sent: number; delivered: number; costCents: number; limitCents: number | null };
   onSubmit: (data: any) => Promise<void>;
   isLoading?: boolean;
 }
 
 export const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({
+  userId,
   preferences,
+  smsUsage,
   onSubmit,
   isLoading = false,
 }) => {
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsNotifications: false,
+    smsEmergencyAlerts: true,
+    smsReminderAlerts: false,
     pushNotifications: false,
     marketingEmails: false,
     activityEmails: true,
   });
+
+  const { requestPermission, disablePushNotifications, error: pushError } = usePushNotifications(userId);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (preferences) {
-      setSettings(preferences);
+      setSettings((prev) => ({
+        ...prev,
+        ...preferences,
+        smsEmergencyAlerts: preferences.smsEmergencyAlerts ?? true,
+        smsReminderAlerts: preferences.smsReminderAlerts ?? false,
+      }));
     }
   }, [preferences]);
 
-  const handleToggle = (key: keyof typeof settings) => {
+  const handleToggle = async (key: keyof typeof settings) => {
+    if (key === 'pushNotifications') {
+      const isEnabling = !settings.pushNotifications;
+      if (isEnabling) {
+        const token = await requestPermission();
+        if (!token) return; // Permission denied or error
+      } else {
+        await disablePushNotifications();
+      }
+    }
+
     setSettings((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -129,13 +156,13 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
         </div>
 
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Other Notifications</h3>
+          <h3 className={styles.sectionTitle}>SMS Notifications</h3>
 
           <div className={styles.preference}>
             <div className={styles.preferenceContent}>
-              <div className={styles.preferenceName}>SMS Notifications</div>
+              <div className={styles.preferenceName}>Enable SMS</div>
               <p className={styles.preferenceDescription}>
-                Receive important alerts via SMS (if number is provided).
+                Receive important alerts via SMS when a phone number is set in your profile.
               </p>
             </div>
             <label className={styles.toggle}>
@@ -148,6 +175,56 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
               <span className={styles.toggleSlider} />
             </label>
           </div>
+
+          {settings.smsNotifications && (
+            <>
+              <div className={styles.preference}>
+                <div className={styles.preferenceContent}>
+                  <div className={styles.preferenceName}>Emergency Alerts</div>
+                  <p className={styles.preferenceDescription}>
+                    Get SMS for critical emergencies (e.g. medical, lost pet).
+                  </p>
+                </div>
+                <label className={styles.toggle}>
+                  <input
+                    type="checkbox"
+                    checked={settings.smsEmergencyAlerts}
+                    onChange={() => handleToggle('smsEmergencyAlerts')}
+                    disabled={isSubmitting || isLoading}
+                  />
+                  <span className={styles.toggleSlider} />
+                </label>
+              </div>
+              <div className={styles.preference}>
+                <div className={styles.preferenceContent}>
+                  <div className={styles.preferenceName}>Reminder Alerts</div>
+                  <p className={styles.preferenceDescription}>
+                    Get SMS for vaccination and care reminders.
+                  </p>
+                </div>
+                <label className={styles.toggle}>
+                  <input
+                    type="checkbox"
+                    checked={settings.smsReminderAlerts}
+                    onChange={() => handleToggle('smsReminderAlerts')}
+                    disabled={isSubmitting || isLoading}
+                  />
+                  <span className={styles.toggleSlider} />
+                </label>
+              </div>
+            </>
+          )}
+
+          {smsUsage != null && settings.smsNotifications && (
+            <p className={styles.preferenceDescription} style={{ marginTop: 8 }}>
+              This month: {smsUsage.sent} sent, {smsUsage.delivered} delivered
+              {smsUsage.limitCents != null && ` · Limit $${(smsUsage.limitCents / 100).toFixed(2)}`}
+            </p>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Other Notifications</h3>
 
           <div className={styles.preference}>
             <div className={styles.preferenceContent}>
@@ -167,6 +244,10 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
             </label>
           </div>
         </div>
+
+        {pushError && (
+          <div className={styles.error}>{pushError}</div>
+        )}
 
         {successMessage && (
           <div className={styles.success}>{successMessage}</div>

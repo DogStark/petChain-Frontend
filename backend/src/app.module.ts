@@ -11,10 +11,12 @@ import { storageConfig } from './config/storage.config';
 import { processingConfig } from './config/processing.config';
 import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
+import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
+import { BreedsModule } from './modules/breeds/breeds.module';
 import { QRCodesModule } from './modules/qrcodes/qrcodes.module';
 import { PetsModule } from './modules/pets/pets.module';
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module';
@@ -45,7 +47,8 @@ import { StellarWalletManagementModule } from './modules/stellar-wallet-manageme
 import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
-import { ApiKeysModule } from './modules/api-keys/api-keys.module';
+import { SmsModule } from './modules/sms/sms.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -60,6 +63,7 @@ import { ApiKeysModule } from './modules/api-keys/api-keys.module';
         processingConfig,
         cdnConfig,
         stellarConfig,
+        smsConfig,
       ],
       envFilePath: '.env',
     }),
@@ -83,6 +87,7 @@ import { ApiKeysModule } from './modules/api-keys/api-keys.module';
     // Feature Modules
     AuthModule,
     UsersModule,
+    BreedsModule,
     QRCodesModule,
     PetsModule,
     VaccinationsModule,
@@ -110,14 +115,11 @@ import { ApiKeysModule } from './modules/api-keys/api-keys.module';
     RealtimeModule,
     WalletsModule,
     StellarWalletManagementModule,
-    // Email
     EmailModule,
-    // Notifications
     NotificationsModule,
-    // Analytics
     AnalyticsModule,
-    // API Keys
-    ApiKeysModule,
+    SmsModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

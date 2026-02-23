@@ -6,7 +6,7 @@ import { PrescriptionRefill } from './entities/prescription-refill.entity';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { DosageCalculationService } from './services/dosage-calculation.service';
-import { DrugInteractionService } from './services/drug-interaction.service';
+import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
 
 export interface RefillReminder {
   prescriptionId: string;
@@ -109,9 +109,9 @@ export class PrescriptionsService {
     }
 
     // Update status
-    prescription = this.updatePrescriptionStatus(prescription);
+    const updatedPrescription = this.updatePrescriptionStatus(prescription);
 
-    return await this.prescriptionRepository.save(prescription);
+    return await this.prescriptionRepository.save(updatedPrescription);
   }
 
   async remove(id: string): Promise<void> {
@@ -265,7 +265,7 @@ export class PrescriptionsService {
     // Update prescription
     prescription.refillsRemaining -= 1;
     prescription.refillsUsed = (prescription.refillsUsed || 0) + 1;
-    
+
     if (prescription.refillsRemaining === 0) {
       prescription.status = PrescriptionStatus.COMPLETED;
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { NotificationPreferences } from '../components/Settings/NotificationPreferences';
 import { PrivacySettings } from '../components/Settings/PrivacySettings';
-import { userAPI } from '../lib/api/userAPI';
+import { userAPI, UpdateUserPreferencesDto, UserProfile } from '../lib/api/userAPI';
 import styles from '../styles/pages/PreferencesPage.module.css';
 
 export default function PreferencesPage() {
@@ -11,23 +11,51 @@ export default function PreferencesPage() {
     'notifications',
   );
   const [notificationPrefs, setNotificationPrefs] = useState(null);
+  const [smsUsage, setSmsUsage] = useState<{
+    sent: number;
+    delivered: number;
+    costCents: number;
+    limitCents: number | null;
+  } | null>(null);
   const [privacyPrefs, setPrivacyPrefs] = useState(null);
   const [preferences, setPreferences] = useState(null);
+  const [notificationPrefs, setNotificationPrefs] = useState<any>(null);
+  const [privacyPrefs, setPrivacyPrefs] = useState<any>(null);
+  const [preferences, setPreferences] = useState<UpdateUserPreferencesDto | null>(
+    null,
+  );
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const prefs = await userAPI.getPreferences();
+        const [prefs, usage] = await Promise.all([
+          userAPI.getPreferences(),
+          userAPI.getSMSUsage().catch(() => null),
+        const [prefs, userProfile] = await Promise.all([
+          userAPI.getPreferences(),
+          userAPI.getCurrentProfile(),
+        ]);
         setPreferences(prefs);
+        setProfile(userProfile);
         setNotificationPrefs({
           emailNotifications: prefs.emailNotifications,
           smsNotifications: prefs.smsNotifications,
+          smsEmergencyAlerts: prefs.smsEmergencyAlerts,
+          smsReminderAlerts: prefs.smsReminderAlerts,
           pushNotifications: prefs.pushNotifications,
           marketingEmails: prefs.marketingEmails,
           activityEmails: prefs.activityEmails,
         });
+        if (usage)
+          setSmsUsage({
+            sent: usage.sent,
+            delivered: usage.delivered,
+            costCents: usage.costCents,
+            limitCents: usage.limitCents,
+          });
         setPrivacyPrefs(prefs.privacySettings || {});
       } catch (err: any) {
         setError(err.message || 'Failed to load preferences');
@@ -117,9 +145,11 @@ export default function PreferencesPage() {
       </div>
 
       <div className={styles.content}>
-        {activeTab === 'notifications' && notificationPrefs && (
+        {activeTab === 'notifications' && notificationPrefs && profile && (
           <NotificationPreferences
+            userId={profile.id}
             preferences={notificationPrefs}
+            smsUsage={smsUsage ?? undefined}
             onSubmit={handleNotificationPreferencesSubmit}
             isLoading={isLoading}
           />

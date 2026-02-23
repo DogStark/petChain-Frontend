@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPreference } from '../entities/user-preference.entity';
-import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { UpdateUserPreferencesDto } from '../dto/update-user-preferences.dto';
 
 @Injectable()
 export class UserPreferenceService {
@@ -19,6 +19,8 @@ export class UserPreferenceService {
       userId,
       emailNotifications: true,
       smsNotifications: false,
+      smsEmergencyAlerts: true,
+      smsReminderAlerts: false,
       pushNotifications: false,
       dataShareConsent: false,
       profilePublic: true,
@@ -63,6 +65,8 @@ export class UserPreferenceService {
     settings: {
       emailNotifications?: boolean;
       smsNotifications?: boolean;
+      smsEmergencyAlerts?: boolean;
+      smsReminderAlerts?: boolean;
       pushNotifications?: boolean;
     },
   ): Promise<UserPreference> {
@@ -98,6 +102,8 @@ export class UserPreferenceService {
     return {
       emailNotifications: preference.emailNotifications,
       smsNotifications: preference.smsNotifications,
+      smsEmergencyAlerts: preference.smsEmergencyAlerts,
+      smsReminderAlerts: preference.smsReminderAlerts,
       pushNotifications: preference.pushNotifications,
       marketingEmails: preference.marketingEmails,
       activityEmails: preference.activityEmails,

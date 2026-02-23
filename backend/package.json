@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:breeds": "ts-node -r tsconfig-paths/register src/scripts/seed-breeds.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
@@ -36,9 +37,11 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.12",
     "@nestjs/schedule": "^6.1.0",
+    "@nestjs/swagger": "^11.2.6",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.1.14",
     "@sendgrid/mail": "^8.1.6",
-    "@stellar/stellar-sdk": "^14.5.0",
+    "@stellar/stellar-sdk": "^14.4.3",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/multer": "^2.0.0",
     "bcrypt": "^6.0.0",
@@ -61,6 +64,7 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.3",
+    "twilio": "^5.3.4",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",
     "xss": "^1.0.15"
