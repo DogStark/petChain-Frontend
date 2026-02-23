@@ -16,6 +16,7 @@ import {
   LogoutDto,
   VerifyEmailDto,
   ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -68,5 +69,12 @@ export class AuthController {
     return {
       message: 'If the email exists, a password reset link has been sent',
     };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return { message: 'Password reset successfully' };
   }
 }

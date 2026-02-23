@@ -38,6 +38,10 @@ export class CreateNotificationDto {
 
     @IsOptional()
     metadata?: Record<string, unknown>;
+
+    @Type(() => Date)
+    @IsOptional()
+    scheduledFor?: Date;
 }
 
 // ── Query / Filtering ─────────────────────────────────────────────────────────
