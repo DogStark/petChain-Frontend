@@ -91,7 +91,7 @@ export class Reminder {
   completedAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  snoozedUntil: Date;
+  snoozedUntil: Date | null;
 
   /**
    * Generic metadata for specific reminder types

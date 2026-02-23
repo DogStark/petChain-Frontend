@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Pet } from '../../pets/entities/pet.entity';
 import { VetClinic } from './vet-clinic.entity';
-import { VaccinationReminder } from '../../reminders/entities/vaccination-reminder.entity';
+import { Reminder } from '../../reminders/entities/reminder.entity';
 
 export enum AppointmentStatus {
   SCHEDULED = 'SCHEDULED',
@@ -51,12 +51,12 @@ export class Appointment {
   @Column({ nullable: true })
   reminderId: string;
 
-  @ManyToOne(() => VaccinationReminder, {
+  @ManyToOne(() => Reminder, {
     nullable: true,
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'reminderId' })
-  reminder: VaccinationReminder;
+  reminder: Reminder;
 
   @Column({ type: 'timestamp' })
   scheduledDate: Date;

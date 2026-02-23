@@ -205,12 +205,41 @@ class UserManagementAPI {
   async updateNotificationPreferences(settings: {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
+    smsEmergencyAlerts?: boolean;
+    smsReminderAlerts?: boolean;
     pushNotifications?: boolean;
   }) {
     const response = await this.api.patch(
       '/me/preferences/notifications',
       settings,
     );
+    return response.data;
+  }
+
+  async getSMSUsage(month?: number, year?: number): Promise<{
+    sent: number;
+    delivered: number;
+    failed: number;
+    costCents: number;
+    limitCents: number | null;
+  }> {
+    const params = new URLSearchParams();
+    if (month != null) params.set('month', String(month));
+    if (year != null) params.set('year', String(year));
+    const url = `/sms/usage${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.get(url);
+    return response.data;
+  }
+
+  async getAdminSMSStats(month?: number, year?: number): Promise<{
+    global: { sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null };
+    byUser: Array<{ userId: string; sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }>;
+  }> {
+    const params = new URLSearchParams();
+    if (month != null) params.set('month', String(month));
+    if (year != null) params.set('year', String(year));
+    const url = `/sms/admin/stats${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.get(url);
     return response.data;
   }
 

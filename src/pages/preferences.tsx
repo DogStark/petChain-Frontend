@@ -10,6 +10,15 @@ export default function PreferencesPage() {
   const [activeTab, setActiveTab] = useState<'notifications' | 'privacy'>(
     'notifications',
   );
+  const [notificationPrefs, setNotificationPrefs] = useState(null);
+  const [smsUsage, setSmsUsage] = useState<{
+    sent: number;
+    delivered: number;
+    costCents: number;
+    limitCents: number | null;
+  } | null>(null);
+  const [privacyPrefs, setPrivacyPrefs] = useState(null);
+  const [preferences, setPreferences] = useState(null);
   const [notificationPrefs, setNotificationPrefs] = useState<any>(null);
   const [privacyPrefs, setPrivacyPrefs] = useState<any>(null);
   const [preferences, setPreferences] = useState<UpdateUserPreferencesDto | null>(
@@ -22,6 +31,9 @@ export default function PreferencesPage() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
+        const [prefs, usage] = await Promise.all([
+          userAPI.getPreferences(),
+          userAPI.getSMSUsage().catch(() => null),
         const [prefs, userProfile] = await Promise.all([
           userAPI.getPreferences(),
           userAPI.getCurrentProfile(),
@@ -31,10 +43,19 @@ export default function PreferencesPage() {
         setNotificationPrefs({
           emailNotifications: prefs.emailNotifications,
           smsNotifications: prefs.smsNotifications,
+          smsEmergencyAlerts: prefs.smsEmergencyAlerts,
+          smsReminderAlerts: prefs.smsReminderAlerts,
           pushNotifications: prefs.pushNotifications,
           marketingEmails: prefs.marketingEmails,
           activityEmails: prefs.activityEmails,
         });
+        if (usage)
+          setSmsUsage({
+            sent: usage.sent,
+            delivered: usage.delivered,
+            costCents: usage.costCents,
+            limitCents: usage.limitCents,
+          });
         setPrivacyPrefs(prefs.privacySettings || {});
       } catch (err: any) {
         setError(err.message || 'Failed to load preferences');
@@ -128,6 +149,7 @@ export default function PreferencesPage() {
           <NotificationPreferences
             userId={profile.id}
             preferences={notificationPrefs}
+            smsUsage={smsUsage ?? undefined}
             onSubmit={handleNotificationPreferencesSubmit}
             isLoading={isLoading}
           />
