@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import TwoFactorVerify from '../components/Settings/TwoFactorVerify';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [show2FA, setShow2FA] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, loginWith2FA, recoverWith2FA } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,11 +22,39 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      if (err instanceof Error && err.message === '2FA_REQUIRED') {
+        setShow2FA(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Login failed');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handle2FAVerify = async (token: string) => {
+    await loginWith2FA(email, password, token);
+    router.push('/dashboard');
+  };
+
+  const handle2FARecover = async (backupCode: string) => {
+    await recoverWith2FA(email, password, backupCode);
+    router.push('/dashboard');
+  };
+
+  if (show2FA) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <TwoFactorVerify
+          email={email}
+          password={password}
+          onVerify={handle2FAVerify}
+          onRecover={handle2FARecover}
+          onCancel={() => setShow2FA(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
