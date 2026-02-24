@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
+import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import { userAPI, UserSession } from '../lib/api/userAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
 
@@ -134,6 +135,10 @@ export default function AccountSettingsPage() {
         onExportData={handleExportData}
         isLoading={isLoading}
       />
+      
+      <div className={styles.section}>
+        <TwoFactorSettings />
+      </div>
     </div>
   );
 }

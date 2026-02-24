@@ -28,6 +28,8 @@ export interface AuthState {
 
 export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  loginWith2FA: (email: string, password: string, totpToken: string) => Promise<void>;
+  recoverWith2FA: (email: string, password: string, backupCode: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
@@ -196,12 +198,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      if (data.requires2FA) {
+        throw new Error('2FA_REQUIRED');
+      }
+
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWith2FA = async (email: string, password: string, totpToken: string): Promise<void> => {
+    setLoading(true);
+    clearError();
+
+    try {
+      const data = await makeRequest('/auth/2fa/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, token: totpToken }),
+      });
+
+      setAuth(data.user, {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '2FA verification failed');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recoverWith2FA = async (email: string, password: string, backupCode: string): Promise<void> => {
+    setLoading(true);
+    clearError();
+
+    try {
+      const data = await makeRequest('/auth/2fa/recover', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, backupCode }),
+      });
+
+      setAuth(data.user, {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Recovery failed');
       throw error;
     } finally {
       setLoading(false);
@@ -331,6 +381,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     ...state,
     login,
+    loginWith2FA,
+    recoverWith2FA,
     register,
     logout,
     refreshTokens,
