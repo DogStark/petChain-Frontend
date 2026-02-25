@@ -4,17 +4,28 @@ import {
   IsOptional,
   IsDate,
   IsUUID,
+  ValidateNested,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CreateAdverseReactionDto } from './create-adverse-reaction.dto';
 
 export class CreateVaccinationDto {
   @IsUUID()
   @IsNotEmpty()
   petId: string;
 
+  @IsUUID()
+  @IsOptional()
+  vetId?: string;
+
   @IsString()
   @IsNotEmpty()
   vaccineName: string;
+
+  @IsString()
+  @IsOptional()
+  manufacturer?: string;
 
   @IsString()
   @IsOptional()
@@ -36,8 +47,8 @@ export class CreateVaccinationDto {
   nextDueDate?: Date;
 
   @IsString()
-  @IsNotEmpty()
-  veterinarianName: string;
+  @IsOptional()
+  veterinarianName?: string;
 
   @IsUUID()
   @IsOptional()
@@ -45,5 +56,15 @@ export class CreateVaccinationDto {
 
   @IsString()
   @IsOptional()
+  site?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateAdverseReactionDto)
+  @IsOptional()
+  adverseReactions?: CreateAdverseReactionDto[];
 }
