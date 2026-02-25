@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { twoFactorUtils } from '../../utils/twoFactorUtils';
 
 interface TwoFactorVerifyProps {
   email: string;
@@ -28,7 +29,11 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
         await onRecover(token);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      const errorMessage = err instanceof Error ? err.message : 'Verification failed';
+      setError(errorMessage === 'Invalid 2FA token' ? 
+        'Invalid code. Please check your authenticator app and try again.' : 
+        errorMessage === 'Invalid backup code' ?
+        'Invalid backup code. Please check and try again.' : errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +70,12 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
           <input
             type="text"
             value={token}
-            onChange={(e) => setToken(e.target.value)}
+            onChange={(e) => {
+              const formatted = mode === 'totp' 
+                ? twoFactorUtils.formatTOTPToken(e.target.value)
+                : twoFactorUtils.formatBackupCode(e.target.value);
+              setToken(formatted);
+            }}
             placeholder={mode === 'totp' ? '000000' : 'XXXXXXXX'}
             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             maxLength={mode === 'totp' ? 6 : 8}

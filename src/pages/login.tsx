@@ -25,7 +25,9 @@ export default function LoginPage() {
       if (err instanceof Error && err.message === '2FA_REQUIRED') {
         setShow2FA(true);
       } else {
-        setError(err instanceof Error ? err.message : 'Login failed');
+        const errorMessage = err instanceof Error ? err.message : 'Login failed';
+        setError(errorMessage === 'Invalid credentials' ? 
+          'Invalid email or password. Please try again.' : errorMessage);
       }
     } finally {
       setIsLoading(false);
