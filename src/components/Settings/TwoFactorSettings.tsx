@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { twoFactorAPI } from '../../lib/api/twoFactorAPI';
 import { useAuth } from '../../contexts/AuthContext';
 import TwoFactorSetup from './TwoFactorSetup';
+import TwoFactorRecovery from './TwoFactorRecovery';
 
 export default function TwoFactorSettings() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [backupCodesCount, setBackupCodesCount] = useState(0);
   const [showSetup, setShowSetup] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const [totpToken, setTotpToken] = useState('');
   const [newBackupCodes, setNewBackupCodes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +79,18 @@ export default function TwoFactorSettings() {
     );
   }
 
+  if (showRecovery) {
+    return (
+      <TwoFactorRecovery
+        onComplete={() => {
+          setShowRecovery(false);
+          loadStatus();
+        }}
+        onCancel={() => setShowRecovery(false)}
+      />
+    );
+  }
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
@@ -115,11 +129,11 @@ export default function TwoFactorSettings() {
                 Disable 2FA
               </button>
               <button
-                onClick={handleGenerateBackupCodes}
+                onClick={() => setShowRecovery(true)}
                 disabled={isLoading}
-                className="bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 disabled:opacity-50"
+                className="bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-700 disabled:opacity-50"
               >
-                Generate New Backup Codes
+                Manage Backup Codes
               </button>
             </div>
           ) : (

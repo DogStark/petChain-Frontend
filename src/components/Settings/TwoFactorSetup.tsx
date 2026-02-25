@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { twoFactorAPI } from '../../lib/api/twoFactorAPI';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -83,7 +83,7 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
       <h2 className="text-xl font-bold mb-4">Scan QR Code</h2>
       
       <div className="text-center mb-4">
-        <QRCode value={qrCodeUrl} size={200} />
+        <QRCodeSVG value={qrCodeUrl} size={200} />
       </div>
       
       <p className="text-sm text-gray-600 mb-4">
