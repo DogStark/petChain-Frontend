@@ -8,11 +8,14 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { VaccinationsService } from './vaccinations.service';
 import { CreateVaccinationDto } from './dto/create-vaccination.dto';
 import { UpdateVaccinationDto } from './dto/update-vaccination.dto';
 import { Vaccination } from './entities/vaccination.entity';
+import { CreateAdverseReactionDto } from './dto/create-adverse-reaction.dto';
+import { VaccinationAdverseReaction } from './entities/vaccination-adverse-reaction.entity';
 
 @Controller('vaccinations')
 export class VaccinationsController {
@@ -58,6 +61,16 @@ export class VaccinationsController {
   }
 
   /**
+   * Get vaccinations due soon for reminder jobs
+   * GET /vaccinations/due/upcoming?days=30
+   */
+  @Get('due/upcoming')
+  async getUpcomingDue(@Query('days') days?: string): Promise<Vaccination[]> {
+    const daysAhead = days ? parseInt(days, 10) : 30;
+    return await this.vaccinationsService.getUpcomingDueVaccinations(daysAhead);
+  }
+
+  /**
    * Get a single vaccination by ID
    * GET /vaccinations/:id
    */
@@ -76,6 +89,18 @@ export class VaccinationsController {
     @Body() updateVaccinationDto: UpdateVaccinationDto,
   ): Promise<Vaccination> {
     return await this.vaccinationsService.update(id, updateVaccinationDto);
+  }
+
+  /**
+   * Log adverse reactions for a vaccination
+   * POST /vaccinations/:id/adverse-reactions
+   */
+  @Post(':id/adverse-reactions')
+  async logAdverseReactions(
+    @Param('id') id: string,
+    @Body() reactions: CreateAdverseReactionDto[],
+  ): Promise<VaccinationAdverseReaction[]> {
+    return await this.vaccinationsService.addAdverseReactions(id, reactions);
   }
 
   /**

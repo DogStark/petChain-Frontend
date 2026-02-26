@@ -71,7 +71,7 @@ export class AnalyticsService {
     const totalVaccinations = await this.vaccinationRepository.count();
     const upcomingDue = await this.vaccinationRepository
       .createQueryBuilder('vaccination')
-      .where('vaccination.nextDueDate BETWEEN :now AND :futureDate', {
+      .where('vaccination.next_due_date BETWEEN :now AND :futureDate', {
         now: new Date(),
         futureDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
@@ -79,7 +79,7 @@ export class AnalyticsService {
 
     const overdue = await this.vaccinationRepository
       .createQueryBuilder('vaccination')
-      .where('vaccination.nextDueDate < :now', { now: new Date() })
+      .where('vaccination.next_due_date < :now', { now: new Date() })
       .getCount();
 
     const administered = await this.vaccinationRepository.count({
