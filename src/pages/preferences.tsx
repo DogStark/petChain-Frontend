@@ -5,22 +5,37 @@ import { PrivacySettings } from '../components/Settings/PrivacySettings';
 import { userAPI, UpdateUserPreferencesDto, UserProfile } from '../lib/api/userAPI';
 import styles from '../styles/pages/PreferencesPage.module.css';
 
+type NotificationPreferenceState = {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  smsEmergencyAlerts: boolean;
+  smsReminderAlerts: boolean;
+  pushNotifications: boolean;
+  marketingEmails: boolean;
+  activityEmails: boolean;
+};
+
+type PrivacyPreferenceState = {
+  showEmail: boolean;
+  showPhone: boolean;
+  showActivity: boolean;
+};
+
 export default function PreferencesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'notifications' | 'privacy'>(
     'notifications',
   );
-  const [notificationPrefs, setNotificationPrefs] = useState(null);
+  const [notificationPrefs, setNotificationPrefs] =
+    useState<NotificationPreferenceState | null>(null);
   const [smsUsage, setSmsUsage] = useState<{
     sent: number;
     delivered: number;
     costCents: number;
     limitCents: number | null;
   } | null>(null);
-  const [privacyPrefs, setPrivacyPrefs] = useState(null);
-  const [preferences, setPreferences] = useState(null);
-  const [notificationPrefs, setNotificationPrefs] = useState<any>(null);
-  const [privacyPrefs, setPrivacyPrefs] = useState<any>(null);
+  const [privacyPrefs, setPrivacyPrefs] =
+    useState<PrivacyPreferenceState | null>(null);
   const [preferences, setPreferences] = useState<UpdateUserPreferencesDto | null>(
     null,
   );
@@ -31,11 +46,9 @@ export default function PreferencesPage() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const [prefs, usage] = await Promise.all([
+        const [prefs, usage, userProfile] = await Promise.all([
           userAPI.getPreferences(),
           userAPI.getSMSUsage().catch(() => null),
-        const [prefs, userProfile] = await Promise.all([
-          userAPI.getPreferences(),
           userAPI.getCurrentProfile(),
         ]);
         setPreferences(prefs);
@@ -56,10 +69,21 @@ export default function PreferencesPage() {
             costCents: usage.costCents,
             limitCents: usage.limitCents,
           });
-        setPrivacyPrefs(prefs.privacySettings || {});
-      } catch (err: any) {
-        setError(err.message || 'Failed to load preferences');
-        if (err.response?.status === 401) {
+        setPrivacyPrefs({
+          showEmail: prefs.privacySettings?.showEmail ?? false,
+          showPhone: prefs.privacySettings?.showPhone ?? false,
+          showActivity: prefs.privacySettings?.showActivity ?? false,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load preferences';
+        setError(message);
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'response' in err &&
+          typeof (err as { response?: { status?: number } }).response?.status === 'number' &&
+          (err as { response?: { status?: number } }).response?.status === 401
+        ) {
           router.push('/login');
         }
       } finally {
@@ -70,21 +94,31 @@ export default function PreferencesPage() {
     loadPreferences();
   }, [router]);
 
-  const handleNotificationPreferencesSubmit = async (data: any) => {
+  const handleNotificationPreferencesSubmit = async (
+    data: NotificationPreferenceState,
+  ) => {
     try {
       setIsLoading(true);
       const updated = await userAPI.updateNotificationPreferences(data);
       setNotificationPrefs(updated);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update preferences');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update preferences');
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePrivacySettingsSubmit = async (data: any) => {
+  const handlePrivacySettingsSubmit = async (data: {
+    privacy: PrivacyPreferenceState;
+    profile: {
+      profilePublic: boolean;
+      dataShareConsent: boolean;
+      preferredLanguage: string;
+      timezone: string;
+    };
+  }) => {
     try {
       setIsLoading(true);
       // Update both privacy and profile settings
@@ -92,20 +126,18 @@ export default function PreferencesPage() {
         await userAPI.updatePrivacySettings(data.privacy);
       }
       if (data.profile) {
-        const profileUpdate: any = {};
-        if (data.profile.profilePublic !== undefined) {
-          profileUpdate.profilePublic = data.profile.profilePublic;
-        }
-        if (data.profile.dataShareConsent !== undefined) {
-          profileUpdate.dataShareConsent = data.profile.dataShareConsent;
-        }
-        if (Object.keys(profileUpdate).length > 0) {
-          await userAPI.updatePreferences(profileUpdate);
-        }
+        const updatedPreferences = await userAPI.updatePreferences({
+          profilePublic: data.profile.profilePublic,
+          dataShareConsent: data.profile.dataShareConsent,
+          preferredLanguage: data.profile.preferredLanguage,
+          timezone: data.profile.timezone,
+        });
+        setPreferences(updatedPreferences);
       }
+      setPrivacyPrefs(data.privacy);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update settings');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
       throw err;
     } finally {
       setIsLoading(false);
@@ -161,6 +193,8 @@ export default function PreferencesPage() {
             preferences={{
               profilePublic: preferences.profilePublic,
               dataShareConsent: preferences.dataShareConsent,
+              preferredLanguage: preferences.preferredLanguage,
+              timezone: preferences.timezone,
             }}
             onSubmit={handlePrivacySettingsSubmit}
             isLoading={isLoading}

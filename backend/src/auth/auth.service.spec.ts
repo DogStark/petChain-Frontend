@@ -22,6 +22,7 @@ import { PasswordUtil } from './utils/password.util';
 import { DeviceFingerprintUtil } from './utils/device-fingerprint.util';
 import { TokenUtil } from './utils/token.util';
 import { SmsService } from '../modules/sms/sms.service';
+import { UserPreferenceService } from '../modules/users/services/user-preference.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -77,6 +78,10 @@ describe('AuthService', () => {
     sendSms: jest.fn(),
   };
 
+  const mockUserPreferenceService = {
+    createDefaultPreferences: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -112,6 +117,10 @@ describe('AuthService', () => {
         {
           provide: SmsService,
           useValue: mockSmsService,
+        },
+        {
+          provide: UserPreferenceService,
+          useValue: mockUserPreferenceService,
         },
       ],
     }).compile();
@@ -176,6 +185,7 @@ describe('AuthService', () => {
       mockUserRepository.create.mockReturnValue(mockUser);
       mockUserRepository.save.mockResolvedValue(mockUser);
       mockSmsService.sendSms.mockResolvedValue({ success: true });
+      mockUserPreferenceService.createDefaultPreferences.mockResolvedValue({});
 
       const result = await service.register(registerDto);
 
@@ -185,6 +195,9 @@ describe('AuthService', () => {
       expect(PasswordUtil.hashPassword).toHaveBeenCalled();
       expect(mockUserRepository.create).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
+      expect(mockUserPreferenceService.createDefaultPreferences).toHaveBeenCalledWith(
+        mockUser.id,
+      );
       expect(result.email).toBe(registerDto.email);
       expect(result.password).toBeUndefined();
     });

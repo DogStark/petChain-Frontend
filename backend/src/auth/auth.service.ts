@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../modules/users/users.service';
+import { UserPreferenceService } from '../modules/users/services/user-preference.service';
 import { User } from '../modules/users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Session } from './entities/session.entity';
@@ -77,6 +78,7 @@ export class AuthService {
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
     private readonly usersService: UsersService,
+    private readonly userPreferenceService: UserPreferenceService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     @Inject(EMAIL_SERVICE)
@@ -131,6 +133,7 @@ export class AuthService {
     });
 
     const savedUser = await this.userRepository.save(user);
+    await this.userPreferenceService.createDefaultPreferences(savedUser.id);
 
     // Send verification email
     try {

@@ -51,6 +51,8 @@ export interface UpdateUserProfileDto {
 export interface UpdateUserPreferencesDto {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
+  smsEmergencyAlerts?: boolean;
+  smsReminderAlerts?: boolean;
   pushNotifications?: boolean;
   dataShareConsent?: boolean;
   profilePublic?: boolean;

@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import styles from '../../styles/pages/PreferencesPage.module.css';
 import styles from './NotificationPreferences.module.css';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
+
+type NotificationSettings = {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  smsEmergencyAlerts: boolean;
+  smsReminderAlerts: boolean;
+  pushNotifications: boolean;
+  marketingEmails: boolean;
+  activityEmails: boolean;
+};
 
 interface NotificationPreferencesProps {
   userId: string;
-  preferences?: {
-    emailNotifications: boolean;
-    smsNotifications: boolean;
-    smsEmergencyAlerts?: boolean;
-    smsReminderAlerts?: boolean;
-    pushNotifications: boolean;
-    marketingEmails: boolean;
-    activityEmails: boolean;
-  };
+  preferences?: Partial<NotificationSettings>;
   smsUsage?: { sent: number; delivered: number; costCents: number; limitCents: number | null };
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: NotificationSettings) => Promise<void>;
   isLoading?: boolean;
 }
 
 export const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({
-  userId,
+  userId: _userId,
   preferences,
   smsUsage,
   onSubmit,
   isLoading = false,
 }) => {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     smsNotifications: false,
     smsEmergencyAlerts: true,
@@ -35,8 +35,6 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
     marketingEmails: false,
     activityEmails: true,
   });
-
-  const { requestPermission, disablePushNotifications, error: pushError } = usePushNotifications(userId);
 
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,16 +51,6 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
   }, [preferences]);
 
   const handleToggle = async (key: keyof typeof settings) => {
-    if (key === 'pushNotifications') {
-      const isEnabling = !settings.pushNotifications;
-      if (isEnabling) {
-        const token = await requestPermission();
-        if (!token) return; // Permission denied or error
-      } else {
-        await disablePushNotifications();
-      }
-    }
-
     setSettings((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -244,10 +232,6 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
             </label>
           </div>
         </div>
-
-        {pushError && (
-          <div className={styles.error}>{pushError}</div>
-        )}
 
         {successMessage && (
           <div className={styles.success}>{successMessage}</div>
