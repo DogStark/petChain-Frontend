@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import { getApiBaseUrl } from './apiBaseUrl';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export type OnboardingStepId = 'welcome' | 'profile_setup' | 'add_pet' | 'notifications' | 'explore';
 
@@ -71,6 +72,9 @@ export interface UserProfile {
   lastName: string;
   phone?: string;
   avatarUrl?: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  isVerified: boolean;
   dateOfBirth?: string;
   address?: string;
   city?: string;
@@ -121,12 +125,31 @@ class UserManagementAPI {
 
     // Add token to requests
     this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('authToken');
+      const token = this.getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     });
+  }
+
+  private getAccessToken(): string | null {
+    const legacyToken = localStorage.getItem('authToken');
+    if (legacyToken) {
+      return legacyToken;
+    }
+
+    const storedTokens = localStorage.getItem('auth_tokens');
+    if (!storedTokens) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(storedTokens);
+      return parsed?.accessToken ?? null;
+    } catch {
+      return null;
+    }
   }
 
   // Profile endpoints
@@ -162,7 +185,7 @@ class UserManagementAPI {
       withCredentials: true,
     });
 
-    const token = localStorage.getItem('authToken');
+    const token = this.getAccessToken();
     if (token) {
       uploadsApi.defaults.headers.common.Authorization = `Bearer ${token}`;
     }

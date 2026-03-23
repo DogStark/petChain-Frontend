@@ -10,10 +10,10 @@ export default function RegisterPage() {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    phone: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
 
@@ -28,6 +28,11 @@ export default function RegisterPage() {
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return false;
+    }
+
+    if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
+      setError('Enter a valid phone number in international format');
       return false;
     }
     
@@ -54,41 +59,16 @@ export default function RegisterPage() {
         formData.email,
         formData.password,
         formData.firstName,
-        formData.lastName
+        formData.lastName,
+        formData.phone,
       );
-      setSuccess(true);
+      router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Registration Successful!</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              We've sent a verification email to <strong>{formData.email}</strong>.
-              Please check your email and click the verification link to activate your account.
-            </p>
-            <div className="mt-6">
-              <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Return to login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -156,6 +136,26 @@ export default function RegisterPage() {
               />
             </div>
             
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                required
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="+1 555 123 4567"
+                value={formData.phone}
+                onChange={handleInputChange}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Use an SMS-capable number so we can send your verification code.
+              </p>
+            </div>
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password

@@ -15,5 +15,7 @@ export const authConfig = registerAs('auth', () => ({
   passwordResetExpiration: process.env.PASSWORD_RESET_EXPIRATION || '1h',
   emailVerificationExpiration:
     process.env.EMAIL_VERIFICATION_EXPIRATION || '24h',
+  phoneVerificationExpiration:
+    process.env.PHONE_VERIFICATION_EXPIRATION || '24h',
   maxFailedLoginAttempts: 5,
 }));

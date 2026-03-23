@@ -7,7 +7,8 @@ export default function VerifyEmailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [token, setToken] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const { verifyEmail } = useAuth();
   const router = useRouter();
 
@@ -15,7 +16,6 @@ export default function VerifyEmailPage() {
     // Get token from URL query parameters
     if (router.query.token) {
       const tokenParam = router.query.token as string;
-      setToken(tokenParam);
       handleVerification(tokenParam);
     } else {
       setIsLoading(false);
@@ -25,7 +25,9 @@ export default function VerifyEmailPage() {
 
   const handleVerification = async (verificationToken: string) => {
     try {
-      await verifyEmail(verificationToken);
+      const result = await verifyEmail(verificationToken);
+      setVerifiedEmail(result.email || '');
+      setPhoneVerified(result.phoneVerified);
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Email verification failed');
@@ -67,12 +69,21 @@ export default function VerifyEmailPage() {
             </div>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Email Verified!</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Your email address has been successfully verified. You can now log in to your account.
+              Your email address has been successfully verified.
             </p>
             <div className="mt-6">
-              <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Go to login
-              </Link>
+              {verifiedEmail && !phoneVerified ? (
+                <Link
+                  href={`/verify-account?email=${encodeURIComponent(verifiedEmail)}&emailVerified=1`}
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Verify your phone number
+                </Link>
+              ) : (
+                <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                  Go to login
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -95,11 +106,14 @@ export default function VerifyEmailPage() {
           </p>
           <div className="mt-6 space-y-2">
             <p className="text-sm text-gray-500">
-              Need a new verification link?
+              Need a new verification link or SMS code?
             </p>
             <div className="space-y-2">
               <Link href="/register" className="block font-medium text-blue-600 hover:text-blue-500">
                 Register again
+              </Link>
+              <Link href="/verify-account" className="block font-medium text-blue-600 hover:text-blue-500">
+                Open verification center
               </Link>
               <Link href="/login" className="block font-medium text-blue-600 hover:text-blue-500">
                 Back to login
