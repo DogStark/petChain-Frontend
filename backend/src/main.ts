@@ -2,14 +2,22 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as compression from 'compression';
 import { AppModule } from './app.module';
+import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
+  // Enable compression
+  app.use(compression());
+
   // Trust proxy for correct IP address detection
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
+
+  // Global performance interceptor
+  app.useGlobalInterceptors(new PerformanceInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(

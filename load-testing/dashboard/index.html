@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetChain Performance Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { font-size: 2rem; margin-bottom: 10px; color: #60a5fa; }
+    .subtitle { color: #94a3b8; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: #1e293b; border-radius: 8px; padding: 20px; border: 1px solid #334155; }
+    .card h2 { font-size: 1.2rem; margin-bottom: 15px; color: #94a3b8; }
+    .metric { font-size: 2.5rem; font-weight: bold; color: #60a5fa; margin-bottom: 5px; }
+    .metric-label { color: #64748b; font-size: 0.9rem; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: 500; }
+    .status.good { background: #065f46; color: #6ee7b7; }
+    .status.warning { background: #78350f; color: #fcd34d; }
+    .status.error { background: #7f1d1d; color: #fca5a5; }
+    .results-list { list-style: none; }
+    .results-list li { padding: 12px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    .results-list li:hover { background: #1e293b; }
+    .timestamp { color: #64748b; font-size: 0.85rem; }
+    #live-indicator { display: inline-block; width: 10px; height: 10px; background: #22c55e; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 PetChain Performance Dashboard</h1>
+    <p class="subtitle"><span id="live-indicator"></span>Real-time performance monitoring</p>
+    
+    <div class="grid">
+      <div class="card">
+        <h2>Response Time</h2>
+        <div class="metric" id="response-time">--</div>
+        <div class="metric-label">Average (ms)</div>
+      </div>
+      
+      <div class="card">
+        <h2>Throughput</h2>
+        <div class="metric" id="throughput">--</div>
+        <div class="metric-label">Requests/sec</div>
+      </div>
+      
+      <div class="card">
+        <h2>Error Rate</h2>
+        <div class="metric" id="error-rate">--</div>
+        <div class="metric-label">Percentage</div>
+      </div>
+      
+      <div class="card">
+        <h2>Status</h2>
+        <div class="metric">
+          <span class="status good" id="status">Healthy</span>
+        </div>
+        <div class="metric-label">System Health</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>Recent Test Results</h2>
+      <ul class="results-list" id="results-list">
+        <li>Loading results...</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.host}`);
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'new-result') {
+        loadResults();
+      }
+    };
+    
+    async function loadResults() {
+      const response = await fetch('/api/results');
+      const results = await response.json();
+      
+      const list = document.getElementById('results-list');
+      if (results.length === 0) {
+        list.innerHTML = '<li>No results yet. Run tests to see data.</li>';
+        return;
+      }
+      
+      list.innerHTML = results.map(r => `
+        <li onclick="loadResult('${r.name}')">
+          <strong>${r.name}</strong><br>
+          <span class="timestamp">${new Date(r.timestamp).toLocaleString()}</span>
+        </li>
+      `).join('');
+      
+      if (results.length > 0) {
+        loadResult(results[0].name);
+      }
+    }
+    
+    async function loadResult(filename) {
+      const response = await fetch(`/api/results/${filename}`);
+      const data = await response.json();
+      
+      updateMetrics(data);
+    }
+    
+    function updateMetrics(data) {
+      if (data.responseTime && data.responseTime.length > 0) {
+        const validTimes = data.responseTime.filter(t => t > 0);
+        const avg = validTimes.reduce((a, b) => a + b, 0) / validTimes.length;
+        document.getElementById('response-time').textContent = avg.toFixed(0);
+      }
+      
+      if (data.throughput && data.throughput.length > 0) {
+        const avg = data.throughput.reduce((a, b) => a + b, 0) / data.throughput.length;
+        document.getElementById('throughput').textContent = avg.toFixed(1);
+      }
+      
+      if (data.errorRate && data.errorRate.length > 0) {
+        const avg = data.errorRate.reduce((a, b) => a + b, 0) / data.errorRate.length;
+        document.getElementById('error-rate').textContent = avg.toFixed(2) + '%';
+        
+        const statusEl = document.getElementById('status');
+        if (avg < 1) {
+          statusEl.textContent = 'Healthy';
+          statusEl.className = 'status good';
+        } else if (avg < 5) {
+          statusEl.textContent = 'Warning';
+          statusEl.className = 'status warning';
+        } else {
+          statusEl.textContent = 'Critical';
+          statusEl.className = 'status error';
+        }
+      }
+    }
+    
+    loadResults();
+    setInterval(loadResults, 10000);
+  </script>
+</body>
+</html>

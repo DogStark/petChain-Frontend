@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: petchain_prometheus
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - petchain_network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: petchain_grafana
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - petchain_network
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: petchain_node_exporter
+    restart: unless-stopped
+    ports:
+      - '9100:9100'
+    networks:
+      - petchain_network
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: petchain_redis_exporter
+    restart: unless-stopped
+    ports:
+      - '9121:9121'
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - petchain_network
+
+  # Postgres Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: petchain_postgres_exporter
+    restart: unless-stopped
+    ports:
+      - '9187:9187'
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/petchain_db?sslmode=disable
+    depends_on:
+      - postgres
+    networks:
+      - petchain_network
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  petchain_network:
+    external: true

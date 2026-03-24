@@ -49,6 +49,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { HealthModule } from './health/health.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -66,6 +68,13 @@ import { WebSocketModule } from './websocket/websocket.module';
         smsConfig,
       ],
       envFilePath: '.env',
+    }),
+
+    // Cache Module
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 300, // 5 minutes default
+      max: 1000, // Max items in cache
     }),
 
     // Scheduler Module
@@ -120,6 +129,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

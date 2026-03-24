@@ -1,0 +1,36 @@
+{
+  "name": "petchain-load-testing",
+  "version": "1.0.0",
+  "description": "Load testing and performance optimization for PetChain",
+  "scripts": {
+    "build": "tsc",
+    "test:load": "npm run build && k6 run dist/tests/load-test.js",
+    "test:stress": "npm run build && k6 run dist/tests/stress-test.js",
+    "test:spike": "npm run build && k6 run dist/tests/spike-test.js",
+    "test:soak": "npm run build && k6 run dist/tests/soak-test.js",
+    "test:api": "npm run build && k6 run dist/tests/api-endpoints-test.js",
+    "test:auth": "npm run build && k6 run dist/tests/auth-flow-test.js",
+    "test:pets": "npm run build && k6 run dist/tests/pets-workflow-test.js",
+    "test:database": "npm run build && k6 run dist/tests/database-test.js",
+    "test:integration": "npm run build && k6 run dist/tests/integration-test.js",
+    "test:all": "npm run build && npm run test:load && npm run test:stress && npm run test:api",
+    "monitor": "ts-node scripts/performance-monitor.ts",
+    "analyze": "ts-node scripts/analyze-results.ts",
+    "dashboard": "ts-node scripts/dashboard-server.ts",
+    "benchmark": "ts-node scripts/benchmark.ts",
+    "setup": "ts-node scripts/setup-test-data.ts",
+    "report": "ts-node scripts/generate-report.ts"
+  },
+  "devDependencies": {
+    "@types/k6": "^0.52.0",
+    "@types/node": "^20.11.0",
+    "@types/express": "^4.17.21",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  }
+}
