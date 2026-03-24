@@ -307,9 +307,13 @@ class UserManagementAPI {
   }
 
   // Activity endpoints
-  async getActivity(limit: number = 50, offset: number = 0): Promise<ActivityLog[]> {
+  async getActivity(
+    limit: number = 50,
+    offset: number = 0,
+    actionType?: string,
+  ): Promise<ActivityLog[]> {
     const response = await this.api.get('/me/activity', {
-      params: { limit, offset },
+      params: { limit, offset, ...(actionType ? { activityType: actionType } : {}) },
     });
     return response.data;
   }
@@ -325,6 +329,13 @@ class UserManagementAPI {
 
   async getSuspiciousActivities(): Promise<ActivityLog[]> {
     const response = await this.api.get('/me/activity/suspicious');
+    return response.data;
+  }
+
+  async exportActivityLogs(): Promise<Blob> {
+    const response = await this.api.get('/me/activity/export', {
+      responseType: 'blob',
+    });
     return response.data;
   }
 
