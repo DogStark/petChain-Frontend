@@ -22,9 +22,19 @@ export class VerificationService {
     private readonly medicalRecordsService: MedicalRecordsService,
     private readonly stellarService: StellarService,
     private readonly encryptionService: EncryptionService,
+    private readonly contractInteraction: ContractInteractionService,
   ) {}
 
   async verifyRecord(recordId: string, recordType: string, userId?: string, ipAddress?: string): Promise<VerificationResult> {
+    // 0. On-chain Access Control Check
+    if (userId) {
+      const hasAccess = await this.contractInteraction.checkAccess(recordId, userId);
+      if (!hasAccess) {
+        this.logger.warn(`User ${userId} attempted to verify record ${recordId} without on-chain permission.`);
+        throw new Error('Access denied by Stellar Smart Contract');
+      }
+    }
+
     // 1. Check cache
     const cached = await this.resultRepository.findOne({ where: { recordId } });
     const now = new Date();

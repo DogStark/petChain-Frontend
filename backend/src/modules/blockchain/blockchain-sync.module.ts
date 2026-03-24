@@ -6,6 +6,10 @@ import { BlockchainSyncController } from './blockchain-sync.controller';
 import { StellarService } from './stellar.service';
 import { IPFSService } from './ipfs.service';
 import { EncryptionService } from '../../common/services/encryption.service';
+import { ContractManagementService } from './contract-management.service';
+import { ContractInteractionService } from './contract-interaction.service';
+import { PaymentAutomationService } from './payment-automation.service';
+import { ContractEventMonitorService } from './contract-event-monitor.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([BlockchainSync])],
@@ -15,7 +19,19 @@ import { EncryptionService } from '../../common/services/encryption.service';
     StellarService,
     IPFSService,
     EncryptionService,
+    ContractManagementService,
+    ContractInteractionService,
+    PaymentAutomationService,
+    ContractEventMonitorService,
   ],
-  exports: [BlockchainSyncService, StellarService, EncryptionService],
+  exports: [
+    BlockchainSyncService,
+    StellarService,
+    EncryptionService,
+    ContractManagementService,
+    ContractInteractionService,
+    PaymentAutomationService,
+    ContractEventMonitorService,
+  ],
 })
 export class BlockchainSyncModule {}
