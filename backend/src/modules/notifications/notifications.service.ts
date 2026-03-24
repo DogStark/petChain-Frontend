@@ -13,6 +13,8 @@ import {
     NotificationCategory,
 } from './entities/notification.entity';
 import { NotificationSetting } from './entities/notification-setting.entity';
+import { DeviceToken } from './entities/device-token.entity';
+import { RegisterDeviceTokenDto } from './dto/device-token.dto';
 import {
     CreateNotificationDto,
     NotificationQueryDto,
@@ -21,6 +23,8 @@ import {
     UpdateNotificationSettingDto,
 } from './dto/notifications.dto';
 import { NotificationsGateway } from 'src/websocket/gateways/notifications.gateway';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 /** Maps NotificationCategory to the setting column name */
 const CATEGORY_TO_SETTING: Record<NotificationCategory, keyof NotificationSetting> = {
@@ -44,8 +48,11 @@ export class NotificationsService {
         private readonly notificationRepo: Repository<Notification>,
         @InjectRepository(NotificationSetting)
         private readonly settingRepo: Repository<NotificationSetting>,
+        @InjectRepository(DeviceToken)
+        private readonly deviceTokenRepo: Repository<DeviceToken>,
         @Inject(forwardRef(() => NotificationsGateway))
         private readonly gateway: NotificationsGateway,
+        @InjectQueue('push-notifications') private pushQueue: Queue,
     ) { }
 
     // ── Create ──────────────────────────────────────────────────────────────────
@@ -81,6 +88,17 @@ export class NotificationsService {
             message: dto.message,
             targetUserId: dto.userId,
             metadata: dto.metadata,
+        });
+
+        // Queue Push Notification via BullMQ
+        const delay = dto.scheduledFor
+            ? Math.max(0, new Date(dto.scheduledFor).getTime() - Date.now())
+            : 0;
+
+        await this.pushQueue.add('send-push', notification, {
+             delay,
+             removeOnComplete: true,
+             removeOnFail: false,
         });
 
         return notification;
@@ -256,5 +274,39 @@ export class NotificationsService {
             targetUserId: userId,
             metadata: { unreadCount },
         });
+    }
+
+    // ── Device Tokens ───────────────────────────────────────────────────────────
+
+    async registerDeviceToken(
+        userId: string,
+        dto: RegisterDeviceTokenDto,
+    ): Promise<DeviceToken> {
+        let deviceToken = await this.deviceTokenRepo.findOne({
+            where: { token: dto.token },
+        });
+
+        if (deviceToken) {
+            // Update the user ID if the token is passed to a new user
+            if (deviceToken.userId !== userId) {
+                deviceToken.userId = userId;
+                await this.deviceTokenRepo.save(deviceToken);
+            }
+        } else {
+            deviceToken = this.deviceTokenRepo.create({
+                userId,
+                token: dto.token,
+                platform: dto.platform,
+            });
+            await this.deviceTokenRepo.save(deviceToken);
+        }
+
+        this.logger.log(`Registered device token for user ${userId}`);
+        return deviceToken;
+    }
+
+    async removeDeviceToken(userId: string, token: string): Promise<void> {
+        await this.deviceTokenRepo.delete({ userId, token });
+        this.logger.log(`Removed device token for user ${userId}`);
     }
 }

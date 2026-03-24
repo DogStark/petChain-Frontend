@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPreference } from '../entities/user-preference.entity';
-import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { UpdateUserPreferencesDto } from '../dto/update-user-preferences.dto';
 
 @Injectable()
 export class UserPreferenceService {
@@ -19,11 +19,20 @@ export class UserPreferenceService {
       userId,
       emailNotifications: true,
       smsNotifications: false,
+      smsEmergencyAlerts: true,
+      smsReminderAlerts: false,
       pushNotifications: false,
       dataShareConsent: false,
       profilePublic: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
       marketingEmails: false,
       activityEmails: true,
+      privacySettings: {
+        showEmail: false,
+        showPhone: false,
+        showActivity: false,
+      },
     });
     return await this.preferenceRepository.save(preference);
   }
@@ -32,13 +41,11 @@ export class UserPreferenceService {
    * Get user preferences
    */
   async getPreferences(userId: string): Promise<UserPreference> {
-    const preference = await this.preferenceRepository.findOne({
+    let preference = await this.preferenceRepository.findOne({
       where: { userId },
     });
     if (!preference) {
-      throw new NotFoundException(
-        `Preferences not found for user ${userId}`,
-      );
+      preference = await this.createDefaultPreferences(userId);
     }
     return preference;
   }
@@ -63,6 +70,8 @@ export class UserPreferenceService {
     settings: {
       emailNotifications?: boolean;
       smsNotifications?: boolean;
+      smsEmergencyAlerts?: boolean;
+      smsReminderAlerts?: boolean;
       pushNotifications?: boolean;
     },
   ): Promise<UserPreference> {
@@ -98,6 +107,8 @@ export class UserPreferenceService {
     return {
       emailNotifications: preference.emailNotifications,
       smsNotifications: preference.smsNotifications,
+      smsEmergencyAlerts: preference.smsEmergencyAlerts,
+      smsReminderAlerts: preference.smsReminderAlerts,
       pushNotifications: preference.pushNotifications,
       marketingEmails: preference.marketingEmails,
       activityEmails: preference.activityEmails,
@@ -109,6 +120,12 @@ export class UserPreferenceService {
    */
   async getPrivacySettings(userId: string) {
     const preference = await this.getPreferences(userId);
-    return preference.privacySettings || {};
+    return (
+      preference.privacySettings || {
+        showEmail: false,
+        showPhone: false,
+        showActivity: false,
+      }
+    );
   }
 }

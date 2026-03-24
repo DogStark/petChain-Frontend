@@ -115,4 +115,23 @@ export class NotificationsController {
     remove(@Param('id') id: string, @Param('userId') userId: string) {
         return this.notificationsService.remove(id, userId);
     }
+
+    // ── Device Tokens ────────────────────────────────────────────────────────────
+
+    @Post(':userId/device-tokens')
+    registerDeviceToken(
+        @Param('userId') userId: string,
+        @Body() dto: import('./dto/device-token.dto').RegisterDeviceTokenDto,
+    ) {
+        return this.notificationsService.registerDeviceToken(userId, dto);
+    }
+
+    @Delete(':userId/device-tokens/:token')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    removeDeviceToken(
+        @Param('userId') userId: string,
+        @Param('token') token: string,
+    ) {
+        return this.notificationsService.removeDeviceToken(userId, token);
+    }
 }

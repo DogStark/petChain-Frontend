@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+import { Permission } from "../constants/permissions.enum"
 
 export const PERMISSIONS_KEY = 'permissions';
 
@@ -7,5 +8,5 @@ export const PERMISSIONS_KEY = 'permissions';
  * Allows fine-grained permission checks independent of roles
  * @param permissions - Array of permission names (e.g., 'READ_OWN_PETS', 'CREATE_PETS')
  */
-export const Permissions = (...permissions: string[]) =>
+export const Permissions = (...permissions: Permission[]) =>
   SetMetadata(PERMISSIONS_KEY, permissions);

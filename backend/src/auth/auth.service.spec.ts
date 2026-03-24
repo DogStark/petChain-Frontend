@@ -14,11 +14,15 @@ import { UsersService } from '../modules/users/users.service';
 import { User } from '../modules/users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Session } from './entities/session.entity';
-import { EmailService } from './interfaces/email-service.interface';
-import { EmailServiceImpl } from './services/email.service';
+import {
+  EMAIL_SERVICE,
+  type EmailService,
+} from './interfaces/email-service.interface';
 import { PasswordUtil } from './utils/password.util';
 import { DeviceFingerprintUtil } from './utils/device-fingerprint.util';
 import { TokenUtil } from './utils/token.util';
+import { SmsService } from '../modules/sms/sms.service';
+import { UserPreferenceService } from '../modules/users/services/user-preference.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -41,6 +45,7 @@ describe('AuthService', () => {
     save: jest.fn(),
     findOne: jest.fn(),
     remove: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockSessionRepository = {
@@ -67,6 +72,14 @@ describe('AuthService', () => {
   const mockEmailService: EmailService = {
     sendVerificationEmail: jest.fn(),
     sendPasswordResetEmail: jest.fn(),
+  };
+
+  const mockSmsService = {
+    sendSms: jest.fn(),
+  };
+
+  const mockUserPreferenceService = {
+    createDefaultPreferences: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -98,8 +111,16 @@ describe('AuthService', () => {
           useValue: mockConfigService,
         },
         {
-          provide: EmailService,
+          provide: EMAIL_SERVICE,
           useValue: mockEmailService,
+        },
+        {
+          provide: SmsService,
+          useValue: mockSmsService,
+        },
+        {
+          provide: UserPreferenceService,
+          useValue: mockUserPreferenceService,
         },
       ],
     }).compile();
@@ -115,7 +136,7 @@ describe('AuthService', () => {
     usersService = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
     configService = module.get<ConfigService>(ConfigService);
-    emailService = module.get<EmailService>(EmailService);
+    emailService = module.get<EmailService>(EMAIL_SERVICE);
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -127,6 +148,7 @@ describe('AuthService', () => {
       firstName: 'Test',
       lastName: 'User',
       password: 'Password123!',
+      phone: '+15551234567',
     };
 
     it('should register a new user successfully', async () => {
@@ -142,6 +164,7 @@ describe('AuthService', () => {
         .mockReturnValue('hashed-verification-token');
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.emailVerificationExpiration') return '24h';
+        if (key === 'auth.phoneVerificationExpiration') return '24h';
         return null;
       });
 
@@ -152,12 +175,17 @@ describe('AuthService', () => {
         emailVerified: false,
         emailVerificationToken: 'hashed-verification-token',
         emailVerificationExpires: new Date(),
+        phoneVerified: false,
+        phoneVerificationCode: 'hashed-verification-token',
+        phoneVerificationExpires: new Date(),
         isActive: true,
         failedLoginAttempts: 0,
       };
 
       mockUserRepository.create.mockReturnValue(mockUser);
       mockUserRepository.save.mockResolvedValue(mockUser);
+      mockSmsService.sendSms.mockResolvedValue({ success: true });
+      mockUserPreferenceService.createDefaultPreferences.mockResolvedValue({});
 
       const result = await service.register(registerDto);
 
@@ -167,6 +195,9 @@ describe('AuthService', () => {
       expect(PasswordUtil.hashPassword).toHaveBeenCalled();
       expect(mockUserRepository.create).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
+      expect(mockUserPreferenceService.createDefaultPreferences).toHaveBeenCalledWith(
+        mockUser.id,
+      );
       expect(result.email).toBe(registerDto.email);
       expect(result.password).toBeUndefined();
     });
@@ -201,6 +232,7 @@ describe('AuthService', () => {
       password: 'hashedPassword',
       isActive: true,
       emailVerified: true,
+      phoneVerified: true,
       failedLoginAttempts: 0,
       lockedUntil: null,
     };
@@ -437,6 +469,7 @@ describe('AuthService', () => {
         id: 'user-id',
         email: 'test@example.com',
         emailVerified: false,
+        phoneVerified: false,
         emailVerificationToken: 'hashed-token',
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
@@ -446,11 +479,12 @@ describe('AuthService', () => {
         emailVerified: true,
       });
 
-      await service.verifyEmail(verifyEmailDto);
+      const result = await service.verifyEmail(verifyEmailDto);
 
       expect(TokenUtil.hashToken).toHaveBeenCalledWith(verifyEmailDto.token);
       expect(mockUserRepository.findOne).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
+      expect(result.emailVerified).toBe(true);
     });
 
     it('should throw BadRequestException for invalid token', async () => {
@@ -472,6 +506,47 @@ describe('AuthService', () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
       await expect(service.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('verifyPhone', () => {
+    const verifyPhoneDto = {
+      email: 'test@example.com',
+      code: '123456',
+    };
+
+    it('should verify phone successfully', async () => {
+      jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('hashed-code');
+      const mockUser = {
+        id: 'user-id',
+        email: 'test@example.com',
+        emailVerified: true,
+        phoneVerified: false,
+        phoneVerificationCode: 'hashed-code',
+        phoneVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      };
+      mockUsersService.findByEmail.mockResolvedValue(mockUser);
+      mockUserRepository.save.mockResolvedValue({
+        ...mockUser,
+        phoneVerified: true,
+      });
+
+      const result = await service.verifyPhone(verifyPhoneDto);
+
+      expect(result.phoneVerified).toBe(true);
+      expect(mockUserRepository.save).toHaveBeenCalled();
+    });
+
+    it('should throw when the code is invalid', async () => {
+      jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('wrong-code');
+      mockUsersService.findByEmail.mockResolvedValue({
+        phoneVerificationCode: 'hashed-code',
+        phoneVerificationExpires: new Date(Date.now() + 1000),
+      });
+
+      await expect(service.verifyPhone(verifyPhoneDto)).rejects.toThrow(
         BadRequestException,
       );
     });

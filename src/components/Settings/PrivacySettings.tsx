@@ -10,8 +10,22 @@ interface PrivacySettingsProps {
   preferences?: {
     profilePublic?: boolean;
     dataShareConsent?: boolean;
+    preferredLanguage?: string | null;
+    timezone?: string | null;
   };
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: {
+    privacy: {
+      showEmail: boolean;
+      showPhone: boolean;
+      showActivity: boolean;
+    };
+    profile: {
+      profilePublic: boolean;
+      dataShareConsent: boolean;
+      preferredLanguage: string;
+      timezone: string;
+    };
+  }) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -30,6 +44,8 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   const [profileSettings, setProfileSettings] = useState({
     profilePublic: true,
     dataShareConsent: false,
+    preferredLanguage: 'en',
+    timezone: 'UTC',
   });
 
   const [successMessage, setSuccessMessage] = useState('');
@@ -37,12 +53,18 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
 
   useEffect(() => {
     if (settings) {
-      setPrivacySettings(settings);
+      setPrivacySettings({
+        showEmail: settings.showEmail ?? false,
+        showPhone: settings.showPhone ?? false,
+        showActivity: settings.showActivity ?? false,
+      });
     }
     if (preferences) {
       setProfileSettings({
         profilePublic: preferences.profilePublic ?? true,
         dataShareConsent: preferences.dataShareConsent ?? false,
+        preferredLanguage: preferences.preferredLanguage ?? 'en',
+        timezone: preferences.timezone ?? 'UTC',
       });
     }
   }, [settings, preferences]);
@@ -57,7 +79,17 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   const handleProfileToggle = (key: keyof typeof profileSettings) => {
     setProfileSettings((prev) => ({
       ...prev,
-      [key]: !prev[key],
+      [key]: typeof prev[key] === 'boolean' ? !prev[key] : prev[key],
+    }));
+  };
+
+  const handleProfileSelectChange = (
+    key: 'preferredLanguage' | 'timezone',
+    value: string,
+  ) => {
+    setProfileSettings((prev) => ({
+      ...prev,
+      [key]: value,
     }));
   };
 
@@ -204,6 +236,56 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               />
               <span className={styles.toggleSlider} />
             </label>
+          </div>
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Regional Settings</h3>
+          <p className={styles.sectionDescription}>
+            Choose how PetChain personalizes language and time-based reminders for your account.
+          </p>
+
+          <div className={styles.fieldGroup}>
+            <label htmlFor="preferredLanguage" className={styles.fieldLabel}>
+              Language Preference
+            </label>
+            <select
+              id="preferredLanguage"
+              className={styles.select}
+              value={profileSettings.preferredLanguage}
+              onChange={(event) =>
+                handleProfileSelectChange('preferredLanguage', event.target.value)
+              }
+              disabled={isSubmitting || isLoading}
+            >
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="pt">Portuguese</option>
+            </select>
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label htmlFor="timezone" className={styles.fieldLabel}>
+              Timezone
+            </label>
+            <select
+              id="timezone"
+              className={styles.select}
+              value={profileSettings.timezone}
+              onChange={(event) =>
+                handleProfileSelectChange('timezone', event.target.value)
+              }
+              disabled={isSubmitting || isLoading}
+            >
+              <option value="UTC">UTC</option>
+              <option value="Africa/Lagos">Africa/Lagos</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="America/Chicago">America/Chicago</option>
+              <option value="America/Los_Angeles">America/Los_Angeles</option>
+              <option value="Europe/London">Europe/London</option>
+            </select>
           </div>
         </div>
 

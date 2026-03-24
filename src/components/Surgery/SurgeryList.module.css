@@ -1,0 +1,77 @@
+.list {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.header h3 {
+  margin: 0;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status.scheduled {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status.in_progress {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status.completed {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.status.cancelled {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.date {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.notes {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.actions {
+  margin-top: 0.5rem;
+}
+
+.actions button {
+  padding: 0.25rem 0.75rem;
+  border: none;
+  background: #f44336;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}

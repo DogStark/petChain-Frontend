@@ -11,6 +11,13 @@ interface ProfileEditFormProps {
     email: string;
     phone?: string;
     avatarUrl?: string;
+    emailVerified?: boolean;
+    phoneVerified?: boolean;
+    isVerified?: boolean;
+    dateOfBirth?: string;
+    address?: string;
+    city?: string;
+    country?: string;
   };
   onSubmit: (data: any) => Promise<void>;
   onAvatarUpload: (file: File) => Promise<void>;
@@ -193,6 +200,36 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           isComplete={profileCompletion.isComplete}
           missingFields={profileCompletion.missingFields}
         />
+      )}
+
+      {user && (
+        <div className={styles.verificationCard}>
+          <div className={styles.verificationHeader}>
+            <div>
+              <h2 className={styles.sectionTitle}>Verification Status</h2>
+              <p className={styles.verificationCopy}>
+                New accounts need both email and phone verification before sign-in is fully enabled.
+              </p>
+            </div>
+            <span
+              className={
+                user.isVerified ? styles.verifiedBadge : styles.pendingBadge
+              }
+            >
+              {user.isVerified ? 'Verified' : 'Pending'}
+            </span>
+          </div>
+          <div className={styles.verificationGrid}>
+            <div className={styles.verificationItem}>
+              <span className={styles.verificationLabel}>Email</span>
+              <strong>{user.emailVerified ? 'Verified' : 'Pending'}</strong>
+            </div>
+            <div className={styles.verificationItem}>
+              <span className={styles.verificationLabel}>Phone</span>
+              <strong>{user.phoneVerified ? 'Verified' : 'Pending'}</strong>
+            </div>
+          </div>
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className={styles.form}>

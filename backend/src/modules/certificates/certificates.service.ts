@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Vaccination } from '../vaccinations/entities/vaccination.entity';
 import { Pet } from '../pets/entities/pet.entity';
+import PDFDocument from 'pdfkit';
 
 export interface VaccinationCertificate {
   certificateCode: string;
@@ -12,7 +13,9 @@ export interface VaccinationCertificate {
     vaccineName: string;
     administeredDate: Date;
     expirationDate: Date | null;
+    manufacturer: string | null;
     batchNumber: string | null;
+    site: string | null;
     veterinarianName: string;
   };
   pet: {
@@ -55,7 +58,7 @@ export class CertificatesService {
   ): Promise<VaccinationCertificate> {
     const vaccination = await this.vaccinationRepository.findOne({
       where: { id: vaccinationId },
-      relations: ['pet', 'pet.breed', 'pet.owner', 'vetClinic'],
+      relations: ['pet', 'pet.breed', 'pet.owner', 'vet', 'vetClinic'],
     });
 
     if (!vaccination) {
@@ -76,8 +79,10 @@ export class CertificatesService {
         vaccineName: vaccination.vaccineName,
         administeredDate: vaccination.administeredDate,
         expirationDate: vaccination.expirationDate,
+        manufacturer: vaccination.manufacturer,
         batchNumber: vaccination.batchNumber,
-        veterinarianName: vaccination.veterinarianName,
+        site: vaccination.site,
+        veterinarianName: vaccination.veterinarianName || vaccination.vet?.vetName || 'N/A',
       },
       pet: {
         id: vaccination.pet.id,
@@ -124,7 +129,7 @@ export class CertificatesService {
   ): Promise<{ isValid: boolean; certificate: VaccinationCertificate | null }> {
     const vaccination = await this.vaccinationRepository.findOne({
       where: { certificateCode: code },
-      relations: ['pet', 'pet.breed', 'pet.owner', 'vetClinic'],
+      relations: ['pet', 'pet.breed', 'pet.owner', 'vet', 'vetClinic'],
     });
 
     if (!vaccination) {
@@ -143,7 +148,7 @@ export class CertificatesService {
   ): Promise<VaccinationCertificate[]> {
     const vaccinations = await this.vaccinationRepository.find({
       where: { petId },
-      relations: ['pet', 'pet.breed', 'pet.owner', 'vetClinic'],
+      relations: ['pet', 'pet.breed', 'pet.owner', 'vet', 'vetClinic'],
       order: { administeredDate: 'DESC' },
     });
 
@@ -153,6 +158,76 @@ export class CertificatesService {
     }
 
     return certificates;
+  }
+
+  async generateCertificatePdf(vaccinationId: string): Promise<Buffer> {
+    const certificate = await this.generateCertificate(vaccinationId);
+
+    return await new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(20).text('Vaccination Certificate', { align: 'center' });
+      doc.moveDown(1.5);
+
+      doc.fontSize(11).text(`Certificate Code: ${certificate.certificateCode}`);
+      doc.text(`Issued Date: ${new Date(certificate.issuedDate).toDateString()}`);
+      doc.text(`Valid: ${certificate.isValid ? 'Yes' : 'No'}`);
+      doc.moveDown();
+
+      doc.fontSize(13).text('Pet Information', { underline: true });
+      doc.fontSize(11);
+      doc.text(`Name: ${certificate.pet.name}`);
+      doc.text(`Species: ${certificate.pet.species}`);
+      doc.text(`Breed: ${certificate.pet.breed ?? 'N/A'}`);
+      doc.text(
+        `Date of Birth: ${new Date(certificate.pet.dateOfBirth).toDateString()}`,
+      );
+      doc.text(`Microchip: ${certificate.pet.microchipNumber ?? 'N/A'}`);
+      doc.moveDown();
+
+      doc.fontSize(13).text('Vaccination Information', { underline: true });
+      doc.fontSize(11);
+      doc.text(`Vaccine: ${certificate.vaccination.vaccineName}`);
+      doc.text(
+        `Date Administered: ${new Date(certificate.vaccination.administeredDate).toDateString()}`,
+      );
+      doc.text(`Manufacturer: ${certificate.vaccination.manufacturer ?? 'N/A'}`);
+      doc.text(`Batch Number: ${certificate.vaccination.batchNumber ?? 'N/A'}`);
+      doc.text(`Site: ${certificate.vaccination.site ?? 'N/A'}`);
+      doc.text(`Veterinarian: ${certificate.vaccination.veterinarianName}`);
+      doc.moveDown();
+
+      if (certificate.owner) {
+        doc.fontSize(13).text('Owner Information', { underline: true });
+        doc.fontSize(11);
+        doc.text(`Name: ${certificate.owner.name}`);
+        doc.text(`Email: ${certificate.owner.email}`);
+        doc.moveDown();
+      }
+
+      if (certificate.vetClinic) {
+        doc.fontSize(13).text('Clinic Information', { underline: true });
+        doc.fontSize(11);
+        doc.text(`Clinic: ${certificate.vetClinic.name}`);
+        doc.text(`Address: ${certificate.vetClinic.address}`);
+        doc.text(`Phone: ${certificate.vetClinic.phone}`);
+        doc.moveDown();
+      }
+
+      doc
+        .fontSize(10)
+        .text(
+          `Verification URL: ${certificate.verificationUrl}`,
+          { align: 'left' },
+        );
+
+      doc.end();
+    });
   }
 
   /**

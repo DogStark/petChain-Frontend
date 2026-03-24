@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import { getApiBaseUrl } from './apiBaseUrl';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export type OnboardingStepId = 'welcome' | 'profile_setup' | 'add_pet' | 'notifications' | 'explore';
 
@@ -50,6 +51,8 @@ export interface UpdateUserProfileDto {
 export interface UpdateUserPreferencesDto {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
+  smsEmergencyAlerts?: boolean;
+  smsReminderAlerts?: boolean;
   pushNotifications?: boolean;
   dataShareConsent?: boolean;
   profilePublic?: boolean;
@@ -71,6 +74,9 @@ export interface UserProfile {
   lastName: string;
   phone?: string;
   avatarUrl?: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  isVerified: boolean;
   dateOfBirth?: string;
   address?: string;
   city?: string;
@@ -121,12 +127,31 @@ class UserManagementAPI {
 
     // Add token to requests
     this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('authToken');
+      const token = this.getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     });
+  }
+
+  private getAccessToken(): string | null {
+    const legacyToken = localStorage.getItem('authToken');
+    if (legacyToken) {
+      return legacyToken;
+    }
+
+    const storedTokens = localStorage.getItem('auth_tokens');
+    if (!storedTokens) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(storedTokens);
+      return parsed?.accessToken ?? null;
+    } catch {
+      return null;
+    }
   }
 
   // Profile endpoints
@@ -162,7 +187,7 @@ class UserManagementAPI {
       withCredentials: true,
     });
 
-    const token = localStorage.getItem('authToken');
+    const token = this.getAccessToken();
     if (token) {
       uploadsApi.defaults.headers.common.Authorization = `Bearer ${token}`;
     }
@@ -205,12 +230,41 @@ class UserManagementAPI {
   async updateNotificationPreferences(settings: {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
+    smsEmergencyAlerts?: boolean;
+    smsReminderAlerts?: boolean;
     pushNotifications?: boolean;
   }) {
     const response = await this.api.patch(
       '/me/preferences/notifications',
       settings,
     );
+    return response.data;
+  }
+
+  async getSMSUsage(month?: number, year?: number): Promise<{
+    sent: number;
+    delivered: number;
+    failed: number;
+    costCents: number;
+    limitCents: number | null;
+  }> {
+    const params = new URLSearchParams();
+    if (month != null) params.set('month', String(month));
+    if (year != null) params.set('year', String(year));
+    const url = `/sms/usage${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.get(url);
+    return response.data;
+  }
+
+  async getAdminSMSStats(month?: number, year?: number): Promise<{
+    global: { sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null };
+    byUser: Array<{ userId: string; sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }>;
+  }> {
+    const params = new URLSearchParams();
+    if (month != null) params.set('month', String(month));
+    if (year != null) params.set('year', String(year));
+    const url = `/sms/admin/stats${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.get(url);
     return response.data;
   }
 

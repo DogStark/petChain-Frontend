@@ -54,7 +54,8 @@ export class ReminderService {
       customIntervalDays:
         createReminderDto.customIntervalDays || this.DEFAULT_INTERVALS,
     });
-    return await this.reminderRepository.save(reminder);
+    const saved = await this.reminderRepository.save(reminder);
+    return Array.isArray(saved) ? saved[0]! : saved;
   }
 
   /**

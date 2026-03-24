@@ -13,8 +13,9 @@ import {
 import { PrescriptionsService, RefillReminder } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
-import { DosageCalculationService, DosageCalculationRequest, DosageResult } from './services/dosage-calculation.service';
-import { DrugInteractionService } from './services/drug-interaction.service';
+import { DosageCalculationService } from './services/dosage-calculation.service';
+import type { DosageCalculationRequest, DosageResult } from './services/dosage-calculation.service';
+import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
 import { PrescriptionStatus } from './entities/prescription.entity';
 
 @Controller('prescriptions')

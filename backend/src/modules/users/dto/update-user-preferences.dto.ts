@@ -11,6 +11,14 @@ export class UpdateUserPreferencesDto {
 
   @IsOptional()
   @IsBoolean()
+  smsEmergencyAlerts?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  smsReminderAlerts?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   pushNotifications?: boolean;
 
   @IsOptional()

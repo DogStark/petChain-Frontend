@@ -29,6 +29,12 @@ export class UserPreference {
   @Column({ default: false })
   smsNotifications: boolean;
 
+  @Column({ default: true })
+  smsEmergencyAlerts: boolean;
+
+  @Column({ default: false })
+  smsReminderAlerts: boolean;
+
   @Column({ default: false })
   pushNotifications: boolean;
 

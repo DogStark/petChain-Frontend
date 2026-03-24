@@ -1,14 +1,21 @@
 export enum Permission {
-  // PetOwner permissions
+  // PetOwner
   READ_OWN_PETS = 'READ_OWN_PETS',
   UPDATE_OWN_PETS = 'UPDATE_OWN_PETS',
   CREATE_PETS = 'CREATE_PETS',
+  SHARE_RECORDS = 'SHARE_RECORDS',
 
-  // Veterinarian permissions
+  // Veterinarian
   READ_ALL_PETS = 'READ_ALL_PETS',
   UPDATE_MEDICAL_RECORDS = 'UPDATE_MEDICAL_RECORDS',
   CREATE_TREATMENTS = 'CREATE_TREATMENTS',
+  PRESCRIBE = 'PRESCRIBE',
 
-  // Admin permission (grants all permissions)
+  // VetStaff
+  READ_ASSIGNED_PETS = 'READ_ASSIGNED_PETS',
+  UPDATE_APPOINTMENTS = 'UPDATE_APPOINTMENTS',
+  CREATE_NOTES = 'CREATE_NOTES',
+
+  // Admin
   ALL_PERMISSIONS = 'ALL_PERMISSIONS',
 }

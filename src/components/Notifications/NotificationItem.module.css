@@ -1,0 +1,145 @@
+.container {
+  display: flex;
+  padding: 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+  gap: 1rem;
+}
+
+.container:hover {
+  background-color: #f9f9f9;
+}
+
+.unread {
+  background-color: #f0f7ff;
+}
+
+.unread:hover {
+  background-color: #e6f1ff;
+}
+
+.iconContainer {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.appointment { background-color: #e6f7ff; color: #1890ff; }
+.medication { background-color: #f6ffed; color: #52c41a; }
+.consultation { background-color: #fff7e6; color: #fa8c16; }
+.alert { background-color: #fff1f0; color: #f5222d; }
+.message { background-color: #f9f0ff; color: #722ed1; }
+.vaccination { background-color: #e6fffb; color: #13c2c2; }
+.lost_pet { background-color: #fffbe6; color: #faad14; }
+.medical_record { background-color: #f0f5ff; color: #2f54eb; }
+
+.content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #262626;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time {
+  font-size: 0.75rem;
+  color: #8c8c8c;
+  flex-shrink: 0;
+}
+
+.message {
+  font-size: 0.875rem;
+  color: #595959;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.imageContainer {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.actionBtn, .markReadBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionBtn {
+  color: #1890ff;
+  border-color: #91d5ff;
+}
+
+.actionBtn:hover {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.markReadBtn {
+  color: #52c41a;
+  border-color: #b7eb8f;
+}
+
+.markReadBtn:hover {
+  background-color: #f6ffed;
+  border-color: #52c41a;
+}
+
+.btnIcon {
+  flex-shrink: 0;
+}
+
+.unreadDot {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background-color: #1890ff;
+  border-radius: 50%;
+}

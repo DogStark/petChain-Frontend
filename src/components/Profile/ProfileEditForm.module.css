@@ -14,6 +14,74 @@
   margin-bottom: 32px;
 }
 
+.verificationCard {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+}
+
+.verificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.verificationCopy {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.verificationGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.verificationItem {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #dbe4f0;
+  color: #1f2937;
+}
+
+.verificationLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.verifiedBadge,
+.pendingBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.verifiedBadge {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pendingBadge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .section:last-of-type {
   margin-bottom: 24px;
 }
@@ -132,6 +200,14 @@
 
   .section {
     margin-bottom: 24px;
+  }
+
+  .verificationHeader {
+    flex-direction: column;
+  }
+
+  .verificationGrid {
+    grid-template-columns: 1fr;
   }
 
   .sectionTitle {

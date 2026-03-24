@@ -15,7 +15,10 @@ import {
   RefreshDto,
   LogoutDto,
   VerifyEmailDto,
+  ResendVerificationDto,
+  VerifyPhoneDto,
   ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -57,8 +60,31 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    await this.authService.verifyEmail(verifyEmailDto);
-    return { message: 'Email verified successfully' };
+    return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  @Post('resend-email-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendEmailVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    await this.authService.resendEmailVerification(resendVerificationDto);
+    return { message: 'If the account exists, a new verification email was sent' };
+  }
+
+  @Post('verify-phone')
+  @HttpCode(HttpStatus.OK)
+  async verifyPhone(@Body() verifyPhoneDto: VerifyPhoneDto) {
+    return this.authService.verifyPhone(verifyPhoneDto);
+  }
+
+  @Post('resend-phone-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendPhoneVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    await this.authService.resendPhoneVerification(resendVerificationDto);
+    return { message: 'If the account exists, a new verification code was sent' };
   }
 
   @Post('forgot-password')
@@ -68,5 +94,12 @@ export class AuthController {
     return {
       message: 'If the email exists, a password reset link has been sent',
     };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return { message: 'Password reset successfully' };
   }
 }

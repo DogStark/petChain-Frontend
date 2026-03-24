@@ -6,7 +6,7 @@ import {
   IsUUID,
   IsArray,
 } from 'class-validator';
-import { RecordType } from '../entities/medical-record.entity';
+import { RecordType, AccessLevel } from '../entities/medical-record.entity';
 
 export class CreateMedicalRecordDto {
   @IsUUID()
@@ -20,7 +20,7 @@ export class CreateMedicalRecordDto {
   recordType: RecordType;
 
   @IsDateString()
-  date: string;
+  visitDate: string;
 
   @IsString()
   diagnosis: string;
@@ -36,4 +36,8 @@ export class CreateMedicalRecordDto {
   @IsArray()
   @IsString({ each: true })
   attachments?: string[];
+
+  @IsOptional()
+  @IsEnum(AccessLevel)
+  accessLevel?: AccessLevel;
 }

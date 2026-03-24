@@ -325,3 +325,86 @@ ${data.actionLabel && data.actionUrl ? `${data.actionLabel}: ${data.actionUrl}` 
 
   return { subject, html, text };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. MEDICAL RECORD SHARE
+// ─────────────────────────────────────────────────────────────────────────────
+export interface MedicalRecordShareData {
+  recipientName?: string;
+  senderName: string;
+  petName: string;
+  recordType: string;
+  recordDate: string;
+  shareUrl: string;
+  expiresAt?: string;
+  permission: 'view' | 'edit';
+  message?: string;
+  unsubscribeUrl?: string;
+}
+
+export function medicalRecordShareTemplate(data: MedicalRecordShareData): { subject: string; html: string; text: string } {
+  const subject = `${data.senderName} shared a medical record with you`;
+  const recipientGreeting = data.recipientName ? `Hi ${data.recipientName},` : 'Hello,';
+  const permissionLabel = data.permission === 'edit' ? 'view and edit' : 'view';
+  const expiryNote = data.expiresAt 
+    ? `<p style="color:#6b7280; font-size:13px;">⏰ This link expires on ${data.expiresAt}.</p>` 
+    : '';
+
+  const messageBox = data.message 
+    ? `<div style="margin:16px 0; padding:12px 16px; background:#f9fafb; border-left:4px solid #3b82f6; border-radius:4px; font-style:italic;">
+        "${data.message}"
+       </div>`
+    : '';
+
+  const body = `
+    <h1 style="margin:0 0 8px; font-size:22px; font-weight:700; color:#111827;">
+      Medical Record Shared 📋
+    </h1>
+    <p style="margin:0 0 20px; color:#6b7280; font-size:14px;">${data.senderName} wants to share important health information with you</p>
+
+    <p>${recipientGreeting}</p>
+    <p><strong>${data.senderName}</strong> has shared a medical record with you. You have permission to <strong>${permissionLabel}</strong> this record.</p>
+
+    ${messageBox}
+
+    ${emailInfoBox(`
+      <strong>🐾 Pet:</strong> ${data.petName}<br/>
+      <strong>📋 Record Type:</strong> ${data.recordType}<br/>
+      <strong>📅 Date:</strong> ${data.recordDate}<br/>
+      <strong>🔐 Permission:</strong> ${data.permission === 'edit' ? 'View & Edit' : 'View Only'}
+    `)}
+
+    ${emailButton('View Medical Record', data.shareUrl)}
+
+    ${expiryNote}
+
+    <p style="color:#6b7280; font-size:13px;">If you weren't expecting this email, you can safely ignore it. The link requires no account to access.</p>
+  `;
+
+  const html = baseTemplate(body, {
+    previewText: `${data.senderName} shared ${data.petName}'s ${data.recordType} record with you`,
+    unsubscribeUrl: data.unsubscribeUrl,
+    emailTypeLabel: 'medical record share',
+  });
+
+  const text = `
+Medical Record Shared
+
+${recipientGreeting}
+
+${data.senderName} has shared a medical record with you.
+
+Pet: ${data.petName}
+Record Type: ${data.recordType}
+Date: ${data.recordDate}
+Permission: ${data.permission === 'edit' ? 'View & Edit' : 'View Only'}
+
+${data.message ? `Message: "${data.message}"` : ''}
+
+View the record: ${data.shareUrl}
+
+${data.expiresAt ? `This link expires on ${data.expiresAt}.` : ''}
+  `.trim();
+
+  return { subject, html, text };
+}

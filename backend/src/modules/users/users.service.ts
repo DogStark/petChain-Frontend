@@ -10,6 +10,19 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
+export type SafeUserProfile = Omit<
+  User,
+  | 'password'
+  | 'emailVerificationToken'
+  | 'emailVerificationExpires'
+  | 'phoneVerificationCode'
+  | 'phoneVerificationExpires'
+  | 'passwordResetToken'
+  | 'passwordResetExpires'
+  | 'getActiveRoles'
+  | 'getProfileCompletionScore'
+> & { isVerified: boolean };
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -59,6 +72,29 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
+  sanitizeUser(user: User): SafeUserProfile {
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
+      passwordResetToken,
+      passwordResetExpires,
+      getActiveRoles,
+      getProfileCompletionScore,
+      ...safeUser
+    } = user as User & {
+      getActiveRoles: unknown;
+      getProfileCompletionScore: unknown;
+    };
+
+    return {
+      ...safeUser,
+      isVerified: user.isVerified,
+    };
+  }
+
   /**
    * Update user profile
    */
@@ -74,6 +110,18 @@ export class UsersService {
       if (existingUser) {
         throw new ConflictException('Email already in use');
       }
+    }
+
+    if (updateProfileDto.email && updateProfileDto.email !== user.email) {
+      user.emailVerified = false;
+      user.emailVerificationToken = null;
+      user.emailVerificationExpires = null;
+    }
+
+    if (updateProfileDto.phone && updateProfileDto.phone !== user.phone) {
+      user.phoneVerified = false;
+      user.phoneVerificationCode = null;
+      user.phoneVerificationExpires = null;
     }
 
     // if dateOfBirth provided as string, convert to Date object
@@ -115,6 +163,9 @@ export class UsersService {
       lastName: user.lastName,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      isVerified: user.isVerified,
       createdAt: user.createdAt,
     };
   }

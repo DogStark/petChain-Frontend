@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, StreamableFile } from '@nestjs/common';
 import {
   CertificatesService,
   VaccinationCertificate,
@@ -7,19 +7,6 @@ import {
 @Controller('certificates')
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
-
-  /**
-   * Get certificate by vaccination ID
-   * GET /certificates/:vaccinationId
-   */
-  @Get(':vaccinationId')
-  async getCertificate(
-    @Param('vaccinationId') vaccinationId: string,
-  ): Promise<VaccinationCertificate> {
-    return await this.certificatesService.getCertificateByVaccination(
-      vaccinationId,
-    );
-  }
 
   /**
    * Get all certificates for a pet
@@ -39,5 +26,34 @@ export class CertificatesController {
   @Get('verify/:code')
   async verifyCertificate(@Param('code') code: string) {
     return await this.certificatesService.verifyCertificate(code);
+  }
+
+  /**
+   * Download certificate as PDF
+   * GET /certificates/:vaccinationId/pdf
+   */
+  @Get(':vaccinationId/pdf')
+  async downloadCertificatePdf(
+    @Param('vaccinationId') vaccinationId: string,
+  ): Promise<StreamableFile> {
+    const buffer =
+      await this.certificatesService.generateCertificatePdf(vaccinationId);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="vaccination-certificate-${vaccinationId}.pdf"`,
+    });
+  }
+
+  /**
+   * Get certificate by vaccination ID
+   * GET /certificates/:vaccinationId
+   */
+  @Get(':vaccinationId')
+  async getCertificate(
+    @Param('vaccinationId') vaccinationId: string,
+  ): Promise<VaccinationCertificate> {
+    return await this.certificatesService.getCertificateByVaccination(
+      vaccinationId,
+    );
   }
 }
