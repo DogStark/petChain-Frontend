@@ -28,6 +28,9 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ default: false })
+  phoneVerified: boolean;
+
   @Column({ nullable: true })
   avatarUrl: string;
 
@@ -58,6 +61,12 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires: Date | null;
+
+  @Column({ nullable: true })
+  phoneVerificationCode: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  phoneVerificationExpires: Date | null;
 
   @Column({ default: 0 })
   failedLoginAttempts: number;
@@ -97,6 +106,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  get isVerified(): boolean {
+    return this.emailVerified && this.phoneVerified;
+  }
 
   /**
    * Get active role assignments

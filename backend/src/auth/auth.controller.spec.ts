@@ -15,6 +15,9 @@ describe('AuthController', () => {
     refresh: jest.fn(),
     logout: jest.fn(),
     verifyEmail: jest.fn(),
+    resendEmailVerification: jest.fn(),
+    verifyPhone: jest.fn(),
+    resendPhoneVerification: jest.fn(),
     forgotPassword: jest.fn(),
   };
 
@@ -43,6 +46,7 @@ describe('AuthController', () => {
         firstName: 'Test',
         lastName: 'User',
         password: 'Password123!',
+        phone: '+15551234567',
       };
 
       const expectedUser = {
@@ -173,12 +177,76 @@ describe('AuthController', () => {
         token: 'verification-token',
       };
 
-      mockAuthService.verifyEmail.mockResolvedValue(undefined);
+      mockAuthService.verifyEmail.mockResolvedValue({
+        message: 'Email verified successfully',
+        emailVerified: true,
+        phoneVerified: false,
+        isVerified: false,
+        email: 'test@example.com',
+      });
 
       const result = await controller.verifyEmail(verifyEmailDto);
 
       expect(authService.verifyEmail).toHaveBeenCalledWith(verifyEmailDto);
-      expect(result).toEqual({ message: 'Email verified successfully' });
+      expect(result).toEqual({
+        message: 'Email verified successfully',
+        emailVerified: true,
+        phoneVerified: false,
+        isVerified: false,
+        email: 'test@example.com',
+      });
+    });
+  });
+
+  describe('verifyPhone', () => {
+    it('should verify phone successfully', async () => {
+      const verifyPhoneDto = {
+        email: 'test@example.com',
+        code: '123456',
+      };
+
+      mockAuthService.verifyPhone.mockResolvedValue({
+        message: 'Phone number verified successfully',
+        emailVerified: true,
+        phoneVerified: true,
+        isVerified: true,
+      });
+
+      const result = await controller.verifyPhone(verifyPhoneDto);
+
+      expect(authService.verifyPhone).toHaveBeenCalledWith(verifyPhoneDto);
+      expect(result).toEqual({
+        message: 'Phone number verified successfully',
+        emailVerified: true,
+        phoneVerified: true,
+        isVerified: true,
+      });
+    });
+  });
+
+  describe('resend verification', () => {
+    it('should resend email verification successfully', async () => {
+      const dto = { email: 'test@example.com' };
+      mockAuthService.resendEmailVerification.mockResolvedValue(undefined);
+
+      const result = await controller.resendEmailVerification(dto);
+
+      expect(authService.resendEmailVerification).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        message: 'If the account exists, a new verification email was sent',
+      });
+    });
+
+    it('should resend phone verification successfully', async () => {
+      const dto = { email: 'test@example.com' };
+      mockAuthService.resendPhoneVerification.mockResolvedValue(undefined);
+
+      const result = await controller.resendPhoneVerification(dto);
+
+      expect(authService.resendPhoneVerification).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        message: 'If the account exists, a new verification code was sent',
+      });
     });
   });
 

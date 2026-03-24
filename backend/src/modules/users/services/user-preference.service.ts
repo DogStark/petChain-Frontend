@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPreference } from '../entities/user-preference.entity';
@@ -24,8 +24,15 @@ export class UserPreferenceService {
       pushNotifications: false,
       dataShareConsent: false,
       profilePublic: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
       marketingEmails: false,
       activityEmails: true,
+      privacySettings: {
+        showEmail: false,
+        showPhone: false,
+        showActivity: false,
+      },
     });
     return await this.preferenceRepository.save(preference);
   }
@@ -34,13 +41,11 @@ export class UserPreferenceService {
    * Get user preferences
    */
   async getPreferences(userId: string): Promise<UserPreference> {
-    const preference = await this.preferenceRepository.findOne({
+    let preference = await this.preferenceRepository.findOne({
       where: { userId },
     });
     if (!preference) {
-      throw new NotFoundException(
-        `Preferences not found for user ${userId}`,
-      );
+      preference = await this.createDefaultPreferences(userId);
     }
     return preference;
   }
@@ -115,6 +120,12 @@ export class UserPreferenceService {
    */
   async getPrivacySettings(userId: string) {
     const preference = await this.getPreferences(userId);
-    return preference.privacySettings || {};
+    return (
+      preference.privacySettings || {
+        showEmail: false,
+        showPhone: false,
+        showActivity: false,
+      }
+    );
   }
 }

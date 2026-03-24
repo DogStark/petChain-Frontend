@@ -18,12 +18,14 @@ import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { RoleAuditLog } from './entities/role-audit-log.entity';
 import { FailedLoginAttempt } from './entities/failed-login-attempt.entity';
-import { EmailServiceImpl } from './services/email.service';
 import { EMAIL_SERVICE } from './interfaces/email-service.interface';
 import { RolesService } from './services/roles.service';
 import { RolesController } from './controllers/roles.controller';
 import { PermissionsService } from './services/permissions.service';
 import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
+import { SmsModule } from '../modules/sms/sms.module';
+import { EmailModule } from '../modules/email/email.module';
+import { EmailService as AppEmailService } from '../modules/email/email.service';
 
 @Module({
   imports: [
@@ -77,6 +79,8 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
       },
     }),
     forwardRef(() => UsersModule),
+    SmsModule,
+    EmailModule,
   ],
   controllers: [AuthController, RolesController],
   providers: [
@@ -89,7 +93,7 @@ import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
     RolesPermissionsSeeder,
     {
       provide: EMAIL_SERVICE,
-      useClass: EmailServiceImpl,
+      useExisting: AppEmailService,
     },
   ],
   exports: [

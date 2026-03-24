@@ -83,7 +83,14 @@ export default function ProfilePage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>User Profile</h1>
+        <div className={styles.titleRow}>
+          <h1>User Profile</h1>
+          {user && (
+            <span className={user.isVerified ? styles.verifiedBadge : styles.pendingBadge}>
+              {user.isVerified ? 'Verified Account' : 'Verification Pending'}
+            </span>
+          )}
+        </div>
         <p>Manage your personal information and profile</p>
       </div>
 

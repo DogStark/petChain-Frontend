@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
 
 export interface User {
   id: string;
@@ -8,6 +9,8 @@ export interface User {
   phone?: string;
   avatarUrl?: string;
   emailVerified: boolean;
+  phoneVerified: boolean;
+  isVerified: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,13 +33,28 @@ export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWith2FA: (email: string, password: string, totpToken: string) => Promise<void>;
   recoverWith2FA: (email: string, password: string, backupCode: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
   clearError: () => void;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
-  verifyEmail: (token: string) => Promise<void>;
+  verifyEmail: (token: string) => Promise<{
+    message: string;
+    email?: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    isVerified: boolean;
+  }>;
+  verifyPhone: (email: string, code: string) => Promise<{
+    message: string;
+    email?: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    isVerified: boolean;
+  }>;
+  resendEmailVerification: (email: string) => Promise<void>;
+  resendPhoneVerification: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,7 +71,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiBaseUrl();
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
@@ -109,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Store in localStorage
     localStorage.setItem('auth_tokens', JSON.stringify(tokens));
     localStorage.setItem('auth_user', JSON.stringify(user));
+    localStorage.setItem('authToken', tokens.accessToken);
     
     setupTokenRefresh();
   };
@@ -124,6 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     localStorage.removeItem('auth_tokens');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('authToken');
     clearTokenRefresh();
   };
 
@@ -262,15 +282,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
+    phone: string,
   ): Promise<void> => {
     setLoading(true);
     clearError();
 
     try {
-      const data = await makeRequest('/auth/register', {
+      await makeRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, firstName, lastName }),
+        body: JSON.stringify({ email, password, firstName, lastName, phone }),
       });
 
       // Registration doesn't return tokens, just user data
@@ -361,12 +382,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (token: string): Promise<void> => {
+  const verifyEmail = async (token: string): Promise<{
+    message: string;
+    email?: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    isVerified: boolean;
+  }> => {
     setLoading(true);
     clearError();
 
     try {
-      await makeRequest('/auth/verify-email', {
+      return await makeRequest('/auth/verify-email', {
         method: 'POST',
         body: JSON.stringify({ token }),
       });
@@ -376,6 +403,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const verifyPhone = async (email: string, code: string): Promise<{
+    message: string;
+    email?: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    isVerified: boolean;
+  }> => {
+    setLoading(true);
+    clearError();
+
+    try {
+      return await makeRequest('/auth/verify-phone', {
+        method: 'POST',
+        body: JSON.stringify({ email, code }),
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Phone verification failed');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendEmailVerification = async (email: string): Promise<void> => {
+    await makeRequest('/auth/resend-email-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  };
+
+  const resendPhoneVerification = async (email: string): Promise<void> => {
+    await makeRequest('/auth/resend-phone-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   };
 
   const value: AuthContextType = {
@@ -390,6 +454,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     forgotPassword,
     verifyEmail,
+    verifyPhone,
+    resendEmailVerification,
+    resendPhoneVerification,
   };
 
   return (

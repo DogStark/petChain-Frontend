@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getApiBaseUrl } from './apiBaseUrl';
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface TwoFactorSetupResponse {
   qrCodeUrl: string;

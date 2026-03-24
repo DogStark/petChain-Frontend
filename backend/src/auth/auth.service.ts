@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../modules/users/users.service';
+import { UserPreferenceService } from '../modules/users/services/user-preference.service';
 import { User } from '../modules/users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Session } from './entities/session.entity';
@@ -18,6 +19,8 @@ import {
   LoginDto,
   RefreshDto,
   VerifyEmailDto,
+  ResendVerificationDto,
+  VerifyPhoneDto,
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
@@ -33,6 +36,7 @@ import {
   type IEmailService,
 } from './interfaces/email-service.interface';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { SmsService } from '../modules/sms/sms.service';
 
 /**
  * User data without sensitive fields
@@ -41,7 +45,11 @@ export type SafeUser = Omit<
   User,
   | 'password'
   | 'emailVerificationToken'
+  | 'emailVerificationExpires'
+  | 'phoneVerificationCode'
+  | 'phoneVerificationExpires'
   | 'passwordResetToken'
+  | 'passwordResetExpires'
   | 'getActiveRoles'
   | 'getProfileCompletionScore' // method added on User entity, omit for type safety
 >;
@@ -50,6 +58,14 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: SafeUser;
+}
+
+export interface VerificationStatusResponse {
+  message: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  isVerified: boolean;
+  email?: string;
 }
 
 @Injectable()
@@ -62,10 +78,12 @@ export class AuthService {
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
     private readonly usersService: UsersService,
+    private readonly userPreferenceService: UserPreferenceService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     @Inject(EMAIL_SERVICE)
     private readonly emailService: IEmailService,
+    private readonly smsService: SmsService,
   ) {}
 
   /**
@@ -86,40 +104,36 @@ export class AuthService {
       bcryptRounds,
     );
 
-    // Generate email verification token
     const verificationToken = TokenUtil.generateToken();
-    const verificationExpires = new Date();
-    const expirationStr =
+    const verificationExpires = this.createExpiryDate(
       this.configService.get<string>('auth.emailVerificationExpiration') ||
-      '24h';
-    if (expirationStr.endsWith('h')) {
-      verificationExpires.setHours(
-        verificationExpires.getHours() +
-          parseInt(expirationStr.replace('h', ''), 10),
-      );
-    } else if (expirationStr.endsWith('d')) {
-      verificationExpires.setDate(
-        verificationExpires.getDate() +
-          parseInt(expirationStr.replace('d', ''), 10),
-      );
-    } else {
-      verificationExpires.setHours(verificationExpires.getHours() + 24); // Default 24 hours
-    }
+        '24h',
+    );
+    const phoneVerificationCode = this.generatePhoneVerificationCode();
+    const phoneVerificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.phoneVerificationExpiration') ||
+        '24h',
+    );
 
     // Create user
     const user = this.userRepository.create({
       email: registerDto.email,
       firstName: registerDto.firstName,
       lastName: registerDto.lastName,
+      phone: registerDto.phone,
       password: hashedPassword,
       emailVerified: false,
       emailVerificationToken: TokenUtil.hashToken(verificationToken),
       emailVerificationExpires: verificationExpires,
+      phoneVerified: false,
+      phoneVerificationCode: TokenUtil.hashToken(phoneVerificationCode),
+      phoneVerificationExpires,
       isActive: true,
       failedLoginAttempts: 0,
     });
 
     const savedUser = await this.userRepository.save(user);
+    await this.userPreferenceService.createDefaultPreferences(savedUser.id);
 
     // Send verification email
     try {
@@ -132,15 +146,24 @@ export class AuthService {
       console.error('Failed to send verification email:', error);
     }
 
+    await this.sendPhoneVerificationCode(savedUser, phoneVerificationCode);
+
     // Return user without sensitive data
     const {
       password,
       emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
       passwordResetToken,
+      passwordResetExpires,
       getActiveRoles,
       ...userResponse
     } = savedUser as User & { getActiveRoles: unknown };
-    return userResponse;
+    return {
+      ...userResponse,
+      isVerified: savedUser.isVerified,
+    };
   }
 
   /**
@@ -205,10 +228,11 @@ export class AuthService {
       await this.userRepository.save(user);
     }
 
-    // Check email verification (optional - can be made required)
-    // if (!user.emailVerified) {
-    //   throw new ForbiddenException('Please verify your email before logging in');
-    // }
+    if (!user.emailVerified || !user.phoneVerified) {
+      throw new ForbiddenException(
+        'Please verify your email and phone before logging in',
+      );
+    }
 
     // Create device fingerprint
     const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
@@ -229,13 +253,20 @@ export class AuthService {
     const {
       password,
       emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
       passwordResetToken,
+      passwordResetExpires,
       getActiveRoles,
       ...userResponse
     } = user as User & { getActiveRoles: unknown };
     return {
       ...tokens,
-      user: userResponse,
+      user: {
+        ...userResponse,
+        isVerified: user.isVerified,
+      },
     };
   }
 
@@ -299,13 +330,20 @@ export class AuthService {
     const {
       password,
       emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
       passwordResetToken,
+      passwordResetExpires,
       getActiveRoles,
       ...userResponse
     } = user as User & { getActiveRoles: unknown };
     return {
       ...newTokens,
-      user: userResponse,
+      user: {
+        ...userResponse,
+        isVerified: user.isVerified,
+      },
     };
   }
 
@@ -341,7 +379,9 @@ export class AuthService {
   /**
    * Verify email
    */
-  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<void> {
+  async verifyEmail(
+    verifyEmailDto: VerifyEmailDto,
+  ): Promise<VerificationStatusResponse> {
     const tokenHash = TokenUtil.hashToken(verifyEmailDto.token);
     const user = await this.userRepository.findOne({
       where: { emailVerificationToken: tokenHash },
@@ -365,6 +405,87 @@ export class AuthService {
       user as { emailVerificationExpires: Date | null }
     ).emailVerificationExpires = null;
     await this.userRepository.save(user);
+
+    return this.buildVerificationStatus(
+      user,
+      'Email verified successfully',
+    );
+  }
+
+  async resendEmailVerification(
+    resendVerificationDto: ResendVerificationDto,
+  ): Promise<void> {
+    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+
+    if (!user || user.emailVerified) {
+      return;
+    }
+
+    const verificationToken = TokenUtil.generateToken();
+    user.emailVerificationToken = TokenUtil.hashToken(verificationToken);
+    user.emailVerificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.emailVerificationExpiration') ||
+        '24h',
+    );
+    await this.userRepository.save(user);
+
+    try {
+      await this.emailService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+    }
+  }
+
+  async verifyPhone(
+    verifyPhoneDto: VerifyPhoneDto,
+  ): Promise<VerificationStatusResponse> {
+    const user = await this.usersService.findByEmail(verifyPhoneDto.email);
+
+    if (!user || !user.phoneVerificationCode) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    if (
+      user.phoneVerificationExpires &&
+      user.phoneVerificationExpires < new Date()
+    ) {
+      throw new BadRequestException('Verification code has expired');
+    }
+
+    const codeHash = TokenUtil.hashToken(verifyPhoneDto.code);
+    if (user.phoneVerificationCode !== codeHash) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    user.phoneVerified = true;
+    user.phoneVerificationCode = null;
+    user.phoneVerificationExpires = null;
+    await this.userRepository.save(user);
+
+    return this.buildVerificationStatus(
+      user,
+      'Phone number verified successfully',
+    );
+  }
+
+  async resendPhoneVerification(
+    resendVerificationDto: ResendVerificationDto,
+  ): Promise<void> {
+    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+
+    if (!user || user.phoneVerified || !user.phone) {
+      return;
+    }
+
+    const phoneVerificationCode = this.generatePhoneVerificationCode();
+    user.phoneVerificationCode = TokenUtil.hashToken(phoneVerificationCode);
+    user.phoneVerificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.phoneVerificationExpiration') ||
+        '24h',
+    );
+    await this.userRepository.save(user);
+
+    await this.sendPhoneVerificationCode(user, phoneVerificationCode);
   }
 
   /**
@@ -563,5 +684,66 @@ export class AuthService {
       });
       await this.sessionRepository.save(newSession);
     }
+  }
+
+  private createExpiryDate(duration: string): Date {
+    const expiresAt = new Date();
+    const match = duration.match(/^(\d+)([hd])$/);
+
+    if (!match) {
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      return expiresAt;
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    if (unit === 'd') {
+      expiresAt.setDate(expiresAt.getDate() + value);
+      return expiresAt;
+    }
+
+    expiresAt.setHours(expiresAt.getHours() + value);
+    return expiresAt;
+  }
+
+  private generatePhoneVerificationCode(): string {
+    return `${Math.floor(100000 + Math.random() * 900000)}`;
+  }
+
+  private async sendPhoneVerificationCode(
+    user: User,
+    code: string,
+  ): Promise<void> {
+    if (!user.phone) {
+      return;
+    }
+
+    const result = await this.smsService.sendSms(
+      user.id,
+      user.phone,
+      `Your PetChain verification code is ${code}. It expires in 24 hours.`,
+      {
+        templateName: 'account-verification',
+        skipPreferenceCheck: true,
+      },
+    );
+
+    if (!result.success) {
+      console.error('Failed to send verification SMS:', result.error);
+    }
+  }
+
+  private buildVerificationStatus(
+    user: User,
+    message: string,
+  ): VerificationStatusResponse {
+    return {
+      message,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      isVerified: user.isVerified,
+    };
   }
 }

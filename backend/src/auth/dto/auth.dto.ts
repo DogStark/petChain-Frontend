@@ -4,6 +4,8 @@ import {
   IsString,
   IsOptional,
   MinLength,
+  IsPhoneNumber,
+  Length,
 } from 'class-validator';
 import { IsStrongPassword } from '../utils/password.util';
 
@@ -19,6 +21,10 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   lastName: string;
+
+  @IsPhoneNumber()
+  @IsNotEmpty()
+  phone: string;
 
   @IsString()
   @IsNotEmpty()
@@ -52,6 +58,22 @@ export class VerifyEmailDto {
   @IsString()
   @IsNotEmpty()
   token: string;
+}
+
+export class ResendVerificationDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+export class VerifyPhoneDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @Length(6, 6)
+  code: string;
 }
 
 export class ForgotPasswordDto {

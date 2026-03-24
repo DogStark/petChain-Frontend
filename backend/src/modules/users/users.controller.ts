@@ -103,7 +103,8 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: User) {
-    return this.usersService.findOne(user.id);
+    const currentUser = await this.usersService.findOne(user.id);
+    return this.usersService.sanitizeUser(currentUser);
   }
 
   /**
@@ -117,7 +118,7 @@ export class UsersController {
     const completion = await this.usersService.getProfileCompletion(user.id);
 
     return {
-      ...userProfile,
+      ...this.usersService.sanitizeUser(userProfile),
       profileCompletion: completion,
     };
   }
@@ -140,7 +141,7 @@ export class UsersController {
   async replaceProfile(
     @CurrentUser() user: User,
     @Body() updateProfileDto: UpdateUserProfileDto,
-  ): Promise<User> {
+  ) {
     return this.updateProfile(user, updateProfileDto);
   }
 
@@ -153,7 +154,7 @@ export class UsersController {
   async updateProfile(
     @CurrentUser() user: User,
     @Body() updateProfileDto: UpdateUserProfileDto,
-  ): Promise<User> {
+  ) {
     const updated = await this.usersService.updateProfile(
       user.id,
       updateProfileDto,
@@ -166,7 +167,7 @@ export class UsersController {
       description: 'Profile updated',
     });
 
-    return updated;
+    return this.usersService.sanitizeUser(updated);
   }
 
   /**
@@ -178,7 +179,7 @@ export class UsersController {
   async updateAvatar(
     @CurrentUser() user: User,
     @Body() body: { avatarUrl: string },
-  ): Promise<User> {
+  ) {
     const updated = await this.usersService.updateAvatar(
       user.id,
       body.avatarUrl,
@@ -191,7 +192,7 @@ export class UsersController {
       description: 'Avatar uploaded',
     });
 
-    return updated;
+    return this.usersService.sanitizeUser(updated);
   }
 
   /**

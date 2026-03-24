@@ -10,6 +10,14 @@
   text-align: center;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .header h1 {
   margin: 0 0 8px 0;
   font-size: 32px;
@@ -21,6 +29,27 @@
   margin: 0;
   font-size: 16px;
   color: #6b7280;
+}
+
+.verifiedBadge,
+.pendingBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.verifiedBadge {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pendingBadge {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .error {
