@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Head from 'next/head';
 import Header from '@/components/Header';
-import ProtectedRoute from '@/components/ui/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 
 // Import Charts
