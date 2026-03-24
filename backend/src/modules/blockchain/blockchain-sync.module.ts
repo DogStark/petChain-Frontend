@@ -16,6 +16,6 @@ import { EncryptionService } from '../../common/services/encryption.service';
     IPFSService,
     EncryptionService,
   ],
-  exports: [BlockchainSyncService],
+  exports: [BlockchainSyncService, StellarService, EncryptionService],
 })
 export class BlockchainSyncModule {}
