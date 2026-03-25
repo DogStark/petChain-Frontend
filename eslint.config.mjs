@@ -14,4 +14,3 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
-x
