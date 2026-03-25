@@ -110,4 +110,20 @@ body {
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Touch button ripple */
+  @keyframes ripple {
+    from { transform: scale(0); opacity: 0.6; }
+    to   { transform: scale(6); opacity: 0; }
+  }
+  .animate-ripple {
+    animation: ripple 0.6s linear forwards;
+  }
+
+  /* Prevent text selection on interactive touch elements */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
 }
