@@ -106,7 +106,7 @@ export default function ReviewSection({
         ))}
       </div>
 
-      <button className="w-full py-4 bg-white border-2 border-dashed border-blue-200 text-blue-600 font-bold rounded-3xl hover:bg-blue-50 transition-all active:scale-[0.99] shadow-sm">
+      <button type="button" className="w-full py-4 bg-white border-2 border-dashed border-blue-200 text-blue-600 font-bold rounded-3xl hover:bg-blue-50 transition-all active:scale-[0.99] shadow-sm">
         + Write a Review
       </button>
     </div>
