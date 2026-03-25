@@ -33,6 +33,8 @@ import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
+import { VerificationModule } from './modules/verification/verification.module';
+
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -103,6 +105,8 @@ import { WebSocketModule } from './websocket/websocket.module';
     LostPetsModule,
     AllergiesModule,
     ConditionsModule,
+
+    VerificationModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
