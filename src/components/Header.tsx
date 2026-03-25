@@ -29,6 +29,7 @@ export default function HeaderComponent() {
               <>
                 <li><Link href="/dashboard" className="hover:text-blue-200">Dashboard</Link></li>
                 <li><Link href="/sessions" className="hover:text-blue-200">Sessions</Link></li>
+                <li><Link href="/activity-log" className="hover:text-blue-200">Activity Log</Link></li>
                 <li><Link href="/admin/reports" className="hover:text-blue-200 text-yellow-300 font-semibold flex items-center gap-1">📊 Reports</Link></li>
                 <li className="text-blue-200">Welcome, {user?.firstName}!</li>
                 <li>
