@@ -26,13 +26,19 @@ export default function ShareModal({ onClose }: ShareModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
+    >
+      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in" role="document">
         <button
           onClick={onClose}
+          aria-label="Close share dialog"
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
         >
-          <X className="w-6 h-6" />
+          <X className="w-6 h-6" aria-hidden="true" />
         </button>
 
         <div className="flex items-center gap-3 mb-6">

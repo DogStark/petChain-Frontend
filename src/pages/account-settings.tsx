@@ -2,22 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
-import { userAPI, UserSession } from '../lib/api/userAPI';
+import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [complianceActivities, setComplianceActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const allSessions = await userAPI.getAllSessions();
+        const [allSessions, activity] = await Promise.all([
+          userAPI.getAllSessions(),
+          userAPI.getActivity(20, 0),
+        ]);
         setSessions(allSessions);
+        setComplianceActivities(activity);
       } catch (err: any) {
-        setError(err.message || 'Failed to load sessions');
+        setError(err.message || 'Failed to load sessions and compliance activities');
         if (err.response?.status === 401) {
           router.push('/login');
         }
@@ -105,8 +110,55 @@ export default function AccountSettingsPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      const mostRecent = await userAPI.getActivity(1, 0);
+      setComplianceActivities((prev) => [...mostRecent, ...prev].slice(0, 10));
     } catch (err: any) {
       setError(err.message || 'Failed to export data');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestErasure = async () => {
+    try {
+      setIsLoading(true);
+      await userAPI.deleteAccount();
+      setError(null);
+      setComplianceActivities((prev) => [
+        {
+          id: `erasure-${Date.now()}`,
+          userId: sessions[0]?.userId ?? '',
+          activityType: 'DATA_ERASURE_REQUESTED',
+          description: 'User initiated right-to-be-forgotten erasure request',
+          ipAddress: '',
+          userAgent: navigator.userAgent,
+          deviceId: '',
+          metadata: {},
+          isSuspicious: false,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      window.location.href = '/';
+    } catch (err: any) {
+      setError(err.message || 'Failed to request data erasure');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAcceptPolicy = async () => {
+    try {
+      setIsLoading(true);
+      await userAPI.updatePreferences({ dataShareConsent: true });
+      setError(null);
+      const mostRecent = await userAPI.getActivity(1, 0);
+      setComplianceActivities((prev) => [...mostRecent, ...prev].slice(0, 10));
+    } catch (err: any) {
+      setError(err.message || 'Failed to accept policy consent');
       throw err;
     } finally {
       setIsLoading(false);
@@ -133,6 +185,9 @@ export default function AccountSettingsPage() {
         onDeactivateAccount={handleDeactivateAccount}
         onDeleteAccount={handleDeleteAccount}
         onExportData={handleExportData}
+        onRequestErasure={handleRequestErasure}
+        onAcceptPolicy={handleAcceptPolicy}
+        complianceActivities={complianceActivities}
         isLoading={isLoading}
       />
       

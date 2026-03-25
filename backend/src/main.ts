@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -9,24 +10,64 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Trust proxy for correct IP address detection
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
 
-  // Global validation pipe
+  // ── Helmet (security headers) ──────────────────────────────────────────────
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'", 'data:'],
+          frameAncestors: ["'none'"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }),
+  );
+
+  // ── CORS ───────────────────────────────────────────────────────────────────
+  const rawOrigins =
+    configService.get<string>('app.corsOrigin') || 'http://localhost:3000';
+  const allowedOrigins = rawOrigins.split(',').map((o) => o.trim());
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Api-Key'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+    credentials: true,
+    maxAge: 86400, // preflight cache 24h
+  });
+
+  // ── Global validation pipe ─────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // CORS configuration
-  app.enableCors({
-    origin: configService.get('app.corsOrigin'),
-    credentials: true,
-  });
-
-  // Global API prefix
+  // ── Global API prefix ──────────────────────────────────────────────────────
   const apiPrefix = configService.get<string>('app.apiPrefix') || 'api/v1';
   app.setGlobalPrefix(apiPrefix);
 
@@ -36,4 +77,4 @@ async function bootstrap() {
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/${apiPrefix}`);
 }
-bootstrap();
+void bootstrap();
