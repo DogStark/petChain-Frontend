@@ -1,5 +1,6 @@
 //import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 
 export default function HeaderComponent() {
@@ -54,6 +55,7 @@ export default function HeaderComponent() {
                 </li>
               </>
             )}
+            <li><ThemeToggle /></li>
           </ul>
         </nav>
       </div>
