@@ -51,6 +51,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { MigrationModule } from './modules/migration/migration.module';
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
+    MigrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
