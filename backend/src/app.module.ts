@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -67,7 +68,10 @@ import { WebSocketModule } from './websocket/websocket.module';
       ],
       envFilePath: '.env',
     }),
-
+ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     // Scheduler Module
     ScheduleModule.forRoot(),
 
