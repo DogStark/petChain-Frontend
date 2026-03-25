@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AccountSettings.module.css';
+import { ActivityLog } from '../../lib/api/userAPI';
 
 interface Session {
   id: string;
@@ -19,6 +20,9 @@ interface AccountSettingsProps {
   onDeactivateAccount: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
   onExportData: () => Promise<void>;
+  onRequestErasure?: () => Promise<void>;
+  onAcceptPolicy?: () => Promise<void>;
+  complianceActivities?: ActivityLog[];
   isLoading?: boolean;
 }
 
@@ -29,6 +33,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   onDeactivateAccount,
   onDeleteAccount,
   onExportData,
+  onRequestErasure,
+  onAcceptPolicy,
+  complianceActivities = [],
   isLoading = false,
 }) => {
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
@@ -113,6 +120,34 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Failed to export data', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRequestErasure = async () => {
+    if (!onRequestErasure) return;
+    setIsSubmitting(true);
+    try {
+      await onRequestErasure();
+      setSuccessMessage('Data erasure request processed. Your data will be removed following retention policy.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Failed to request data erasure', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAcceptPolicy = async () => {
+    if (!onAcceptPolicy) return;
+    setIsSubmitting(true);
+    try {
+      await onAcceptPolicy();
+      setSuccessMessage('Privacy and compliance consent recorded successfully.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Failed to record policy consent', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,6 +242,56 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
             disabled={isSubmitting || isLoading}
           >
             {isSubmitting ? 'Exporting...' : 'Export My Data'}
+          </button>
+        </section>
+
+        {/* Privacy Policy Consent Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Consent Management</h2>
+          <p className={styles.sectionDescription}>
+            Record consent for GDPR, CCPA and pet data privacy requirements.
+          </p>
+
+          <button
+            className={styles.actionBtn}
+            onClick={handleAcceptPolicy}
+            disabled={isSubmitting || isLoading || !onAcceptPolicy}
+          >
+            {isSubmitting ? 'Recording...' : 'Accept Privacy & Data Policy'}
+          </button>
+
+          <p className={styles.policyText}>
+            Your consent is auditable and will be stored in compliance logs.
+          </p>
+
+          {complianceActivities && complianceActivities.length > 0 && (
+            <div className={styles.complianceLog}>
+              <h4 className={styles.sectionTitle}>Compliance Audit Trail</h4>
+              <ul>
+                {complianceActivities.slice(0, 6).map((activity) => (
+                  <li key={activity.id}>
+                    <strong>{activity.activityType}</strong> - {new Date(activity.createdAt).toLocaleString()} - {activity.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        {/* Data Erasure (Right to be Forgot) Section */}
+        <section className={`${styles.section} ${styles.dangerSection}`}>
+          <h2 className={styles.sectionTitle}>Right to be Forgotten</h2>
+          <p className={styles.sectionDescription}>
+            Request that your personal and pet data be erased in accordance with GDPR/CCPA.
+            Data is retained for 30 days before permanent removal to support recovery requests.
+          </p>
+
+          <button
+            className={styles.dangerBtn}
+            onClick={handleRequestErasure}
+            disabled={isSubmitting || isLoading || !onRequestErasure}
+          >
+            {isSubmitting ? 'Processing...' : 'Request Data Erasure'}
           </button>
         </section>
 
