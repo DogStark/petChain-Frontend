@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
@@ -18,6 +19,7 @@ import { PetSpecies } from '../pets/entities/pet.entity';
 import { RecordType } from './entities/medical-record.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { HashAnchoringService } from '../blockchain/hash-anchoring.service';
 
 @Injectable()
 export class MedicalRecordsService {
@@ -29,6 +31,7 @@ export class MedicalRecordsService {
     @InjectRepository(RecordVersion)
     private readonly versionRepository: Repository<RecordVersion>,
     private readonly auditService: AuditService,
+    @Optional() private readonly hashAnchoringService?: HashAnchoringService,
   ) { }
 
   async create(
@@ -53,6 +56,9 @@ export class MedicalRecordsService {
         AuditAction.CREATE,
       );
     }
+
+    // Queue blockchain anchor (fire-and-forget)
+    this.hashAnchoringService?.queueAnchor(savedRecord.id).catch(() => null);
 
     return this.findOne(savedRecord.id);
   }
@@ -142,6 +148,9 @@ export class MedicalRecordsService {
         AuditAction.UPDATE,
       );
     }
+
+    // Re-anchor updated record (fire-and-forget)
+    this.hashAnchoringService?.queueAnchor(id).catch(() => null);
 
     return updated;
   }

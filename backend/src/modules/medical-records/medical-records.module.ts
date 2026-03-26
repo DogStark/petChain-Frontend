@@ -15,6 +15,7 @@ import { SecurityModule } from '../../security/security.module';
 import { EncryptionService } from '../../security/services/encryption.service';
 import { KeyRotationService } from '../../security/services/key-rotation.service';
 import { setEncryptionService } from '../../common/transformers/encrypted.transformer';
+import { BlockchainSyncModule } from '../blockchain/blockchain-sync.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { setEncryptionService } from '../../common/transformers/encrypted.transf
     ConfigModule,
     AuditModule,
     SecurityModule,
+    BlockchainSyncModule,
   ],
   controllers: [MedicalRecordsController, RecordShareController],
   providers: [
