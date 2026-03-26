@@ -450,7 +450,6 @@ describe('RolesService', () => {
       } as Role;
 
       mockRoleRepository.find.mockResolvedValue([role]);
-      jest.spyOn(service, 'getRoleHierarchy').mockResolvedValue([]);
 
       const result = await service.aggregatePermissions(roleIds);
 
@@ -482,7 +481,6 @@ describe('RolesService', () => {
       } as Role;
 
       mockRoleRepository.find.mockResolvedValue([role1, role2]);
-      jest.spyOn(service, 'getRoleHierarchy').mockResolvedValue([]);
 
       const result = await service.aggregatePermissions(roleIds);
 
