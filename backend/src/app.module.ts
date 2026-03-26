@@ -14,6 +14,7 @@ import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
@@ -34,11 +35,15 @@ import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
+import { VerificationModule } from './modules/verification/verification.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
+
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { SecurityModule } from './modules/security/security.module';
+import { IntrusionDetectionModule } from './security/security.module';
 import { ProcessingModule } from './modules/processing/processing.module';
 import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
@@ -50,6 +55,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { MigrationModule } from './modules/migration/migration.module';
 
 @Module({
   imports: [
@@ -89,6 +95,7 @@ ThrottlerModule.forRoot([{
     }),
 
     // Feature Modules
+    ObservabilityModule,
     AuthModule,
     UsersModule,
     BreedsModule,
@@ -107,12 +114,17 @@ ThrottlerModule.forRoot([{
     LostPetsModule,
     AllergiesModule,
     ConditionsModule,
+    AuditModule,
+
+    VerificationModule,
+    GdprModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
     UploadModule,
     ValidationModule,
     SecurityModule,
+    IntrusionDetectionModule,
     ProcessingModule,
     CdnModule,
     FilesModule,
@@ -124,6 +136,7 @@ ThrottlerModule.forRoot([{
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
+    MigrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

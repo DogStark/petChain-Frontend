@@ -50,8 +50,13 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
 
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [policyAcceptedAt, setPolicyAcceptedAt] = useState<string | null>(null);
 
   useEffect(() => {
+    const localAccepted = localStorage.getItem('petchainPolicyAcceptedAt');
+    if (localAccepted) {
+      setPolicyAcceptedAt(localAccepted);
+    }
     if (settings) {
       setPrivacySettings({
         showEmail: settings.showEmail ?? false,
@@ -102,6 +107,11 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
         privacy: privacySettings,
         profile: profileSettings,
       });
+      if (profileSettings.dataShareConsent) {
+        const acceptedAt = new Date().toISOString();
+        localStorage.setItem('petchainPolicyAcceptedAt', acceptedAt);
+        setPolicyAcceptedAt(acceptedAt);
+      }
       setSuccessMessage('Privacy settings saved successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
@@ -236,6 +246,20 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               />
               <span className={styles.toggleSlider} />
             </label>
+          </div>
+
+          <div className={styles.sectionSummary}>
+            <p>
+              GDPR / CCPA consent status:
+              <strong>
+                {profileSettings.dataShareConsent ? ' Granted' : ' Not granted'}
+              </strong>
+            </p>
+            {policyAcceptedAt && (
+              <p>
+                Last policy acceptance: {new Date(policyAcceptedAt).toLocaleString()}
+              </p>
+            )}
           </div>
         </div>
 

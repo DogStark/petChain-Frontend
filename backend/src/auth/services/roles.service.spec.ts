@@ -7,6 +7,7 @@ import { PermissionsService } from './permissions.service';
 import { Role } from '../entities/role.entity';
 import { PermissionEntity } from '../entities/permission.entity';
 import { UserRole } from '../entities/user-role.entity';
+import { RolePermission } from '../entities/role-permission.entity';
 import {
   RoleAuditLog,
   RoleAuditAction,
@@ -19,6 +20,7 @@ describe('RolesService', () => {
   let roleRepository: Repository<Role>;
   let permissionRepository: Repository<PermissionEntity>;
   let userRoleRepository: Repository<UserRole>;
+  let rolePermissionRepository: Repository<RolePermission>;
   let auditLogRepository: Repository<RoleAuditLog>;
   let permissionsService: PermissionsService;
 
@@ -35,6 +37,13 @@ describe('RolesService', () => {
   };
 
   const mockUserRoleRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockRolePermissionRepository = {
     find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
@@ -67,6 +76,10 @@ describe('RolesService', () => {
           useValue: mockUserRoleRepository,
         },
         {
+          provide: getRepositoryToken(RolePermission),
+          useValue: mockRolePermissionRepository,
+        },
+        {
           provide: getRepositoryToken(RoleAuditLog),
           useValue: mockAuditLogRepository,
         },
@@ -84,6 +97,9 @@ describe('RolesService', () => {
     );
     userRoleRepository = module.get<Repository<UserRole>>(
       getRepositoryToken(UserRole),
+    );
+    rolePermissionRepository = module.get<Repository<RolePermission>>(
+      getRepositoryToken(RolePermission),
     );
     auditLogRepository = module.get<Repository<RoleAuditLog>>(
       getRepositoryToken(RoleAuditLog),
@@ -125,13 +141,14 @@ describe('RolesService', () => {
       mockAuditLogRepository.create.mockImplementation((data) => data);
       mockAuditLogRepository.save.mockResolvedValue({});
 
-      const result = await service.assignRole(userId, roleId, assignedBy);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test assignment' };
+      const result = await service.assignRole(dto, assignedBy);
 
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { id: roleId },
       });
       expect(userRoleRepository.findOne).toHaveBeenCalledWith({
-        where: { userId, roleId, isActive: true },
+        where: { userId, roleId },
       });
       expect(userRoleRepository.create).toHaveBeenCalled();
       expect(userRoleRepository.save).toHaveBeenCalled();
@@ -142,9 +159,10 @@ describe('RolesService', () => {
 
     it('should throw NotFoundException if role does not exist', async () => {
       mockRoleRepository.findOne.mockResolvedValue(null);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
       await expect(
-        service.assignRole(userId, roleId, assignedBy),
+        service.assignRole(dto, assignedBy),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -163,9 +181,10 @@ describe('RolesService', () => {
 
       mockRoleRepository.findOne.mockResolvedValue(mockRole);
       mockUserRoleRepository.findOne.mockResolvedValue(existingUserRole);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
       await expect(
-        service.assignRole(userId, roleId, assignedBy),
+        service.assignRole(dto, assignedBy),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -431,7 +450,6 @@ describe('RolesService', () => {
       } as Role;
 
       mockRoleRepository.find.mockResolvedValue([role]);
-      jest.spyOn(service, 'getRoleHierarchy').mockResolvedValue([]);
 
       const result = await service.aggregatePermissions(roleIds);
 
@@ -463,7 +481,6 @@ describe('RolesService', () => {
       } as Role;
 
       mockRoleRepository.find.mockResolvedValue([role1, role2]);
-      jest.spyOn(service, 'getRoleHierarchy').mockResolvedValue([]);
 
       const result = await service.aggregatePermissions(roleIds);
 

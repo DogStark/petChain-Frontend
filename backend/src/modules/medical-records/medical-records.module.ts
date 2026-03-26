@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -11,19 +11,31 @@ import { MedicalRecord } from './entities/medical-record.entity';
 import { RecordTemplate } from './entities/record-template.entity';
 import { RecordVersion } from './entities/record-version.entity';
 import { AuditModule } from '../audit/audit.module';
+import { SecurityModule } from '../../security/security.module';
+import { EncryptionService } from '../../security/services/encryption.service';
+import { KeyRotationService } from '../../security/services/key-rotation.service';
+import { setEncryptionService } from '../../common/transformers/encrypted.transformer';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MedicalRecord, RecordTemplate, RecordVersion]),
     ConfigModule,
     AuditModule,
+    SecurityModule,
   ],
   controllers: [MedicalRecordsController, RecordShareController],
   providers: [
     MedicalRecordsService,
     MedicalRecordsExportService,
     RecordShareService,
+    KeyRotationService,
   ],
   exports: [MedicalRecordsService, RecordShareService],
 })
-export class MedicalRecordsModule { }
+export class MedicalRecordsModule implements OnModuleInit {
+  constructor(private readonly encryptionService: EncryptionService) {}
+
+  onModuleInit() {
+    setEncryptionService(this.encryptionService);
+  }
+}
