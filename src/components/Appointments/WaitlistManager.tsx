@@ -26,14 +26,15 @@ export default function WaitlistManager() {
             </div>
           </div>
           <button
+            type="button"
             className="p-2 hover:bg-blue-100 text-blue-600 rounded-full transition-colors"
-            title="Schedule"
+            aria-label={`Schedule appointment for ${entry.pet}`}
           >
             <CheckCircle2 className="w-5 h-5" />
           </button>
         </div>
       ))}
-      <button className="w-full py-2 text-xs font-bold text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition-colors">
+      <button type="button" className="w-full py-2 text-xs font-bold text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition-colors">
         + Add to Waitlist
       </button>
     </div>

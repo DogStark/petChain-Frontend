@@ -1,0 +1,109 @@
+name: Performance Testing
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npx next build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        id: lighthouse
+        with:
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: .github/lighthouserc.json
+
+      - name: Format Lighthouse results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = ${{ steps.lighthouse.outputs.manifest }};
+            if (!results || results.length === 0) {
+              core.info('No Lighthouse results found');
+              return;
+            }
+
+            const result = results[0];
+            const summary = result.summary;
+
+            const score = (v) => `${Math.round(v * 100)}`;
+            const emoji = (v) => v >= 0.9 ? '🟢' : v >= 0.5 ? '🟡' : '🔴';
+
+            const body = `## ⚡ Lighthouse Performance Report
+
+            | Category | Score |
+            |----------|-------|
+            | ${emoji(summary.performance)} Performance | ${score(summary.performance)} |
+            | ${emoji(summary.accessibility)} Accessibility | ${score(summary.accessibility)} |
+            | ${emoji(summary['best-practices'])} Best Practices | ${score(summary['best-practices'])} |
+            | ${emoji(summary.seo)} SEO | ${score(summary.seo)} |
+
+            📊 [Full Report](${result.url})`;
+
+            if (context.issue.number) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and analyze
+        run: |
+          ANALYZE=true npx next build 2>&1 | tee build-output.txt
+
+      - name: Report bundle size
+        run: |
+          echo "### 📦 Bundle Size Report" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          # Extract the route summary from Next.js build output
+          sed -n '/Route (app)/,/First Load JS shared/p' build-output.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "Build output captured" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: build-output.txt
+          retention-days: 7

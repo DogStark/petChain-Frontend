@@ -33,19 +33,18 @@ const MOCK_FINANCIAL_DATA = [
 ];
 
 const MOCK_HEALTH_DATA = [
-    { month: 'Jan', healthy: 85, sick: 10, critical: 5 },
-    { month: 'Feb', healthy: 82, sick: 12, critical: 6 },
-    { month: 'Mar', healthy: 88, sick: 9, critical: 3 },
-    { month: 'Apr', healthy: 86, sick: 11, critical: 3 },
-    { month: 'May', healthy: 90, sick: 8, critical: 2 },
-    { month: 'Jun', healthy: 92, sick: 7, critical: 1 },
+    { name: 'Healthy', value: 85, color: '#22c55e' },
+    { name: 'Under Treatment', value: 10, color: '#f59e0b' },
+    { name: 'Critical', value: 5, color: '#ef4444' },
 ];
 
 const MOCK_VACCINATION_DATA = [
-    { name: 'Rabies', completed: 850, pending: 150 },
-    { name: 'Parvovirus', completed: 720, pending: 280 },
-    { name: 'Distemper', completed: 680, pending: 320 },
-    { name: 'Bordetella', completed: 450, pending: 550 },
+    { month: 'Jan', compliant: 85, nonCompliant: 15 },
+    { month: 'Feb', compliant: 88, nonCompliant: 12 },
+    { month: 'Mar', compliant: 92, nonCompliant: 8 },
+    { month: 'Apr', compliant: 90, nonCompliant: 10 },
+    { month: 'May', compliant: 95, nonCompliant: 5 },
+    { month: 'Jun', compliant: 96, nonCompliant: 4 },
 ];
 
 const MOCK_API_DATA = [
@@ -120,8 +119,8 @@ export default function AdminReports() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all ${activeTab === tab.id
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm'
                                         }`}
                                 >
                                     {tab.icon}

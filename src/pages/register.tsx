@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -35,9 +37,15 @@ export default function RegisterPage() {
       setError('Enter a valid phone number in international format');
       return false;
     }
-    
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
+
+    const { valid, errors } = validatePassword(formData.password);
+    if (!valid) {
+      setError(errors[0]);
+      return false;
+    }
+
+    if (isPasswordReused(formData.password)) {
+      setError('This password was used recently. Please choose a different one.');
       return false;
     }
 
@@ -62,6 +70,7 @@ export default function RegisterPage() {
         formData.lastName,
         formData.phone,
       );
+      savePasswordToHistory(formData.password);
       router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -171,9 +180,7 @@ export default function RegisterPage() {
                 value={formData.password}
                 onChange={handleInputChange}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters with uppercase, lowercase, numbers, and special characters.
-              </p>
+              <PasswordStrengthMeter password={formData.password} />
             </div>
             
             <div>

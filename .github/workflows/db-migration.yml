@@ -1,0 +1,124 @@
+name: Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      dry_run:
+        description: Dry run (validate only, do not apply)
+        required: true
+        type: boolean
+        default: true
+      migration_type:
+        description: Migration method
+        required: true
+        type: choice
+        options:
+          - typeorm
+          - sql-file
+      confirm:
+        description: "Type 'MIGRATE' to confirm (ignored for dry runs)"
+        required: false
+        type: string
+
+jobs:
+  validate:
+    name: Validate Migration Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm migration
+        if: inputs.dry_run == false && inputs.confirm != 'MIGRATE'
+        run: |
+          echo "❌ Migration not confirmed. Type 'MIGRATE' to apply changes."
+          exit 1
+
+  migrate:
+    name: Run Migration (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: validate
+    environment:
+      name: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeORM migration (dry run)
+        if: inputs.migration_type == 'typeorm' && inputs.dry_run == true
+        run: |
+          echo "### 🔍 Dry Run — TypeORM Migration" >> "$GITHUB_STEP_SUMMARY"
+          npx typeorm migration:show -d src/data-source.ts 2>&1 | tee migration-output.txt
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat migration-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+
+      - name: Run TypeORM migration (apply)
+        if: inputs.migration_type == 'typeorm' && inputs.dry_run == false
+        run: |
+          echo "### 🚀 Applying TypeORM Migration" >> "$GITHUB_STEP_SUMMARY"
+          npx typeorm migration:run -d src/data-source.ts 2>&1 | tee migration-output.txt
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat migration-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+
+      - name: Run SQL file migration (dry run)
+        if: inputs.migration_type == 'sql-file' && inputs.dry_run == true
+        run: |
+          echo "### 🔍 Dry Run — SQL File Migration" >> "$GITHUB_STEP_SUMMARY"
+          echo "The following SQL would be executed:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```sql' >> "$GITHUB_STEP_SUMMARY"
+          cat ../DATABASE_MIGRATION.sql >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run SQL file migration (apply)
+        if: inputs.migration_type == 'sql-file' && inputs.dry_run == false
+        run: |
+          echo "### 🚀 Applying SQL File Migration" >> "$GITHUB_STEP_SUMMARY"
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h ${{ secrets.DB_HOST }} \
+            -p ${{ secrets.DB_PORT }} \
+            -U ${{ secrets.DB_USERNAME }} \
+            -d ${{ secrets.DB_DATABASE }} \
+            -f ../DATABASE_MIGRATION.sql 2>&1 | tee migration-output.txt
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat migration-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload migration log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-log-${{ inputs.environment }}-${{ github.run_number }}
+          path: backend/migration-output.txt
+          retention-days: 30
+          if-no-files-found: ignore

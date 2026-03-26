@@ -37,7 +37,7 @@ export default function ServiceList({ services }: ServiceListProps) {
                 {service.priceRange}
               </div>
             </div>
-            <button className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95">
+            <button type="button" className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95">
               Book This
             </button>
           </div>

@@ -143,10 +143,20 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleClickDropzone}
+        role="button"
+        tabIndex={0}
+        aria-label="Add photos"
+        onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            handleClickDropzone();
+          }
+        }}
       >
         <input
           ref={fileInputRef}
           type="file"
+          aria-label="Select photos to upload"
           accept={ALLOWED_TYPES.join(',')}
           multiple
           onChange={handleInputChange}
@@ -181,9 +191,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                   className={styles.previewImage}
                 />
                 <button
+                  type="button"
                   className={styles.removePreview}
                   onClick={() => removeStaged(i)}
-                  title="Remove"
+                  aria-label={`Remove ${pf.file.name}`}
                 >
                   ×
                 </button>
@@ -193,6 +204,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
           <div className={styles.uploadActions}>
             <button
+              type="button"
               className={styles.uploadButton}
               onClick={handleUpload}
               disabled={isUploading}
@@ -200,6 +212,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               {isUploading ? 'Uploading...' : `Upload ${stagedFiles.length} photo${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
             <button
+              type="button"
               className={styles.cancelButton}
               onClick={handleCancel}
               disabled={isUploading}
