@@ -45,7 +45,7 @@ import { ApiKeyController } from './controllers/api-key.controller';
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
   ],
-  controllers: [ApiKeyController],
+  controllers: [SecurityController],
   providers: [
     ThreatDetectionService,
     IpBlacklistService,
@@ -80,7 +80,7 @@ import { ApiKeyController } from './controllers/api-key.controller';
     EncryptionService,
   ],
 })
-export class SecurityModule implements NestModule {
+export class IntrusionDetectionModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(
