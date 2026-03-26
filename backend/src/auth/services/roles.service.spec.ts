@@ -7,6 +7,7 @@ import { PermissionsService } from './permissions.service';
 import { Role } from '../entities/role.entity';
 import { PermissionEntity } from '../entities/permission.entity';
 import { UserRole } from '../entities/user-role.entity';
+import { RolePermission } from '../entities/role-permission.entity';
 import {
   RoleAuditLog,
   RoleAuditAction,
@@ -19,6 +20,7 @@ describe('RolesService', () => {
   let roleRepository: Repository<Role>;
   let permissionRepository: Repository<PermissionEntity>;
   let userRoleRepository: Repository<UserRole>;
+  let rolePermissionRepository: Repository<RolePermission>;
   let auditLogRepository: Repository<RoleAuditLog>;
   let permissionsService: PermissionsService;
 
@@ -35,6 +37,13 @@ describe('RolesService', () => {
   };
 
   const mockUserRoleRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockRolePermissionRepository = {
     find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
@@ -67,6 +76,10 @@ describe('RolesService', () => {
           useValue: mockUserRoleRepository,
         },
         {
+          provide: getRepositoryToken(RolePermission),
+          useValue: mockRolePermissionRepository,
+        },
+        {
           provide: getRepositoryToken(RoleAuditLog),
           useValue: mockAuditLogRepository,
         },
@@ -84,6 +97,9 @@ describe('RolesService', () => {
     );
     userRoleRepository = module.get<Repository<UserRole>>(
       getRepositoryToken(UserRole),
+    );
+    rolePermissionRepository = module.get<Repository<RolePermission>>(
+      getRepositoryToken(RolePermission),
     );
     auditLogRepository = module.get<Repository<RoleAuditLog>>(
       getRepositoryToken(RoleAuditLog),
