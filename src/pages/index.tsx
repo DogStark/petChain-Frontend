@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Head from "next/head";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -63,6 +64,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col">
+      <Head>
+        <title>PetChain — Smart Pet Health Tracking on Blockchain</title>
+        <meta name="description" content="PetChain provides decentralized, private, and vet-ready health tracking for your pet. Store medical records on Stellar blockchain with scannable QR tags." />
+        <meta property="og:title" content="PetChain — Smart Pet Health Tracking" />
+        <meta property="og:description" content="Decentralized, private, and vet-ready health tracking for your pet." />
+        <meta property="og:type" content="website" />
+      </Head>
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center py-16 px-4 text-center">
         <div className="mb-6">
@@ -71,6 +79,7 @@ export default function Home() {
             alt="PetChain Logo"
             width={120}
             height={120}
+            priority
             className="rounded-2xl shadow-lg"
           />
         </div>

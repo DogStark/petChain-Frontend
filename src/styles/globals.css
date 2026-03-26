@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -20,10 +20,11 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
+  /* ── Marquee animation ── */
   .animate-marquee {
     animation: marquee 18s linear infinite;
   }
@@ -32,6 +33,7 @@ body {
     100% { transform: translateX(-33%); }
   }
 
+  /* ── Fade-in-up animation ── */
   .animate-fade-in-up {
     animation: fadeInUp 0.4s ease both;
   }
@@ -40,6 +42,37 @@ body {
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── Fade-in animation ── */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Hide scrollbar ── */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Skeleton shimmer (CLS-safe loading placeholder) ── */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Content-visibility for off-screen sections (perf) ── */
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+  }
+
+  /* ── Aspect ratio helpers for CLS prevention ── */
+  .aspect-hero { aspect-ratio: 1 / 1; }
+  .aspect-card { aspect-ratio: 16 / 10; }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Head from 'next/head';
 import Header from '@/components/Header';
-import ProtectedRoute from '@/components/ui/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 
 // Import Charts
@@ -33,19 +33,18 @@ const MOCK_FINANCIAL_DATA = [
 ];
 
 const MOCK_HEALTH_DATA = [
-    { month: 'Jan', healthy: 85, sick: 10, critical: 5 },
-    { month: 'Feb', healthy: 82, sick: 12, critical: 6 },
-    { month: 'Mar', healthy: 88, sick: 9, critical: 3 },
-    { month: 'Apr', healthy: 86, sick: 11, critical: 3 },
-    { month: 'May', healthy: 90, sick: 8, critical: 2 },
-    { month: 'Jun', healthy: 92, sick: 7, critical: 1 },
+    { name: 'Healthy', value: 350, color: '#10b981' },
+    { name: 'Sick', value: 45, color: '#f59e0b' },
+    { name: 'Critical', value: 12, color: '#ef4444' },
 ];
 
 const MOCK_VACCINATION_DATA = [
-    { name: 'Rabies', completed: 850, pending: 150 },
-    { name: 'Parvovirus', completed: 720, pending: 280 },
-    { name: 'Distemper', completed: 680, pending: 320 },
-    { name: 'Bordetella', completed: 450, pending: 550 },
+    { month: 'Jan', compliant: 85, nonCompliant: 15 },
+    { month: 'Feb', compliant: 82, nonCompliant: 18 },
+    { month: 'Mar', compliant: 88, nonCompliant: 12 },
+    { month: 'Apr', compliant: 86, nonCompliant: 14 },
+    { month: 'May', compliant: 90, nonCompliant: 10 },
+    { month: 'Jun', compliant: 92, nonCompliant: 8 },
 ];
 
 const MOCK_API_DATA = [
