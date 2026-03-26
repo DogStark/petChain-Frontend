@@ -13,9 +13,9 @@ import {
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { FilesService } from './files.service';
-import { FileBackupService } from './services/file-backup.service';
-import { BackupStatisticsDto } from './dto/file-backup.dto';
+import { FilesService } from '../files.service';
+import { FileBackupService } from '../services/file-backup.service';
+import { BackupStatisticsDto } from '../dto/file-backup.dto';
 
 /**
  * Admin Files Controller

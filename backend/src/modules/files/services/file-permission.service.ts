@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { FilePermission, PermissionType, AccessLevel } from '../entities/file-permission.entity';
 import { FileMetadata } from '../../upload/entities/file-metadata.entity';
-import { User } from '../../modules/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import {
   ShareFileDto,
   UpdateFilePermissionDto,
