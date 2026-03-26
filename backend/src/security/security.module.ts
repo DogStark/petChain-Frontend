@@ -12,6 +12,7 @@ import { ThreatDetectionService } from './services/threat-detection.service';
 import { IpBlacklistService } from './services/ip-blacklist.service';
 import { SecurityAuditService } from './services/security-audit.service';
 import { ApiKeyService } from './services/api-key.service';
+import { EncryptionService } from './services/encryption.service';
 import { IpBlacklistGuard } from './guards/ip-blacklist.guard';
 import { DdosProtectionGuard } from './guards/ddos-protection.guard';
 import { ApiKeyGuard } from './guards/api-key.guard';
@@ -50,6 +51,7 @@ import { ApiKeyController } from './controllers/api-key.controller';
     IpBlacklistService,
     SecurityAuditService,
     ApiKeyService,
+    EncryptionService,
     ApiKeyGuard,
     // Global throttler guard (applies to all routes)
     {
@@ -75,6 +77,7 @@ import { ApiKeyController } from './controllers/api-key.controller';
     SecurityAuditService,
     ApiKeyService,
     ApiKeyGuard,
+    EncryptionService,
   ],
 })
 export class SecurityModule implements NestModule {
