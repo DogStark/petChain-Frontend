@@ -34,7 +34,7 @@ import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
 import { VerificationModule } from './modules/verification/verification.module';
-import { ZkpModule } from './modules/zkp/zkp.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
@@ -109,7 +109,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     ConditionsModule,
 
     VerificationModule,
-    ZkpModule,
+    GdprModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
