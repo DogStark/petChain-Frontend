@@ -20,9 +20,14 @@ import { UserRole } from './entities/user-role.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { RoleAuditLog } from './entities/role-audit-log.entity';
 import { FailedLoginAttempt } from './entities/failed-login-attempt.entity';
+import { LoginHistory } from './entities/login-history.entity';
+import { AuthSecurityEvent } from './entities/auth-security-event.entity';
+import { EmailNotificationService } from './services/email-notification.service';
+import { SessionService } from './services/session.service';
+import { PasswordResetService } from './services/password-reset.service';
+import { LoginAttemptService } from './services/login-attempt.service';
 import { EMAIL_SERVICE } from './interfaces/email-service.interface';
 import { RolesService } from './services/roles.service';
-import { RolesController } from './controllers/roles.controller';
 import { PermissionsService } from './services/permissions.service';
 import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
 import { SmsModule } from '../modules/sms/sms.module';
@@ -41,6 +46,8 @@ import { EmailService as AppEmailService } from '../modules/email/email.service'
       RolePermission,
       RoleAuditLog,
       FailedLoginAttempt,
+      LoginHistory,
+      AuthSecurityEvent,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -93,6 +100,10 @@ import { EmailService as AppEmailService } from '../modules/email/email.service'
     RolesService,
     PermissionsService,
     RolesPermissionsSeeder,
+    EmailNotificationService,
+    SessionService,
+    PasswordResetService,
+    LoginAttemptService,
     {
       provide: EMAIL_SERVICE,
       useExisting: AppEmailService,

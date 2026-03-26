@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -37,6 +39,8 @@ import {
 } from './interfaces/email-service.interface';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { SmsService } from '../modules/sms/sms.service';
+import { PasswordResetService } from './services/password-reset.service';
+import { LoginAttemptService } from './services/login-attempt.service';
 
 /**
  * User data without sensitive fields
@@ -49,7 +53,8 @@ export type SafeUser = Omit<
   | 'phoneVerificationCode'
   | 'phoneVerificationExpires'
   | 'passwordResetToken'
-  | 'passwordResetExpires'
+  | 'passwordResetTokenExpiresAt'
+  | 'passwordChangedAt'
   | 'getActiveRoles'
   | 'getProfileCompletionScore' // method added on User entity, omit for type safety
 >;
@@ -84,6 +89,8 @@ export class AuthService {
     @Inject(EMAIL_SERVICE)
     private readonly emailService: IEmailService,
     private readonly smsService: SmsService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly loginAttemptService: LoginAttemptService,
   ) {}
 
   /**
@@ -153,10 +160,11 @@ export class AuthService {
       password,
       emailVerificationToken,
       emailVerificationExpires,
-      phoneVerificationCode,
-      phoneVerificationExpires,
+      phoneVerificationCode: omitPhoneVerificationCode,
+      phoneVerificationExpires: omitPhoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       ...userResponse
     } = savedUser as User & { getActiveRoles: unknown };
@@ -173,60 +181,54 @@ export class AuthService {
     loginDto: LoginDto,
     deviceFingerprintData: DeviceFingerprintData,
   ): Promise<AuthResponse> {
-    // Find user
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if account is locked
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutesLeft = Math.ceil(
-        (user.lockedUntil.getTime() - Date.now()) / 60000,
-      );
-      throw new ForbiddenException(
-        `Account is locked. Try again in ${minutesLeft} minute(s).`,
+    const lockState = await this.loginAttemptService.isAccountLocked(user.id);
+    if (lockState.locked && lockState.unlocksAt) {
+      throw new HttpException(
+        {
+          message: 'Account is temporarily locked',
+          unlocksAt: lockState.unlocksAt,
+        },
+        HttpStatus.LOCKED,
       );
     }
 
-    // Check if account is active
     if (!user.isActive) {
       throw new ForbiddenException('Account is inactive');
     }
 
-    // Verify password
+    const { ipAddress, userAgent } = deviceFingerprintData;
+
     if (
       !user.password ||
       !(await PasswordUtil.comparePassword(loginDto.password, user.password))
     ) {
-      // Increment failed attempts
-      user.failedLoginAttempts += 1;
-      const maxAttempts =
-        this.configService.get<number>('auth.maxFailedLoginAttempts') || 5;
-
-      if (user.failedLoginAttempts >= maxAttempts) {
-        // Lock account
-        const lockoutDuration =
-          this.configService.get<string>('auth.accountLockoutDuration') ||
-          '15m';
-        const lockoutMinutes = parseInt(lockoutDuration.replace('m', ''), 10);
-        user.lockedUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
-        await this.userRepository.save(user);
-        throw new ForbiddenException(
-          `Account locked due to too many failed attempts. Try again in ${lockoutMinutes} minutes.`,
+      try {
+        await this.loginAttemptService.recordAttempt(
+          user.id,
+          false,
+          ipAddress,
+          userAgent,
         );
+      } catch (err) {
+        if (
+          err instanceof HttpException &&
+          err.getStatus() === HttpStatus.LOCKED
+        ) {
+          throw err;
+        }
+        throw err;
       }
-
-      await this.userRepository.save(user);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Reset failed attempts on successful login
-    if (user.failedLoginAttempts > 0) {
-      user.failedLoginAttempts = 0;
-      (user as { lockedUntil: Date | null }).lockedUntil = null;
-      await this.userRepository.save(user);
-    }
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    await this.userRepository.save(user);
 
     if (!user.emailVerified || !user.phoneVerified) {
       throw new ForbiddenException(
@@ -234,22 +236,32 @@ export class AuthService {
       );
     }
 
-    // Create device fingerprint
+    const loginRow = await this.loginAttemptService.recordAttempt(
+      user.id,
+      true,
+      ipAddress,
+      userAgent,
+    );
+
+    await this.loginAttemptService.detectAnomaly(
+      user.id,
+      ipAddress,
+      userAgent,
+      loginRow!.id,
+    );
+
     const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
       deviceFingerprintData,
     );
 
-    // Manage sessions (enforce concurrent session limit)
     await this.manageSessions(
       user.id,
       deviceFingerprint,
       deviceFingerprintData,
     );
 
-    // Generate tokens
     const tokens = await this.generateTokens(user, deviceFingerprint);
 
-    // Return response
     const {
       password,
       emailVerificationToken,
@@ -257,7 +269,8 @@ export class AuthService {
       phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       ...userResponse
     } = user as User & { getActiveRoles: unknown };
@@ -334,7 +347,8 @@ export class AuthService {
       phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       ...userResponse
     } = user as User & { getActiveRoles: unknown };
@@ -489,82 +503,40 @@ export class AuthService {
   }
 
   /**
-   * Forgot password
+   * Forgot password (legacy route; delegates to secure reset flow).
    */
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<void> {
-    const user = await this.usersService.findByEmail(forgotPasswordDto.email);
-
-    // Don't reveal if email exists (security best practice)
-    if (!user) {
-      return;
-    }
-
-    // Generate reset token
-    const resetToken = TokenUtil.generateToken();
-    const resetExpires = new Date();
-    resetExpires.setHours(
-      resetExpires.getHours() +
-        parseInt(
-          this.configService
-            .get<string>('auth.passwordResetExpiration')
-            ?.replace('h', '') || '1',
-          10,
-        ),
+  async forgotPassword(
+    forgotPasswordDto: ForgotPasswordDto,
+    ipAddress: string,
+  ): Promise<void> {
+    await this.passwordResetService.requestPasswordReset(
+      forgotPasswordDto.email,
+      ipAddress,
     );
-
-    user.passwordResetToken = TokenUtil.hashToken(resetToken);
-    user.passwordResetExpires = resetExpires;
-    await this.userRepository.save(user);
-
-    // Send reset email
-    try {
-      await this.emailService.sendPasswordResetEmail(user.email, resetToken);
-    } catch (error) {
-      console.error('Failed to send password reset email:', error);
-    }
   }
 
   /**
-   * Reset password
+   * Reset password (legacy route; delegates to secure reset flow).
    */
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
-    const tokenHash = TokenUtil.hashToken(resetPasswordDto.token);
-    const user = await this.userRepository.findOne({
-      where: { passwordResetToken: tokenHash },
-    });
-
-    if (!user) {
-      throw new BadRequestException('Invalid reset token');
-    }
-
-    if (
-      !user.passwordResetExpires ||
-      user.passwordResetExpires < new Date()
-    ) {
-      throw new BadRequestException('Reset token has expired');
-    }
-
-    // Hash new password
-    const bcryptRounds =
-      this.configService.get<number>('auth.bcryptRounds') || 12;
-    const hashedPassword = await PasswordUtil.hashPassword(
+    await this.passwordResetService.resetPassword(
+      resetPasswordDto.token,
       resetPasswordDto.newPassword,
-      bcryptRounds,
     );
+  }
 
-    // Update user
-    user.password = hashedPassword;
-    user.passwordResetToken = null as any;
-    user.passwordResetExpires = null as any;
-    user.failedLoginAttempts = 0; // Reset failed attempts
-    (user as { lockedUntil: Date | null }).lockedUntil = null; // Unlock account
-    await this.userRepository.save(user);
+  /**
+   * Request password reset (Issue #145 route).
+   */
+  async requestPasswordReset(email: string, ipAddress: string): Promise<void> {
+    await this.passwordResetService.requestPasswordReset(email, ipAddress);
+  }
 
-    // Invalidate all refresh tokens for security
-    await this.refreshTokenRepository.delete({ userId: user.id });
-
-    // Invalidate all sessions for security
-    await this.sessionRepository.delete({ userId: user.id });
+  /**
+   * Confirm password reset with token (Issue #145 route).
+   */
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    await this.passwordResetService.resetPassword(token, newPassword);
   }
 
   /**
