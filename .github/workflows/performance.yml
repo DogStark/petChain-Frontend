@@ -68,13 +68,21 @@ jobs:
 
             📊 [Full Report](${result.url})`;
 
-            if (context.issue.number) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: body,
-              });
+            if (context.issue?.number || context.payload?.pull_request?.number) {
+              const issueNumber = context.issue?.number || context.payload?.pull_request?.number;
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: body,
+                });
+              } catch (error) {
+                core.error(`Failed to post comment: ${error.message}`);
+                if (error.status !== 404) throw error;
+              }
+            } else {
+              core.warning('No PR context found for posting comment');
             }
 
   bundle-analysis:
