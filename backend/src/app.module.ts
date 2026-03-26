@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -35,12 +36,14 @@ import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
 import { VerificationModule } from './modules/verification/verification.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { SecurityModule } from './modules/security/security.module';
+import { IntrusionDetectionModule } from './security/security.module';
 import { ProcessingModule } from './modules/processing/processing.module';
 import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
@@ -52,6 +55,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { MigrationModule } from './modules/migration/migration.module';
 
 @Module({
   imports: [
@@ -70,7 +74,10 @@ import { WebSocketModule } from './websocket/websocket.module';
       ],
       envFilePath: '.env',
     }),
-
+ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     // Scheduler Module
     ScheduleModule.forRoot(),
 
@@ -88,6 +95,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     }),
 
     // Feature Modules
+    ObservabilityModule,
     AuthModule,
     UsersModule,
     BreedsModule,
@@ -109,12 +117,14 @@ import { WebSocketModule } from './websocket/websocket.module';
     AuditModule,
 
     VerificationModule,
+    GdprModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
     UploadModule,
     ValidationModule,
     SecurityModule,
+    IntrusionDetectionModule,
     ProcessingModule,
     CdnModule,
     FilesModule,
@@ -126,6 +136,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
+    MigrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
