@@ -1,0 +1,100 @@
+version: '3.8'
+
+# Extend the base docker-compose.yml with the full observability stack.
+# Usage: docker compose -f docker-compose.yml -f monitoring/docker-compose.monitoring.yml up
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: petchain_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - '9090:9090'
+    networks:
+      - petchain_network
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: petchain_grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - '3001:3000'
+    depends_on:
+      - prometheus
+    networks:
+      - petchain_network
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: petchain_alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - '9093:9093'
+    networks:
+      - petchain_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: petchain_elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+    networks:
+      - petchain_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    container_name: petchain_kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+    networks:
+      - petchain_network
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.0
+    container_name: petchain_filebeat
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./elk/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log/petchain:/var/log/petchain:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - petchain_network
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  elasticsearch_data:
+
+networks:
+  petchain_network:
+    external: true
