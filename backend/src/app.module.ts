@@ -55,7 +55,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
-import { MigrationModule } from './modules/migration/migration.module';
+import { DatabaseModule } from './modules/database/database.module';
 
 @Module({
   imports: [
@@ -136,7 +136,7 @@ ThrottlerModule.forRoot([{
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
-    MigrationModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

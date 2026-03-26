@@ -71,34 +71,30 @@ export class MedicalRecordsService {
     startDate?: string,
     endDate?: string,
   ): Promise<MedicalRecord[]> {
-    return this.search({ petId, recordType, startDate, endDate });
-  }
+    // Optimized: Use QueryBuilder with explicit joins to avoid N+1
+    const qb = this.medicalRecordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.pet', 'pet')
+      .leftJoinAndSelect('record.vet', 'vet')
+      .leftJoinAndSelect('record.verifiedByVet', 'verifiedByVet')
+      .orderBy('record.visitDate', 'DESC');
 
-  async search(dto: SearchMedicalRecordsDto): Promise<MedicalRecord[]> {
-    const { petId, recordType, accessLevel, startDate, endDate, q, vetId, verified } = dto;
+    if (petId) {
+      qb.andWhere('record.petId = :petId', { petId });
+    }
 
-    const baseWhere: FindOptionsWhere<MedicalRecord> = {};
-    if (petId) baseWhere.petId = petId;
-    if (recordType) baseWhere.recordType = recordType;
-    if (accessLevel) baseWhere.accessLevel = accessLevel;
-    if (vetId) baseWhere.vetId = vetId;
-    if (verified !== undefined) baseWhere.verified = verified;
-    if (startDate && endDate)
-      baseWhere.visitDate = Between(new Date(startDate), new Date(endDate)) as any;
+    if (recordType) {
+      qb.andWhere('record.recordType = :recordType', { recordType });
+    }
 
-    const whereConditions: FindOptionsWhere<MedicalRecord>[] = q
-      ? [
-          { ...baseWhere, diagnosis: ILike(`%${q}%`) },
-          { ...baseWhere, treatment: ILike(`%${q}%`) },
-          { ...baseWhere, notes: ILike(`%${q}%`) },
-        ]
-      : [baseWhere];
+    if (startDate && endDate) {
+      qb.andWhere('record.visitDate BETWEEN :startDate AND :endDate', {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+      });
+    }
 
-    return this.medicalRecordRepository.find({
-      where: whereConditions,
-      relations: ['pet', 'vet', 'verifiedByVet'],
-      order: { visitDate: 'DESC' },
-    });
+    return await qb.getMany();
   }
 
   /** Append-only: adds a timestamped observation to notes, snapshots version */
@@ -116,10 +112,14 @@ export class MedicalRecordsService {
   }
 
   async findOne(id: string): Promise<MedicalRecord> {
-    const record = await this.medicalRecordRepository.findOne({
-      where: { id },
-      relations: ['pet', 'vet', 'verifiedByVet'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const record = await this.medicalRecordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.pet', 'pet')
+      .leftJoinAndSelect('record.vet', 'vet')
+      .leftJoinAndSelect('record.verifiedByVet', 'verifiedByVet')
+      .where('record.id = :id', { id })
+      .getOne();
 
     if (!record) {
       throw new NotFoundException(`Medical record with ID ${id} not found`);
@@ -130,11 +130,17 @@ export class MedicalRecordsService {
 
   async findByIds(ids: string[]): Promise<MedicalRecord[]> {
     if (!ids.length) return [];
-    const records = await this.medicalRecordRepository.find({
-      where: ids.map((id) => ({ id })),
-      relations: ['pet', 'vet', 'verifiedByVet'],
-      order: { visitDate: 'DESC' },
-    });
+    
+    // Optimized: Single query with explicit joins for multiple records
+    const records = await this.medicalRecordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.pet', 'pet')
+      .leftJoinAndSelect('record.vet', 'vet')
+      .leftJoinAndSelect('record.verifiedByVet', 'verifiedByVet')
+      .where('record.id IN (:...ids)', { ids })
+      .orderBy('record.visitDate', 'DESC')
+      .getMany();
+    
     return records;
   }
 
