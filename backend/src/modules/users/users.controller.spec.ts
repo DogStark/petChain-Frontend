@@ -29,6 +29,7 @@ describe('UsersController', () => {
     deactivateAccount: jest.fn(),
     reactivateAccount: jest.fn(),
     softDeleteUser: jest.fn(),
+    sanitizeUser: jest.fn((user) => user),
   };
 
   const mockPref = {

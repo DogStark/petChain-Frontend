@@ -141,13 +141,14 @@ describe('RolesService', () => {
       mockAuditLogRepository.create.mockImplementation((data) => data);
       mockAuditLogRepository.save.mockResolvedValue({});
 
-      const result = await service.assignRole(userId, roleId, assignedBy);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test assignment' };
+      const result = await service.assignRole(dto, assignedBy);
 
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { id: roleId },
       });
       expect(userRoleRepository.findOne).toHaveBeenCalledWith({
-        where: { userId, roleId, isActive: true },
+        where: { userId, roleId },
       });
       expect(userRoleRepository.create).toHaveBeenCalled();
       expect(userRoleRepository.save).toHaveBeenCalled();
@@ -158,9 +159,10 @@ describe('RolesService', () => {
 
     it('should throw NotFoundException if role does not exist', async () => {
       mockRoleRepository.findOne.mockResolvedValue(null);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
       await expect(
-        service.assignRole(userId, roleId, assignedBy),
+        service.assignRole(dto, assignedBy),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -179,9 +181,10 @@ describe('RolesService', () => {
 
       mockRoleRepository.findOne.mockResolvedValue(mockRole);
       mockUserRoleRepository.findOne.mockResolvedValue(existingUserRole);
+      const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
       await expect(
-        service.assignRole(userId, roleId, assignedBy),
+        service.assignRole(dto, assignedBy),
       ).rejects.toThrow(BadRequestException);
     });
   });
