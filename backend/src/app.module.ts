@@ -13,6 +13,7 @@ import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
@@ -89,6 +90,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     }),
 
     // Feature Modules
+    ObservabilityModule,
     AuthModule,
     UsersModule,
     BreedsModule,
