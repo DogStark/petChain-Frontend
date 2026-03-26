@@ -18,7 +18,8 @@ export type SafeUserProfile = Omit<
   | 'phoneVerificationCode'
   | 'phoneVerificationExpires'
   | 'passwordResetToken'
-  | 'passwordResetExpires'
+  | 'passwordResetTokenExpiresAt'
+  | 'passwordChangedAt'
   | 'getActiveRoles'
   | 'getProfileCompletionScore'
 > & { isVerified: boolean };
@@ -42,14 +43,23 @@ export class UsersService {
    * Get all users
    */
   async findAll(): Promise<User[]> {
-    return await this.userRepository.find();
+    // Optimized: Use QueryBuilder with explicit column selection
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .orderBy('user.createdAt', 'DESC')
+      .getMany();
   }
 
   /**
    * Get a single user by ID
    */
   async findOne(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    // Optimized: Use QueryBuilder
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .getOne();
+      
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -60,7 +70,11 @@ export class UsersService {
    * Get a user by email
    */
   async findByEmail(email: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { email } });
+    // Optimized: Use QueryBuilder with indexed column
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   /**
@@ -80,7 +94,8 @@ export class UsersService {
       phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       getProfileCompletionScore,
       ...safeUser

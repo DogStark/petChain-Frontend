@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { ArrowLeft, PawPrint } from 'lucide-react';
+import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
+import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 
 interface Pet {
@@ -120,6 +121,20 @@ export default function PetDetailPage() {
               {age && <span className={styles.metaItem}>{age}</span>}
             </div>
           </div>
+        </div>
+
+        {/* QR Code Section */}
+        <div className={styles.section}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={styles.sectionTitle}>QR Tag</h2>
+            <button
+              onClick={() => router.push(`/qrcode?petId=${pet.id}`)}
+              className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-all"
+            >
+              <QrCode size={14} /> Manage QR Codes
+            </button>
+          </div>
+          <EmergencyQR petId={pet.id} petName={pet.name} />
         </div>
 
         {/* Pet Photos Section */}

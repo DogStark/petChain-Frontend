@@ -11,7 +11,7 @@ export const authConfig = registerAs('auth', () => ({
     process.env.MAX_CONCURRENT_SESSIONS || '3',
     10,
   ),
-  accountLockoutDuration: process.env.ACCOUNT_LOCKOUT_DURATION || '15m',
+  accountLockoutDuration: process.env.ACCOUNT_LOCKOUT_DURATION || '30m',
   passwordResetExpiration: process.env.PASSWORD_RESET_EXPIRATION || '1h',
   emailVerificationExpiration:
     process.env.EMAIL_VERIFICATION_EXPIRATION || '24h',

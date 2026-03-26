@@ -6,8 +6,11 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Get,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -20,11 +23,16 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import {
+  PasswordResetRequestDto,
+  PasswordResetConfirmDto,
+} from './dto/password-reset-security.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../modules/users/entities/user.entity';
 import { DeviceFingerprintUtil } from './utils/device-fingerprint.util';
 
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -89,11 +97,35 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(forgotPasswordDto);
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+    @Req() req: Request,
+  ) {
+    const { ipAddress } = DeviceFingerprintUtil.extractFromRequest(req);
+    await this.authService.forgotPassword(forgotPasswordDto, ipAddress);
     return {
       message: 'If the email exists, a password reset link has been sent',
     };
+  }
+
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  async passwordResetRequest(
+    @Body() body: PasswordResetRequestDto,
+    @Req() req: Request,
+  ) {
+    const { ipAddress } = DeviceFingerprintUtil.extractFromRequest(req);
+    await this.authService.requestPasswordReset(body.email, ipAddress);
+    return {
+      message: 'If the email exists, password reset instructions have been sent',
+    };
+  }
+
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.OK)
+  async passwordResetConfirm(@Body() body: PasswordResetConfirmDto) {
+    await this.authService.confirmPasswordReset(body.token, body.newPassword);
+    return { message: 'Password reset successfully' };
   }
 
   @Post('reset-password')
@@ -101,5 +133,45 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     await this.authService.resetPassword(resetPasswordDto);
     return { message: 'Password reset successfully' };
+  }
+
+  // --- Google OAuth2 ---
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Initiates Google OAuth2 flow — handled by Passport
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @HttpCode(HttpStatus.OK)
+  async googleAuthCallback(@Req() req: Request) {
+    const user = req.user as any;
+    return {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      user: user.user,
+    };
+  }
+
+  // --- Apple Sign In ---
+
+  @Get('apple')
+  @UseGuards(AuthGuard('apple'))
+  async appleAuth() {
+    // Initiates Apple Sign In flow — handled by Passport
+  }
+
+  @Post('apple/callback')
+  @UseGuards(AuthGuard('apple'))
+  @HttpCode(HttpStatus.OK)
+  async appleAuthCallback(@Req() req: Request) {
+    const user = req.user as any;
+    return {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      user: user.user,
+    };
   }
 }
