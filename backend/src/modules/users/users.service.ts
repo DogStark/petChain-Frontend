@@ -18,7 +18,8 @@ export type SafeUserProfile = Omit<
   | 'phoneVerificationCode'
   | 'phoneVerificationExpires'
   | 'passwordResetToken'
-  | 'passwordResetExpires'
+  | 'passwordResetTokenExpiresAt'
+  | 'passwordChangedAt'
   | 'getActiveRoles'
   | 'getProfileCompletionScore'
 > & { isVerified: boolean };
@@ -93,7 +94,8 @@ export class UsersService {
       phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       getProfileCompletionScore,
       ...safeUser
