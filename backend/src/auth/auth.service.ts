@@ -153,7 +153,7 @@ export class AuthService {
       password,
       emailVerificationToken,
       emailVerificationExpires,
-      phoneVerificationCode,
+      phoneVerificationCode: _phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
       passwordResetExpires,
