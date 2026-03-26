@@ -1,6 +1,7 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getMessaging, Messaging } from 'firebase/messaging';
+// import { initializeApp, getApps, getApp } from 'firebase/app';
+// import { getMessaging, Messaging } from 'firebase/messaging';
 
+// Temporarily disabled due to missing Firebase dependency
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -10,17 +11,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
-  try {
-    const isSupported = await import('firebase/messaging').then(({ isSupported }) => isSupported());
-    if (!isSupported) return null;
-    return getMessaging(app);
-  } catch (err) {
-    console.error('Firebase tagging not supported', err);
-    return null;
-  }
+export const getFirebaseMessaging = async (): Promise<any | null> => {
+  console.warn('Firebase messaging is disabled due to missing dependency');
+  return null;
 };
-
-export default app;

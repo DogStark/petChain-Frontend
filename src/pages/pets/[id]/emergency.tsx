@@ -10,8 +10,8 @@ import {
     Dna,
     ExternalLink
 } from 'lucide-react';
-import { petAPI } from '../../../../lib/api/petAPI';
-import { PetEmergencyInfo } from '../../../../types/pet';
+import { petAPI } from '@/lib/api/petAPI';
+import { PetEmergencyInfo, EmergencyContact } from '../../../types/pet';
 
 export default function EmergencyAccessPage() {
     const router = useRouter();
@@ -100,7 +100,7 @@ export default function EmergencyAccessPage() {
                         <User size={18} /> Owner Contacts
                     </h2>
                     <div className="space-y-3">
-                        {data.contacts.sort((a, b) => a.priority - b.priority).map((contact) => (
+                        {data.contacts.sort((a: EmergencyContact, b: EmergencyContact) => a.priority - b.priority).map((contact: EmergencyContact) => (
                             <a
                                 key={contact.id}
                                 href={`tel:${contact.phone}`}

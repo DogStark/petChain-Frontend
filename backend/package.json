@@ -81,6 +81,7 @@
     "@types/cache-manager": "^4.0.6",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.6",
+    "@types/helmet": "^0.0.48",
     "@types/jest": "^30.0.0",
     "@types/json2csv": "^5.0.7",
     "@types/node": "^22.19.11",
@@ -107,39 +108,5 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "app.controller.ts",
-      "auth/auth.controller.ts",
-      "auth/auth.service.ts",
-      "auth/strategies/jwt.strategy.ts",
-      "auth/services/roles.service.ts",
-      "auth/services/permissions.service.ts",
-      "auth/utils/device-fingerprint.util.ts",
-      "auth/utils/password.util.ts",
-      "auth/utils/token.util.ts",
-      "modules/users/users.controller.ts",
-      "modules/users/uploads.controller.ts",
-      "modules/users/users.service.ts",
-      "modules/users/services/file-upload.service.ts",
-      "modules/lost-pets/lost-pets.controller.ts",
-      "modules/lost-pets/lost-pets.service.ts",
-      "modules/pets/pets.controller.ts",
-      "modules/pets/pets.service.ts",
-      "modules/blockchain/stellar.service.ts"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }

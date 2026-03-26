@@ -1,15 +1,7 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
+import { stellarService, StellarService, MedicalRecord, TransactionResult } from './index';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'retrying';
-
-export interface MedicalRecord {
-  id: string;
-  petId: string;
-  type: 'vaccination' | 'treatment' | 'diagnosis' | 'prescription';
-  data: Record<string, unknown>;
-  timestamp: string;
-  critical: boolean;
-}
 
 export interface SyncResult {
   recordId: string;
@@ -22,15 +14,12 @@ export interface SyncResult {
 }
 
 class StellarSyncService {
-  private server: StellarSdk.Horizon.Server;
+  private engine: StellarService;
   private syncQueue: Map<string, SyncResult> = new Map();
   private maxRetries = 3;
 
-  constructor() {
-    const isTestnet = process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public';
-    this.server = new StellarSdk.Horizon.Server(
-      isTestnet ? 'https://horizon-testnet.stellar.org' : 'https://horizon.stellar.org'
-    );
+  constructor(engine: StellarService = stellarService) {
+    this.engine = engine;
   }
 
   private encrypt(data: Record<string, unknown>): string {
@@ -50,15 +39,6 @@ class StellarSyncService {
 
   private shouldSyncToBlockchain(record: MedicalRecord): boolean {
     return record.critical || ['vaccination', 'diagnosis'].includes(record.type);
-  }
-
-  private async estimateFee(): Promise<string> {
-    try {
-      const feeStats = await this.server.feeStats();
-      return feeStats.fee_charged.mode;
-    } catch {
-      return StellarSdk.BASE_FEE;
-    }
   }
 
   async syncRecord(
@@ -92,28 +72,24 @@ class StellarSyncService {
         dataHash = encrypted.substring(0, 64);
       }
 
-      const account = await this.server.loadAccount(sourceKeypair.publicKey());
-      const fee = await this.estimateFee();
+      // Use the new StellarService building and submission logic
+      const operation = StellarSdk.Operation.manageData({
+        name: `pet_${record.petId}_${record.type}`,
+        value: dataHash,
+      });
 
-      const transaction = new StellarSdk.TransactionBuilder(account, {
-        fee,
-        networkPassphrase: StellarSdk.Networks.TESTNET,
-      })
-        .addOperation(
-          StellarSdk.Operation.manageData({
-            name: `pet_${record.petId}_${record.type}`,
-            value: dataHash,
-          })
-        )
-        .setTimeout(30)
-        .build();
-
+      const transaction = await this.engine.buildTransaction(sourceKeypair.publicKey(), [operation]);
       transaction.sign(sourceKeypair);
-      const txResponse = await this.server.submitTransaction(transaction);
 
-      result.txHash = txResponse.hash;
-      result.status = 'success';
-      result.fee = fee;
+      const txResult: TransactionResult = await this.engine.submitTransaction(transaction);
+
+      if (txResult.success) {
+        result.txHash = txResult.hash;
+        result.status = 'success';
+        result.fee = txResult.feeCharged || '0';
+      } else {
+        throw new Error(txResult.error);
+      }
     } catch (error) {
       result.error = error instanceof Error ? error.message : 'Unknown error';
       result.status = 'failed';
@@ -136,6 +112,8 @@ class StellarSyncService {
     previousResult.attempts++;
     previousResult.status = 'retrying';
     
+    // Waiting logic is already somewhat handled in StellarService.submitTransaction,
+    // but this higher-level retry handles record-specific failures (like IPFS issues).
     await new Promise(resolve => setTimeout(resolve, 2000 * previousResult.attempts));
     
     await this.syncRecord(record, sourceKeypair, encryptionKey);
@@ -144,10 +122,11 @@ class StellarSyncService {
   async verifyRecord(recordId: string): Promise<boolean> {
     try {
       const syncResult = this.syncQueue.get(recordId);
-      
       if (!syncResult?.txHash) return false;
 
-      const tx = await this.server.transactions().transaction(syncResult.txHash).call();
+      // Access the Horizon server via the engine for consistency
+      const server = (this.engine as any).server || new StellarSdk.Horizon.Server(process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org');
+      const tx = await server.transactions().transaction(syncResult.txHash).call();
       return tx.successful;
     } catch {
       return false;
@@ -163,4 +142,5 @@ class StellarSyncService {
   }
 }
 
+export { MedicalRecord };
 export const stellarSync = new StellarSyncService();
