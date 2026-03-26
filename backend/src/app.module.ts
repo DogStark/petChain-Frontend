@@ -41,6 +41,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { SecurityModule } from './modules/security/security.module';
+import { IntrusionDetectionModule } from './security/security.module';
 import { ProcessingModule } from './modules/processing/processing.module';
 import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
@@ -115,6 +116,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     UploadModule,
     ValidationModule,
     SecurityModule,
+    IntrusionDetectionModule,
     ProcessingModule,
     CdnModule,
     FilesModule,
