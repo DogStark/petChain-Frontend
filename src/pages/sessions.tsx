@@ -153,7 +153,7 @@ export default function SessionsPage() {
                       key={session.id}
                       className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
                     >
-                      <div className="flex items-start space-x-4">
+                      <div className="flex items-start space--4">
                         <div className="shrink-0">
                           {session.isCurrent ? (
                             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -252,7 +252,7 @@ export default function SessionsPage() {
             {sessions.map((session) => (
               <li key={session.id}>
                 <div className="px-4 py-5 sm:px-6 flex items-center justify-between hover:bg-gray-50 transition">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space--4">
                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                       {/* Placeholder for Device Icon */}
                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

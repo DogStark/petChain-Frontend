@@ -10,7 +10,7 @@ import {
     Dna,
     ExternalLink
 } from 'lucide-react';
-import { petAPI } from '../../../../lib/api/petAPI';
+import { petAPI } from '@/lib/api/petAPI';
 import { PetEmergencyInfo } from '../../../../types/pet';
 
 export default function EmergencyAccessPage() {

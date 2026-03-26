@@ -194,7 +194,7 @@ export default function ClinicProfile() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-900/40 to-transparent"></div>
 
-        <div className="absolute bottom-0 inset-x-0">
+        <div className="absolute bottom-0 inset--0">
           <div className="container mx-auto px-4 pb-12">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="max-w-3xl">
@@ -236,7 +236,7 @@ export default function ClinicProfile() {
           {/* Main Content Area */}
           <div className="lg:col-span-8 space-y-8">
             {/* Tabs Navigation */}
-            <nav className="flex flex-wrap gap-2 p-1 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/40 shadow-sm overflow-x-auto">
+            <nav className="flex flex-wrap gap-2 p-1 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/40 shadow-sm overflow--auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}

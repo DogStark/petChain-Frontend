@@ -13,7 +13,7 @@ export default function CategoryTabs({
   onSelect,
 }: CategoryTabsProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
+    <div className="flex gap-2 overflow--auto pb-2 scrollbar-hide w-full md:w-auto">
       {categories.map((cat) => (
         <button
           key={cat}
