@@ -1,0 +1,222 @@
+name: Database Migrations
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/database/migrations/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/database/migrations/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Migration action'
+        required: true
+        default: 'status'
+        type: choice
+        options:
+        - status
+        - run
+        - validate
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '18'
+  POSTGRES_VERSION: '15'
+
+jobs:
+  test-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_migrations
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Validate migration files
+      run: |
+        cd backend
+        npm run migration:validate
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        DB_DATABASE: test_migrations
+        DB_LOGGING: false
+
+    - name: Check migration status
+      run: |
+        cd backend
+        npm run migration:status
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        DB_DATABASE: test_migrations
+        DB_LOGGING: false
+
+    - name: Run migrations (test)
+      run: |
+        cd backend
+        npm run migration:run
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        DB_DATABASE: test_migrations
+        DB_LOGGING: false
+
+    - name: Test rollback functionality
+      run: |
+        cd backend
+        npm run migration:rollback
+        npm run migration:run
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
+        DB_DATABASE: test_migrations
+        DB_LOGGING: false
+
+  deploy-migrations:
+    needs: test-migrations
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Run migrations on staging
+      run: |
+        cd backend
+        npm run migration:run
+      env:
+        DB_HOST: ${{ secrets.STAGING_DB_HOST }}
+        DB_PORT: ${{ secrets.STAGING_DB_PORT }}
+        DB_USERNAME: ${{ secrets.STAGING_DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        DB_DATABASE: ${{ secrets.STAGING_DB_DATABASE }}
+        DB_LOGGING: true
+
+  production-migrations:
+    needs: test-migrations
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Validate migrations before production
+      run: |
+        cd backend
+        npm run migration:validate
+      env:
+        DB_HOST: ${{ secrets.PRODUCTION_DB_HOST }}
+        DB_PORT: ${{ secrets.PRODUCTION_DB_PORT }}
+        DB_USERNAME: ${{ secrets.PRODUCTION_DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        DB_DATABASE: ${{ secrets.PRODUCTION_DB_DATABASE }}
+        DB_LOGGING: false
+
+    - name: Check migration status
+      run: |
+        cd backend
+        npm run migration:status
+      env:
+        DB_HOST: ${{ secrets.PRODUCTION_DB_HOST }}
+        DB_PORT: ${{ secrets.PRODUCTION_DB_PORT }}
+        DB_USERNAME: ${{ secrets.PRODUCTION_DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        DB_DATABASE: ${{ secrets.PRODUCTION_DB_DATABASE }}
+        DB_LOGGING: false
+
+    - name: Run migrations on production
+      run: |
+        cd backend
+        npm run migration:run
+      env:
+        DB_HOST: ${{ secrets.PRODUCTION_DB_HOST }}
+        DB_PORT: ${{ secrets.PRODUCTION_DB_PORT }}
+        DB_USERNAME: ${{ secrets.PRODUCTION_DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        DB_DATABASE: ${{ secrets.PRODUCTION_DB_DATABASE }}
+        DB_LOGGING: true
+
+    - name: Notify migration completion
+      if: always()
+      run: |
+        echo "Migration process completed for production environment"
+        # Add notification logic here (Slack, email, etc.)

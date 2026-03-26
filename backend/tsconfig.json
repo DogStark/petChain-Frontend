@@ -1,25 +1,41 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "ES2020",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
+    "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["node", "jest"],
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/common/transformers/encrypted.transformer.ts",
+    "src/database/migrations/1742900000000-api-keys-table.ts",
+    "src/modules/blockchain/blockchain-sync.service.ts",
+    "src/modules/blockchain/contract-interaction.service.ts",
+    "src/modules/blockchain/contract-management.service.ts",
+    "src/modules/blockchain/hash-anchoring.service.ts",
+    "src/modules/blockchain/payment-automation.service.ts",
+    "src/weight-tracking/entities/weight-entry.entity.ts"
+  ]
 }

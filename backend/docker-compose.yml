@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: petchain_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: petchain_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - petchain_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: petchain_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - petchain_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: petchain_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@petchain.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    networks:
+      - petchain_network
+
+  # ClamAV antivirus daemon for file scanning
+  clamav:
+    image: clamav/clamav:latest
+    container_name: petchain_clamav
+    restart: unless-stopped
+    ports:
+      - '3310:3310'
+    volumes:
+      - clamav_data:/var/lib/clamav
+    environment:
+      # Update virus definitions on startup
+      CLAMAV_NO_FRESHCLAMD: 'false'
+    networks:
+      - petchain_network
+    healthcheck:
+      test: ['CMD', 'clamdscan', '--ping', '3']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  postgres_data:
+  redis_data:
+  clamav_data:
+
+networks:
+  petchain_network:
+    driver: bridge

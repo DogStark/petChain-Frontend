@@ -1,0 +1,721 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../modules/users/users.service';
+import { UserPreferenceService } from '../modules/users/services/user-preference.service';
+import { User } from '../modules/users/entities/user.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { Session } from './entities/session.entity';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+  VerifyPhoneDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
+import { PasswordUtil } from './utils/password.util';
+import {
+  DeviceFingerprintUtil,
+  DeviceFingerprintData,
+} from './utils/device-fingerprint.util';
+import { TokenUtil } from './utils/token.util';
+import { Inject } from '@nestjs/common';
+import {
+  EMAIL_SERVICE,
+  type IEmailService,
+} from './interfaces/email-service.interface';
+import { JwtPayload } from './strategies/jwt.strategy';
+import { SmsService } from '../modules/sms/sms.service';
+import { PasswordResetService } from './services/password-reset.service';
+import { LoginAttemptService } from './services/login-attempt.service';
+
+/**
+ * User data without sensitive fields
+ */
+export type SafeUser = Omit<
+  User,
+  | 'password'
+  | 'emailVerificationToken'
+  | 'emailVerificationExpires'
+  | 'phoneVerificationCode'
+  | 'phoneVerificationExpires'
+  | 'passwordResetToken'
+  | 'passwordResetTokenExpiresAt'
+  | 'passwordChangedAt'
+  | 'getActiveRoles'
+  | 'getProfileCompletionScore' // method added on User entity, omit for type safety
+>;
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: SafeUser;
+}
+
+export interface VerificationStatusResponse {
+  message: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  isVerified: boolean;
+  email?: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: Repository<Session>,
+    private readonly usersService: UsersService,
+    private readonly userPreferenceService: UserPreferenceService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    @Inject(EMAIL_SERVICE)
+    private readonly emailService: IEmailService,
+    private readonly smsService: SmsService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly loginAttemptService: LoginAttemptService,
+  ) {}
+
+  /**
+   * Register a new user
+   */
+  async register(registerDto: RegisterDto): Promise<SafeUser> {
+    // Check if user already exists
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash password
+    const bcryptRounds =
+      this.configService.get<number>('auth.bcryptRounds') || 12;
+    const hashedPassword = await PasswordUtil.hashPassword(
+      registerDto.password,
+      bcryptRounds,
+    );
+
+    const verificationToken = TokenUtil.generateToken();
+    const verificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.emailVerificationExpiration') ||
+        '24h',
+    );
+    const phoneVerificationCode = this.generatePhoneVerificationCode();
+    const phoneVerificationCodeExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.phoneVerificationExpiration') ||
+        '24h',
+    );
+
+    // Create user
+    const user = this.userRepository.create({
+      email: registerDto.email,
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      phone: registerDto.phone,
+      password: hashedPassword,
+      emailVerified: false,
+      emailVerificationToken: TokenUtil.hashToken(verificationToken),
+      emailVerificationExpires: verificationExpires,
+      phoneVerified: false,
+      phoneVerificationCode: TokenUtil.hashToken(phoneVerificationCode),
+      phoneVerificationExpires: phoneVerificationCodeExpires,
+      isActive: true,
+      failedLoginAttempts: 0,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+    await this.userPreferenceService.createDefaultPreferences(savedUser.id);
+
+    // Send verification email
+    try {
+      await this.emailService.sendVerificationEmail(
+        savedUser.email,
+        verificationToken,
+      );
+    } catch (error) {
+      // Log error but don't fail registration
+      console.error('Failed to send verification email:', error);
+    }
+
+    await this.sendPhoneVerificationCode(savedUser, phoneVerificationCode);
+
+    // Return user without sensitive data
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode: omitPhoneVerificationCode,
+      phoneVerificationExpires: omitPhoneVerificationExpires,
+      passwordResetToken,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
+      getActiveRoles,
+      ...userResponse
+    } = savedUser as User & { getActiveRoles: unknown };
+    return {
+      ...userResponse,
+      isVerified: savedUser.isVerified,
+    };
+  }
+
+  /**
+   * Login user
+   */
+  async login(
+    loginDto: LoginDto,
+    deviceFingerprintData: DeviceFingerprintData,
+  ): Promise<AuthResponse> {
+    const user = await this.usersService.findByEmail(loginDto.email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const lockState = await this.loginAttemptService.isAccountLocked(user.id);
+    if (lockState.locked && lockState.unlocksAt) {
+      throw new HttpException(
+        {
+          message: 'Account is temporarily locked',
+          unlocksAt: lockState.unlocksAt,
+        },
+        HttpStatus.LOCKED,
+      );
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Account is inactive');
+    }
+
+    const { ipAddress, userAgent } = deviceFingerprintData;
+
+    if (
+      !user.password ||
+      !(await PasswordUtil.comparePassword(loginDto.password, user.password))
+    ) {
+      try {
+        await this.loginAttemptService.recordAttempt(
+          user.id,
+          false,
+          ipAddress,
+          userAgent,
+        );
+      } catch (err) {
+        if (
+          err instanceof HttpException &&
+          err.getStatus() === HttpStatus.LOCKED
+        ) {
+          throw err;
+        }
+        throw err;
+      }
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    await this.userRepository.save(user);
+
+    if (!user.emailVerified || !user.phoneVerified) {
+      throw new ForbiddenException(
+        'Please verify your email and phone before logging in',
+      );
+    }
+
+    const loginRow = await this.loginAttemptService.recordAttempt(
+      user.id,
+      true,
+      ipAddress,
+      userAgent,
+    );
+
+    await this.loginAttemptService.detectAnomaly(
+      user.id,
+      ipAddress,
+      userAgent,
+      loginRow!.id,
+    );
+
+    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
+      deviceFingerprintData,
+    );
+
+    await this.manageSessions(
+      user.id,
+      deviceFingerprint,
+      deviceFingerprintData,
+    );
+
+    const tokens = await this.generateTokens(user, deviceFingerprint);
+
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
+      passwordResetToken,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
+      getActiveRoles,
+      ...userResponse
+    } = user as User & { getActiveRoles: unknown };
+    return {
+      ...tokens,
+      user: {
+        ...userResponse,
+        isVerified: user.isVerified,
+      },
+    };
+  }
+
+  /**
+   * Refresh access token
+   */
+  async refresh(
+    refreshDto: RefreshDto,
+    deviceFingerprintData: DeviceFingerprintData,
+  ): Promise<AuthResponse> {
+    // Find refresh token
+    const refreshTokenHash = TokenUtil.hashToken(refreshDto.refreshToken);
+    const refreshToken = await this.refreshTokenRepository.findOne({
+      where: { token: refreshTokenHash },
+      relations: ['user'],
+    });
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Check if token is expired
+    if (refreshToken.expiresAt < new Date()) {
+      await this.refreshTokenRepository.remove(refreshToken);
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Check if token was replaced (rotation detection)
+    if (refreshToken.replacedBy) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
+    // Verify device fingerprint
+    const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
+      deviceFingerprintData,
+    );
+    if (refreshToken.deviceFingerprint !== deviceFingerprint) {
+      throw new UnauthorizedException('Device fingerprint mismatch');
+    }
+
+    const user = refreshToken.user;
+
+    // Check if user is still active
+    if (!user.isActive) {
+      throw new ForbiddenException('User account is inactive');
+    }
+
+    // Rotate refresh token (invalidate old, create new)
+    await this.refreshTokenRepository.remove(refreshToken);
+    const newTokens = await this.generateTokens(user, deviceFingerprint);
+
+    // Update session activity
+    const session = await this.sessionRepository.findOne({
+      where: { userId: user.id, deviceFingerprint },
+    });
+    if (session) {
+      session.lastActivityAt = new Date();
+      await this.sessionRepository.save(session);
+    }
+
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      phoneVerificationCode,
+      phoneVerificationExpires,
+      passwordResetToken,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
+      getActiveRoles,
+      ...userResponse
+    } = user as User & { getActiveRoles: unknown };
+    return {
+      ...newTokens,
+      user: {
+        ...userResponse,
+        isVerified: user.isVerified,
+      },
+    };
+  }
+
+  /**
+   * Logout user
+   */
+  async logout(refreshToken: string, userId: string): Promise<void> {
+    const refreshTokenHash = TokenUtil.hashToken(refreshToken);
+    const token = await this.refreshTokenRepository.findOne({
+      where: { token: refreshTokenHash, userId },
+    });
+
+    if (token) {
+      await this.refreshTokenRepository.remove(token);
+    }
+
+    // Optionally remove session as well
+    const sessions = await this.sessionRepository.find({ where: { userId } });
+    if (sessions.length > 0) {
+      // Remove the session matching the device fingerprint from the token
+      const deviceFingerprint = token?.deviceFingerprint;
+      if (deviceFingerprint) {
+        const session = sessions.find(
+          (s) => s.deviceFingerprint === deviceFingerprint,
+        );
+        if (session) {
+          await this.sessionRepository.remove(session);
+        }
+      }
+    }
+  }
+
+  /**
+   * Verify email
+   */
+  async verifyEmail(
+    verifyEmailDto: VerifyEmailDto,
+  ): Promise<VerificationStatusResponse> {
+    const tokenHash = TokenUtil.hashToken(verifyEmailDto.token);
+    const user = await this.userRepository.findOne({
+      where: { emailVerificationToken: tokenHash },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid verification token');
+    }
+
+    if (
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires < new Date()
+    ) {
+      throw new BadRequestException('Verification token has expired');
+    }
+
+    user.emailVerified = true;
+    (user as { emailVerificationToken: string | null }).emailVerificationToken =
+      null;
+    (
+      user as { emailVerificationExpires: Date | null }
+    ).emailVerificationExpires = null;
+    await this.userRepository.save(user);
+
+    return this.buildVerificationStatus(
+      user,
+      'Email verified successfully',
+    );
+  }
+
+  async resendEmailVerification(
+    resendVerificationDto: ResendVerificationDto,
+  ): Promise<void> {
+    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+
+    if (!user || user.emailVerified) {
+      return;
+    }
+
+    const verificationToken = TokenUtil.generateToken();
+    user.emailVerificationToken = TokenUtil.hashToken(verificationToken);
+    user.emailVerificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.emailVerificationExpiration') ||
+        '24h',
+    );
+    await this.userRepository.save(user);
+
+    try {
+      await this.emailService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+    }
+  }
+
+  async verifyPhone(
+    verifyPhoneDto: VerifyPhoneDto,
+  ): Promise<VerificationStatusResponse> {
+    const user = await this.usersService.findByEmail(verifyPhoneDto.email);
+
+    if (!user || !user.phoneVerificationCode) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    if (
+      user.phoneVerificationExpires &&
+      user.phoneVerificationExpires < new Date()
+    ) {
+      throw new BadRequestException('Verification code has expired');
+    }
+
+    const codeHash = TokenUtil.hashToken(verifyPhoneDto.code);
+    if (user.phoneVerificationCode !== codeHash) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    user.phoneVerified = true;
+    user.phoneVerificationCode = null;
+    user.phoneVerificationExpires = null;
+    await this.userRepository.save(user);
+
+    return this.buildVerificationStatus(
+      user,
+      'Phone number verified successfully',
+    );
+  }
+
+  async resendPhoneVerification(
+    resendVerificationDto: ResendVerificationDto,
+  ): Promise<void> {
+    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+
+    if (!user || user.phoneVerified || !user.phone) {
+      return;
+    }
+
+    const phoneVerificationCode = this.generatePhoneVerificationCode();
+    user.phoneVerificationCode = TokenUtil.hashToken(phoneVerificationCode);
+    user.phoneVerificationExpires = this.createExpiryDate(
+      this.configService.get<string>('auth.phoneVerificationExpiration') ||
+        '24h',
+    );
+    await this.userRepository.save(user);
+
+    await this.sendPhoneVerificationCode(user, phoneVerificationCode);
+  }
+
+  /**
+   * Forgot password (legacy route; delegates to secure reset flow).
+   */
+  async forgotPassword(
+    forgotPasswordDto: ForgotPasswordDto,
+    ipAddress: string,
+  ): Promise<void> {
+    await this.passwordResetService.requestPasswordReset(
+      forgotPasswordDto.email,
+      ipAddress,
+    );
+  }
+
+  /**
+   * Reset password (legacy route; delegates to secure reset flow).
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    await this.passwordResetService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+  }
+
+  /**
+   * Request password reset (Issue #145 route).
+   */
+  async requestPasswordReset(email: string, ipAddress: string): Promise<void> {
+    await this.passwordResetService.requestPasswordReset(email, ipAddress);
+  }
+
+  /**
+   * Confirm password reset with token (Issue #145 route).
+   */
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    await this.passwordResetService.resetPassword(token, newPassword);
+  }
+
+  /**
+   * Generate access and refresh tokens
+   */
+  private async generateTokens(
+    user: User,
+    deviceFingerprint: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+    };
+
+    // Parse duration string to seconds
+    const expiresInStr =
+      this.configService.get<string>('auth.jwtAccessExpiration') || '15m';
+    const match = expiresInStr.match(/^(\d+)([smhd])$/);
+    let expiresInSeconds = 900; // Default 15 minutes
+    if (match) {
+      const value = parseInt(match[1], 10);
+      const unit = match[2];
+      switch (unit) {
+        case 's':
+          expiresInSeconds = value;
+          break;
+        case 'm':
+          expiresInSeconds = value * 60;
+          break;
+        case 'h':
+          expiresInSeconds = value * 3600;
+          break;
+        case 'd':
+          expiresInSeconds = value * 86400;
+          break;
+      }
+    }
+
+    const accessToken = this.jwtService.sign(payload as object, {
+      expiresIn: expiresInSeconds,
+    });
+
+    // Generate refresh token
+    const refreshTokenValue = TokenUtil.generateToken(64);
+    const refreshTokenHash = TokenUtil.hashToken(refreshTokenValue);
+
+    const refreshTokenExpires = new Date();
+    const refreshExpiration =
+      this.configService.get<string>('auth.jwtRefreshExpiration') || '7d';
+    if (refreshExpiration.endsWith('d')) {
+      refreshTokenExpires.setDate(
+        refreshTokenExpires.getDate() +
+          parseInt(refreshExpiration.replace('d', ''), 10),
+      );
+    } else if (refreshExpiration.endsWith('h')) {
+      refreshTokenExpires.setHours(
+        refreshTokenExpires.getHours() +
+          parseInt(refreshExpiration.replace('h', ''), 10),
+      );
+    }
+
+    // Save refresh token
+    const refreshToken = this.refreshTokenRepository.create({
+      token: refreshTokenHash,
+      userId: user.id,
+      deviceFingerprint,
+      expiresAt: refreshTokenExpires,
+    });
+    await this.refreshTokenRepository.save(refreshToken);
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenValue,
+    };
+  }
+
+  /**
+   * Manage user sessions (enforce concurrent session limit)
+   */
+  private async manageSessions(
+    userId: string,
+    deviceFingerprint: string,
+    deviceFingerprintData: DeviceFingerprintData,
+  ): Promise<void> {
+    const maxSessions =
+      this.configService.get<number>('auth.maxConcurrentSessions') || 3;
+    const existingSessions = await this.sessionRepository.find({
+      where: { userId },
+      order: { lastActivityAt: 'ASC' },
+    });
+
+    // Check if session already exists for this device
+    const existingSession = existingSessions.find(
+      (s) => s.deviceFingerprint === deviceFingerprint,
+    );
+
+    if (existingSession) {
+      // Update existing session
+      existingSession.lastActivityAt = new Date();
+      existingSession.ipAddress = deviceFingerprintData.ipAddress;
+      existingSession.userAgent = deviceFingerprintData.userAgent;
+      await this.sessionRepository.save(existingSession);
+    } else {
+      // Create new session
+      if (existingSessions.length >= maxSessions) {
+        // Remove oldest session
+        await this.sessionRepository.remove(existingSessions[0]);
+      }
+
+      // Create new session
+      const newSession = this.sessionRepository.create({
+        userId,
+        deviceFingerprint,
+        ipAddress: deviceFingerprintData.ipAddress,
+        userAgent: deviceFingerprintData.userAgent,
+        lastActivityAt: new Date(),
+      });
+      await this.sessionRepository.save(newSession);
+    }
+  }
+
+  private createExpiryDate(duration: string): Date {
+    const expiresAt = new Date();
+    const match = duration.match(/^(\d+)([hd])$/);
+
+    if (!match) {
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      return expiresAt;
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    if (unit === 'd') {
+      expiresAt.setDate(expiresAt.getDate() + value);
+      return expiresAt;
+    }
+
+    expiresAt.setHours(expiresAt.getHours() + value);
+    return expiresAt;
+  }
+
+  private generatePhoneVerificationCode(): string {
+    return `${Math.floor(100000 + Math.random() * 900000)}`;
+  }
+
+  private async sendPhoneVerificationCode(
+    user: User,
+    code: string,
+  ): Promise<void> {
+    if (!user.phone) {
+      return;
+    }
+
+    const result = await this.smsService.sendSms(
+      user.id,
+      user.phone,
+      `Your PetChain verification code is ${code}. It expires in 24 hours.`,
+      {
+        templateName: 'account-verification',
+        skipPreferenceCheck: true,
+      },
+    );
+
+    if (!result.success) {
+      console.error('Failed to send verification SMS:', result.error);
+    }
+  }
+
+  private buildVerificationStatus(
+    user: User,
+    message: string,
+  ): VerificationStatusResponse {
+    return {
+      message,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      isVerified: user.isVerified,
+    };
+  }
+}

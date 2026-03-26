@@ -1,0 +1,85 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment to rollback
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      deployment_url:
+        description: "Vercel deployment URL to rollback to (e.g. https://my-app-abc123.vercel.app)"
+        required: false
+        type: string
+      confirm:
+        description: "Type 'ROLLBACK' to confirm"
+        required: true
+        type: string
+
+jobs:
+  validate:
+    name: Validate Rollback Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm rollback
+        if: inputs.confirm != 'ROLLBACK'
+        run: |
+          echo "❌ Rollback not confirmed. You must type 'ROLLBACK' to proceed."
+          exit 1
+
+  rollback:
+    name: Rollback ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: validate
+    environment:
+      name: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Rollback to previous deployment
+        if: inputs.deployment_url == ''
+        run: |
+          echo "### ⏪ Rolling back ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+
+          # List recent deployments
+          echo "📋 Recent deployments:"
+          vercel ls --token=${{ secrets.VERCEL_TOKEN }} | head -10
+
+          # Promote the previous production deployment
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            PREV=$(vercel ls --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null | grep "Production" | head -2 | tail -1 | awk '{print $2}')
+            if [ -n "$PREV" ]; then
+              vercel promote "$PREV" --token=${{ secrets.VERCEL_TOKEN }}
+              echo "✅ Rolled back production to: $PREV" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "❌ Could not determine previous production deployment" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          fi
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Rollback to specific deployment
+        if: inputs.deployment_url != ''
+        run: |
+          echo "### ⏪ Rolling back to: ${{ inputs.deployment_url }}" >> "$GITHUB_STEP_SUMMARY"
+          vercel promote "${{ inputs.deployment_url }}" --token=${{ secrets.VERCEL_TOKEN }}
+          echo "✅ Rolled back to: ${{ inputs.deployment_url }}" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Notify rollback complete
+        run: |
+          echo "### 🔔 Rollback Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment:** ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Triggered by:** ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Time:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"
