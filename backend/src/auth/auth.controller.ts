@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -25,6 +26,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../modules/users/entities/user.entity';
 import { DeviceFingerprintUtil } from './utils/device-fingerprint.util';
 
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

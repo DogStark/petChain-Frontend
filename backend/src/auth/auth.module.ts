@@ -25,6 +25,7 @@ import { RolesService } from './services/roles.service';
 import { RolesController } from './controllers/roles.controller';
 import { PermissionsService } from './services/permissions.service';
 import { RolesPermissionsSeeder } from './seeds/roles-permissions.seed';
+import { RedisService } from './services/redis.service';
 import { SmsModule } from '../modules/sms/sms.module';
 import { EmailModule } from '../modules/email/email.module';
 import { EmailService as AppEmailService } from '../modules/email/email.service';
@@ -85,7 +86,7 @@ import { EmailService as AppEmailService } from '../modules/email/email.service'
     EmailModule,
   ],
   controllers: [AuthController, RolesController],
-  providers: [
+ providers: [
     AuthService,
     JwtStrategy,
     JwtAuthGuard,
@@ -93,6 +94,7 @@ import { EmailService as AppEmailService } from '../modules/email/email.service'
     RolesService,
     PermissionsService,
     RolesPermissionsSeeder,
+    RedisService,
     {
       provide: EMAIL_SERVICE,
       useExisting: AppEmailService,
