@@ -86,7 +86,7 @@ describe('JwtStrategy', () => {
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
-      mockUsersService.findOne.mockRejectedValue(new Error('User not found'));
+      mockUsersService.findOne.mockResolvedValue(null);
 
       await expect(strategy.validate(mockPayload)).rejects.toThrow(
         UnauthorizedException,
