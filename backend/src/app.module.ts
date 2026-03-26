@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -13,6 +14,7 @@ import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
@@ -34,12 +36,14 @@ import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
 import { VerificationModule } from './modules/verification/verification.module';
+import { GdprModule } from './modules/gdpr/gdpr.module';
 
 // File Upload & Storage Modules
 import { StorageModule } from './modules/storage/storage.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ValidationModule } from './modules/validation/validation.module';
 import { SecurityModule } from './modules/security/security.module';
+import { IntrusionDetectionModule } from './security/security.module';
 import { ProcessingModule } from './modules/processing/processing.module';
 import { CdnModule } from './modules/cdn/cdn.module';
 import { FilesModule } from './modules/files/files.module';
@@ -70,7 +74,10 @@ import { MigrationModule } from './modules/migration/migration.module';
       ],
       envFilePath: '.env',
     }),
-
+ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     // Scheduler Module
     ScheduleModule.forRoot(),
 
@@ -88,6 +95,7 @@ import { MigrationModule } from './modules/migration/migration.module';
     }),
 
     // Feature Modules
+    ObservabilityModule,
     AuthModule,
     UsersModule,
     BreedsModule,
@@ -108,12 +116,14 @@ import { MigrationModule } from './modules/migration/migration.module';
     ConditionsModule,
 
     VerificationModule,
+    GdprModule,
 
     // File Upload, Storage, Security & Processing
     StorageModule,
     UploadModule,
     ValidationModule,
     SecurityModule,
+    IntrusionDetectionModule,
     ProcessingModule,
     CdnModule,
     FilesModule,

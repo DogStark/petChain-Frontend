@@ -1,0 +1,26 @@
+groups:
+  - name: petchain
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_errors_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP error rate on {{ $labels.route }}"
+
+      - alert: SlowRequests
+        expr: histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m])) > 2000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency > 2s on {{ $labels.route }}"
+
+      - alert: ServiceDown
+        expr: up{job="petchain-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PetChain backend is down"
