@@ -9,6 +9,7 @@ import {
   PWAUpdateBanner,
   OfflineBanner,
 } from "@/components/PWAInstallPrompt";
+import AppLayout from "@/components/Navigation/AppLayout";
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
@@ -44,7 +45,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <AuthProvider>
       <ThemeProvider>
         <PWAManager />
-        <Component {...pageProps} />
+        <AppLayout>
+          <Component {...pageProps} />
+        </AppLayout>
       </ThemeProvider>
     </AuthProvider>
   );

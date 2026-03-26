@@ -1,4 +1,4 @@
-import Image from 'next/image';
+﻿import Image from 'next/image';
 
 interface PWAInstallPromptProps {
   onInstall: () => void;
@@ -53,7 +53,7 @@ export function PWAUpdateBanner({ onUpdate, onDismiss }: PWAUpdateBannerProps) {
       role="alert"
       className="fixed top-4 left-4 right-4 z-50 max-w-sm mx-auto bg-blue-600 text-white rounded-2xl shadow-2xl p-4 flex items-center gap-3"
     >
-      <span className="text-xl flex-shrink-0">🔄</span>
+      <span className="text-xl flex-shrink-0">≡ƒöä</span>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm">Update available</p>
         <p className="text-xs text-blue-100">A new version of PetChain is ready.</p>
@@ -88,7 +88,7 @@ export function OfflineBanner({ isOffline }: OfflineBannerProps) {
       aria-live="polite"
       className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-center text-sm py-2 px-4 font-medium"
     >
-      📡 You&apos;re offline — showing cached data
+      ≡ƒôí You&apos;re offline ΓÇö showing cached data
     </div>
   );
 }
