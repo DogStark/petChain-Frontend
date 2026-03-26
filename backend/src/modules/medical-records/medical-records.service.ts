@@ -3,9 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, ILike, FindOptionsWhere } from 'typeorm';
 import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 import { MedicalRecord } from './entities/medical-record.entity';
@@ -13,11 +14,14 @@ import { RecordTemplate } from './entities/record-template.entity';
 import { RecordVersion } from './entities/record-version.entity';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import { AppendRecordDto } from './dto/append-record.dto';
+import { SearchMedicalRecordsDto } from './dto/search-medical-records.dto';
 import { VerifyRecordDto, RevokeVerificationDto } from './dto/verify-record.dto';
 import { PetSpecies } from '../pets/entities/pet.entity';
 import { RecordType } from './entities/medical-record.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
+import { HashAnchoringService } from '../blockchain/hash-anchoring.service';
 
 @Injectable()
 export class MedicalRecordsService {
@@ -29,6 +33,7 @@ export class MedicalRecordsService {
     @InjectRepository(RecordVersion)
     private readonly versionRepository: Repository<RecordVersion>,
     private readonly auditService: AuditService,
+    @Optional() private readonly hashAnchoringService?: HashAnchoringService,
   ) { }
 
   async create(
@@ -54,6 +59,9 @@ export class MedicalRecordsService {
       );
     }
 
+    // Queue blockchain anchor (fire-and-forget)
+    this.hashAnchoringService?.queueAnchor(savedRecord.id).catch(() => null);
+
     return this.findOne(savedRecord.id);
   }
 
@@ -63,25 +71,48 @@ export class MedicalRecordsService {
     startDate?: string,
     endDate?: string,
   ): Promise<MedicalRecord[]> {
-    const where: any = {};
+    return this.search({ petId, recordType, startDate, endDate });
+  }
 
-    if (petId) {
-      where.petId = petId;
-    }
+  async search(dto: SearchMedicalRecordsDto): Promise<MedicalRecord[]> {
+    const { petId, recordType, accessLevel, startDate, endDate, q, vetId, verified } = dto;
 
-    if (recordType) {
-      where.recordType = recordType;
-    }
+    const baseWhere: FindOptionsWhere<MedicalRecord> = {};
+    if (petId) baseWhere.petId = petId;
+    if (recordType) baseWhere.recordType = recordType;
+    if (accessLevel) baseWhere.accessLevel = accessLevel;
+    if (vetId) baseWhere.vetId = vetId;
+    if (verified !== undefined) baseWhere.verified = verified;
+    if (startDate && endDate)
+      baseWhere.visitDate = Between(new Date(startDate), new Date(endDate)) as any;
 
-    if (startDate && endDate) {
-      where.visitDate = Between(new Date(startDate), new Date(endDate));
-    }
+    const whereConditions: FindOptionsWhere<MedicalRecord>[] = q
+      ? [
+          { ...baseWhere, diagnosis: ILike(`%${q}%`) },
+          { ...baseWhere, treatment: ILike(`%${q}%`) },
+          { ...baseWhere, notes: ILike(`%${q}%`) },
+        ]
+      : [baseWhere];
 
-    return await this.medicalRecordRepository.find({
-      where,
+    return this.medicalRecordRepository.find({
+      where: whereConditions,
       relations: ['pet', 'vet', 'verifiedByVet'],
       order: { visitDate: 'DESC' },
     });
+  }
+
+  /** Append-only: adds a timestamped observation to notes, snapshots version */
+  async append(id: string, dto: AppendRecordDto, userId?: string): Promise<MedicalRecord> {
+    const record = await this.findOne(id);
+    await this.createVersionSnapshot(id, record.version, userId, 'Observation appended');
+
+    const entry = `[${new Date().toISOString()}${userId ? ` by ${userId}` : ''}]: ${dto.observation}`;
+    record.notes = record.notes ? `${record.notes}\n${entry}` : entry;
+
+    const saved = await this.medicalRecordRepository.save(record);
+    if (userId) await this.auditService.log(userId, 'medical_record', id, AuditAction.UPDATE);
+    this.hashAnchoringService?.queueAnchor(id).catch(() => null);
+    return saved;
   }
 
   async findOne(id: string): Promise<MedicalRecord> {
@@ -142,6 +173,9 @@ export class MedicalRecordsService {
         AuditAction.UPDATE,
       );
     }
+
+    // Re-anchor updated record (fire-and-forget)
+    this.hashAnchoringService?.queueAnchor(id).catch(() => null);
 
     return updated;
   }

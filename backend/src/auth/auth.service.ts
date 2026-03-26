@@ -117,7 +117,7 @@ export class AuthService {
         '24h',
     );
     const phoneVerificationCode = this.generatePhoneVerificationCode();
-    const phoneVerificationExpires = this.createExpiryDate(
+    const phoneVerificationCodeExpires = this.createExpiryDate(
       this.configService.get<string>('auth.phoneVerificationExpiration') ||
         '24h',
     );
@@ -134,7 +134,7 @@ export class AuthService {
       emailVerificationExpires: verificationExpires,
       phoneVerified: false,
       phoneVerificationCode: TokenUtil.hashToken(phoneVerificationCode),
-      phoneVerificationExpires,
+      phoneVerificationExpires: phoneVerificationCodeExpires,
       isActive: true,
       failedLoginAttempts: 0,
     });

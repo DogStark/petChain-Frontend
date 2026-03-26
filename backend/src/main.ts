@@ -4,10 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { AuditInterceptor } from './audit/audit.interceptor';
+import { AuditService } from './audit/audit.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const auditService = app.get(AuditService);
+  app.useGlobalInterceptors(new AuditInterceptor(auditService));
 
   // Trust proxy for correct IP address detection
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access

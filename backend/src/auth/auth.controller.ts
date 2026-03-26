@@ -6,8 +6,11 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Get,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -29,6 +32,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../modules/users/entities/user.entity';
 import { DeviceFingerprintUtil } from './utils/device-fingerprint.util';
 
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -129,5 +133,45 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     await this.authService.resetPassword(resetPasswordDto);
     return { message: 'Password reset successfully' };
+  }
+
+  // --- Google OAuth2 ---
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Initiates Google OAuth2 flow — handled by Passport
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @HttpCode(HttpStatus.OK)
+  async googleAuthCallback(@Req() req: Request) {
+    const user = req.user as any;
+    return {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      user: user.user,
+    };
+  }
+
+  // --- Apple Sign In ---
+
+  @Get('apple')
+  @UseGuards(AuthGuard('apple'))
+  async appleAuth() {
+    // Initiates Apple Sign In flow — handled by Passport
+  }
+
+  @Post('apple/callback')
+  @UseGuards(AuthGuard('apple'))
+  @HttpCode(HttpStatus.OK)
+  async appleAuthCallback(@Req() req: Request) {
+    const user = req.user as any;
+    return {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      user: user.user,
+    };
   }
 }
