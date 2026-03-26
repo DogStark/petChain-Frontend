@@ -23,6 +23,10 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import {
+  PasswordResetRequestDto,
+  PasswordResetConfirmDto,
+} from './dto/password-reset-security.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../modules/users/entities/user.entity';
@@ -93,11 +97,35 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(forgotPasswordDto);
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+    @Req() req: Request,
+  ) {
+    const { ipAddress } = DeviceFingerprintUtil.extractFromRequest(req);
+    await this.authService.forgotPassword(forgotPasswordDto, ipAddress);
     return {
       message: 'If the email exists, a password reset link has been sent',
     };
+  }
+
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  async passwordResetRequest(
+    @Body() body: PasswordResetRequestDto,
+    @Req() req: Request,
+  ) {
+    const { ipAddress } = DeviceFingerprintUtil.extractFromRequest(req);
+    await this.authService.requestPasswordReset(body.email, ipAddress);
+    return {
+      message: 'If the email exists, password reset instructions have been sent',
+    };
+  }
+
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.OK)
+  async passwordResetConfirm(@Body() body: PasswordResetConfirmDto) {
+    await this.authService.confirmPasswordReset(body.token, body.newPassword);
+    return { message: 'Password reset successfully' };
   }
 
   @Post('reset-password')
