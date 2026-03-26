@@ -18,7 +18,13 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:breeds": "ts-node -r tsconfig-paths/register src/scripts/seed-breeds.ts"
+    "seed:breeds": "ts-node -r tsconfig-paths/register src/scripts/seed-breeds.ts",
+    "migration:status": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts status",
+    "migration:run": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts run",
+    "migration:rollback": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts rollback",
+    "migration:generate": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts generate",
+    "migration:validate": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts validate",
+    "migration:help": "ts-node -r tsconfig-paths/register src/modules/migration/cli.ts help"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
