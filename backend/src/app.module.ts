@@ -14,7 +14,7 @@ import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
-import { ObservabilityModule } from './modules/observability/observability.module';
+import { AuditModule } from './audit/audit.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
@@ -114,6 +114,7 @@ ThrottlerModule.forRoot([{
     LostPetsModule,
     AllergiesModule,
     ConditionsModule,
+    AuditModule,
 
     VerificationModule,
     GdprModule,
