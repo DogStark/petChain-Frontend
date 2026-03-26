@@ -3,13 +3,15 @@ import type { AppProps } from "next/app";
 import { useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { usePWA } from "@/hooks/usePWA";
 import {
   PWAInstallPrompt,
   PWAUpdateBanner,
   OfflineBanner,
 } from "@/components/PWAInstallPrompt";
-import AppLayout from "@/components/Navigation/AppLayout";
+import ToastContainer from "@/components/Notifications/ToastContainer";
+import NotificationCenter from "@/components/Notifications/NotificationCenter";
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
@@ -44,10 +46,14 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <PWAManager />
-        <AppLayout>
+        <NotificationProvider>
+          <PWAManager />
+          {/* Global toast queue */}
+          <ToastContainer />
+          {/* Slide-in notification center */}
+          <NotificationCenter />
           <Component {...pageProps} />
-        </AppLayout>
+        </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
   );
