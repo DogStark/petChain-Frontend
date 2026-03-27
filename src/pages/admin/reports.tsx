@@ -33,18 +33,18 @@ const MOCK_FINANCIAL_DATA = [
 ];
 
 const MOCK_HEALTH_DATA = [
-    { name: 'Healthy', value: 85, color: '#22c55e' },
-    { name: 'Under Treatment', value: 10, color: '#f59e0b' },
-    { name: 'Critical', value: 5, color: '#ef4444' },
+    { name: 'Healthy', value: 350, color: '#10b981' },
+    { name: 'Sick', value: 45, color: '#f59e0b' },
+    { name: 'Critical', value: 12, color: '#ef4444' },
 ];
 
 const MOCK_VACCINATION_DATA = [
     { month: 'Jan', compliant: 85, nonCompliant: 15 },
-    { month: 'Feb', compliant: 88, nonCompliant: 12 },
-    { month: 'Mar', compliant: 92, nonCompliant: 8 },
-    { month: 'Apr', compliant: 90, nonCompliant: 10 },
-    { month: 'May', compliant: 95, nonCompliant: 5 },
-    { month: 'Jun', compliant: 96, nonCompliant: 4 },
+    { month: 'Feb', compliant: 82, nonCompliant: 18 },
+    { month: 'Mar', compliant: 88, nonCompliant: 12 },
+    { month: 'Apr', compliant: 86, nonCompliant: 14 },
+    { month: 'May', compliant: 90, nonCompliant: 10 },
+    { month: 'Jun', compliant: 92, nonCompliant: 8 },
 ];
 
 const MOCK_API_DATA = [

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -64,13 +64,11 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
+  /* ── Marquee animation ── */
   .animate-marquee {
     animation: marquee 18s linear infinite;
   }
@@ -79,6 +77,7 @@ body {
     100% { transform: translateX(-33%); }
   }
 
+  /* ── Fade-in-up animation ── */
   .animate-fade-in-up {
     animation: fadeInUp 0.4s ease both;
   }
@@ -87,52 +86,37 @@ body {
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .animate-slide-up {
-    animation: slideUp 0.3s ease both;
-  }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
+  /* ── Fade-in animation ── */
   .animate-fade-in {
-    animation: fadeIn 0.25s ease both;
+    animation: fadeIn 0.3s ease both;
   }
   @keyframes fadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
 
-  /* iOS safe area for bottom nav */
-  .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* ── Hide scrollbar ── */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Skeleton shimmer (CLS-safe loading placeholder) ── */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 
-  /* Touch button ripple */
-  @keyframes ripple {
-    from { transform: scale(0); opacity: 0.6; }
-    to   { transform: scale(6); opacity: 0; }
-  }
-  .animate-ripple {
-    animation: ripple 0.6s linear forwards;
+  /* ── Content-visibility for off-screen sections (perf) ── */
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
   }
 
-  /* Prevent text selection on interactive touch elements */
-  .touch-manipulation {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-  }
-
-  /* Notification center slide-in from right */
-  @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
-  }
-  .animate-slide-in-right {
-    animation: slideInRight 0.25s ease both;
-  }
+  /* ── Aspect ratio helpers for CLS prevention ── */
+  .aspect-hero { aspect-ratio: 1 / 1; }
+  .aspect-card { aspect-ratio: 16 / 10; }
 }

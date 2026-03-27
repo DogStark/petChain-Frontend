@@ -1,41 +1,55 @@
 import type { NextConfig } from "next";
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
+
+  /* ── Image optimization ── */
+  images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "localhost" },
+    ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
+
+  /* ── Compression ── */
+  compress: true,
+
+  /* ── Production optimizations ── */
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
   },
+
+  /* ── Headers for caching static assets ── */
   async headers() {
     return [
       {
-        // Service worker must be served from root scope with correct headers
-        source: "/sw.js",
+        source: "/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2)",
         headers: [
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
-          { key: "Service-Worker-Allowed", value: "/" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
         ],
       },
       {
-        source: "/firebase-messaging-sw.js",
+        source: "/_next/static/:path*",
         headers: [
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
-          { key: "Service-Worker-Allowed", value: "/" },
-        ],
-      },
-      {
-        source: "/manifest.json",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=86400" },
-          { key: "Content-Type", value: "application/manifest+json" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
         ],
       },
     ];
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

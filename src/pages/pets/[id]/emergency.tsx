@@ -11,7 +11,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { petAPI } from '@/lib/api/petAPI';
-import { PetEmergencyInfo, EmergencyContact } from '../../../types/pet';
+import { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
 
 export default function EmergencyAccessPage() {
     const router = useRouter();
