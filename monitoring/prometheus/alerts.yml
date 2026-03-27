@@ -2,20 +2,44 @@ groups:
   - name: petchain
     rules:
       - alert: HighErrorRate
-        expr: rate(http_errors_total[5m]) > 0.05
+        expr: sum(rate(http_errors_total[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1) > 0.05
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "High HTTP error rate on {{ $labels.route }}"
+          summary: "PetChain HTTP error rate is above 5%"
 
       - alert: SlowRequests
-        expr: histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m])) > 2000
+        expr: histogram_quantile(0.95, sum by (le, route, method) (rate(http_request_duration_ms_bucket[5m]))) > 2000
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "p95 latency > 2s on {{ $labels.route }}"
+          summary: "p95 latency > 2s on {{ $labels.method }} {{ $labels.route }}"
+
+      - alert: HighCpuUsage
+        expr: process_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend CPU usage is above 80%"
+
+      - alert: HighMemoryPressure
+        expr: process_heap_utilization_ratio > 0.85
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend heap utilization is above 85%"
+
+      - alert: HighEventLoopLag
+        expr: process_event_loop_lag_ms > 250
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Event loop lag is above 250ms"
 
       - alert: ServiceDown
         expr: up{job="petchain-backend"} == 0

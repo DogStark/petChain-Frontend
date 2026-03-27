@@ -5,9 +5,9 @@ import { WeightTrackingController } from './weight-tracking.controller';
 import { WeightTrackingService } from './weight-tracking.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([WeightEntry])],
-    controllers: [WeightTrackingController],
-    providers: [WeightTrackingService],
-    exports: [WeightTrackingService],
+  imports: [TypeOrmModule.forFeature([WeightEntry])],
+  controllers: [WeightTrackingController],
+  providers: [WeightTrackingService],
+  exports: [WeightTrackingService],
 })
 export class WeightTrackingModule {}

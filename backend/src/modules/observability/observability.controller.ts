@@ -2,12 +2,14 @@ import { Controller, Get, Res, HttpCode, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { MetricsService } from './metrics.service';
 import { AlertingService } from './alerting.service';
+import { PerformanceInsightsService } from './performance-insights.service';
 
 @Controller('observability')
 export class ObservabilityController {
   constructor(
     private readonly metrics: MetricsService,
     private readonly alerting: AlertingService,
+    private readonly performanceInsights: PerformanceInsightsService,
   ) {}
 
   /** GET /observability/metrics — Prometheus scrape endpoint */
@@ -27,6 +29,13 @@ export class ObservabilityController {
   /** GET /observability/alerts — active alert list */
   @Get('alerts')
   alerts() {
+    this.alerting.evaluate();
     return this.alerting.getActiveAlerts();
+  }
+
+  /** GET /observability/performance — consolidated performance summary */
+  @Get('performance')
+  performance() {
+    return this.performanceInsights.getSummary();
   }
 }

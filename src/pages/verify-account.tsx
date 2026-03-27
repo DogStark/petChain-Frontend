@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
+import { GetServerSideProps } from 'next';
 
 export default function VerifyAccountPage() {
   const router = useRouter();
@@ -207,3 +208,9 @@ export default function VerifyAccountPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

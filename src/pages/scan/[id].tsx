@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { GetStaticProps, GetStaticPaths } from 'next';
 import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink, QrCode } from 'lucide-react';
 import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
 import { petAPI } from '@/lib/api/petAPI';
@@ -237,3 +238,17 @@ export default function ScanPage() {
     </div>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

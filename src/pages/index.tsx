@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Head from "next/head";
 import { useState } from "react";
+import { GetServerSideProps } from 'next';
 import Link from "next/link";
 
 const FEATURES = [
@@ -268,3 +269,9 @@ function Modal({
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Pet } from '../entities/pet.entity';
@@ -50,40 +54,55 @@ export class PetTimelineService {
     }
 
     const events: TimelineEventDto[] = [];
-    const { 
-      eventType, 
-      startDate, 
-      endDate, 
-      sortOrder, 
-      limit = 50, 
-      offset = 0 
+    const {
+      eventType,
+      startDate,
+      endDate,
+      sortOrder,
+      limit = 50,
+      offset = 0,
     } = query;
 
     // Build date filter
     const dateFilter = this.buildDateFilter(startDate, endDate);
 
     // Fetch events based on type filter
-    if (eventType === TimelineEventType.ALL || eventType === TimelineEventType.VACCINATION) {
+    if (
+      eventType === TimelineEventType.ALL ||
+      eventType === TimelineEventType.VACCINATION
+    ) {
       const vaccinations = await this.fetchVaccinations(petId, dateFilter);
       events.push(...vaccinations);
     }
 
-    if (eventType === TimelineEventType.ALL || eventType === TimelineEventType.MEDICAL_RECORD) {
+    if (
+      eventType === TimelineEventType.ALL ||
+      eventType === TimelineEventType.MEDICAL_RECORD
+    ) {
       const records = await this.fetchMedicalRecords(petId, dateFilter);
       events.push(...records);
     }
 
-    if (eventType === TimelineEventType.ALL || eventType === TimelineEventType.PRESCRIPTION) {
+    if (
+      eventType === TimelineEventType.ALL ||
+      eventType === TimelineEventType.PRESCRIPTION
+    ) {
       const prescriptions = await this.fetchPrescriptions(petId, dateFilter);
       events.push(...prescriptions);
     }
 
-    if (eventType === TimelineEventType.ALL || eventType === TimelineEventType.APPOINTMENT) {
+    if (
+      eventType === TimelineEventType.ALL ||
+      eventType === TimelineEventType.APPOINTMENT
+    ) {
       const appointments = await this.fetchAppointments(petId, dateFilter);
       events.push(...appointments);
     }
 
-    if (eventType === TimelineEventType.ALL || eventType === TimelineEventType.ALLERGY) {
+    if (
+      eventType === TimelineEventType.ALL ||
+      eventType === TimelineEventType.ALLERGY
+    ) {
       const allergies = await this.fetchAllergies(petId, dateFilter);
       events.push(...allergies);
     }
@@ -92,7 +111,9 @@ export class PetTimelineService {
     events.sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      return sortOrder === TimelineSortOrder.ASC ? dateA - dateB : dateB - dateA;
+      return sortOrder === TimelineSortOrder.ASC
+        ? dateA - dateB
+        : dateB - dateA;
     });
 
     // Apply pagination
@@ -160,7 +181,12 @@ export class PetTimelineService {
     });
 
     return {
-      totalEvents: vaccinationCount + medicalRecordCount + prescriptionCount + appointmentCount + allergyCount,
+      totalEvents:
+        vaccinationCount +
+        medicalRecordCount +
+        prescriptionCount +
+        appointmentCount +
+        allergyCount,
       byType: {
         [TimelineEventType.VACCINATION]: vaccinationCount,
         [TimelineEventType.MEDICAL_RECORD]: medicalRecordCount,
@@ -176,7 +202,10 @@ export class PetTimelineService {
   /**
    * Build date filter for queries
    */
-  private buildDateFilter(startDate?: string, endDate?: string): Record<string, any> {
+  private buildDateFilter(
+    startDate?: string,
+    endDate?: string,
+  ): Record<string, any> {
     if (startDate && endDate) {
       return { date: Between(new Date(startDate), new Date(endDate)) };
     }
@@ -192,7 +221,10 @@ export class PetTimelineService {
   /**
    * Fetch and transform vaccinations
    */
-  private async fetchVaccinations(petId: string, dateFilter: Record<string, any>): Promise<TimelineEventDto[]> {
+  private async fetchVaccinations(
+    petId: string,
+    dateFilter: Record<string, any>,
+  ): Promise<TimelineEventDto[]> {
     const where: any = { petId };
     if (dateFilter.date) {
       where.administeredDate = dateFilter.date;
@@ -224,16 +256,19 @@ export class PetTimelineService {
   /**
    * Fetch and transform medical records
    */
-  private async fetchMedicalRecords(petId: string, dateFilter: Record<string, any>): Promise<TimelineEventDto[]> {
+  private async fetchMedicalRecords(
+    petId: string,
+    dateFilter: Record<string, any>,
+  ): Promise<TimelineEventDto[]> {
     const where: any = { petId };
     if (dateFilter.date) {
-      where.date = dateFilter.date;
+      where.visitDate = dateFilter.date;
     }
 
     const records = await this.medicalRecordRepository.find({
       where,
       relations: ['vet'],
-      order: { date: 'DESC' },
+      order: { visitDate: 'DESC' },
     });
 
     return records.map((r) => ({
@@ -241,7 +276,7 @@ export class PetTimelineService {
       type: TimelineEventType.MEDICAL_RECORD,
       title: `${r.recordType.charAt(0).toUpperCase() + r.recordType.slice(1)}: ${r.diagnosis.substring(0, 50)}`,
       description: r.treatment,
-      date: r.date,
+      date: r.visitDate,
       icon: '📋',
       metadata: {
         recordType: r.recordType,
@@ -257,7 +292,10 @@ export class PetTimelineService {
   /**
    * Fetch and transform prescriptions
    */
-  private async fetchPrescriptions(petId: string, dateFilter: Record<string, any>): Promise<TimelineEventDto[]> {
+  private async fetchPrescriptions(
+    petId: string,
+    dateFilter: Record<string, any>,
+  ): Promise<TimelineEventDto[]> {
     const where: any = { petId };
     if (dateFilter.date) {
       where.createdAt = dateFilter.date;
@@ -290,7 +328,10 @@ export class PetTimelineService {
   /**
    * Fetch and transform appointments
    */
-  private async fetchAppointments(petId: string, dateFilter: Record<string, any>): Promise<TimelineEventDto[]> {
+  private async fetchAppointments(
+    petId: string,
+    dateFilter: Record<string, any>,
+  ): Promise<TimelineEventDto[]> {
     const where: any = { petId };
     if (dateFilter.date) {
       where.appointmentDate = dateFilter.date;
@@ -322,7 +363,10 @@ export class PetTimelineService {
   /**
    * Fetch and transform allergies
    */
-  private async fetchAllergies(petId: string, dateFilter: Record<string, any>): Promise<TimelineEventDto[]> {
+  private async fetchAllergies(
+    petId: string,
+    dateFilter: Record<string, any>,
+  ): Promise<TimelineEventDto[]> {
     const where: any = { petId };
     if (dateFilter.date) {
       where.discoveredDate = dateFilter.date;
@@ -415,7 +459,8 @@ export class PetTimelineService {
     // Apply share filters
     const timelineQuery: GetTimelineQueryDto = {
       ...query,
-      eventType: share.eventTypeFilter as TimelineEventType || query.eventType,
+      eventType:
+        (share.eventTypeFilter as TimelineEventType) || query.eventType,
       startDate: share.startDateFilter?.toISOString() || query.startDate,
       endDate: share.endDateFilter?.toISOString() || query.endDate,
     };
@@ -426,7 +471,10 @@ export class PetTimelineService {
   /**
    * Get all shares for a pet
    */
-  async getTimelineShares(petId: string, ownerId: string): Promise<TimelineShare[]> {
+  async getTimelineShares(
+    petId: string,
+    ownerId: string,
+  ): Promise<TimelineShare[]> {
     return this.timelineShareRepository.find({
       where: { petId, ownerId },
       order: { createdAt: 'DESC' },
@@ -453,7 +501,8 @@ export class PetTimelineService {
    * Generate a cryptographically secure share token
    */
   private generateShareToken(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let token = '';
     for (let i = 0; i < 32; i++) {
       token += chars.charAt(Math.floor(Math.random() * chars.length));

@@ -20,12 +20,21 @@ describe('PetsService', () => {
     createQueryBuilder: jest.fn(),
   };
 
+  const makePetQb = (oneResult: any = null) => ({
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    withDeleted: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(oneResult),
+  });
+
   const mockPetShareRepository = {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
     delete: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const mockUsersService = {
@@ -37,7 +46,10 @@ describe('PetsService', () => {
       providers: [
         PetsService,
         { provide: getRepositoryToken(Pet), useValue: mockPetRepository },
-        { provide: getRepositoryToken(PetShare), useValue: mockPetShareRepository },
+        {
+          provide: getRepositoryToken(PetShare),
+          useValue: mockPetShareRepository,
+        },
         { provide: UsersService, useValue: mockUsersService },
       ],
     }).compile();
@@ -90,13 +102,20 @@ describe('PetsService', () => {
     const pet = { id: 'pet-1', ownerId: 'owner-1', deletedAt: null };
     const deletedPet = { ...pet, deletedAt: new Date() };
 
-    mockPetRepository.findOne.mockResolvedValueOnce(pet);
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(makePetQb(pet));
     await service.softDeleteForUser('pet-1', 'owner-1');
     expect(mockPetRepository.softRemove).toHaveBeenCalledWith(pet);
 
-    mockPetRepository.findOne.mockResolvedValueOnce(deletedPet);
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(
+      makePetQb(deletedPet),
+    );
     mockPetRepository.restore.mockResolvedValue({ affected: 1 });
-    mockPetRepository.findOne.mockResolvedValueOnce({ ...pet, deletedAt: null });
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(
+      makePetQb({
+      ...pet,
+      deletedAt: null,
+      }),
+    );
 
     const restored = await service.restoreForUser('pet-1', 'owner-1');
     expect(mockPetRepository.restore).toHaveBeenCalledWith('pet-1');
@@ -108,12 +127,18 @@ describe('PetsService', () => {
     const transferred = { ...pet, ownerId: 'owner-2' };
 
     mockUsersService.findOne.mockResolvedValue({ id: 'owner-2' });
-    mockPetRepository.findOne.mockResolvedValue(pet);
+    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb(pet));
     mockPetRepository.save.mockResolvedValue(transferred);
 
-    const result = await service.transferOwnership('pet-1', 'owner-1', 'owner-2');
+    const result = await service.transferOwnership(
+      'pet-1',
+      'owner-1',
+      'owner-2',
+    );
 
-    expect(mockPetShareRepository.delete).toHaveBeenCalledWith({ petId: 'pet-1' });
+    expect(mockPetShareRepository.delete).toHaveBeenCalledWith({
+      petId: 'pet-1',
+    });
     expect(result.ownerId).toBe('owner-2');
   });
 
@@ -124,7 +149,10 @@ describe('PetsService', () => {
   });
 
   it('shares pet with family and allows unshare', async () => {
-    mockPetRepository.findOne.mockResolvedValue({ id: 'pet-1', ownerId: 'owner-1' });
+    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb({
+      id: 'pet-1',
+      ownerId: 'owner-1',
+    }));
     mockUsersService.findOne.mockResolvedValue({ id: 'user-2' });
     mockPetShareRepository.findOne.mockResolvedValue(null);
     mockPetShareRepository.create.mockReturnValue({
@@ -146,7 +174,10 @@ describe('PetsService', () => {
     });
     expect(shared.sharedWithUserId).toBe('user-2');
 
-    mockPetRepository.findOne.mockResolvedValue({ id: 'pet-1', ownerId: 'owner-1' });
+    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb({
+      id: 'pet-1',
+      ownerId: 'owner-1',
+    }));
     mockPetShareRepository.findOne.mockResolvedValue({
       id: 'share-1',
       petId: 'pet-1',
@@ -161,20 +192,32 @@ describe('PetsService', () => {
   });
 
   it('denies update when user has no owner/edit-share permission', async () => {
-    mockPetRepository.findOne.mockResolvedValue(null);
+    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb(null));
     mockPetShareRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.updateForUser('pet-1', 'user-no-access', { name: 'New name' } as any),
+      service.updateForUser('pet-1', 'user-no-access', {
+        name: 'New name',
+      } as any),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('lists pets and gets one pet with relations', async () => {
-    mockPetRepository.find.mockResolvedValue([{ id: 'pet-1' }]);
+    const listQb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([{ id: 'pet-1' }]),
+    };
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(listQb as any);
     const list = await service.findAll('owner-1');
     expect(list).toHaveLength(1);
 
-    mockPetRepository.findOne.mockResolvedValue({ id: 'pet-1', deletedAt: null });
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(
+      makePetQb({
+      id: 'pet-1',
+      deletedAt: null,
+      }),
+    );
     const one = await service.findOne('pet-1');
     expect(one.id).toBe('pet-1');
   });
@@ -192,15 +235,18 @@ describe('PetsService', () => {
     };
     mockPetRepository.createQueryBuilder.mockReturnValue(qb);
 
-    const result = await service.findSharedWithUser('u2', { name: 'Mi' } as any);
+    const result = await service.findSharedWithUser('u2', {
+      name: 'Mi',
+    } as any);
     expect(result.total).toBe(1);
     expect(qb.andWhere).toHaveBeenCalled();
   });
 
   it('updates pet when owner has access', async () => {
-    mockPetRepository.findOne
-      .mockResolvedValueOnce({ id: 'pet-1' }) // verifyOwnership
-      .mockResolvedValueOnce({ id: 'pet-1', name: 'Old', deletedAt: null }); // findOne
+    mockPetRepository.findOne.mockResolvedValueOnce({ id: 'pet-1' });
+    mockPetRepository.createQueryBuilder.mockReturnValueOnce(
+      makePetQb({ id: 'pet-1', name: 'Old', deletedAt: null }),
+    );
     mockPetRepository.save.mockResolvedValue({ id: 'pet-1', name: 'New' });
 
     const updated = await service.updateForUser('pet-1', 'owner-1', {
@@ -221,8 +267,19 @@ describe('PetsService', () => {
   });
 
   it('lists active shares for owner', async () => {
-    mockPetRepository.findOne.mockResolvedValue({ id: 'pet-1', ownerId: 'owner-1' });
-    mockPetShareRepository.find.mockResolvedValue([{ id: 'share-1' }]);
+    mockPetRepository.createQueryBuilder.mockReturnValue(
+      makePetQb({
+      id: 'pet-1',
+      ownerId: 'owner-1',
+      }),
+    );
+    mockPetShareRepository.createQueryBuilder.mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([{ id: 'share-1' }]),
+    } as any);
 
     const shares = await service.listPetShares('pet-1', 'owner-1');
     expect(shares).toHaveLength(1);

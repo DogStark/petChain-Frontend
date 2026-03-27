@@ -14,7 +14,10 @@ import { MessageQueueService } from '../services/message-queue.service';
 import { WebSocketRateLimitService } from '../services/websocket-rate-limit.service';
 import { NotificationDto } from '../dto/notification.dto';
 import { WsAuthGuard } from '../guards/ws-auth.guard';
-import { BulkActionDto, NotificationQueryDto } from 'src/modules/notifications/dto/notifications.dto';
+import {
+  BulkActionDto,
+  NotificationQueryDto,
+} from 'src/modules/notifications/dto/notifications.dto';
 import { NotificationsService } from 'src/modules/notifications/notifications.service';
 
 @WebSocketGateway({
@@ -23,7 +26,8 @@ import { NotificationsService } from 'src/modules/notifications/notifications.se
 })
 @UseGuards(WsAuthGuard)
 export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -35,7 +39,7 @@ export class NotificationsGateway
     private rateLimitService: WebSocketRateLimitService,
     @Inject(forwardRef(() => NotificationsService))
     private notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   async handleConnection(client: Socket) {
     const userId = client.handshake.auth.userId || client.id;
@@ -100,7 +104,10 @@ export class NotificationsGateway
     @MessageBody() payload: { id: string },
   ) {
     const userId = client.handshake.auth.userId || client.id;
-    const updated = await this.notificationsService.markAsRead(payload.id, userId);
+    const updated = await this.notificationsService.markAsRead(
+      payload.id,
+      userId,
+    );
     client.emit('notification-updated', updated);
   }
 
@@ -114,7 +121,10 @@ export class NotificationsGateway
     @MessageBody() payload: { id: string },
   ) {
     const userId = client.handshake.auth.userId || client.id;
-    const updated = await this.notificationsService.markAsUnread(payload.id, userId);
+    const updated = await this.notificationsService.markAsUnread(
+      payload.id,
+      userId,
+    );
     client.emit('notification-updated', updated);
   }
 
@@ -150,7 +160,11 @@ export class NotificationsGateway
 
     if (sockets.length === 0) {
       // User is offline — queue for delivery on next connection
-      await this.messageQueueService.queueMessage(userId, 'notification', notification);
+      await this.messageQueueService.queueMessage(
+        userId,
+        'notification',
+        notification,
+      );
       return;
     }
 

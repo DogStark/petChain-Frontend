@@ -14,7 +14,7 @@ export class CustomTypeOrmLogger implements Logger {
   logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner) {
     // Extract execution time from queryRunner if available
     const executionTime = this.getExecutionTime(queryRunner);
-    
+
     if (executionTime && executionTime > this.slowQueryThreshold) {
       console.warn(
         `\x1b[33m[Slow Query]\x1b[0m ${executionTime}ms - ${query}`,

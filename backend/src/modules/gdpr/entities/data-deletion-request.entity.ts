@@ -20,7 +20,11 @@ export class DataDeletionRequest {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ type: 'enum', enum: DeletionStatus, default: DeletionStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: DeletionStatus,
+    default: DeletionStatus.PENDING,
+  })
   status: DeletionStatus;
 
   @Column({ type: 'text', nullable: true })

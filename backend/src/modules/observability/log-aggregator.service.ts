@@ -20,7 +20,11 @@ export interface LogEntry {
 export class LogAggregatorService {
   private readonly nestLogger = new Logger('LogAggregator');
 
-  log(level: LogLevel, message: string, context: Record<string, unknown> = {}): void {
+  log(
+    level: LogLevel,
+    message: string,
+    context: Record<string, unknown> = {},
+  ): void {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -40,7 +44,11 @@ export class LogAggregatorService {
     this.log('warn', message, context);
   }
 
-  error(message: string, error?: Error, context?: Record<string, unknown>): void {
+  error(
+    message: string,
+    error?: Error,
+    context?: Record<string, unknown>,
+  ): void {
     this.log('error', message, {
       ...context,
       errorMessage: error?.message,

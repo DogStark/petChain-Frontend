@@ -3,7 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { FilePermissionService } from './file-permission.service';
-import { FilePermission, PermissionType, AccessLevel } from '../entities/file-permission.entity';
+import {
+  FilePermission,
+  PermissionType,
+  AccessLevel,
+} from '../entities/file-permission.entity';
 import { FileMetadata } from '../../upload/entities/file-metadata.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -75,9 +79,7 @@ describe('FilePermissionService', () => {
     fileMetadataRepository = module.get<Repository<FileMetadata>>(
       getRepositoryToken(FileMetadata),
     );
-    userRepository = module.get<Repository<User>>(
-      getRepositoryToken(User),
-    );
+    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   describe('canAccessFile', () => {
@@ -192,18 +194,14 @@ describe('FilePermissionService', () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
         .mockResolvedValue(mockFileMetadata as any);
-      jest
-        .spyOn(permissionRepository, 'create')
-        .mockReturnValue({
-          ...mockPermission,
-          createdAt: new Date(),
-        } as any);
-      jest
-        .spyOn(permissionRepository, 'save')
-        .mockResolvedValue({
-          ...mockPermission,
-          createdAt: new Date(),
-        } as any);
+      jest.spyOn(permissionRepository, 'create').mockReturnValue({
+        ...mockPermission,
+        createdAt: new Date(),
+      } as any);
+      jest.spyOn(permissionRepository, 'save').mockResolvedValue({
+        ...mockPermission,
+        createdAt: new Date(),
+      } as any);
 
       const result = await service.generateShareLink('file-1', 'user-1', {
         permissionType: PermissionType.VIEWER,

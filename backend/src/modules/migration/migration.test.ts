@@ -38,7 +38,7 @@ describe('MigrationService', () => {
     Object.defineProperty(mockDataSource, 'isInitialized', {
       value: false,
       writable: true,
-      configurable: true
+      configurable: true,
     });
 
     mockConfigService.get.mockReturnValue(mockDatabaseConfig);
@@ -54,7 +54,7 @@ describe('MigrationService', () => {
     }).compile();
 
     service = module.get<MigrationService>(MigrationService);
-    
+
     service['dataSource'] = mockDataSource;
   });
 
@@ -69,9 +69,9 @@ describe('MigrationService', () => {
   describe('onModuleInit', () => {
     it('should initialize data source when not initialized', async () => {
       service['dataSource'] = null as any;
-      
+
       await service.onModuleInit();
-      
+
       expect(mockDataSource.initialize).toHaveBeenCalled();
     });
 
@@ -80,19 +80,21 @@ describe('MigrationService', () => {
       Object.defineProperty(mockDataSource, 'isInitialized', {
         value: true,
         writable: true,
-        configurable: true
+        configurable: true,
       });
-      
+
       await service.onModuleInit();
-      
+
       expect(mockDataSource.initialize).not.toHaveBeenCalled();
     });
 
     it('should throw error when database config is not found', async () => {
       mockConfigService.get.mockReturnValue(null);
       service['dataSource'] = null as any;
-      
-      await expect(service.onModuleInit()).rejects.toThrow('Database configuration not found');
+
+      await expect(service.onModuleInit()).rejects.toThrow(
+        'Database configuration not found',
+      );
     });
   });
 
@@ -101,14 +103,14 @@ describe('MigrationService', () => {
       const migrationName = 'test-migration';
       const fs = require('fs/promises');
       jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      
+
       const result = await service.generateMigration(migrationName);
-      
+
       expect(result).toContain('test-migration');
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining(`${migrationName}.ts`),
         expect.stringContaining('implements MigrationInterface'),
-        'utf-8'
+        'utf-8',
       );
     });
 
@@ -116,13 +118,13 @@ describe('MigrationService', () => {
       const migrationName = 'test-migration_name';
       const fs = require('fs/promises');
       jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-      
+
       await service.generateMigration(migrationName);
-      
+
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('TestMigrationName'),
-        'utf-8'
+        'utf-8',
       );
     });
   });
@@ -139,9 +141,9 @@ describe('MigrationService', () => {
           public async down(queryRunner: QueryRunner): Promise<void> {}
         }
       `);
-      
+
       const result = await service.validateMigrations();
-      
+
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
@@ -155,11 +157,13 @@ describe('MigrationService', () => {
           public async down(queryRunner: QueryRunner): Promise<void> {}
         }
       `);
-      
+
       const result = await service.validateMigrations();
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Migration 123-test.ts does not implement MigrationInterface');
+      expect(result.errors).toContain(
+        'Migration 123-test.ts does not implement MigrationInterface',
+      );
     });
 
     it('should detect missing up method', async () => {
@@ -172,11 +176,13 @@ describe('MigrationService', () => {
           public async down(queryRunner: QueryRunner): Promise<void> {}
         }
       `);
-      
+
       const result = await service.validateMigrations();
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Migration 123-test.ts missing up() method');
+      expect(result.errors).toContain(
+        'Migration 123-test.ts missing up() method',
+      );
     });
 
     it('should detect missing down method', async () => {
@@ -189,11 +195,13 @@ describe('MigrationService', () => {
           public async up(queryRunner: QueryRunner): Promise<void> {}
         }
       `);
-      
+
       const result = await service.validateMigrations();
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Migration 123-test.ts missing down() method');
+      expect(result.errors).toContain(
+        'Migration 123-test.ts missing down() method',
+      );
     });
   });
 
@@ -249,11 +257,11 @@ describe('MigrationController', () => {
         totalPending: 1,
         totalExecuted: 1,
       };
-      
+
       mockMigrationService.getMigrationStatus.mockResolvedValue(mockStatus);
-      
+
       const result = await controller.getStatus();
-      
+
       expect(result).toEqual(mockStatus);
       expect(mockMigrationService.getMigrationStatus).toHaveBeenCalled();
     });
@@ -264,26 +272,30 @@ describe('MigrationController', () => {
       const mockResults = [
         { success: true, migration: 'migration1', duration: 100 },
       ];
-      
+
       mockMigrationService.runMigrations.mockResolvedValue(mockResults);
-      
+
       const result = await controller.runMigrations();
-      
+
       expect(result).toEqual(mockResults);
-      expect(mockMigrationService.runMigrations).toHaveBeenCalledWith({ transaction: true });
+      expect(mockMigrationService.runMigrations).toHaveBeenCalledWith({
+        transaction: true,
+      });
     });
 
     it('should run migrations without transaction when specified', async () => {
       const mockResults = [
         { success: true, migration: 'migration1', duration: 100 },
       ];
-      
+
       mockMigrationService.runMigrations.mockResolvedValue(mockResults);
-      
+
       const result = await controller.runMigrations('false');
-      
+
       expect(result).toEqual(mockResults);
-      expect(mockMigrationService.runMigrations).toHaveBeenCalledWith({ transaction: false });
+      expect(mockMigrationService.runMigrations).toHaveBeenCalledWith({
+        transaction: false,
+      });
     });
   });
 
@@ -294,11 +306,11 @@ describe('MigrationController', () => {
         rolledBack: ['migration1'],
         duration: 50,
       };
-      
+
       mockMigrationService.rollbackLastMigration.mockResolvedValue(mockResult);
-      
+
       const result = await controller.rollbackLast();
-      
+
       expect(result).toEqual(mockResult);
       expect(mockMigrationService.rollbackLastMigration).toHaveBeenCalled();
     });
@@ -311,42 +323,52 @@ describe('MigrationController', () => {
         rolledBack: ['migration2', 'migration1'],
         duration: 100,
       };
-      
+
       mockMigrationService.rollbackToVersion.mockResolvedValue(mockResult);
-      
+
       const result = await controller.rollbackToVersion('target-version');
-      
+
       expect(result).toEqual(mockResult);
-      expect(mockMigrationService.rollbackToVersion).toHaveBeenCalledWith('target-version');
+      expect(mockMigrationService.rollbackToVersion).toHaveBeenCalledWith(
+        'target-version',
+      );
     });
   });
 
   describe('generateMigration', () => {
     it('should generate migration with valid name', async () => {
       const mockResult = { filePath: '/path/to/migration.ts' };
-      
-      mockMigrationService.generateMigration.mockResolvedValue(mockResult.filePath);
-      
+
+      mockMigrationService.generateMigration.mockResolvedValue(
+        mockResult.filePath,
+      );
+
       const result = await controller.generateMigration('test-migration');
-      
+
       expect(result).toEqual(mockResult);
-      expect(mockMigrationService.generateMigration).toHaveBeenCalledWith('test-migration');
+      expect(mockMigrationService.generateMigration).toHaveBeenCalledWith(
+        'test-migration',
+      );
     });
 
     it('should throw error for empty name', async () => {
-      await expect(controller.generateMigration('')).rejects.toThrow('Migration name is required');
-      await expect(controller.generateMigration('   ')).rejects.toThrow('Migration name is required');
+      await expect(controller.generateMigration('')).rejects.toThrow(
+        'Migration name is required',
+      );
+      await expect(controller.generateMigration('   ')).rejects.toThrow(
+        'Migration name is required',
+      );
     });
   });
 
   describe('validateMigrations', () => {
     it('should validate migrations', async () => {
       const mockResult = { valid: true, errors: [] };
-      
+
       mockMigrationService.validateMigrations.mockResolvedValue(mockResult);
-      
+
       const result = await controller.validateMigrations();
-      
+
       expect(result).toEqual(mockResult);
       expect(mockMigrationService.validateMigrations).toHaveBeenCalled();
     });

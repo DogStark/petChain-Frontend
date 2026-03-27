@@ -1,3 +1,4 @@
+import { GetServerSideProps } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
@@ -165,4 +166,10 @@ export default function DashboardPage() {
       </div>
     </ProtectedRoute>
   );
-}
+  }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

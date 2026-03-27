@@ -31,7 +31,10 @@ export class SmsService {
   }
 
   isEnabled(): boolean {
-    return this.configService.get<boolean>('sms.enabled') === true && !!this.twilioClient;
+    return (
+      this.configService.get<boolean>('sms.enabled') === true &&
+      !!this.twilioClient
+    );
   }
 
   async sendSms(
@@ -41,7 +44,9 @@ export class SmsService {
     options: SendSmsOptions = {},
   ): Promise<{ success: boolean; logId?: string; error?: string }> {
     if (!this.isEnabled()) {
-      this.logger.warn('SMS is disabled or Twilio not configured. Skipping send.');
+      this.logger.warn(
+        'SMS is disabled or Twilio not configured. Skipping send.',
+      );
       return { success: false, error: 'SMS_NOT_ENABLED' };
     }
 
@@ -84,7 +89,7 @@ export class SmsService {
         twilioParams.statusCallback = webhookUrl;
       }
 
-      const result = await this.twilioClient!.messages.create(twilioParams);
+      const result = await this.twilioClient.messages.create(twilioParams);
 
       log.status = SmsStatus.SENT;
       log.twilioSid = result.sid;
@@ -137,7 +142,11 @@ export class SmsService {
     await this.smsLogRepository.save(log);
 
     if (mappedStatus !== previousStatus) {
-      await this.smsCostService.recordDeliveryUpdate(log, mappedStatus, costCents);
+      await this.smsCostService.recordDeliveryUpdate(
+        log,
+        mappedStatus,
+        costCents,
+      );
     }
     return log;
   }

@@ -20,11 +20,18 @@ jest.mock('@stellar/stellar-sdk', () => ({
   Networks: {
     TESTNET: 'Test SDF Network ; September 2015',
   },
-  SorobanRpc: {
+  rpc: {
     Server: jest.fn(() => ({
       getLatestLedger: jest.fn(),
+      getAccount: jest.fn(),
+      prepareTransaction: jest.fn(),
+      simulateTransaction: jest.fn(),
+      getTransaction: jest.fn(),
       sendTransaction: jest.fn(),
     })),
+    Api: {
+      isSimulationError: jest.fn().mockReturnValue(false),
+    },
   },
   TransactionBuilder: jest.fn(),
   Operation: {
@@ -40,8 +47,10 @@ describe('StellarService - Contract Integration', () => {
   beforeEach(async () => {
     configService = {
       get: jest.fn((key: string) => {
-        if (key === 'blockchain.stellar.rpcUrl') return 'https://horizon-testnet.stellar.org';
-        if (key === 'blockchain.stellar.sorobanRpcUrl') return 'https://soroban-testnet.stellar.org';
+        if (key === 'blockchain.stellar.rpcUrl')
+          return 'https://horizon-testnet.stellar.org';
+        if (key === 'blockchain.stellar.sorobanRpcUrl')
+          return 'https://soroban-testnet.stellar.org';
         if (key === 'blockchain.stellar.secretKey') return null;
         return undefined;
       }),
@@ -69,7 +78,9 @@ describe('StellarService - Contract Integration', () => {
   });
 
   it('should invoke contract', async () => {
-    jest.spyOn(service, 'invokeContract').mockResolvedValue({ data: 'test-data' });
+    jest
+      .spyOn(service, 'invokeContract')
+      .mockResolvedValue({ data: 'test-data' });
 
     const result = await service.invokeContract('contract-id', 'method', []);
     expect(result).toBeDefined();
@@ -89,7 +100,10 @@ describe('StellarService - Contract Integration', () => {
   it('should upgrade contract', async () => {
     jest.spyOn(service, 'upgradeContract').mockResolvedValue('upgrade-tx-hash');
 
-    const txHash = await service.upgradeContract('contract-id', 'new-wasm-hash');
+    const txHash = await service.upgradeContract(
+      'contract-id',
+      'new-wasm-hash',
+    );
     expect(txHash).toBeDefined();
   });
 });

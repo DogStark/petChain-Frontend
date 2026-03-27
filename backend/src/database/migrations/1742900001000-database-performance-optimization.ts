@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
 
 /**
  * Database Performance Optimization - Indexes
- * 
+ *
  * This migration adds critical indexes to optimize query performance
  * across the most frequently queried tables and columns.
  */

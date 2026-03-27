@@ -18,6 +18,7 @@ import WalletBackup from '../components/Wallet/WalletBackup';
 import MultiSigSetup from '../components/Wallet/MultiSigSetup';
 import TransactionSigning from '../components/Wallet/TransactionSigning';
 import WalletRecovery from '../components/Wallet/WalletRecovery';
+import { GetServerSideProps } from 'next';
 
 type Tab = 'overview' | 'setup' | 'send' | 'multisig' | 'backup' | 'recovery';
 
@@ -255,3 +256,9 @@ export default function WalletPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

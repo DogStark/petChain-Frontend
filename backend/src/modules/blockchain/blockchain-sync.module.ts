@@ -17,7 +17,11 @@ import { MedicalRecord } from '../medical-records/entities/medical-record.entity
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BlockchainSync, MedicalRecordAnchor, MedicalRecord]),
+    TypeOrmModule.forFeature([
+      BlockchainSync,
+      MedicalRecordAnchor,
+      MedicalRecord,
+    ]),
   ],
   controllers: [BlockchainSyncController, HashAnchoringController],
   providers: [

@@ -66,7 +66,9 @@ export class AccountSecurityFeatures1743000000000 implements MigrationInterface 
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "IDX_auth_security_events_user_created"`);
+    await queryRunner.query(
+      `DROP INDEX "IDX_auth_security_events_user_created"`,
+    );
     await queryRunner.query(`DROP TABLE "auth_security_events"`);
 
     await queryRunner.query(`DROP INDEX "IDX_login_history_user_created"`);

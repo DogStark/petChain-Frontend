@@ -42,4 +42,4 @@ import { UsersModule } from '../modules/users/users.module';
     EmergencyGateway,
   ],
 })
-export class WebSocketModule { }
+export class WebSocketModule {}

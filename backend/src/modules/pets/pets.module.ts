@@ -49,8 +49,20 @@ import { SharedTimelineController } from './controllers/shared-timeline.controll
     AuthModule,
     UsersModule,
   ],
-  controllers: [PetsController, PetPhotosController, BreedsController, PetTimelineController, SharedTimelineController],
-  providers: [PetsService, PetPhotosService, BreedsService, BreedsSeeder, PetTimelineService],
+  controllers: [
+    PetsController,
+    PetPhotosController,
+    BreedsController,
+    PetTimelineController,
+    SharedTimelineController,
+  ],
+  providers: [
+    PetsService,
+    PetPhotosService,
+    BreedsService,
+    BreedsSeeder,
+    PetTimelineService,
+  ],
   exports: [PetsService, PetPhotosService, BreedsService, PetTimelineService],
 })
 export class PetsModule {}

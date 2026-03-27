@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LostPetReport, LostPetStatus } from './entities/lost-pet-report.entity';
+import {
+  LostPetReport,
+  LostPetStatus,
+} from './entities/lost-pet-report.entity';
 import { ReportLostPetDto } from './dto/report-lost-pet.dto';
 import { ReportFoundPetDto } from './dto/report-found-pet.dto';
 import { UpdateLostMessageDto } from './dto/update-lost-message.dto';
@@ -57,7 +60,11 @@ export class LostPetsService {
 
     const saved = await this.lostPetReportRepository.save(report);
 
-    await this.updateQRCodeLostMessage(petId, dto.customMessage, dto.contactInfo);
+    await this.updateQRCodeLostMessage(
+      petId,
+      dto.customMessage,
+      dto.contactInfo,
+    );
     await this.notifyNearbyUsers(petId, saved, ownerId);
 
     return this.findOneWithRelations(saved.id);
@@ -104,7 +111,8 @@ export class LostPetsService {
       throw new NotFoundException('No active lost report found for this pet');
     }
 
-    if (dto.customMessage !== undefined) report.customMessage = dto.customMessage;
+    if (dto.customMessage !== undefined)
+      report.customMessage = dto.customMessage;
     if (dto.contactInfo !== undefined) report.contactInfo = dto.contactInfo;
 
     await this.lostPetReportRepository.save(report);
@@ -239,7 +247,9 @@ export class LostPetsService {
     if (lat == null || lng == null) return;
 
     const pet = await this.petsService.findOne(petId);
-    const message = report.customMessage || `${pet.name} has been reported lost. Please help spread the word!`;
+    const message =
+      report.customMessage ||
+      `${pet.name} has been reported lost. Please help spread the word!`;
 
     const nearbyUserIds = await this.findUserIdsWithinRadius(
       Number(lat),

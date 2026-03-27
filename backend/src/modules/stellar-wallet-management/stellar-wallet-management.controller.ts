@@ -27,9 +27,7 @@ interface AuthenticatedRequest extends Request {
 @Controller('stellar-wallet-management')
 @UseGuards(JwtAuthGuard)
 export class StellarWalletManagementController {
-  constructor(
-    private readonly service: StellarWalletManagementService,
-  ) {}
+  constructor(private readonly service: StellarWalletManagementService) {}
 
   /**
    * Auto wallet creation: get or create wallet for user.
@@ -41,10 +39,7 @@ export class StellarWalletManagementController {
     @Query('network') network?: 'PUBLIC' | 'TESTNET',
   ) {
     const userId = req.user.sub;
-    return this.service.ensureWalletForUser(
-      userId,
-      network || 'TESTNET',
-    );
+    return this.service.ensureWalletForUser(userId, network || 'TESTNET');
   }
 
   /**
@@ -60,7 +55,9 @@ export class StellarWalletManagementController {
     return this.service.createWallet(
       userId,
       dto.network,
-      dto.multisigConfig as { threshold: number; signers: { key: string; weight: number }[] } | undefined,
+      dto.multisigConfig as
+        | { threshold: number; signers: { key: string; weight: number }[] }
+        | undefined,
     );
   }
 

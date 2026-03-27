@@ -371,8 +371,13 @@ export class UsersController {
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="activity-log.csv"')
   async exportActivityLogs(@CurrentUser() user: User): Promise<StreamableFile> {
-    const logs = await this.activityLogService.getUserActivity(user.id, 10000, 0);
-    const header = 'id,activityType,description,ipAddress,deviceId,isSuspicious,createdAt\n';
+    const logs = await this.activityLogService.getUserActivity(
+      user.id,
+      10000,
+      0,
+    );
+    const header =
+      'id,activityType,description,ipAddress,deviceId,isSuspicious,createdAt\n';
     const rows = logs
       .map((l) =>
         [
@@ -402,9 +407,17 @@ export class UsersController {
     @Query('activityType') activityType?: ActivityType,
   ) {
     if (activityType) {
-      return await this.activityLogService.getActivityByType(user.id, activityType, limit);
+      return await this.activityLogService.getActivityByType(
+        user.id,
+        activityType,
+        limit,
+      );
     }
-    return await this.activityLogService.getUserActivity(user.id, limit, offset);
+    return await this.activityLogService.getUserActivity(
+      user.id,
+      limit,
+      offset,
+    );
   }
 
   /**
@@ -442,10 +455,7 @@ export class UsersController {
     if (!this.fileUploadService) {
       throw new Error('FileUploadService not available');
     }
-    const avatarUrl = await this.fileUploadService.uploadAvatar(
-      file,
-      user.id,
-    );
+    const avatarUrl = await this.fileUploadService.uploadAvatar(file, user.id);
 
     // Update user profile with new avatar
     const updated = await this.usersService.updateAvatar(user.id, avatarUrl);

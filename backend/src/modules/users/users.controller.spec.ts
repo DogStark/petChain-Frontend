@@ -98,24 +98,39 @@ describe('UsersController', () => {
 
   it('returns current profile with completion', async () => {
     mockUsersService.findOne.mockResolvedValue(user);
-    mockUsersService.getProfileCompletion.mockResolvedValue({ completionScore: 50 });
+    mockUsersService.getProfileCompletion.mockResolvedValue({
+      completionScore: 50,
+    });
     const result = await controller.getCurrentProfile(user);
     expect(result.profileCompletion.completionScore).toBe(50);
   });
 
   it('handles profile update and avatar upload', async () => {
-    mockUsersService.updateProfile.mockResolvedValue({ ...user, firstName: 'New' });
+    mockUsersService.updateProfile.mockResolvedValue({
+      ...user,
+      firstName: 'New',
+    });
     await controller.updateProfile(user, { firstName: 'New' } as any);
 
-    mockUsersService.updateAvatar.mockResolvedValue({ ...user, avatarUrl: 'url' });
+    mockUsersService.updateAvatar.mockResolvedValue({
+      ...user,
+      avatarUrl: 'url',
+    });
     await controller.updateAvatar(user, { avatarUrl: 'url' });
     expect(mockActivity.logActivity).toHaveBeenCalled();
   });
 
   it('uploads avatar directly', async () => {
-    const file = { buffer: Buffer.from(''), mimetype: 'image/png', originalname: 'a.png' } as any;
+    const file = {
+      buffer: Buffer.from(''),
+      mimetype: 'image/png',
+      originalname: 'a.png',
+    } as any;
     mockFileUpload.uploadAvatar.mockResolvedValue('https://cdn/avatar.png');
-    mockUsersService.updateAvatar.mockResolvedValue({ ...user, avatarUrl: 'https://cdn/avatar.png' });
+    mockUsersService.updateAvatar.mockResolvedValue({
+      ...user,
+      avatarUrl: 'https://cdn/avatar.png',
+    });
 
     const result = await controller.uploadAvatarDirect(file, user);
     expect(result.avatarUrl).toContain('avatar.png');
@@ -209,7 +224,11 @@ describe('UsersController', () => {
     mockSearch.searchUsers.mockResolvedValue({ data: [] });
     mockSearch.exportUsers.mockResolvedValue('id,email\nu1,e@x');
 
-    await controller.create({ email: 'n@x', firstName: 'N', lastName: 'X' } as any);
+    await controller.create({
+      email: 'n@x',
+      firstName: 'N',
+      lastName: 'X',
+    } as any);
     await controller.findAll();
     await controller.searchUsers({ q: 'john' } as any);
     await controller.exportUsers({ q: 'john' } as any);

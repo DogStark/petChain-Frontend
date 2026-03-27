@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
 import { generateAnalyticsData } from '../lib/analyticsUserData';
+import { GetServerSideProps } from 'next';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), { ssr: false });
 const PetHealthChart = dynamic(() => import('../components/analytics/PetHealthChart'), { ssr: false });
@@ -159,3 +160,9 @@ const AnalyticsPage = () => {
 };
 
 export default AnalyticsPage;
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

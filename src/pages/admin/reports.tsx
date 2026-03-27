@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import Head from 'next/head';
+import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 
 // Import Charts
@@ -333,3 +334,9 @@ export default function AdminReports() {
         </ProtectedRoute>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

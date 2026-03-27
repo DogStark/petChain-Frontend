@@ -7,6 +7,7 @@ import { userAPI, UserProfile } from '../lib/api/userAPI';
 import { petAPI } from '../lib/api/petAPI';
 import { PetEmergencyInfo } from '../types/pet';
 import styles from '../styles/pages/ProfilePage.module.css';
+import { GetServerSideProps } from 'next';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -123,3 +124,9 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

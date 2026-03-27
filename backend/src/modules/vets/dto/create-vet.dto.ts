@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsEmail,
-  IsArray,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsEmail, IsArray, IsOptional } from 'class-validator';
 
 export class CreateVetDto {
   @IsString()

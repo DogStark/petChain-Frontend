@@ -31,7 +31,12 @@ import { User } from '../users/entities/user.entity';
     BullModule.registerQueue({ name: 'file-backup' }),
   ],
   controllers: [FilesController, AdminFilesController],
-  providers: [FilesService, FilePermissionService, FileBackupService, FileBackupProcessor],
+  providers: [
+    FilesService,
+    FilePermissionService,
+    FileBackupService,
+    FileBackupProcessor,
+  ],
   exports: [FilesService, FilePermissionService, FileBackupService],
 })
 export class FilesModule {}

@@ -140,7 +140,9 @@ export class MedicalRecordsExportService {
         // Verification status
         doc.text(`Verified: ${r.verified ? 'Yes' : 'No'}`);
         if (r.verified && r.verifiedAt) {
-          doc.text(`Verified At: ${new Date(r.verifiedAt).toLocaleDateString()}`);
+          doc.text(
+            `Verified At: ${new Date(r.verifiedAt).toLocaleDateString()}`,
+          );
           if (r.verifiedByVet) {
             const verifier = r.verifiedByVet as { vetName?: string };
             doc.text(`Verified By: ${verifier.vetName ?? 'N/A'}`);
@@ -175,9 +177,7 @@ export class MedicalRecordsExportService {
       treatment: r.treatment,
       notes: r.notes ?? '',
       verified: r.verified ? 'Yes' : 'No',
-      verifiedAt: r.verifiedAt
-        ? new Date(r.verifiedAt).toISOString()
-        : '',
+      verifiedAt: r.verifiedAt ? new Date(r.verifiedAt).toISOString() : '',
       attachments:
         include && r.attachments?.length ? r.attachments.join('; ') : '',
     }));
@@ -239,9 +239,9 @@ export class MedicalRecordsExportService {
         description: `${r.recordType}: ${r.diagnosis}`,
         authenticator: r.verified
           ? {
-            reference: `Practitioner/${r.verifiedByVetId}`,
-            display: (r.verifiedByVet as { vetName?: string })?.vetName,
-          }
+              reference: `Practitioner/${r.verifiedByVetId}`,
+              display: (r.verifiedByVet as { vetName?: string })?.vetName,
+            }
           : undefined,
         content: [
           {

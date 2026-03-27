@@ -14,7 +14,10 @@ import { PrescriptionsService, RefillReminder } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { DosageCalculationService } from './services/dosage-calculation.service';
-import type { DosageCalculationRequest, DosageResult } from './services/dosage-calculation.service';
+import type {
+  DosageCalculationRequest,
+  DosageResult,
+} from './services/dosage-calculation.service';
 import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
 import { PrescriptionStatus } from './entities/prescription.entity';
 
@@ -52,11 +55,10 @@ export class PrescriptionsController {
   }
 
   @Get('pet/:petId/expiring-soon')
-  getExpiringSoon(
-    @Param('petId') petId: string,
-    @Query('days') days?: number,
-  ) {
-    return this.prescriptionsService.getExpiringPrescriptions(days ? +days : 30);
+  getExpiringSoon(@Param('petId') petId: string, @Query('days') days?: number) {
+    return this.prescriptionsService.getExpiringPrescriptions(
+      days ? +days : 30,
+    );
   }
 
   @Get('pet/:petId/status/:status')
@@ -69,9 +71,7 @@ export class PrescriptionsController {
 
   @Get('reminders')
   getRefillReminders(@Query('days') days?: number) {
-    return this.prescriptionsService.getRefillReminders(
-      days ? +days : 7,
-    );
+    return this.prescriptionsService.getRefillReminders(days ? +days : 7);
   }
 
   @Get(':id')
@@ -160,9 +160,7 @@ export class PrescriptionsController {
    */
   @Post('check-interactions')
   checkInteractions(@Body() body: { medicationNames: string[] }) {
-    return this.drugInteractionService.checkInteractions(
-      body.medicationNames,
-    );
+    return this.drugInteractionService.checkInteractions(body.medicationNames);
   }
 
   @Get(':id/interactions')
@@ -174,13 +172,7 @@ export class PrescriptionsController {
    * Prescription Status Management
    */
   @Patch(':id/discontinue')
-  discontinue(
-    @Param('id') id: string,
-    @Body() body?: { reason?: string },
-  ) {
-    return this.prescriptionsService.discontinuePrescription(
-      id,
-      body?.reason,
-    );
+  discontinue(@Param('id') id: string, @Body() body?: { reason?: string }) {
+    return this.prescriptionsService.discontinuePrescription(id, body?.reason);
   }
 }

@@ -5,7 +5,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import * as crypto from 'crypto';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { ConfigService } from '@nestjs/config';
-import { MedicalRecordAnchor, AnchorStatus } from './entities/medical-record-anchor.entity';
+import {
+  MedicalRecordAnchor,
+  AnchorStatus,
+} from './entities/medical-record-anchor.entity';
 import { MedicalRecord } from '../medical-records/entities/medical-record.entity';
 
 const MAX_OPS_PER_TX = 100; // Stellar max operations per transaction
@@ -31,7 +34,8 @@ export class HashAnchoringService {
       'https://horizon-testnet.stellar.org';
     this.server = new StellarSdk.Horizon.Server(horizonUrl);
 
-    const network = this.configService.get<string>('STELLAR_DEFAULT_NETWORK') || 'TESTNET';
+    const network =
+      this.configService.get<string>('STELLAR_DEFAULT_NETWORK') || 'TESTNET';
     this.networkPassphrase =
       network === 'PUBLIC'
         ? StellarSdk.Networks.PUBLIC
@@ -40,9 +44,13 @@ export class HashAnchoringService {
     const secret = this.configService.get<string>('STELLAR_ANCHOR_SECRET_KEY');
     if (secret) {
       this.keypair = StellarSdk.Keypair.fromSecret(secret);
-      this.logger.log(`HashAnchoringService ready — account: ${this.keypair.publicKey()}`);
+      this.logger.log(
+        `HashAnchoringService ready — account: ${this.keypair.publicKey()}`,
+      );
     } else {
-      this.logger.warn('STELLAR_ANCHOR_SECRET_KEY not set — anchoring disabled');
+      this.logger.warn(
+        'STELLAR_ANCHOR_SECRET_KEY not set — anchoring disabled',
+      );
     }
   }
 
@@ -51,7 +59,14 @@ export class HashAnchoringService {
   /** Queue a single medical record for anchoring */
   async queueAnchor(recordId: string): Promise<MedicalRecordAnchor> {
     const existing = await this.anchorRepo.findOne({
-      where: { recordId, status: In([AnchorStatus.PENDING, AnchorStatus.QUEUED, AnchorStatus.ANCHORED]) },
+      where: {
+        recordId,
+        status: In([
+          AnchorStatus.PENDING,
+          AnchorStatus.QUEUED,
+          AnchorStatus.ANCHORED,
+        ]),
+      },
     });
     if (existing) return existing;
 
@@ -59,12 +74,18 @@ export class HashAnchoringService {
     if (!record) throw new Error(`Medical record ${recordId} not found`);
 
     const recordHash = this.hashRecord(record);
-    const anchor = this.anchorRepo.create({ recordId, recordHash, status: AnchorStatus.QUEUED });
+    const anchor = this.anchorRepo.create({
+      recordId,
+      recordHash,
+      status: AnchorStatus.QUEUED,
+    });
     return this.anchorRepo.save(anchor);
   }
 
   /** Queue multiple records — returns immediately, processing is async */
-  async queueBatch(recordIds: string[]): Promise<{ queued: number; batchId: string }> {
+  async queueBatch(
+    recordIds: string[],
+  ): Promise<{ queued: number; batchId: string }> {
     const batchId = crypto.randomUUID();
     const records = await this.recordRepo.findBy({ id: In(recordIds) });
 
@@ -102,7 +123,8 @@ export class HashAnchoringService {
       order: { createdAt: 'DESC' },
     });
 
-    if (!anchor) throw new Error(`No confirmed anchor found for record ${recordId}`);
+    if (!anchor)
+      throw new Error(`No confirmed anchor found for record ${recordId}`);
 
     const record = await this.recordRepo.findOne({ where: { id: recordId } });
     const currentHash = this.hashRecord(record);
@@ -193,13 +215,18 @@ export class HashAnchoringService {
         })),
       );
 
-      this.logger.log(`Batch anchored — txHash: ${txHash}, records: ${anchors.length}`);
+      this.logger.log(
+        `Batch anchored — txHash: ${txHash}, records: ${anchors.length}`,
+      );
     } catch (error) {
       this.logger.error(`Batch anchor failed: ${error.message}`);
       await this.anchorRepo.save(
         anchors.map((a) => ({
           ...a,
-          status: a.retryCount >= MAX_RETRIES ? AnchorStatus.FAILED : AnchorStatus.QUEUED,
+          status:
+            a.retryCount >= MAX_RETRIES
+              ? AnchorStatus.FAILED
+              : AnchorStatus.QUEUED,
           retryCount: a.retryCount + 1,
           lastError: error.message,
         })),
@@ -209,16 +236,19 @@ export class HashAnchoringService {
 
   private async confirmTransaction(anchor: MedicalRecordAnchor): Promise<void> {
     try {
-      const tx = await this.server.transactions().transaction(anchor.txHash).call();
+      const tx = await this.server
+        .transactions()
+        .transaction(anchor.txHash)
+        .call();
       if (tx.successful) {
-        await this.anchorRepo.save({
-          ...anchor,
-          status: AnchorStatus.CONFIRMED,
-          ledgerSequence: tx.ledger,
-          feePaid: tx.fee_charged,
-          confirmedAt: new Date(),
-        });
-        this.logger.log(`Confirmed anchor for record ${anchor.recordId} at ledger ${tx.ledger}`);
+        anchor.status = AnchorStatus.CONFIRMED;
+        anchor.ledgerSequence = Number((tx as any).ledger ?? 0);
+        anchor.feePaid = String((tx as any).fee_charged ?? '0');
+        anchor.confirmedAt = new Date();
+        await this.anchorRepo.save(anchor);
+        this.logger.log(
+          `Confirmed anchor for record ${anchor.recordId} at ledger ${tx.ledger}`,
+        );
       }
     } catch {
       // Transaction not yet in ledger — will retry next cron tick

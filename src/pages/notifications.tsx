@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Head from 'next/head';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { GetServerSideProps } from 'next';
 import NotificationPreferencesPanel from '@/components/Notifications/NotificationPreferencesPanel';
 import {
   AppNotification, NotificationCategory,
@@ -190,3 +191,9 @@ export default function NotificationsPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

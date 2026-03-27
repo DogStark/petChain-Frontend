@@ -44,7 +44,7 @@ export class DatabasePerformanceService implements OnModuleInit {
     if (this.dataSource.queryResultCache) {
       this.logger.log('Query result cache is enabled');
     }
-    
+
     // Log initial connection pool status
     await this.logConnectionPoolStatus();
   }
@@ -87,7 +87,7 @@ export class DatabasePerformanceService implements OnModuleInit {
    */
   async getMetrics(): Promise<DatabaseMetrics> {
     const queryRunner = this.dataSource.createQueryRunner();
-    
+
     try {
       const poolStats = await this.getPoolStats(queryRunner);
       const dbStats = await this.getDatabaseStats(queryRunner);
@@ -136,16 +136,16 @@ export class DatabasePerformanceService implements OnModuleInit {
   private calculateQueriesPerSecond(): number {
     const now = Date.now();
     const timeDiff = (now - this.lastMetricsCheck) / 1000; // seconds
-    
+
     if (timeDiff <= 0) return 0;
-    
+
     const queryDiff = this.queryCount - this.previousTotalQueries;
     const qps = queryDiff / timeDiff;
-    
+
     // Reset counters
     this.lastMetricsCheck = now;
     this.previousTotalQueries = this.queryCount;
-    
+
     return parseFloat(qps.toFixed(2));
   }
 
@@ -209,9 +209,10 @@ export class DatabasePerformanceService implements OnModuleInit {
       `);
 
       const stats = dbStats[0];
-      const cacheHitRatio = stats.blocks_hit > 0
-        ? (stats.blocks_hit / (stats.blocks_read + stats.blocks_hit)) * 100
-        : 0;
+      const cacheHitRatio =
+        stats.blocks_hit > 0
+          ? (stats.blocks_hit / (stats.blocks_read + stats.blocks_hit)) * 100
+          : 0;
 
       // Get index usage statistics
       const indexStats = await queryRunner.query(`
@@ -222,15 +223,18 @@ export class DatabasePerformanceService implements OnModuleInit {
       `);
 
       const indexStat = indexStats[0];
-      const totalScans = parseInt(indexStat.index_scans, 10) + parseInt(indexStat.sequential_scans, 10);
-      const indexUsageRatio = totalScans > 0
-        ? (parseInt(indexStat.index_scans, 10) / totalScans) * 100
-        : 0;
+      const totalScans =
+        parseInt(indexStat.index_scans, 10) +
+        parseInt(indexStat.sequential_scans, 10);
+      const indexUsageRatio =
+        totalScans > 0
+          ? (parseInt(indexStat.index_scans, 10) / totalScans) * 100
+          : 0;
 
       // Get slow query count from pg_stat_statements if available
       let slowQueries = 0;
       let avgQueryTime = 0;
-      
+
       try {
         const slowQueryStats = await queryRunner.query(`
           SELECT 
@@ -239,7 +243,7 @@ export class DatabasePerformanceService implements OnModuleInit {
           FROM pg_stat_statements
           WHERE total_exec_time > ${this.slowQueryThreshold}
         `);
-        
+
         if (slowQueryStats[0]) {
           slowQueries = parseInt(slowQueryStats[0].slow_count, 10);
           avgQueryTime = parseFloat(slowQueryStats[0].avg_time) || 0;
@@ -250,7 +254,8 @@ export class DatabasePerformanceService implements OnModuleInit {
       }
 
       return {
-        totalQueries: stats.transactions_committed + stats.transactions_rolled_back,
+        totalQueries:
+          stats.transactions_committed + stats.transactions_rolled_back,
         slowQueries,
         avgQueryTime,
         cacheHitRatio: parseFloat(cacheHitRatio.toFixed(2)),
@@ -271,7 +276,9 @@ export class DatabasePerformanceService implements OnModuleInit {
   /**
    * Get table sizes
    */
-  private async getTableSizes(queryRunner: QueryRunner): Promise<Record<string, number>> {
+  private async getTableSizes(
+    queryRunner: QueryRunner,
+  ): Promise<Record<string, number>> {
     try {
       const result = await queryRunner.query(`
         SELECT 
@@ -318,15 +325,15 @@ export class DatabasePerformanceService implements OnModuleInit {
   async logPeriodicMetrics(): Promise<void> {
     try {
       const metrics = await this.getMetrics();
-      
+
       this.logger.log(
         `Database Metrics - ` +
-        `Queries: ${metrics.totalQueries}, ` +
-        `Slow: ${metrics.slowQueries}, ` +
-        `Avg Time: ${metrics.avgQueryTime.toFixed(2)}ms, ` +
-        `QPS: ${metrics.queriesPerSecond}, ` +
-        `Cache Hit: ${metrics.cacheHitRatio}%, ` +
-        `Index Usage: ${metrics.indexUsageRatio}%`,
+          `Queries: ${metrics.totalQueries}, ` +
+          `Slow: ${metrics.slowQueries}, ` +
+          `Avg Time: ${metrics.avgQueryTime.toFixed(2)}ms, ` +
+          `QPS: ${metrics.queriesPerSecond}, ` +
+          `Cache Hit: ${metrics.cacheHitRatio}%, ` +
+          `Index Usage: ${metrics.indexUsageRatio}%`,
       );
     } catch (error) {
       this.logger.error('Failed to log periodic metrics', error);
@@ -347,9 +354,11 @@ export class DatabasePerformanceService implements OnModuleInit {
       const metrics = await this.getMetrics();
 
       // Check connection pool usage
-      const totalConnections = metrics.activeConnections + metrics.idleConnections;
+      const totalConnections =
+        metrics.activeConnections + metrics.idleConnections;
       if (totalConnections > 0) {
-        const activeRatio = (metrics.activeConnections / totalConnections) * 100;
+        const activeRatio =
+          (metrics.activeConnections / totalConnections) * 100;
         if (activeRatio > 80) {
           warnings.push(
             `High connection pool usage: ${activeRatio.toFixed(2)}% active connections`,
@@ -386,16 +395,23 @@ export class DatabasePerformanceService implements OnModuleInit {
 
       // Check for slow queries
       if (metrics.slowQueries > 10) {
-        warnings.push(`${metrics.slowQueries} slow queries detected in the monitoring period`);
-        recommendations.push('Review and optimize slow queries using pg_stat_statements');
+        warnings.push(
+          `${metrics.slowQueries} slow queries detected in the monitoring period`,
+        );
+        recommendations.push(
+          'Review and optimize slow queries using pg_stat_statements',
+        );
       }
 
       // Check query rate
       if (metrics.queriesPerSecond > 100) {
-        warnings.push(`High query rate: ${metrics.queriesPerSecond} queries/second`);
-        recommendations.push('Consider implementing query caching for frequently executed queries');
+        warnings.push(
+          `High query rate: ${metrics.queriesPerSecond} queries/second`,
+        );
+        recommendations.push(
+          'Consider implementing query caching for frequently executed queries',
+        );
       }
-
     } catch (error) {
       this.logger.error('Failed to analyze performance', error);
       warnings.push('Failed to analyze database performance');
@@ -409,7 +425,7 @@ export class DatabasePerformanceService implements OnModuleInit {
    */
   async getQueryExecutionPlan(query: string, parameters?: any[]): Promise<any> {
     const queryRunner = this.dataSource.createQueryRunner();
-    
+
     try {
       const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`;
       const result = await queryRunner.query(explainQuery, parameters);

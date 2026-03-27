@@ -8,9 +8,7 @@ import { Vaccination } from '../vaccinations/entities/vaccination.entity';
 import { Appointment } from '../appointments/entities/appointment.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Pet, Vaccination, Appointment]),
-  ],
+  imports: [TypeOrmModule.forFeature([User, Pet, Vaccination, Appointment])],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],
   exports: [AnalyticsService],

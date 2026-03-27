@@ -13,7 +13,10 @@ export class ContractInteractionService {
     private manageService: ContractManagementService,
   ) {}
 
-  async checkAccess(recordId: string, accessorPublicKey: string): Promise<boolean> {
+  async checkAccess(
+    recordId: string,
+    accessorPublicKey: string,
+  ): Promise<boolean> {
     const contractId = await this.manageService.getContractId('AccessControl');
     if (!contractId) {
       this.logger.warn('AccessControl contract not deployed');
@@ -23,10 +26,16 @@ export class ContractInteractionService {
     try {
       const params = [
         xdr.ScVal.scvString(recordId),
-        xdr.ScVal.scvAddress(StellarSdk.Address.fromString(accessorPublicKey).toScAddress()),
+        xdr.ScVal.scvAddress(
+          StellarSdk.Address.fromString(accessorPublicKey).toScAddress(),
+        ),
       ];
 
-      const result = await this.stellarService.invokeContract(contractId, 'has_access', params);
+      const result = await this.stellarService.invokeContract(
+        contractId,
+        'has_access',
+        params,
+      );
       return !!result;
     } catch (error) {
       this.logger.error(`Error checking access on-chain: ${error.message}`);
@@ -34,29 +43,48 @@ export class ContractInteractionService {
     }
   }
 
-  async grantAccess(recordId: string, accessorPublicKey: string, expiresAt: number): Promise<any> {
+  async grantAccess(
+    recordId: string,
+    accessorPublicKey: string,
+    expiresAt: number,
+  ): Promise<any> {
     const contractId = await this.manageService.getContractId('AccessControl');
     if (!contractId) throw new Error('AccessControl contract not deployed');
 
     const params = [
       xdr.ScVal.scvString(recordId),
-      xdr.ScVal.scvAddress(StellarSdk.Address.fromString(accessorPublicKey).toScAddress()),
-      xdr.ScVal.scvU64(BigInt(expiresAt)),
+      xdr.ScVal.scvAddress(
+        StellarSdk.Address.fromString(accessorPublicKey).toScAddress(),
+      ),
+      (xdr.ScVal.scvU64 as any)(BigInt(expiresAt)),
     ];
 
-    return this.stellarService.invokeContract(contractId, 'grant_access', params);
+    return this.stellarService.invokeContract(
+      contractId,
+      'grant_access',
+      params,
+    );
   }
 
-  async revokeAccess(recordId: string, accessorPublicKey: string): Promise<any> {
+  async revokeAccess(
+    recordId: string,
+    accessorPublicKey: string,
+  ): Promise<any> {
     const contractId = await this.manageService.getContractId('AccessControl');
     if (!contractId) throw new Error('AccessControl contract not deployed');
 
     const params = [
       xdr.ScVal.scvString(recordId),
-      xdr.ScVal.scvAddress(StellarSdk.Address.fromString(accessorPublicKey).toScAddress()),
+      xdr.ScVal.scvAddress(
+        StellarSdk.Address.fromString(accessorPublicKey).toScAddress(),
+      ),
     ];
 
-    return this.stellarService.invokeContract(contractId, 'revoke_access', params);
+    return this.stellarService.invokeContract(
+      contractId,
+      'revoke_access',
+      params,
+    );
   }
 
   async recordMetadata(recordId: string, metadataHash: string): Promise<any> {
@@ -68,6 +96,10 @@ export class ContractInteractionService {
       xdr.ScVal.scvBytes(Buffer.from(metadataHash, 'hex')),
     ];
 
-    return this.stellarService.invokeContract(contractId, 'register_record', params);
+    return this.stellarService.invokeContract(
+      contractId,
+      'register_record',
+      params,
+    );
   }
 }

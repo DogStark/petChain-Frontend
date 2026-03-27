@@ -110,7 +110,9 @@ describe('ThreatDetectionService', () => {
         getMany: jest.fn().mockResolvedValue([]),
       };
 
-      securityEventRepository.createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder);
+      securityEventRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
 
       const filters = {
         ipAddress: '192.168.1.100',
@@ -121,7 +123,10 @@ describe('ThreatDetectionService', () => {
       const result = await service.getSecurityEvents(filters);
 
       expect(result).toEqual([]);
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('event.ipAddress = :ip', { ip: '192.168.1.100' });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'event.ipAddress = :ip',
+        { ip: '192.168.1.100' },
+      );
     });
   });
 });

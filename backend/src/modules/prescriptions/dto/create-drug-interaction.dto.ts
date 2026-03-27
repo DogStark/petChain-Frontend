@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { InteractionSeverity } from '../entities/drug-interaction.entity';
 
 export class CreateDrugInteractionDto {

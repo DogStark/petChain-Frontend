@@ -8,7 +8,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
-import { FilePermission, PermissionType, AccessLevel } from '../entities/file-permission.entity';
+import {
+  FilePermission,
+  PermissionType,
+  AccessLevel,
+} from '../entities/file-permission.entity';
 import { FileMetadata } from '../../upload/entities/file-metadata.entity';
 import { User } from '../../users/entities/user.entity';
 import {
@@ -149,9 +153,7 @@ export class FilePermissionService {
     }
 
     if (fileMetadata.ownerId !== userId) {
-      throw new ForbiddenException(
-        'Only file owner can view permissions',
-      );
+      throw new ForbiddenException('Only file owner can view permissions');
     }
 
     const permissions = await this.permissionRepository.find({
@@ -159,7 +161,7 @@ export class FilePermissionService {
       relations: ['user'],
     });
 
-    return permissions.map(p => this.mapPermissionToDto(p));
+    return permissions.map((p) => this.mapPermissionToDto(p));
   }
 
   /**
@@ -228,7 +230,9 @@ export class FilePermissionService {
     });
 
     await this.permissionRepository.save(permission);
-    this.logger.log(`Shared file ${fileId} with user ${dto.userId || 'public'}`);
+    this.logger.log(
+      `Shared file ${fileId} with user ${dto.userId || 'public'}`,
+    );
 
     return this.mapPermissionToDto(permission);
   }
@@ -398,7 +402,11 @@ export class FilePermissionService {
   /**
    * Get files shared with a user
    */
-  async getFilesSharedWithMe(userId: string, page: number = 1, pageSize: number = 20): Promise<{
+  async getFilesSharedWithMe(
+    userId: string,
+    page: number = 1,
+    pageSize: number = 20,
+  ): Promise<{
     permissions: FilePermissionResponseDto[];
     total: number;
     page: number;
@@ -419,7 +427,7 @@ export class FilePermissionService {
     });
 
     return {
-      permissions: permissions.map(p => this.mapPermissionToDto(p)),
+      permissions: permissions.map((p) => this.mapPermissionToDto(p)),
       total,
       page,
       pageSize,
@@ -440,7 +448,9 @@ export class FilePermissionService {
   /**
    * Map permission entity to DTO
    */
-  private mapPermissionToDto(permission: FilePermission): FilePermissionResponseDto {
+  private mapPermissionToDto(
+    permission: FilePermission,
+  ): FilePermissionResponseDto {
     return {
       id: permission.id,
       fileId: permission.fileId,

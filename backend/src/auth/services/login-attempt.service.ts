@@ -72,9 +72,7 @@ export class LoginAttemptService {
     await this.loginHistoryRepository.save(history);
 
     if (user.failedLoginAttempts >= LoginAttemptService.MAX_ATTEMPTS) {
-      const unlocksAt = new Date(
-        Date.now() + this.getLockoutDurationMs(),
-      );
+      const unlocksAt = new Date(Date.now() + this.getLockoutDurationMs());
       user.lockedUntil = unlocksAt;
       await this.userRepository.save(user);
 
@@ -92,7 +90,8 @@ export class LoginAttemptService {
 
       throw new HttpException(
         {
-          message: 'Account is temporarily locked due to too many failed sign-in attempts',
+          message:
+            'Account is temporarily locked due to too many failed sign-in attempts',
           unlocksAt,
         },
         HttpStatus.LOCKED,
@@ -146,9 +145,7 @@ export class LoginAttemptService {
       return { anomalous: false };
     }
 
-    const windowStart = new Date(
-      Date.now() - LoginAttemptService.IP_WINDOW_MS,
-    );
+    const windowStart = new Date(Date.now() - LoginAttemptService.IP_WINDOW_MS);
 
     const recentForIp = await this.loginHistoryRepository.find({
       where: {
@@ -210,12 +207,7 @@ export class LoginAttemptService {
     );
 
     void this.emailNotificationService
-      .sendSuspiciousLoginEmail(
-        user.email,
-        ipAddress,
-        '',
-        new Date(),
-      )
+      .sendSuspiciousLoginEmail(user.email, ipAddress, '', new Date())
       .catch((_err) => undefined);
 
     return { anomalous: true, reason };

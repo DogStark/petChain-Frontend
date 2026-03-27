@@ -3,7 +3,24 @@
 import { useEffect, useState } from 'react';
 
 interface Alert { name: string; severity: string; message: string; firedAt: string }
-interface Status { health: { status: string; timestamp: string }; alerts: Alert[] }
+interface PerformanceStatus {
+  system?: {
+    cpuUsagePercent: number;
+    eventLoopLagMs: number;
+    memory: { heapUtilizationRatio: number };
+  };
+  http?: {
+    totalRequests: number;
+    errorRate: number;
+    averageLatencyMs: number;
+  };
+}
+
+interface Status {
+  health: { status: string; timestamp: string };
+  alerts: Alert[];
+  performance?: PerformanceStatus;
+}
 
 export default function ObservabilityStatus() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -24,6 +41,7 @@ export default function ObservabilityStatus() {
   if (!status) return <div className="text-sm text-gray-400">Loading…</div>;
 
   const isUp = status.health?.status === 'ok';
+  const performance = status.performance;
 
   return (
     <div className="space-y-4">
@@ -51,11 +69,41 @@ export default function ObservabilityStatus() {
         </div>
       )}
 
+      {performance?.http && performance?.system && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Avg Latency"
+            value={`${performance.http.averageLatencyMs.toFixed(0)} ms`}
+          />
+          <MetricCard
+            label="Error Rate"
+            value={`${(performance.http.errorRate * 100).toFixed(1)}%`}
+          />
+          <MetricCard
+            label="CPU"
+            value={`${performance.system.cpuUsagePercent.toFixed(1)}%`}
+          />
+          <MetricCard
+            label="Heap Utilization"
+            value={`${(performance.system.memory.heapUtilizationRatio * 100).toFixed(1)}%`}
+          />
+        </div>
+      )}
+
       <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
         <a href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'} target="_blank" rel="noreferrer" className="hover:underline">Grafana →</a>
         <a href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'} target="_blank" rel="noreferrer" className="hover:underline">Kibana →</a>
         <a href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'} target="_blank" rel="noreferrer" className="hover:underline">Prometheus →</a>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</p>
     </div>
   );
 }

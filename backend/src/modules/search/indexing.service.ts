@@ -37,7 +37,9 @@ export class IndexingService {
     );
     const affected = result[1] ?? 0;
     if (affected === 0) {
-      this.logger.warn(`indexPet: no rows affected for petId=${petId} (entity not found)`);
+      this.logger.warn(
+        `indexPet: no rows affected for petId=${petId} (entity not found)`,
+      );
     }
   }
 
@@ -48,7 +50,9 @@ export class IndexingService {
     );
     const affected = result[1] ?? 0;
     if (affected === 0) {
-      this.logger.warn(`indexVet: no rows affected for vetId=${vetId} (entity not found)`);
+      this.logger.warn(
+        `indexVet: no rows affected for vetId=${vetId} (entity not found)`,
+      );
     }
   }
 

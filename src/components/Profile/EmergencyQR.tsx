@@ -49,7 +49,7 @@ export const EmergencyQR: React.FC<EmergencyQRProps> = ({ petId, petName }) => {
                     includeMargin={true}
                     imageSettings={{
                         src: "/PETCHAIN.jpeg",
-                        : undefined,
+                        x: undefined,
                         y: undefined,
                         height: 40,
                         width: 40,

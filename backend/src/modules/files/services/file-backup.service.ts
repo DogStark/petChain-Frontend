@@ -121,7 +121,10 @@ export class FileBackupService {
   /**
    * Get backup by ID
    */
-  async getBackup(backupId: string, userId?: string): Promise<FileBackupResponseDto> {
+  async getBackup(
+    backupId: string,
+    userId?: string,
+  ): Promise<FileBackupResponseDto> {
     const backup = await this.backupRepository.findOne({
       where: { id: backupId },
       relations: ['file'],
@@ -171,7 +174,7 @@ export class FileBackupService {
     });
 
     return {
-      backups: backups.map(b => this.mapBackupToDto(b)),
+      backups: backups.map((b) => this.mapBackupToDto(b)),
       total,
       page,
       pageSize,
@@ -370,7 +373,11 @@ export class FileBackupService {
   /**
    * Update backup status and metadata after completion
    */
-  async completeBackup(backupId: string, checksum: string, sizeBytes: number): Promise<void> {
+  async completeBackup(
+    backupId: string,
+    checksum: string,
+    sizeBytes: number,
+  ): Promise<void> {
     await this.backupRepository.update(
       { id: backupId },
       {

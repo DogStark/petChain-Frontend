@@ -48,10 +48,7 @@ export class AnalyticsController {
   }
 
   @Get('export')
-  async exportReport(
-    @Query() query: AnalyticsQueryDto,
-    @Res() res: Response,
-  ) {
+  async exportReport(@Query() query: AnalyticsQueryDto, @Res() res: Response) {
     const data = await this.analyticsService.getDashboardOverview(query);
     const format = query.format || ExportFormat.JSON;
 

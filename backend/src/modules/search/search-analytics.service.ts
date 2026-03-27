@@ -63,18 +63,27 @@ export class SearchAnalyticsService {
 
     const totalSearches = records.length;
     const successfulSearches = records.filter((r) => r.wasSuccessful).length;
-    const successRate = totalSearches === 0 ? 0 : successfulSearches / totalSearches;
+    const successRate =
+      totalSearches === 0 ? 0 : successfulSearches / totalSearches;
     const avgResponseTime =
       totalSearches === 0
         ? 0
-        : records.reduce((sum, r) => sum + Number(r.responseTime), 0) / totalSearches;
+        : records.reduce((sum, r) => sum + Number(r.responseTime), 0) /
+          totalSearches;
 
     const searchesByType: Record<string, number> = {};
     for (const record of records) {
-      searchesByType[record.searchType] = (searchesByType[record.searchType] ?? 0) + 1;
+      searchesByType[record.searchType] =
+        (searchesByType[record.searchType] ?? 0) + 1;
     }
 
-    return { totalSearches, successfulSearches, successRate, avgResponseTime, searchesByType };
+    return {
+      totalSearches,
+      successfulSearches,
+      successRate,
+      avgResponseTime,
+      searchesByType,
+    };
   }
 
   async getPopularQueries(limit: number): Promise<PopularQuery[]> {

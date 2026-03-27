@@ -31,7 +31,9 @@ export class SearchService {
 
   async searchPets(queryDto: SearchQueryDto): Promise<SearchResult<Pet>> {
     const startTime = Date.now();
-    const result = await this.strategyFactory.getStrategy().searchPets(queryDto);
+    const result = await this.strategyFactory
+      .getStrategy()
+      .searchPets(queryDto);
     const searchTime = Date.now() - startTime;
 
     this.analyticsService
@@ -49,14 +51,20 @@ export class SearchService {
   }
 
   async searchVets(queryDto: SearchQueryDto): Promise<SearchResult<Vet>> {
-    const hasLat = queryDto.latitude !== undefined && queryDto.latitude !== null;
-    const hasLng = queryDto.longitude !== undefined && queryDto.longitude !== null;
+    const hasLat =
+      queryDto.latitude !== undefined && queryDto.latitude !== null;
+    const hasLng =
+      queryDto.longitude !== undefined && queryDto.longitude !== null;
     if (hasLat !== hasLng) {
-      throw new BadRequestException('Both latitude and longitude must be provided together');
+      throw new BadRequestException(
+        'Both latitude and longitude must be provided together',
+      );
     }
 
     const startTime = Date.now();
-    const result = await this.strategyFactory.getStrategy().searchVets(queryDto);
+    const result = await this.strategyFactory
+      .getStrategy()
+      .searchVets(queryDto);
     const searchTime = Date.now() - startTime;
 
     this.analyticsService
@@ -73,9 +81,13 @@ export class SearchService {
     return result;
   }
 
-  async searchMedicalRecords(queryDto: SearchQueryDto): Promise<SearchResult<MedicalRecord>> {
+  async searchMedicalRecords(
+    queryDto: SearchQueryDto,
+  ): Promise<SearchResult<MedicalRecord>> {
     const startTime = Date.now();
-    const result = await this.strategyFactory.getStrategy().searchMedicalRecords(queryDto);
+    const result = await this.strategyFactory
+      .getStrategy()
+      .searchMedicalRecords(queryDto);
     const searchTime = Date.now() - startTime;
 
     this.analyticsService
@@ -223,7 +235,10 @@ export class SearchService {
         query: queryDto.query || '',
         searchType: 'global',
         resultsCount:
-          pets.total + vets.total + medicalRecords.total + emergencyServices.total,
+          pets.total +
+          vets.total +
+          medicalRecords.total +
+          emergencyServices.total,
         responseTime: searchTime,
         filters: queryDto,
         wasSuccessful:
@@ -243,8 +258,13 @@ export class SearchService {
     };
   }
 
-  async autocomplete(query: string, type?: string): Promise<AutocompleteResult> {
-    const suggestions = await this.strategyFactory.getStrategy().autocomplete(query, type);
+  async autocomplete(
+    query: string,
+    type?: string,
+  ): Promise<AutocompleteResult> {
+    const suggestions = await this.strategyFactory
+      .getStrategy()
+      .autocomplete(query, type);
     const popular = await this.analyticsService.getPopularQueries(10);
 
     return {

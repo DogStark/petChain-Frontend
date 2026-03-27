@@ -60,7 +60,10 @@ export class SurgeriesController {
       const photoUrls = await Promise.all(
         photos.map((photo) => this.surgeriesService.savePhoto(photo)),
       );
-      updateSurgeryDto.photos = [...(updateSurgeryDto.photos || []), ...photoUrls];
+      updateSurgeryDto.photos = [
+        ...(updateSurgeryDto.photos || []),
+        ...photoUrls,
+      ];
     }
 
     return this.surgeriesService.update(id, updateSurgeryDto);

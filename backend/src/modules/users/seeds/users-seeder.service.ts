@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { EntityFactory } from '../../../database/seeds/factories/entity.factory';
-import { FIRST_NAMES, LAST_NAMES } from '../../../database/seeds/data/mock-data';
+import {
+  FIRST_NAMES,
+  LAST_NAMES,
+} from '../../../database/seeds/data/mock-data';
 
 @Injectable()
 export class UsersSeederService {
@@ -19,22 +22,26 @@ export class UsersSeederService {
     const users: User[] = [];
 
     for (let i = 0; i < count; i++) {
-        const firstName = EntityFactory.getRandomElement(FIRST_NAMES);
-        const lastName = EntityFactory.getRandomElement(LAST_NAMES);
-        
-        const user = this.userRepository.create({
-            email: EntityFactory.generateEmail(firstName, lastName),
-            firstName,
-            lastName,
-            phone: EntityFactory.generatePhone(),
-            address: EntityFactory.generateAddress(),
-            city: EntityFactory.getRandomElement(['New York', 'Los Angeles', 'Chicago']),
-            country: 'USA',
-            emailVerified: true,
-            phoneVerified: true,
-        });
-        
-        users.push(await this.userRepository.save(user));
+      const firstName = EntityFactory.getRandomElement(FIRST_NAMES);
+      const lastName = EntityFactory.getRandomElement(LAST_NAMES);
+
+      const user = this.userRepository.create({
+        email: EntityFactory.generateEmail(firstName, lastName),
+        firstName,
+        lastName,
+        phone: EntityFactory.generatePhone(),
+        address: EntityFactory.generateAddress(),
+        city: EntityFactory.getRandomElement([
+          'New York',
+          'Los Angeles',
+          'Chicago',
+        ]),
+        country: 'USA',
+        emailVerified: true,
+        phoneVerified: true,
+      });
+
+      users.push(await this.userRepository.save(user));
     }
 
     this.logger.log(`Successfully seeded ${users.length} users`);

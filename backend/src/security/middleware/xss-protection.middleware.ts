@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import * as xss from 'xss';
+import xss from 'xss';
 
 @Injectable()
 export class XssProtectionMiddleware implements NestMiddleware {
