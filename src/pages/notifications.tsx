@@ -4,9 +4,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/contexts/NotificationContext';
 import NotificationPreferencesPanel from '@/components/Notifications/NotificationPreferencesPanel';
 import {
-
-  AppNotification, NotificationCategory,
-  CATEGORY_LABELS, CATEGORY_ICONS,
+  AppNotification,
+  NotificationCategory,
+  CATEGORY_LABELS,
+  CATEGORY_ICONS,
 } from '@/types/notification';
 
 export const dynamic = 'force-dynamic';
@@ -28,9 +29,9 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
 
   const priorityBadge: Record<string, string> = {
     urgent: 'bg-red-100 text-red-700',
-    high:   'bg-orange-100 text-orange-700',
+    high: 'bg-orange-100 text-orange-700',
     normal: 'bg-blue-100 text-blue-700',
-    low:    'bg-gray-100 text-gray-500',
+    low: 'bg-gray-100 text-gray-500',
   };
 
   return (
@@ -40,15 +41,21 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
       onClick={() => !n.isRead && onRead(n.id)}
       role="article"
     >
-      <span className="text-2xl shrink-0 mt-0.5" aria-hidden="true">{icon}</span>
+      <span className="text-2xl shrink-0 mt-0.5" aria-hidden="true">
+        {icon}
+      </span>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <p className={`text-sm leading-snug ${n.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
+          <p
+            className={`text-sm leading-snug ${n.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}
+          >
             {n.title}
           </p>
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priorityBadge[n.priority] ?? priorityBadge.normal}`}>
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${priorityBadge[n.priority] ?? priorityBadge.normal}`}
+            >
               {n.priority}
             </span>
             <span className="text-xs text-gray-400">{timeAgo}</span>
@@ -64,7 +71,7 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
           {n.actionUrl && (
             <a
               href={n.actionUrl}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="text-xs text-blue-600 font-semibold hover:underline"
             >
               View details →
@@ -72,7 +79,10 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
           )}
           {!n.isRead && (
             <button
-              onClick={e => { e.stopPropagation(); onRead(n.id); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRead(n.id);
+              }}
               className="text-xs text-gray-500 hover:text-gray-700 underline"
             >
               Mark as read
@@ -82,7 +92,10 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
       </div>
 
       {!n.isRead && (
-        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-1.5" aria-label="Unread" />
+        <span
+          className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-1.5"
+          aria-label="Unread"
+        />
       )}
     </div>
   );
@@ -90,10 +103,14 @@ function NotifCard({ n, onRead }: { n: AppNotification; onRead: (id: string) => 
 
 export default function NotificationsPage() {
   const {
-    filteredNotifications, unreadCount,
-    activeFilter, setFilter,
-    markRead, markAllRead,
-    isLoading, isConnected,
+    filteredNotifications,
+    unreadCount,
+    activeFilter,
+    setFilter,
+    markRead,
+    markAllRead,
+    isLoading,
+    isConnected,
   } = useNotifications();
 
   const [tab, setTab] = useState<'notifications' | 'preferences'>('notifications');
@@ -114,8 +131,12 @@ export default function NotificationsPage() {
                 {unreadCount > 0 && (
                   <span className="text-sm text-gray-500">{unreadCount} unread</span>
                 )}
-                <span className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-gray-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span
+                  className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-gray-400'}`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`}
+                  />
                   {isConnected ? 'Live' : 'Offline'}
                 </span>
               </div>
@@ -132,7 +153,7 @@ export default function NotificationsPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl">
-            {(['notifications', 'preferences'] as const).map(t => (
+            {(['notifications', 'preferences'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -148,15 +169,17 @@ export default function NotificationsPage() {
             <>
               {/* Category filters */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                {FILTERS.map(f => (
+                {FILTERS.map((f) => (
                   <button
                     key={f.value}
                     onClick={() => setFilter(f.value)}
                     aria-pressed={activeFilter === f.value}
                     className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap min-h-[36px]
-                      ${activeFilter === f.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      ${
+                        activeFilter === f.value
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
                   >
                     {f.label}
                   </button>
@@ -166,9 +189,24 @@ export default function NotificationsPage() {
               {/* List */}
               {isLoading && filteredNotifications.length === 0 ? (
                 <div className="flex justify-center py-16">
-                  <svg className="w-8 h-8 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <svg
+                    className="w-8 h-8 animate-spin text-blue-500"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
                   </svg>
                 </div>
               ) : filteredNotifications.length === 0 ? (
@@ -179,7 +217,7 @@ export default function NotificationsPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredNotifications.map(n => (
+                  {filteredNotifications.map((n) => (
                     <NotifCard key={n.id} n={n} onRead={markRead} />
                   ))}
                 </div>

@@ -30,7 +30,7 @@ export default function ScanPage() {
       try {
         // Record the scan (best-effort, non-blocking)
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
-        qrcodeAPI.recordScan(id, { deviceType, userAgent: navigator.userAgent }).catch(() => {});
+        qrcodeAPI.recordScan(id, { deviceType }).catch(() => {});
 
         const qr = await qrcodeAPI.getOne(id);
 
@@ -77,7 +77,10 @@ export default function ScanPage() {
         <AlertOctagon size={64} className="text-red-500 mb-4" />
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Tag Unavailable</h1>
         <p className="text-gray-600 mb-6">{error || 'Unable to load this pet tag.'}</p>
-        <button onClick={() => router.push('/')} className="bg-gray-900 text-white px-8 py-3 rounded-full font-bold">
+        <button
+          onClick={() => router.push('/')}
+          className="bg-gray-900 text-white px-8 py-3 rounded-full font-bold"
+        >
           Return Home
         </button>
       </div>
@@ -90,7 +93,10 @@ export default function ScanPage() {
     <div className="min-h-screen bg-red-50">
       <Head>
         <title>Pet Emergency Tag — PetChain</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+        />
       </Head>
 
       {/* Header */}
@@ -100,8 +106,12 @@ export default function ScanPage() {
             <AlertOctagon size={32} className="text-red-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tighter italic">Emergency Record</h1>
-            <p className="text-red-100 text-sm font-bold">Critical Information for Pet Responders</p>
+            <h1 className="text-2xl font-black uppercase tracking-tighter italic">
+              Emergency Record
+            </h1>
+            <p className="text-red-100 text-sm font-bold">
+              Critical Information for Pet Responders
+            </p>
           </div>
         </div>
       </div>
@@ -148,7 +158,9 @@ export default function ScanPage() {
                   >
                     <div>
                       <p className="font-extrabold text-gray-900 text-lg">{contact.name}</p>
-                      <p className="text-sm text-gray-500 font-bold">{contact.relationship.toUpperCase()}</p>
+                      <p className="text-sm text-gray-500 font-bold">
+                        {contact.relationship.toUpperCase()}
+                      </p>
                     </div>
                     <div className="bg-red-600 text-white p-3 rounded-full shadow-lg">
                       <Phone size={24} fill="currentColor" />
@@ -190,12 +202,16 @@ export default function ScanPage() {
                 {emergency.emergencyVet.is24Hours ? 'OPEN 24/7' : 'Check Hours'}
               </div>
               <div className="flex flex-col gap-2">
-                <a href={`tel:${emergency.emergencyVet.phone}`} className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-full py-4 font-black shadow-lg">
+                <a
+                  href={`tel:${emergency.emergencyVet.phone}`}
+                  className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-full py-4 font-black shadow-lg"
+                >
                   <Phone size={20} fill="currentColor" /> Call Clinic
                 </a>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(emergency.emergencyVet.address)}`}
-                  target="_blank" rel="noopener noreferrer"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-white text-blue-600 border-2 border-blue-600 rounded-full py-4 font-black"
                 >
                   <MapPin size={20} /> Open Maps
@@ -212,14 +228,22 @@ export default function ScanPage() {
               <AlertOctagon size={18} /> Poison Control
             </h2>
             <p className="text-2xl font-black mb-1">{emergency.poisonControl.name}</p>
-            <a href={`tel:${emergency.poisonControl.phone}`} className="flex items-center justify-between p-4 bg-white/10 rounded-2xl border border-white/10 mt-4 active:scale-95 transition-all">
+            <a
+              href={`tel:${emergency.poisonControl.phone}`}
+              className="flex items-center justify-between p-4 bg-white/10 rounded-2xl border border-white/10 mt-4 active:scale-95 transition-all"
+            >
               <p className="font-black text-2xl">{emergency.poisonControl.phone}</p>
               <div className="bg-white text-black p-3 rounded-full">
                 <Phone size={24} fill="currentColor" />
               </div>
             </a>
             {emergency.poisonControl.website && (
-              <a href={emergency.poisonControl.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm opacity-60 mt-4 justify-center">
+              <a
+                href={emergency.poisonControl.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm opacity-60 mt-4 justify-center"
+              >
                 Visit Website <ExternalLink size={14} />
               </a>
             )}
@@ -229,7 +253,9 @@ export default function ScanPage() {
         <div className="text-center pt-8">
           <div className="flex items-center justify-center gap-2 text-gray-400 mb-2">
             <Dna size={16} />
-            <span className="font-black tracking-widest text-xs uppercase">Verified by PetChain</span>
+            <span className="font-black tracking-widest text-xs uppercase">
+              Verified by PetChain
+            </span>
           </div>
           <p className="text-[10px] text-gray-400 font-bold max-w-[200px] mx-auto uppercase">
             Data secured via Stellar Blockchain technology.

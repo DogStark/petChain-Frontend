@@ -35,10 +35,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ userId }) =>
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsAPI.markAsRead(userId, id);
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Failed to mark notification as read', err);
     }
@@ -47,7 +45,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ userId }) =>
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead(userId);
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark all as read', err);
@@ -71,7 +69,9 @@ export const NotificationList: React.FC<NotificationListProps> = ({ userId }) =>
     return (
       <div className={styles.centered}>
         <p className={styles.error}>{error}</p>
-        <button className={styles.retryBtn} onClick={fetchNotifications}>Retry</button>
+        <button className={styles.retryBtn} onClick={fetchNotifications}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -99,8 +99,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ userId }) =>
             <p>We'll notify you when there's something new.</p>
           </div>
         ) : (
-          notifications.map(notification => (
-            <NotificationItem 
+          notifications.map((notification) => (
+            <NotificationItem
               key={notification.id}
               notification={notification}
               onMarkAsRead={handleMarkAsRead}

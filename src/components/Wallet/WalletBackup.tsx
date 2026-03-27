@@ -16,15 +16,13 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
 
   if (!wallet) {
     return (
-      <div className="text-center py-12 text-gray-400">
-        Select a wallet to manage its backup.
-      </div>
+      <div className="text-center py-12 text-gray-400">Select a wallet to manage its backup.</div>
     );
   }
 
   async function handleExport(e: React.FormEvent) {
     e.preventDefault();
-    if (!pin) return;
+    if (!pin || !wallet) return;
     setError(null);
     setLoading(true);
     try {
@@ -35,7 +33,7 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `petchain-wallet-backup-${wallet.label.replace(/\s+/g, '-')}-${Date.now()}.json`;
+      a.download = `petchain-wallet-backup-${wallet!.label.replace(/\s+/g, '-')}-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -61,9 +59,7 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
       {/* Status */}
       <div
         className={`flex items-center gap-3 rounded-xl px-5 py-4 border ${
-          wallet.backupVerified
-            ? 'bg-green-50 border-green-200'
-            : 'bg-yellow-50 border-yellow-200'
+          wallet.backupVerified ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
         }`}
       >
         {wallet.backupVerified ? (
@@ -72,10 +68,14 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
           <AlertTriangle size={24} className="text-yellow-600 flex-shrink-0" />
         )}
         <div>
-          <p className={`font-semibold text-sm ${wallet.backupVerified ? 'text-green-800' : 'text-yellow-800'}`}>
+          <p
+            className={`font-semibold text-sm ${wallet.backupVerified ? 'text-green-800' : 'text-yellow-800'}`}
+          >
             {wallet.backupVerified ? 'Backup verified' : 'Backup not yet verified'}
           </p>
-          <p className={`text-xs mt-0.5 ${wallet.backupVerified ? 'text-green-600' : 'text-yellow-600'}`}>
+          <p
+            className={`text-xs mt-0.5 ${wallet.backupVerified ? 'text-green-600' : 'text-yellow-600'}`}
+          >
             {wallet.backupVerified
               ? 'This wallet has been backed up. Keep your backup file safe.'
               : 'Export and store your backup before using this wallet with real funds.'}

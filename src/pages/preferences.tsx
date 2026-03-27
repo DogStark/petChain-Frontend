@@ -25,22 +25,18 @@ type PrivacyPreferenceState = {
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy'>(
-    'notifications',
+  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy'>('notifications');
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferenceState | null>(
+    null
   );
-  const [notificationPrefs, setNotificationPrefs] =
-    useState<NotificationPreferenceState | null>(null);
   const [smsUsage, setSmsUsage] = useState<{
     sent: number;
     delivered: number;
     costCents: number;
     limitCents: number | null;
   } | null>(null);
-  const [privacyPrefs, setPrivacyPrefs] =
-    useState<PrivacyPreferenceState | null>(null);
-  const [preferences, setPreferences] = useState<UpdateUserPreferencesDto | null>(
-    null,
-  );
+  const [privacyPrefs, setPrivacyPrefs] = useState<PrivacyPreferenceState | null>(null);
+  const [preferences, setPreferences] = useState<UpdateUserPreferencesDto | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,9 +92,7 @@ export default function PreferencesPage() {
     loadPreferences();
   }, [router]);
 
-  const handleNotificationPreferencesSubmit = async (
-    data: NotificationPreferenceState,
-  ) => {
+  const handleNotificationPreferencesSubmit = async (data: NotificationPreferenceState) => {
     try {
       setIsLoading(true);
       const updated = await userAPI.updateNotificationPreferences(data);
@@ -161,17 +155,13 @@ export default function PreferencesPage() {
 
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${
-            activeTab === 'notifications' ? styles.activeTab : ''
-          }`}
+          className={`${styles.tab} ${activeTab === 'notifications' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
           Notifications
         </button>
         <button
-          className={`${styles.tab} ${
-            activeTab === 'privacy' ? styles.activeTab : ''
-          }`}
+          className={`${styles.tab} ${activeTab === 'privacy' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('privacy')}
         >
           Privacy

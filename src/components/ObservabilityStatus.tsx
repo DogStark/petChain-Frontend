@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from 'react';
 
-interface Alert { name: string; severity: string; message: string; firedAt: string }
-interface Status { health: { status: string; timestamp: string }; alerts: Alert[] }
+interface Alert {
+  name: string;
+  severity: string;
+  message: string;
+  firedAt: string;
+}
+interface Status {
+  health: { status: string; timestamp: string };
+  alerts: Alert[];
+}
 
 export default function ObservabilityStatus() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -27,9 +35,13 @@ export default function ObservabilityStatus() {
 
   return (
     <div className="space-y-4">
-      <div className={`flex items-center gap-2 rounded-lg px-4 py-3 ${isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+      <div
+        className={`flex items-center gap-2 rounded-lg px-4 py-3 ${isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}
+      >
         <span className={`h-2.5 w-2.5 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className={`text-sm font-medium ${isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+        <span
+          className={`text-sm font-medium ${isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}
+        >
           Backend {isUp ? 'Healthy' : 'Degraded'}
         </span>
         <span className="ml-auto text-xs text-gray-400">
@@ -39,7 +51,9 @@ export default function ObservabilityStatus() {
 
       {status.alerts?.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Alerts</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Active Alerts
+          </p>
           {status.alerts.map((a, i) => (
             <div
               key={i}
@@ -52,9 +66,30 @@ export default function ObservabilityStatus() {
       )}
 
       <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <a href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'} target="_blank" rel="noreferrer" className="hover:underline">Grafana →</a>
-        <a href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'} target="_blank" rel="noreferrer" className="hover:underline">Kibana →</a>
-        <a href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'} target="_blank" rel="noreferrer" className="hover:underline">Prometheus →</a>
+        <a
+          href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
+          Grafana →
+        </a>
+        <a
+          href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
+          Kibana →
+        </a>
+        <a
+          href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
+          Prometheus →
+        </a>
       </div>
     </div>
   );

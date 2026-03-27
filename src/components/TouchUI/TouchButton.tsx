@@ -10,10 +10,10 @@ interface TouchButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 const VARIANTS = {
-  primary:   'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm',
+  primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm',
   secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300',
-  danger:    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm',
-  ghost:     'bg-transparent text-blue-600 hover:bg-blue-50 active:bg-blue-100',
+  danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm',
+  ghost: 'bg-transparent text-blue-600 hover:bg-blue-50 active:bg-blue-100',
 };
 
 // min 44px tap target per WCAG 2.5.5
@@ -46,8 +46,8 @@ export default function TouchButton({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const id = ++rippleId.current;
-    setRipples(r => [...r, { id, x, y }]);
-    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 600);
+    setRipples((r) => [...r, { id, x, y }]);
+    setTimeout(() => setRipples((r) => r.filter((rp) => rp.id !== id)), 600);
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -75,7 +75,7 @@ export default function TouchButton({
       {...rest}
     >
       {/* Ripple effect */}
-      {ripples.map(rp => (
+      {ripples.map((rp) => (
         <span
           key={rp.id}
           aria-hidden="true"
@@ -86,8 +86,19 @@ export default function TouchButton({
 
       {loading && (
         <svg className="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
         </svg>
       )}
       {children}

@@ -16,7 +16,7 @@
   --color-success: #16a34a;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
   --color-text-primary: #f1f5f9;
@@ -28,7 +28,7 @@
   --color-success: #4ade80;
 }
 
-[data-theme="high-contrast"] {
+[data-theme='high-contrast'] {
   --color-bg: #000000;
   --color-surface: #1a1a1a;
   --color-text-primary: #ffffff;
@@ -41,14 +41,18 @@
 }
 
 @media print {
-  [data-theme], :root {
+  [data-theme],
+  :root {
     --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-text-primary: #000000;
     --color-text-secondary: #333333;
     --color-border: #cccccc;
   }
-  body { background: white !important; color: black !important; }
+  body {
+    background: white !important;
+    color: black !important;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -62,7 +66,9 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
 }
@@ -84,27 +90,48 @@ body {
     animation: fadeInUp 0.4s ease both;
   }
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
   .animate-slide-up {
     animation: slideUp 0.3s ease both;
   }
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .animate-fade-in {
     animation: fadeIn 0.25s ease both;
   }
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   /* iOS safe area for bottom nav */
@@ -114,8 +141,14 @@ body {
 
   /* Touch button ripple */
   @keyframes ripple {
-    from { transform: scale(0); opacity: 0.6; }
-    to   { transform: scale(6); opacity: 0; }
+    from {
+      transform: scale(0);
+      opacity: 0.6;
+    }
+    to {
+      transform: scale(6);
+      opacity: 0;
+    }
   }
   .animate-ripple {
     animation: ripple 0.6s linear forwards;
@@ -130,8 +163,14 @@ body {
 
   /* Notification center slide-in from right */
   @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
   .animate-slide-in-right {
     animation: slideInRight 0.25s ease both;

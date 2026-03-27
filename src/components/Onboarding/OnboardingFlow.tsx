@@ -41,12 +41,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 }) => {
   const initialIndex = Math.max(
     0,
-    STEPS.findIndex((s) => s.id === status.currentStep),
+    STEPS.findIndex((s) => s.id === status.currentStep)
   );
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [completedSteps, setCompletedSteps] = useState<OnboardingStepId[]>(
-    status.completedSteps,
-  );
+  const [completedSteps, setCompletedSteps] = useState<OnboardingStepId[]>(status.completedSteps);
   const [completing, setCompleting] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -239,13 +237,22 @@ function WelcomeStep() {
       </div>
       <h2 className={styles.stepTitle}>Welcome to PetChain</h2>
       <p className={styles.stepDescription}>
-        Secure your pet&apos;s medical records on the blockchain. Let&apos;s get you set up in
-        just a few steps.
+        Secure your pet&apos;s medical records on the blockchain. Let&apos;s get you set up in just
+        a few steps.
       </p>
       <div className={styles.featureList}>
-        <FeatureItem icon={<Shield size={18} color="#2563eb" />} text="Tamper-proof health records" />
-        <FeatureItem icon={<Search size={18} color="#2563eb" />} text="Find vets &amp; emergency services" />
-        <FeatureItem icon={<BarChart2 size={18} color="#2563eb" />} text="Track vaccination compliance" />
+        <FeatureItem
+          icon={<Shield size={18} color="#2563eb" />}
+          text="Tamper-proof health records"
+        />
+        <FeatureItem
+          icon={<Search size={18} color="#2563eb" />}
+          text="Find vets &amp; emergency services"
+        />
+        <FeatureItem
+          icon={<BarChart2 size={18} color="#2563eb" />}
+          text="Track vaccination compliance"
+        />
       </div>
     </div>
   );
@@ -294,8 +301,8 @@ function NotificationsStep() {
       </div>
       <h2 className={styles.stepTitle}>Stay Informed</h2>
       <p className={styles.stepDescription}>
-        Get reminders for vaccinations, vet appointments, and health alerts via email, SMS, or
-        push notifications.
+        Get reminders for vaccinations, vet appointments, and health alerts via email, SMS, or push
+        notifications.
       </p>
       <a href="/preferences" className={styles.ctaLink}>
         Set Preferences <ArrowRight size={14} />
@@ -311,27 +318,29 @@ function ExploreStep() {
         <Compass size={32} color="#e11d48" />
       </div>
       <h2 className={styles.stepTitle}>Explore PetChain</h2>
-      <p className={styles.stepDescription}>
-        You&apos;re ready! Here&apos;s what you can do next.
-      </p>
+      <p className={styles.stepDescription}>You&apos;re ready! Here&apos;s what you can do next.</p>
       <div className={styles.featureList}>
-        <FeatureItem icon={<Search size={18} color="#2563eb" />} text="Search pets, vets &amp; records" link="/search" />
-        <FeatureItem icon={<BarChart2 size={18} color="#2563eb" />} text="View health analytics" link="/analytics" />
-        <FeatureItem icon={<User size={18} color="#2563eb" />} text="Manage your account" link="/account-settings" />
+        <FeatureItem
+          icon={<Search size={18} color="#2563eb" />}
+          text="Search pets, vets &amp; records"
+          link="/search"
+        />
+        <FeatureItem
+          icon={<BarChart2 size={18} color="#2563eb" />}
+          text="View health analytics"
+          link="/analytics"
+        />
+        <FeatureItem
+          icon={<User size={18} color="#2563eb" />}
+          text="Manage your account"
+          link="/account-settings"
+        />
       </div>
     </div>
   );
 }
 
-function FeatureItem({
-  icon,
-  text,
-  link,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  link?: string;
-}) {
+function FeatureItem({ icon, text, link }: { icon: React.ReactNode; text: string; link?: string }) {
   const content = (
     <div className={styles.featureItem}>
       <span className={styles.featureIcon}>{icon}</span>
@@ -339,5 +348,11 @@ function FeatureItem({
       {link && <ArrowRight size={12} className={styles.featureArrow} />}
     </div>
   );
-  return link ? <a href={link} className={styles.featureLink}>{content}</a> : content;
+  return link ? (
+    <a href={link} className={styles.featureLink}>
+      {content}
+    </a>
+  ) : (
+    content
+  );
 }

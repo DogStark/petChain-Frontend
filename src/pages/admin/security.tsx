@@ -3,7 +3,18 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { getSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Shield, AlertTriangle, Activity, Users, Clock, CheckCircle, XCircle, Home, Settings, LogOut } from 'lucide-react';
+import {
+  Shield,
+  AlertTriangle,
+  Activity,
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Home,
+  Settings,
+  LogOut,
+} from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,9 +102,9 @@ export default function SecurityDashboard() {
       });
 
       if (response.ok) {
-        setAlerts(alerts.map(alert =>
-          alert.id === alertId ? { ...alert, acknowledged: true } : alert
-        ));
+        setAlerts(
+          alerts.map((alert) => (alert.id === alertId ? { ...alert, acknowledged: true } : alert))
+        );
       }
     } catch (error) {
       console.error('Failed to acknowledge alert:', error);
@@ -102,21 +113,30 @@ export default function SecurityDashboard() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
+      case 'critical':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-blue-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity.toLowerCase()) {
       case 'critical':
-      case 'high': return <XCircle className="h-4 w-4" />;
-      case 'medium': return <AlertTriangle className="h-4 w-4" />;
-      case 'low': return <CheckCircle className="h-4 w-4" />;
-      default: return <Activity className="h-4 w-4" />;
+      case 'high':
+        return <XCircle className="h-4 w-4" />;
+      case 'medium':
+        return <AlertTriangle className="h-4 w-4" />;
+      case 'low':
+        return <CheckCircle className="h-4 w-4" />;
+      default:
+        return <Activity className="h-4 w-4" />;
     }
   };
 
@@ -163,11 +183,17 @@ export default function SecurityDashboard() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 flex items-center space-x-1">
+              <Link
+                href="/dashboard"
+                className="text-gray-700 hover:text-gray-900 flex items-center space-x-1"
+              >
                 <Home className="h-5 w-5" />
                 <span>Dashboard</span>
               </Link>
-              <Link href="/settings" className="text-gray-700 hover:text-gray-900 flex items-center space-x-1">
+              <Link
+                href="/settings"
+                className="text-gray-700 hover:text-gray-900 flex items-center space-x-1"
+              >
                 <Settings className="h-5 w-5" />
                 <span>Settings</span>
               </Link>
@@ -274,7 +300,9 @@ export default function SecurityDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Blacklisted IPs</p>
-                <p className="text-2xl font-bold text-orange-600">{metrics?.activeBlacklistedIPs || 0}</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {metrics?.activeBlacklistedIPs || 0}
+                </p>
                 <p className="text-xs text-gray-500">Currently blocked IP addresses</p>
               </div>
               <Users className="h-8 w-8 text-gray-400" />
@@ -336,9 +364,14 @@ export default function SecurityDashboard() {
                 <h3 className="text-lg font-medium text-gray-900">Recent Security Events</h3>
                 <div className="space-y-4">
                   {metrics?.recentThreats?.slice(0, 10).map((event) => (
-                    <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-4">
-                        <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getSeverityColor(event.severity)}`}>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium text-white rounded ${getSeverityColor(event.severity)}`}
+                        >
                           {event.severity}
                         </span>
                         <div>
@@ -355,9 +388,7 @@ export default function SecurityDashboard() {
                         </span>
                       )}
                     </div>
-                  )) || (
-                    <p className="text-gray-500 text-center py-8">No recent security events</p>
-                  )}
+                  )) || <p className="text-gray-500 text-center py-8">No recent security events</p>}
                 </div>
               </div>
             )}
@@ -368,7 +399,10 @@ export default function SecurityDashboard() {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Events by Type</h3>
                   <div className="space-y-2">
                     {Object.entries(metrics?.eventsByType || {}).map(([type, count]) => (
-                      <div key={type} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <div
+                        key={type}
+                        className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                      >
                         <span className="text-sm">{type.replace(/_/g, ' ')}</span>
                         <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
                           {count}
@@ -382,9 +416,14 @@ export default function SecurityDashboard() {
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Events by Severity</h3>
                   <div className="space-y-2">
                     {Object.entries(metrics?.eventsBySeverity || {}).map(([severity, count]) => (
-                      <div key={severity} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <div
+                        key={severity}
+                        className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                      >
                         <span className="text-sm capitalize">{severity}</span>
-                        <span className={`px-2 py-1 text-xs font-medium text-white rounded ${getSeverityColor(severity)}`}>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium text-white rounded ${getSeverityColor(severity)}`}
+                        >
                           {count}
                         </span>
                       </div>
@@ -399,12 +438,13 @@ export default function SecurityDashboard() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Threat Trends</h3>
                 <div className="space-y-4">
                   {metrics?.threatTrends?.map((trend, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-4">
                         <Clock className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">
-                          {new Date(trend.period).toLocaleString()}
-                        </span>
+                        <span className="text-sm">{new Date(trend.period).toLocaleString()}</span>
                       </div>
                       <div className="flex space-x-4">
                         <div className="text-center">
@@ -417,9 +457,7 @@ export default function SecurityDashboard() {
                         </div>
                       </div>
                     </div>
-                  )) || (
-                    <p className="text-gray-500 text-center py-8">No trend data available</p>
-                  )}
+                  )) || <p className="text-gray-500 text-center py-8">No trend data available</p>}
                 </div>
               </div>
             )}
@@ -433,7 +471,7 @@ export default function SecurityDashboard() {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getSession(context);
 
-  if (!session || session.user.role !== 'admin') {
+  if (!session || !session.user || (session.user as { role?: string }).role !== 'admin') {
     return {
       redirect: {
         destination: '/login',

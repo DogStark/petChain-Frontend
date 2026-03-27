@@ -3,7 +3,12 @@ import { getApiBaseUrl } from './apiBaseUrl';
 
 const API_BASE_URL = getApiBaseUrl();
 
-export type OnboardingStepId = 'welcome' | 'profile_setup' | 'add_pet' | 'notifications' | 'explore';
+export type OnboardingStepId =
+  | 'welcome'
+  | 'profile_setup'
+  | 'add_pet'
+  | 'notifications'
+  | 'explore';
 
 export interface OnboardingStep {
   id: OnboardingStepId;
@@ -165,9 +170,7 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async updateProfile(
-    data: UpdateUserProfileDto,
-  ): Promise<UserProfile> {
+  async updateProfile(data: UpdateUserProfileDto): Promise<UserProfile> {
     const response = await this.api.patch('/me/profile', data);
     return response.data;
   }
@@ -215,9 +218,7 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async updatePreferences(
-    data: UpdateUserPreferencesDto,
-  ) {
+  async updatePreferences(data: UpdateUserPreferencesDto) {
     const response = await this.api.patch('/me/preferences', data);
     return response.data;
   }
@@ -234,14 +235,14 @@ class UserManagementAPI {
     smsReminderAlerts?: boolean;
     pushNotifications?: boolean;
   }) {
-    const response = await this.api.patch(
-      '/me/preferences/notifications',
-      settings,
-    );
+    const response = await this.api.patch('/me/preferences/notifications', settings);
     return response.data;
   }
 
-  async getSMSUsage(month?: number, year?: number): Promise<{
+  async getSMSUsage(
+    month?: number,
+    year?: number
+  ): Promise<{
     sent: number;
     delivered: number;
     failed: number;
@@ -256,9 +257,25 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async getAdminSMSStats(month?: number, year?: number): Promise<{
-    global: { sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null };
-    byUser: Array<{ userId: string; sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }>;
+  async getAdminSMSStats(
+    month?: number,
+    year?: number
+  ): Promise<{
+    global: {
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    };
+    byUser: Array<{
+      userId: string;
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    }>;
   }> {
     const params = new URLSearchParams();
     if (month != null) params.set('month', String(month));
@@ -278,10 +295,7 @@ class UserManagementAPI {
     showPhone?: boolean;
     showActivity?: boolean;
   }) {
-    const response = await this.api.patch(
-      '/me/preferences/privacy',
-      settings,
-    );
+    const response = await this.api.patch('/me/preferences/privacy', settings);
     return response.data;
   }
 
@@ -310,7 +324,7 @@ class UserManagementAPI {
   async getActivity(
     limit: number = 50,
     offset: number = 0,
-    actionType?: string,
+    actionType?: string
   ): Promise<ActivityLog[]> {
     const response = await this.api.get('/me/activity', {
       params: { limit, offset, ...(actionType ? { activityType: actionType } : {}) },

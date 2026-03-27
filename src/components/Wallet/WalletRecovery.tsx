@@ -33,7 +33,13 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
       try {
         const parsed = JSON.parse(ev.target?.result as string) as BackupData;
         // Basic structure check
-        if (!parsed.publicKey || !parsed.encryptedKey || !parsed.iv || !parsed.salt || !parsed.checksum) {
+        if (
+          !parsed.publicKey ||
+          !parsed.encryptedKey ||
+          !parsed.iv ||
+          !parsed.salt ||
+          !parsed.checksum
+        ) {
           throw new Error('Missing required backup fields.');
         }
         if (parsed.version !== 1) {
@@ -64,7 +70,10 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
       // Translate crypto error to user-friendly message
-      if (err instanceof Error && (err.message.includes('decrypt') || err.message.includes('operation'))) {
+      if (
+        err instanceof Error &&
+        (err.message.includes('decrypt') || err.message.includes('operation'))
+      ) {
         setParseError('Incorrect PIN. The backup cannot be decrypted with this PIN.');
       }
       // other errors shown via hook
@@ -79,7 +88,9 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
           <ShieldCheck size={15} /> Wallet Recovery
         </p>
         <ul className="list-disc list-inside space-y-1 text-blue-700">
-          <li>Upload the <code>.json</code> backup file you exported earlier.</li>
+          <li>
+            Upload the <code>.json</code> backup file you exported earlier.
+          </li>
           <li>Enter the PIN you used when exporting.</li>
           <li>The checksum is verified before decryption to detect tampering.</li>
           <li>Your secret key is re-encrypted with the same PIN and stored locally.</li>
@@ -97,7 +108,10 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
         </div>
       )}
 
-      <form onSubmit={handleRecover} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5">
+      <form
+        onSubmit={handleRecover}
+        className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5"
+      >
         {/* File Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Backup File</label>
@@ -107,8 +121,8 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
               backup
                 ? 'border-green-400 bg-green-50'
                 : parseError
-                ? 'border-red-400 bg-red-50'
-                : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+                  ? 'border-red-400 bg-red-50'
+                  : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
             }`}
           >
             {backup ? (
@@ -118,7 +132,9 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
                 <p className="text-xs text-green-600">
                   Public key: {backup.publicKey.slice(0, 12)}…{backup.publicKey.slice(-6)}
                 </p>
-                <p className="text-xs text-gray-400">{backup.network} · {backup.label}</p>
+                <p className="text-xs text-gray-400">
+                  {backup.network} · {backup.label}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
@@ -153,9 +169,7 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
 
         {/* PIN */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Backup PIN
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Backup PIN</label>
           <div className="relative">
             <input
               type={showPin ? 'text' : 'password'}

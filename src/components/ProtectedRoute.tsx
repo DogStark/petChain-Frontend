@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({
   children,
   requireAuth = true,
-  redirectTo = '/login'
+  redirectTo = '/login',
 }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -28,7 +28,9 @@ export default function ProtectedRoute({
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div role="status" aria-live="polite" className="mx-auto mb-4">
-            <div className="animate-spin h-8 w-8 text-blue-600 mx-auto" aria-hidden="true">⏳</div>
+            <div className="animate-spin h-8 w-8 text-blue-600 mx-auto" aria-hidden="true">
+              ⏳
+            </div>
             <span className="sr-only">Loading</span>
           </div>
           <p className="text-gray-600">Loading...</p>

@@ -9,7 +9,7 @@ import {
   FileText,
   Info,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
 
@@ -40,15 +40,24 @@ export interface NotificationItemProps {
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
-    case 'APPOINTMENT': return <Calendar size={20} />;
-    case 'MEDICATION': return <Syringe size={20} />;
-    case 'CONSULTATION': return <Info size={20} />;
-    case 'ALERT': return <AlertTriangle size={20} />;
-    case 'MESSAGE': return <MessageSquare size={20} />;
-    case 'VACCINATION': return <Syringe size={20} />;
-    case 'LOST_PET': return <Search size={20} />;
-    case 'MEDICAL_RECORD': return <FileText size={20} />;
-    default: return <Bell size={20} />;
+    case 'APPOINTMENT':
+      return <Calendar size={20} />;
+    case 'MEDICATION':
+      return <Syringe size={20} />;
+    case 'CONSULTATION':
+      return <Info size={20} />;
+    case 'ALERT':
+      return <AlertTriangle size={20} />;
+    case 'MESSAGE':
+      return <MessageSquare size={20} />;
+    case 'VACCINATION':
+      return <Syringe size={20} />;
+    case 'LOST_PET':
+      return <Search size={20} />;
+    case 'MEDICAL_RECORD':
+      return <FileText size={20} />;
+    default:
+      return <Bell size={20} />;
   }
 };
 
@@ -57,16 +66,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onMarkAsRead,
   onActionClick,
 }) => {
-  const { 
-    id, 
-    title, 
-    message, 
-    category, 
-    isRead, 
-    createdAt, 
-    actionUrl, 
-    metadata 
-  } = notification;
+  const { id, title, message, category, isRead, createdAt, actionUrl, metadata } = notification;
 
   const date = new Date(createdAt);
   const timeAgo = formatTimeAgo(date);
@@ -79,11 +79,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`${styles.container} ${!isRead ? styles.unread : ''}`}
       onClick={() => !isRead && onMarkAsRead(id)}
     >
-      <div className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}>
+      <div
+        className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}
+      >
         {getCategoryIcon(category)}
       </div>
 
@@ -104,18 +106,15 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         {/* Action Buttons */}
         <div className={styles.actions}>
           {actionUrl && (
-            <button 
-              className={styles.actionBtn} 
-              onClick={handleAction}
-            >
+            <button className={styles.actionBtn} onClick={handleAction}>
               <ExternalLink size={14} className={styles.btnIcon} />
               View Details
             </button>
           )}
-          
+
           {!isRead && (
-            <button 
-              className={styles.markReadBtn} 
+            <button
+              className={styles.markReadBtn}
               onClick={(e) => {
                 e.stopPropagation();
                 onMarkAsRead(id);

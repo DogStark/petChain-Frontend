@@ -33,7 +33,13 @@ export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWith2FA: (email: string, password: string, totpToken: string) => Promise<void>;
   recoverWith2FA: (email: string, password: string, backupCode: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
   clearError: () => void;
@@ -46,7 +52,10 @@ export interface AuthContextType extends AuthState {
     phoneVerified: boolean;
     isVerified: boolean;
   }>;
-  verifyPhone: (email: string, code: string) => Promise<{
+  verifyPhone: (
+    email: string,
+    code: string
+  ) => Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -88,27 +97,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const storedTokens = localStorage.getItem('auth_tokens');
         const storedUser = localStorage.getItem('auth_user');
-        
+
         if (storedTokens && storedUser) {
           const tokens = JSON.parse(storedTokens);
           const user = JSON.parse(storedUser);
-          
-          setState(prev => ({
+
+          setState((prev) => ({
             ...prev,
             user,
             tokens,
             isAuthenticated: true,
             isLoading: false,
           }));
-          
+
           // Set up automatic token refresh
           setupTokenRefresh();
         } else {
-          setState(prev => ({ ...prev, isLoading: false }));
+          setState((prev) => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
         console.error('Error loading auth state:', error);
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
       }
     };
 
@@ -116,31 +125,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const setAuth = (user: User, tokens: AuthTokens) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       user,
       tokens,
       isAuthenticated: true,
       error: null,
     }));
-    
+
     // Store in localStorage
     localStorage.setItem('auth_tokens', JSON.stringify(tokens));
     localStorage.setItem('auth_user', JSON.stringify(user));
     localStorage.setItem('authToken', tokens.accessToken);
-    
+
     setupTokenRefresh();
   };
 
   const clearAuth = () => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       user: null,
       tokens: null,
       isAuthenticated: false,
       error: null,
     }));
-    
+
     localStorage.removeItem('auth_tokens');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('authToken');
@@ -148,25 +157,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const setError = (error: string) => {
-    setState(prev => ({ ...prev, error }));
+    setState((prev) => ({ ...prev, error }));
   };
 
   const clearError = () => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   };
 
   const setLoading = (isLoading: boolean) => {
-    setState(prev => ({ ...prev, isLoading }));
+    setState((prev) => ({ ...prev, isLoading }));
   };
 
   let refreshTimer: NodeJS.Timeout | null = null;
 
   const setupTokenRefresh = () => {
     clearTokenRefresh();
-    
+
     // Refresh token 2 minutes before expiry (access token expires in 15 minutes)
     const refreshInterval = 13 * 60 * 1000; // 13 minutes
-    
+
     refreshTimer = setInterval(() => {
       refreshTokens();
     }, refreshInterval);
@@ -181,7 +190,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (state.tokens?.accessToken) {
       config.headers = {
         ...config.headers,
-        'Authorization': `Bearer ${state.tokens.accessToken}`,
+        Authorization: `Bearer ${state.tokens.accessToken}`,
       };
     }
 
@@ -234,7 +243,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const loginWith2FA = async (email: string, password: string, totpToken: string): Promise<void> => {
+  const loginWith2FA = async (
+    email: string,
+    password: string,
+    totpToken: string
+  ): Promise<void> => {
     setLoading(true);
     clearError();
 
@@ -256,7 +269,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const recoverWith2FA = async (email: string, password: string, backupCode: string): Promise<void> => {
+  const recoverWith2FA = async (
+    email: string,
+    password: string,
+    backupCode: string
+  ): Promise<void> => {
     setLoading(true);
     clearError();
 
@@ -283,7 +300,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     firstName: string,
     lastName: string,
-    phone: string,
+    phone: string
   ): Promise<void> => {
     setLoading(true);
     clearError();
@@ -296,7 +313,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Registration doesn't return tokens, just user data
       // User needs to verify email before logging in
-      setState(prev => ({ ...prev, error: null }));
+      setState((prev) => ({ ...prev, error: null }));
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
       throw error;
@@ -307,7 +324,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     setLoading(true);
-    
+
     try {
       if (state.tokens?.refreshToken) {
         await makeRequest('/auth/logout', {
@@ -382,7 +399,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (token: string): Promise<{
+  const verifyEmail = async (
+    token: string
+  ): Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -405,7 +424,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyPhone = async (email: string, code: string): Promise<{
+  const verifyPhone = async (
+    email: string,
+    code: string
+  ): Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -459,9 +481,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendPhoneVerification,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

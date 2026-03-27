@@ -1,10 +1,18 @@
 import React, {
-  createContext, useContext, useEffect, useRef,
-  useState, useCallback, useReducer,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useReducer,
 } from 'react';
 import {
-  AppNotification, ToastNotification, NotificationPreferences,
-  DEFAULT_PREFERENCES, NotificationCategory,
+  AppNotification,
+  ToastNotification,
+  NotificationPreferences,
+  DEFAULT_PREFERENCES,
+  NotificationCategory,
 } from '@/types/notification';
 import { notificationsAPI } from '@/lib/api/notificationsAPI';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +57,7 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'MARK_READ':
       return {
         ...state,
-        notifications: state.notifications.map(n =>
+        notifications: state.notifications.map((n) =>
           n.id === action.id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
@@ -57,7 +65,11 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'MARK_ALL_READ':
       return {
         ...state,
-        notifications: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })),
+        notifications: state.notifications.map((n) => ({
+          ...n,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        })),
         unreadCount: 0,
       };
     case 'SET_UNREAD':
@@ -65,7 +77,7 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'ADD_TOAST':
       return { ...state, toasts: [...state.toasts, action.payload] };
     case 'REMOVE_TOAST':
-      return { ...state, toasts: state.toasts.filter(t => t.id !== action.id) };
+      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
     case 'SET_PREFS':
       return { ...state, preferences: action.payload };
     case 'SET_CONNECTED':
@@ -114,11 +126,17 @@ function loadPrefs(): NotificationPreferences {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     return raw ? { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) } : DEFAULT_PREFERENCES;
-  } catch { return DEFAULT_PREFERENCES; }
+  } catch {
+    return DEFAULT_PREFERENCES;
+  }
 }
 
 function savePrefs(p: NotificationPreferences) {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* noop */ }
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* noop */
+  }
 }
 
 function loadPersisted(): AppNotification[] {
@@ -126,11 +144,17 @@ function loadPersisted(): AppNotification[] {
   try {
     const raw = localStorage.getItem(PERSIST_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function persistNotifications(ns: AppNotification[]) {
-  try { localStorage.setItem(PERSIST_KEY, JSON.stringify(ns.slice(0, MAX_PERSISTED))); } catch { /* noop */ }
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(ns.slice(0, MAX_PERSISTED)));
+  } catch {
+    /* noop */
+  }
 }
 
 function isDND(prefs: NotificationPreferences): boolean {
@@ -175,14 +199,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Then fetch fresh from API
     dispatch({ type: 'SET_LOADING', value: true });
-    notificationsAPI.getNotifications(user.id)
-      .then(res => {
+    notificationsAPI
+      .getNotifications(user.id)
+      .then((res) => {
         const ns = res.data as AppNotification[];
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
         persistNotifications(ns);
       })
-      .catch(() => { /* use cached */ })
+      .catch(() => {
+        /* use cached */
+      })
       .finally(() => dispatch({ type: 'SET_LOADING', value: false }));
   }, [isAuthenticated, user]);
 
@@ -211,7 +238,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const notif: AppNotification = msg.payload;
             handleIncoming(notif);
           }
-        } catch { /* ignore malformed */ }
+        } catch {
+          /* ignore malformed */
+        }
       };
 
       ws.onclose = () => {
@@ -224,7 +253,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       };
 
       ws.onerror = () => ws.close();
-    } catch { /* WS not available */ }
+    } catch {
+      /* WS not available */
+    }
   }, [isAuthenticated, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -259,10 +290,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           id: `toast-${++toastCounter}`,
           title: notif.title,
           message: notif.message,
-          type: notif.priority === 'urgent' ? 'error' : notif.category === 'ALERT' ? 'warning' : 'info',
+          type:
+            notif.priority === 'urgent' ? 'error' : notif.category === 'ALERT' ? 'warning' : 'info',
           duration: notif.priority === 'urgent' ? 0 : 5000,
           actionLabel: notif.actionUrl ? 'View' : undefined,
-          onAction: notif.actionUrl ? () => { window.location.href = notif.actionUrl!; } : undefined,
+          onAction: notif.actionUrl
+            ? () => {
+                window.location.href = notif.actionUrl!;
+              }
+            : undefined,
         },
       });
 
@@ -275,7 +311,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
 
       // Browser push (if already granted)
-      if (prefs.browserPush && typeof window !== 'undefined' && Notification.permission === 'granted') {
+      if (
+        prefs.browserPush &&
+        typeof window !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
         new Notification(notif.title, {
           body: notif.message,
           icon: '/icons/icon-192x192.svg',
@@ -295,17 +335,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dispatch({ type: 'REMOVE_TOAST', id });
   }, []);
 
-  const markRead = useCallback(async (id: string) => {
-    dispatch({ type: 'MARK_READ', id });
-    if (user) {
-      try { await notificationsAPI.markAsRead(user.id, id); } catch { /* optimistic */ }
-    }
-  }, [user]);
+  const markRead = useCallback(
+    async (id: string) => {
+      dispatch({ type: 'MARK_READ', id });
+      if (user) {
+        try {
+          await notificationsAPI.markAsRead(user.id, id);
+        } catch {
+          /* optimistic */
+        }
+      }
+    },
+    [user]
+  );
 
   const markAllRead = useCallback(async () => {
     dispatch({ type: 'MARK_ALL_READ' });
     if (user) {
-      try { await notificationsAPI.markAllAsRead(user.id); } catch { /* optimistic */ }
+      try {
+        await notificationsAPI.markAllAsRead(user.id);
+      } catch {
+        /* optimistic */
+      }
     }
   }, [user]);
 
@@ -315,11 +366,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dispatch({ type: 'SET_FILTER', filter: f });
   }, []);
 
-  const updatePreferences = useCallback((p: Partial<NotificationPreferences>) => {
-    const next = { ...state.preferences, ...p };
-    dispatch({ type: 'SET_PREFS', payload: next });
-    savePrefs(next);
-  }, [state.preferences]);
+  const updatePreferences = useCallback(
+    (p: Partial<NotificationPreferences>) => {
+      const next = { ...state.preferences, ...p };
+      dispatch({ type: 'SET_PREFS', payload: next });
+      savePrefs(next);
+    },
+    [state.preferences]
+  );
 
   const requestBrowserPermission = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
@@ -329,23 +383,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [updatePreferences]);
 
-  const filteredNotifications = state.activeFilter === 'ALL'
-    ? state.notifications
-    : state.notifications.filter(n => n.category === state.activeFilter);
+  const filteredNotifications =
+    state.activeFilter === 'ALL'
+      ? state.notifications
+      : state.notifications.filter((n) => n.category === state.activeFilter);
 
   return (
-    <NotificationContext.Provider value={{
-      ...state,
-      toast,
-      dismissToast,
-      markRead,
-      markAllRead,
-      toggleCenter,
-      setFilter,
-      updatePreferences,
-      requestBrowserPermission,
-      filteredNotifications,
-    }}>
+    <NotificationContext.Provider
+      value={{
+        ...state,
+        toast,
+        dismissToast,
+        markRead,
+        markAllRead,
+        toggleCenter,
+        setFilter,
+        updatePreferences,
+        requestBrowserPermission,
+        filteredNotifications,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );
@@ -355,7 +412,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 function playNotificationSound(priority: string) {
   if (typeof window === 'undefined') return;
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const ctx = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -365,5 +425,7 @@ function playNotificationSound(priority: string) {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.3);
-  } catch { /* audio not available */ }
+  } catch {
+    /* audio not available */
+  }
 }

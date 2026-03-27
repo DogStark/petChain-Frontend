@@ -166,7 +166,11 @@ class WalletService {
         high: stats.fee_charged.p90,
       };
     } catch {
-      return { base: StellarSdk.BASE_FEE, recommended: StellarSdk.BASE_FEE, high: StellarSdk.BASE_FEE };
+      return {
+        base: StellarSdk.BASE_FEE,
+        recommended: StellarSdk.BASE_FEE,
+        high: StellarSdk.BASE_FEE,
+      };
     }
   }
 
@@ -354,9 +358,7 @@ class WalletService {
     if (this.network !== 'TESTNET') {
       throw new Error('Friendbot is only available on Testnet.');
     }
-    const res = await fetch(
-      `https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`
-    );
+    const res = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`);
     if (!res.ok) {
       throw new Error('Friendbot funding failed. The account may already be funded.');
     }

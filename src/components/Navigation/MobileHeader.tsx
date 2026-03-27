@@ -22,7 +22,11 @@ function DrawerItem({ item, onClose }: { item: NavItem; onClose: () => void }) {
   if (item.children?.length) {
     return (
       <li>
-        <button className={baseClass} onClick={() => setExpanded(e => !e)} aria-expanded={expanded}>
+        <button
+          className={baseClass}
+          onClick={() => setExpanded((e) => !e)}
+          aria-expanded={expanded}
+        >
           <NavIcon name={item.icon} className="w-5 h-5 shrink-0" />
           <span className="flex-1 text-left">{item.label}</span>
           <span className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
@@ -31,7 +35,7 @@ function DrawerItem({ item, onClose }: { item: NavItem; onClose: () => void }) {
         </button>
         {expanded && (
           <ul className="mt-1 ml-4 space-y-0.5 border-l-2 border-gray-100 pl-3">
-            {item.children.map(child => (
+            {item.children.map((child) => (
               <DrawerItem key={child.href} item={child} onClose={onClose} />
             ))}
           </ul>
@@ -42,7 +46,12 @@ function DrawerItem({ item, onClose }: { item: NavItem; onClose: () => void }) {
 
   return (
     <li>
-      <Link href={item.href} className={baseClass} onClick={onClose} aria-current={isActive ? 'page' : undefined}>
+      <Link
+        href={item.href}
+        className={baseClass}
+        onClick={onClose}
+        aria-current={isActive ? 'page' : undefined}
+      >
         <NavIcon name={item.icon} className="w-5 h-5 shrink-0" />
         <span>{item.label}</span>
       </Link>
@@ -75,12 +84,18 @@ export default function MobileHeader() {
         </button>
 
         <Link href="/" className="flex items-center gap-2 mr-auto">
-          <Image src="/PETCHAIN.jpeg" alt="PetChain" width={28} height={28} className="rounded-lg" />
+          <Image
+            src="/PETCHAIN.jpeg"
+            alt="PetChain"
+            width={28}
+            height={28}
+            className="rounded-lg"
+          />
           <span className="font-bold text-blue-700 text-sm">PetChain</span>
         </Link>
 
         <button
-          onClick={() => setSearchOpen(s => !s)}
+          onClick={() => setSearchOpen((s) => !s)}
           aria-label="Toggle search"
           aria-expanded={searchOpen}
           className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
@@ -122,7 +137,13 @@ export default function MobileHeader() {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
           <Link href="/" className="flex items-center gap-2" onClick={() => setDrawerOpen(false)}>
-            <Image src="/PETCHAIN.jpeg" alt="PetChain" width={32} height={32} className="rounded-lg" />
+            <Image
+              src="/PETCHAIN.jpeg"
+              alt="PetChain"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="font-bold text-blue-700">PetChain</span>
           </Link>
           <button
@@ -137,7 +158,9 @@ export default function MobileHeader() {
         {/* User info */}
         {isAuthenticated && (
           <div className="px-4 py-3 border-b border-gray-100 bg-blue-50">
-            <p className="text-sm font-semibold text-gray-900">{user?.firstName} {user?.lastName}</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {user?.firstName} {user?.lastName}
+            </p>
             <p className="text-xs text-gray-500 truncate">{user?.email}</p>
           </div>
         )}
@@ -145,8 +168,12 @@ export default function MobileHeader() {
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Drawer navigation">
           <ul className="space-y-0.5" role="list">
-            {SIDEBAR_NAV_ITEMS.map(item => (
-              <DrawerItem key={item.href + item.label} item={item} onClose={() => setDrawerOpen(false)} />
+            {SIDEBAR_NAV_ITEMS.map((item) => (
+              <DrawerItem
+                key={item.href + item.label}
+                item={item}
+                onClose={() => setDrawerOpen(false)}
+              />
             ))}
           </ul>
         </nav>
@@ -163,12 +190,18 @@ export default function MobileHeader() {
             </button>
           ) : (
             <div className="flex gap-2">
-              <Link href="/login" onClick={() => setDrawerOpen(false)}
-                className="flex-1 text-center py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
+              <Link
+                href="/login"
+                onClick={() => setDrawerOpen(false)}
+                className="flex-1 text-center py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
                 Login
               </Link>
-              <Link href="/register" onClick={() => setDrawerOpen(false)}
-                className="flex-1 text-center py-2.5 rounded-xl border border-blue-600 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors">
+              <Link
+                href="/register"
+                onClick={() => setDrawerOpen(false)}
+                className="flex-1 text-center py-2.5 rounded-xl border border-blue-600 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors"
+              >
                 Register
               </Link>
             </div>

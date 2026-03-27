@@ -79,11 +79,7 @@ export default function SurgeriesPage() {
         />
       )}
 
-      <SurgeryList
-        surgeries={surgeries}
-        onSelect={setSelectedSurgery}
-        onDelete={handleDelete}
-      />
+      <SurgeryList surgeries={surgeries} onSelect={setSelectedSurgery} onDelete={handleDelete} />
     </div>
   );
 }

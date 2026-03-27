@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Copy, RefreshCw, ExternalLink, AlertTriangle, CheckCircle, Wallet, Plus } from 'lucide-react';
+import {
+  Copy,
+  RefreshCw,
+  ExternalLink,
+  AlertTriangle,
+  CheckCircle,
+  Wallet,
+  Plus,
+} from 'lucide-react';
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 
 interface Props {
@@ -120,9 +128,7 @@ export default function WalletDashboard({
                 <div className="flex items-center gap-2 mt-1">
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      isTestnet
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-green-100 text-green-700'
+                      isTestnet ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
                     }`}
                   >
                     {isTestnet ? 'Testnet' : 'Mainnet'}
@@ -163,11 +169,7 @@ export default function WalletDashboard({
                 className="ml-3 flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
                 title="Copy address"
               >
-                {copied ? (
-                  <CheckCircle size={16} className="text-green-500" />
-                ) : (
-                  <Copy size={16} />
-                )}
+                {copied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
               </button>
             </div>
 
@@ -213,7 +215,11 @@ export default function WalletDashboard({
                   XLM Balance
                 </p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {xlmBalance ? parseFloat(xlmBalance.balance).toLocaleString(undefined, { maximumFractionDigits: 7 }) : '0'}
+                  {xlmBalance
+                    ? parseFloat(xlmBalance.balance).toLocaleString(undefined, {
+                        maximumFractionDigits: 7,
+                      })
+                    : '0'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">Stellar Lumens</p>
               </div>
@@ -227,9 +233,7 @@ export default function WalletDashboard({
                   <p className="text-3xl font-bold text-gray-900">
                     {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })}
                   </p>
-                  {b.limit && (
-                    <p className="text-sm text-gray-400 mt-1">Limit: {b.limit}</p>
-                  )}
+                  {b.limit && <p className="text-sm text-gray-400 mt-1">Limit: {b.limit}</p>}
                 </div>
               ))}
 
@@ -238,8 +242,12 @@ export default function WalletDashboard({
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
                   Sequence
                 </p>
-                <p className="text-xl font-semibold text-gray-900 break-all">{accountData.sequence}</p>
-                <p className="text-sm text-gray-400 mt-1">Last updated {new Date(accountData.lastFetched).toLocaleTimeString()}</p>
+                <p className="text-xl font-semibold text-gray-900 break-all">
+                  {accountData.sequence}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Last updated {new Date(accountData.lastFetched).toLocaleTimeString()}
+                </p>
               </div>
             </div>
           )}
@@ -260,15 +268,21 @@ export default function WalletDashboard({
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-gray-500">
                 <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="font-semibold text-gray-700">{accountData.thresholds.low_threshold}</p>
+                  <p className="font-semibold text-gray-700">
+                    {accountData.thresholds.low_threshold}
+                  </p>
                   <p>Low</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="font-semibold text-gray-700">{accountData.thresholds.med_threshold}</p>
+                  <p className="font-semibold text-gray-700">
+                    {accountData.thresholds.med_threshold}
+                  </p>
                   <p>Medium</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="font-semibold text-gray-700">{accountData.thresholds.high_threshold}</p>
+                  <p className="font-semibold text-gray-700">
+                    {accountData.thresholds.high_threshold}
+                  </p>
                   <p>High</p>
                 </div>
               </div>
@@ -280,7 +294,9 @@ export default function WalletDashboard({
             <h3 className="font-semibold text-red-700 mb-2 text-sm">Danger Zone</h3>
             {confirmDelete === selectedWallet.id ? (
               <div className="flex items-center gap-3">
-                <p className="text-sm text-red-600">Remove &quot;{selectedWallet.label}&quot; from this device?</p>
+                <p className="text-sm text-red-600">
+                  Remove &quot;{selectedWallet.label}&quot; from this device?
+                </p>
                 <button
                   onClick={() => {
                     onDeleteWallet(selectedWallet.id);

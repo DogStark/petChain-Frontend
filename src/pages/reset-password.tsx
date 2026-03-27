@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) {
       return;
     }
@@ -76,11 +76,23 @@ export default function ResetPasswordPage() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              <svg
+                className="h-6 w-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                ></path>
               </svg>
             </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Password Reset Successful!</h2>
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+              Password Reset Successful!
+            </h2>
             <p className="mt-2 text-sm text-gray-600">
               Your password has been successfully reset. You can now log in with your new password.
             </p>
@@ -105,7 +117,10 @@ export default function ResetPasswordPage() {
               The password reset link is invalid or has expired.
             </p>
             <div className="mt-6 space-y-2">
-              <Link href="/forgot-password" className="block font-medium text-blue-600 hover:text-blue-500">
+              <Link
+                href="/forgot-password"
+                className="block font-medium text-blue-600 hover:text-blue-500"
+              >
                 Request a new reset link
               </Link>
               <Link href="/login" className="block font-medium text-blue-600 hover:text-blue-500">
@@ -125,9 +140,7 @@ export default function ResetPasswordPage() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Reset your password
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your new password below.
-          </p>
+          <p className="mt-2 text-center text-sm text-gray-600">Enter your new password below.</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -148,7 +161,7 @@ export default function ResetPasswordPage() {
               />
               <PasswordStrengthMeter password={password} />
             </div>
-            
+
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirm New Password
@@ -181,9 +194,25 @@ export default function ResetPasswordPage() {
             >
               {isLoading ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Resetting...
                 </span>

@@ -13,18 +13,15 @@ export default function TransactionsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Blockchain Transactions</h1>
-        
+
         <div className="mb-6">
           <TransactionCostTracker />
         </div>
 
         <TransactionHistory />
-        
+
         {selectedTxId && (
-          <TransactionDetails
-            transactionId={selectedTxId}
-            onClose={() => setSelectedTxId(null)}
-          />
+          <TransactionDetails transactionId={selectedTxId} onClose={() => setSelectedTxId(null)} />
         )}
 
         <TransactionStatusTracker />

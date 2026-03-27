@@ -12,11 +12,15 @@ export const usePushNotifications = (userId: string | null) => {
     loading: false,
     error: null,
     requestPermission: async () => {
-      console.warn('Push notifications are temporarily disabled due to missing Firebase dependency');
+      console.warn(
+        'Push notifications are temporarily disabled due to missing Firebase dependency'
+      );
       return null;
     },
     unsubscribe: async () => {
-      console.warn('Push notifications are temporarily disabled due to missing Firebase dependency');
+      console.warn(
+        'Push notifications are temporarily disabled due to missing Firebase dependency'
+      );
     },
   };
 };

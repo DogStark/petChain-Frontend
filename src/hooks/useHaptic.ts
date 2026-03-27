@@ -5,12 +5,12 @@
 export type HapticStyle = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error';
 
 const PATTERNS: Record<HapticStyle, number | number[]> = {
-  light:   10,
-  medium:  20,
-  heavy:   40,
+  light: 10,
+  medium: 20,
+  heavy: 40,
   success: [10, 50, 10],
   warning: [20, 40, 20],
-  error:   [40, 30, 40, 30, 40],
+  error: [40, 30, 40, 30, 40],
 };
 
 export function useHaptic() {

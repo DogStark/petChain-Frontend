@@ -30,7 +30,7 @@ function SidebarItem({
 
   // Auto-expand if a child is active
   useEffect(() => {
-    if (hasChildren && item.children?.some(c => pathname.startsWith(c.href))) {
+    if (hasChildren && item.children?.some((c) => pathname.startsWith(c.href))) {
       setExpanded(true);
     }
   }, [pathname, hasChildren, item.children]);
@@ -40,9 +40,11 @@ function SidebarItem({
   const itemClass = `
     group flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium
     transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-blue-500
-    ${isActive
-      ? 'bg-blue-600 text-white shadow-sm'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+    ${
+      isActive
+        ? 'bg-blue-600 text-white shadow-sm'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+    }
     ${depth > 0 ? 'pl-9 text-xs' : ''}
   `;
 
@@ -51,7 +53,7 @@ function SidebarItem({
       <li>
         <button
           className={itemClass}
-          onClick={() => setExpanded(e => !e)}
+          onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
           aria-controls={`nav-sub-${item.label}`}
         >
@@ -68,7 +70,7 @@ function SidebarItem({
 
         {expanded && (
           <ul id={`nav-sub-${item.label}`} className="mt-0.5 space-y-0.5">
-            {item.children!.map(child => (
+            {item.children!.map((child) => (
               <SidebarItem key={child.href} item={child} collapsed={collapsed} depth={depth + 1} />
             ))}
           </ul>
@@ -114,7 +116,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center justify-between px-3 py-4 border-b border-gray-100">
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2 min-w-0">
-            <Image src="/PETCHAIN.jpeg" alt="PetChain" width={32} height={32} className="rounded-lg shrink-0" />
+            <Image
+              src="/PETCHAIN.jpeg"
+              alt="PetChain"
+              width={32}
+              height={32}
+              className="rounded-lg shrink-0"
+            />
             <span className="font-bold text-blue-700 truncate">PetChain</span>
           </Link>
         )}
@@ -137,7 +145,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Sidebar navigation">
         <ul className="space-y-0.5" role="list">
-          {SIDEBAR_NAV_ITEMS.map(item => (
+          {SIDEBAR_NAV_ITEMS.map((item) => (
             <SidebarItem key={item.href + item.label} item={item} collapsed={collapsed} />
           ))}
         </ul>
@@ -149,7 +157,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <ThemeToggle />
         </div>
         {isAuthenticated && (
-          <div className={`flex items-center gap-2 px-2 py-2 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
+          <div
+            className={`flex items-center gap-2 px-2 py-2 rounded-xl ${collapsed ? 'justify-center' : ''}`}
+          >
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-800 truncate">
@@ -170,10 +180,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
         {!isAuthenticated && !collapsed && (
           <div className="flex gap-2 px-2">
-            <Link href="/login" className="flex-1 text-center text-xs py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors">
+            <Link
+              href="/login"
+              className="flex-1 text-center text-xs py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+            >
               Login
             </Link>
-            <Link href="/register" className="flex-1 text-center text-xs py-2 rounded-lg border border-blue-600 text-blue-600 font-semibold hover:bg-blue-50 transition-colors">
+            <Link
+              href="/register"
+              className="flex-1 text-center text-xs py-2 rounded-lg border border-blue-600 text-blue-600 font-semibold hover:bg-blue-50 transition-colors"
+            >
               Register
             </Link>
           </div>

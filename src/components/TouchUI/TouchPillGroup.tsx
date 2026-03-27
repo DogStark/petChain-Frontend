@@ -40,7 +40,7 @@ export default function TouchPillGroup<T extends string>({
       <span className="text-sm font-medium text-gray-700">{label}</span>
 
       <div className="flex flex-wrap gap-2">
-        {options.map(opt => {
+        {options.map((opt) => {
           const isSelected = opt.value === value;
           const selectedClass = opt.color ?? 'bg-blue-600 text-white border-blue-600';
           return (
@@ -54,9 +54,11 @@ export default function TouchPillGroup<T extends string>({
                 min-h-[44px] px-4 rounded-xl border text-sm font-semibold
                 transition-all duration-150 touch-manipulation select-none
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1
-                ${isSelected
-                  ? `${selectedClass} shadow-sm ring-2 ring-offset-1 ring-blue-400`
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100'}
+                ${
+                  isSelected
+                    ? `${selectedClass} shadow-sm ring-2 ring-offset-1 ring-blue-400`
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100'
+                }
               `}
             >
               {opt.label}
@@ -67,7 +69,9 @@ export default function TouchPillGroup<T extends string>({
 
       {hint && !error && <p className="text-xs text-gray-500">{hint}</p>}
       {error && (
-        <p role="alert" className="text-xs text-red-600">{error}</p>
+        <p role="alert" className="text-xs text-red-600">
+          {error}
+        </p>
       )}
     </div>
   );

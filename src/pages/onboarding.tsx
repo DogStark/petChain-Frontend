@@ -83,9 +83,7 @@ export default function OnboardingPage() {
         const updated: OnboardingStatus = {
           ...(status ?? DEFAULT_STATUS),
           completedSteps: [...(status?.completedSteps ?? []), stepId],
-          progressPercent: Math.round(
-            (((status?.completedSteps.length ?? 0) + 1) / 5) * 100,
-          ),
+          progressPercent: Math.round((((status?.completedSteps.length ?? 0) + 1) / 5) * 100),
         };
         setStatus(updated);
         return updated;

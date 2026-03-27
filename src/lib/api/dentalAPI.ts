@@ -68,7 +68,20 @@ export interface DentalReminder {
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
 const buildDefaultToothChart = (): ToothRecord[] => {
-  const statuses: ToothStatus[] = ['healthy', 'healthy', 'healthy', 'tartar', 'healthy', 'cavity', 'healthy', 'healthy', 'healthy', 'missing', 'healthy', 'treated'];
+  const statuses: ToothStatus[] = [
+    'healthy',
+    'healthy',
+    'healthy',
+    'tartar',
+    'healthy',
+    'cavity',
+    'healthy',
+    'healthy',
+    'healthy',
+    'missing',
+    'healthy',
+    'treated',
+  ];
   return Array.from({ length: 42 }, (_, i) => ({
     toothId: i + 1,
     label: `T${i + 1}`,
@@ -88,7 +101,8 @@ export const MOCK_DENTAL_EXAMS: DentalExam[] = [
     plaqueLevel: 'mild',
     tartarLevel: 'moderate',
     gingivitisLevel: 'none',
-    notes: 'Good overall dental health. Some tartar buildup on molars. Professional cleaning recommended within 3 months.',
+    notes:
+      'Good overall dental health. Some tartar buildup on molars. Professional cleaning recommended within 3 months.',
     toothChart: buildDefaultToothChart(),
     nextExamDate: '2025-07-15',
   },
@@ -102,7 +116,8 @@ export const MOCK_DENTAL_EXAMS: DentalExam[] = [
     plaqueLevel: 'moderate',
     tartarLevel: 'moderate',
     gingivitisLevel: 'mild',
-    notes: 'Plaque accumulation noted on upper premolars. Recommend daily brushing and dental chews.',
+    notes:
+      'Plaque accumulation noted on upper premolars. Recommend daily brushing and dental chews.',
     toothChart: buildDefaultToothChart(),
     nextExamDate: '2025-01-10',
   },

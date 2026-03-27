@@ -4,11 +4,21 @@ import { useState } from 'react';
 import { useGdpr } from '@/hooks/useGdpr';
 import { ConsentType } from '@/lib/gdpr';
 
-const CONSENT_LABELS: Record<ConsentType, { label: string; description: string; locked?: boolean }> = {
-  essential: { label: 'Essential', description: 'Required for the service to function.', locked: true },
+const CONSENT_LABELS: Record<
+  ConsentType,
+  { label: string; description: string; locked?: boolean }
+> = {
+  essential: {
+    label: 'Essential',
+    description: 'Required for the service to function.',
+    locked: true,
+  },
   analytics: { label: 'Analytics', description: 'Help us improve by sharing usage data.' },
   marketing: { label: 'Marketing', description: 'Receive updates and promotional content.' },
-  data_sharing: { label: 'Data Sharing', description: 'Share anonymised data with research partners.' },
+  data_sharing: {
+    label: 'Data Sharing',
+    description: 'Share anonymised data with research partners.',
+  },
 };
 
 interface Props {
@@ -37,19 +47,23 @@ export default function PrivacySettings({ userId }: Props) {
         </p>
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded p-2 mb-3">{error}</div>
+          <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded p-2 mb-3">
+            {error}
+          </div>
         )}
 
         <div className="space-y-3">
           {(Object.keys(CONSENT_LABELS) as ConsentType[]).map((type) => {
             const meta = CONSENT_LABELS[type];
             const consent = consents.find((c) => c.type === type);
-            const granted = consent?.granted ?? (type === 'essential');
+            const granted = consent?.granted ?? type === 'essential';
 
             return (
               <div key={type} className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{meta.label}</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    {meta.label}
+                  </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{meta.description}</p>
                 </div>
                 <button
@@ -90,12 +104,14 @@ export default function PrivacySettings({ userId }: Props) {
       <section className="rounded-xl border border-red-200 dark:border-red-800 p-5">
         <h2 className="font-semibold text-red-700 dark:text-red-400 mb-1">Delete My Account</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-          Permanently delete your account and all associated data (GDPR Article 17). This cannot be undone.
+          Permanently delete your account and all associated data (GDPR Article 17). This cannot be
+          undone.
         </p>
 
         {deletionRequested ? (
           <div className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded p-3">
-            Your deletion request has been submitted. You will receive a confirmation once processing is complete.
+            Your deletion request has been submitted. You will receive a confirmation once
+            processing is complete.
           </div>
         ) : showDeleteConfirm ? (
           <div className="space-y-3">

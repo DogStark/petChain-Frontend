@@ -41,13 +41,22 @@ export default function Breadcrumbs() {
   }));
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-gray-500 px-4 py-2 overflow-x-auto no-scrollbar">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1 text-sm text-gray-500 px-4 py-2 overflow-x-auto no-scrollbar"
+    >
       <Link href="/" className="hover:text-blue-600 transition-colors shrink-0">
         Home
       </Link>
       {crumbs.map((crumb, i) => (
         <span key={crumb.href} className="flex items-center gap-1 shrink-0">
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="w-3 h-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
           {i === crumbs.length - 1 ? (

@@ -21,10 +21,16 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchSuggestions = useCallback(
-    debounce(async (q: string) => {
-      if (q.length < 2) { setSuggestions([]); return; }
+    debounce(async (q: unknown) => {
+      const query = q as string;
+      if (query.length < 2) {
+        setSuggestions([]);
+        return;
+      }
       try {
-        const res = await fetch(`/api/v1/search/autocomplete?query=${encodeURIComponent(q)}&type=global`);
+        const res = await fetch(
+          `/api/v1/search/autocomplete?query=${encodeURIComponent(query)}&type=global`
+        );
         const data = await res.json();
         setSuggestions(data.suggestions?.slice(0, 5) ?? []);
       } catch {
@@ -49,7 +55,10 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') submit();
-    if (e.key === 'Escape') { setOpen(false); onClose?.(); }
+    if (e.key === 'Escape') {
+      setOpen(false);
+      onClose?.();
+    }
   };
 
   return (
@@ -69,7 +78,11 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
         />
         {query && (
           <button
-            onClick={() => { setQuery(''); setSuggestions([]); inputRef.current?.focus(); }}
+            onClick={() => {
+              setQuery('');
+              setSuggestions([]);
+              inputRef.current?.focus();
+            }}
             aria-label="Clear search"
             className="text-gray-400 hover:text-gray-600"
           >
@@ -88,7 +101,10 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
             <li key={i} role="option" aria-selected={false}>
               <button
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2 transition-colors"
-                onClick={() => { setQuery(s); submit(s); }}
+                onClick={() => {
+                  setQuery(s);
+                  submit(s);
+                }}
               >
                 <NavIcon name="search" className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 {s}

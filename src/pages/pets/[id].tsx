@@ -26,8 +26,7 @@ interface Pet {
   }>;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export default function PetDetailPage() {
   const router = useRouter();
@@ -49,9 +48,7 @@ export default function PetDetailPage() {
         });
 
         if (!res.ok) {
-          throw new Error(
-            res.status === 404 ? 'Pet not found' : 'Failed to load pet',
-          );
+          throw new Error(res.status === 404 ? 'Pet not found' : 'Failed to load pet');
         }
 
         const data = await res.json();
@@ -114,12 +111,8 @@ export default function PetDetailPage() {
           <div className={styles.petInfo}>
             <h1>{pet.name}</h1>
             <div className={styles.petMeta}>
-              <span className={styles.metaItem}>
-                {capitalize(pet.species)}
-              </span>
-              {pet.breed && (
-                <span className={styles.metaItem}>{pet.breed.name}</span>
-              )}
+              <span className={styles.metaItem}>{capitalize(pet.species)}</span>
+              {pet.breed && <span className={styles.metaItem}>{pet.breed.name}</span>}
               {age && <span className={styles.metaItem}>{age}</span>}
             </div>
           </div>
@@ -150,9 +143,7 @@ export default function PetDetailPage() {
           <div className={styles.detailGrid}>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Species</span>
-              <span className={styles.detailValue}>
-                {capitalize(pet.species)}
-              </span>
+              <span className={styles.detailValue}>{capitalize(pet.species)}</span>
             </div>
             {pet.breed && (
               <div className={styles.detailItem}>
@@ -162,9 +153,7 @@ export default function PetDetailPage() {
             )}
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gender</span>
-              <span className={styles.detailValue}>
-                {capitalize(pet.gender)}
-              </span>
+              <span className={styles.detailValue}>{capitalize(pet.gender)}</span>
             </div>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Date of Birth</span>
@@ -187,9 +176,7 @@ export default function PetDetailPage() {
             {pet.microchipNumber && (
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Microchip</span>
-                <span className={styles.detailValue}>
-                  {pet.microchipNumber}
-                </span>
+                <span className={styles.detailValue}>{pet.microchipNumber}</span>
               </div>
             )}
             {pet.specialNeeds && (

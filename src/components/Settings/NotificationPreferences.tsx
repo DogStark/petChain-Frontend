@@ -85,12 +85,9 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
 
           <div className={styles.preference}>
             <div className={styles.preferenceContent}>
-              <div className={styles.preferenceName}>
-                Essential Notifications
-              </div>
+              <div className={styles.preferenceName}>Essential Notifications</div>
               <p className={styles.preferenceDescription}>
-                Receive important notifications about your account security and
-                critical updates.
+                Receive important notifications about your account security and critical updates.
               </p>
             </div>
             <label className={styles.toggle}>
@@ -124,9 +121,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
 
           <div className={styles.preference}>
             <div className={styles.preferenceContent}>
-              <div className={styles.preferenceName}>
-                Marketing & Promotional Emails
-              </div>
+              <div className={styles.preferenceName}>Marketing & Promotional Emails</div>
               <p className={styles.preferenceDescription}>
                 Receive emails about new features, tips, and promotional offers.
               </p>
@@ -233,16 +228,10 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
           </div>
         </div>
 
-        {successMessage && (
-          <div className={styles.success}>{successMessage}</div>
-        )}
+        {successMessage && <div className={styles.success}>{successMessage}</div>}
 
         <div className={styles.actions}>
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={isSubmitting || isLoading}
-          >
+          <button type="submit" className={styles.submitBtn} disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : 'Save Preferences'}
           </button>
         </div>

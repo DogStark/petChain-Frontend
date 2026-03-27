@@ -19,10 +19,10 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
 
   const handleSetup = async () => {
     if (!tokens?.accessToken) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       const data = await twoFactorAPI.setup(tokens.accessToken);
       setQrCodeUrl(data.qrCodeUrl);
@@ -37,10 +37,10 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
 
   const handleEnable = async () => {
     if (!tokens?.accessToken || !totpToken) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       await twoFactorAPI.enable(tokens.accessToken, totpToken);
       onComplete();
@@ -81,19 +81,17 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">Scan QR Code</h2>
-      
+
       <div className="text-center mb-4">
         <QRCodeSVG value={qrCodeUrl} size={200} />
       </div>
-      
+
       <p className="text-sm text-gray-600 mb-4">
         Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
       </p>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          Enter verification code:
-        </label>
+        <label className="block text-sm font-medium mb-2">Enter verification code:</label>
         <input
           type="text"
           value={totpToken}
@@ -109,7 +107,9 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
         <p className="text-xs text-gray-600 mb-2">Save these codes in a safe place:</p>
         <div className="grid grid-cols-2 gap-1 text-xs font-mono">
           {backupCodes.map((code, i) => (
-            <div key={i} className="bg-white p-1 rounded">{code}</div>
+            <div key={i} className="bg-white p-1 rounded">
+              {code}
+            </div>
           ))}
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
           Cancel
         </button>
       </div>
-      
+
       {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
     </div>
   );

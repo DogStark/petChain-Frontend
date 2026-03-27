@@ -16,7 +16,7 @@ export interface TransactionResult {
 
 export interface AccountDetails {
   publicKey: string;
-  balances: StellarSdk.Horizon.BalanceLine[];
+  balances: StellarSdk.Horizon.HorizonApi.BalanceLine[];
   sequence: string;
   subentryCount: number;
 }

@@ -46,12 +46,12 @@ const mockFetchSessions = async (): Promise<Session[]> => {
 
 const mockRevokeSession = async (_sessionId: string): Promise<void> => {
   // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 const mockRevokeAllSessions = async (): Promise<void> => {
   // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 export default function SessionsPage() {
@@ -111,7 +111,6 @@ export default function SessionsPage() {
       setActionLoading(null);
     }
   };
-
 
   if (!isAuthenticated) {
     return (
@@ -181,9 +180,7 @@ export default function SessionsPage() {
                           <p className="text-sm text-gray-600">
                             {session.location} • {session.ip}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Last active: {session.lastActive}
-                          </p>
+                          <p className="text-xs text-gray-500">Last active: {session.lastActive}</p>
                         </div>
                       </div>
 
@@ -200,7 +197,7 @@ export default function SessionsPage() {
                   ))}
                 </div>
 
-                {sessions.filter(s => !s.isCurrent).length > 1 && (
+                {sessions.filter((s) => !s.isCurrent).length > 1 && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <button
                       onClick={handleRevokeAll}

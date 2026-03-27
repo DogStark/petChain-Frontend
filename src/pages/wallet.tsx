@@ -31,12 +31,32 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={18} />, description: 'Balances & address' },
+  {
+    id: 'overview',
+    label: 'Overview',
+    icon: <LayoutDashboard size={18} />,
+    description: 'Balances & address',
+  },
   { id: 'setup', label: 'Add Wallet', icon: <Plus size={18} />, description: 'Create or import' },
   { id: 'send', label: 'Send', icon: <Send size={18} />, description: 'Sign & broadcast' },
-  { id: 'multisig', label: 'Multi-Sig', icon: <Shield size={18} />, description: 'Co-signer config' },
-  { id: 'backup', label: 'Backup', icon: <Download size={18} />, description: 'Export encrypted backup' },
-  { id: 'recovery', label: 'Recovery', icon: <RotateCcw size={18} />, description: 'Restore from backup' },
+  {
+    id: 'multisig',
+    label: 'Multi-Sig',
+    icon: <Shield size={18} />,
+    description: 'Co-signer config',
+  },
+  {
+    id: 'backup',
+    label: 'Backup',
+    icon: <Download size={18} />,
+    description: 'Export encrypted backup',
+  },
+  {
+    id: 'recovery',
+    label: 'Recovery',
+    icon: <RotateCcw size={18} />,
+    description: 'Restore from backup',
+  },
 ];
 
 const IS_TESTNET = process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public';
@@ -121,7 +141,10 @@ export default function WalletPage() {
                 {NAV.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => { setActiveTab(item.id); clearError(); }}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      clearError();
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-gray-100 last:border-0 ${
                       activeTab === item.id
                         ? 'bg-blue-50 text-blue-700'
@@ -142,7 +165,8 @@ export default function WalletPage() {
               {/* Wallet count badge */}
               {wallets.length > 0 && (
                 <div className="mt-3 bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-500">
-                  <span className="font-semibold text-gray-800">{wallets.length}</span> wallet{wallets.length !== 1 ? 's' : ''} on this device
+                  <span className="font-semibold text-gray-800">{wallets.length}</span> wallet
+                  {wallets.length !== 1 ? 's' : ''} on this device
                   {wallets.filter((w) => !w.backupVerified).length > 0 && (
                     <p className="text-yellow-600 mt-1">
                       ⚠ {wallets.filter((w) => !w.backupVerified).length} without backup
@@ -212,7 +236,9 @@ export default function WalletPage() {
 
               {activeTab === 'multisig' && (
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Multi-Signature Setup</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Multi-Signature Setup
+                  </h2>
                   <MultiSigSetup
                     wallet={selectedWallet}
                     accountData={accountData}
@@ -228,10 +254,7 @@ export default function WalletPage() {
               {activeTab === 'backup' && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Wallet Backup</h2>
-                  <WalletBackup
-                    wallet={selectedWallet}
-                    onExportBackup={exportBackup}
-                  />
+                  <WalletBackup wallet={selectedWallet} onExportBackup={exportBackup} />
                 </div>
               )}
 

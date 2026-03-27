@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { transactionAPI, Transaction, TransactionFilters, TransactionStatus, TransactionType } from '@/lib/api/transactionAPI';
+import {
+  transactionAPI,
+  Transaction,
+  TransactionFilters,
+  TransactionStatus,
+  TransactionType,
+} from '@/lib/api/transactionAPI';
 
 const statusColors: Record<TransactionStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -43,10 +49,12 @@ export default function TransactionHistory() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
-      
+
       <div className="mb-4 flex gap-2">
         <select
-          onChange={(e) => setFilters({ ...filters, status: e.target.value as TransactionStatus || undefined })}
+          onChange={(e) =>
+            setFilters({ ...filters, status: (e.target.value as TransactionStatus) || undefined })
+          }
           className="border rounded px-3 py-2"
         >
           <option value="">All Status</option>
@@ -54,9 +62,11 @@ export default function TransactionHistory() {
           <option value="confirmed">Confirmed</option>
           <option value="failed">Failed</option>
         </select>
-        
+
         <select
-          onChange={(e) => setFilters({ ...filters, type: e.target.value as TransactionType || undefined })}
+          onChange={(e) =>
+            setFilters({ ...filters, type: (e.target.value as TransactionType) || undefined })
+          }
           className="border rounded px-3 py-2"
         >
           <option value="">All Types</option>
@@ -91,9 +101,7 @@ export default function TransactionHistory() {
                   </span>
                 </td>
                 <td className="px-4 py-2 border">{tx.fee} XLM</td>
-                <td className="px-4 py-2 border">
-                  {new Date(tx.timestamp).toLocaleString()}
-                </td>
+                <td className="px-4 py-2 border">{new Date(tx.timestamp).toLocaleString()}</td>
                 <td className="px-4 py-2 border">
                   {tx.status === 'failed' && (
                     <button

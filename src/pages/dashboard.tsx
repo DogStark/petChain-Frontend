@@ -50,9 +50,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        My Pets
-                      </dt>
+                      <dt className="text-sm font-medium text-gray-500 truncate">My Pets</dt>
                       <dd className="text-lg font-medium text-gray-900">3</dd>
                     </dl>
                   </div>
@@ -87,7 +85,10 @@ export default function DashboardPage() {
               </div>
               <div className="bg-gray-50 px-5 py-3">
                 <div className="text-sm">
-                  <Link href="/medical-records" className="font-medium text-blue-600 hover:text-blue-500">
+                  <Link
+                    href="/medical-records"
+                    className="font-medium text-blue-600 hover:text-blue-500"
+                  >
                     View records
                   </Link>
                 </div>

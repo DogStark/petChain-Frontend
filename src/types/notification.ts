@@ -45,7 +45,7 @@ export interface NotificationPreferences {
   // DND
   doNotDisturb: boolean;
   dndStart: string; // "HH:MM"
-  dndEnd: string;   // "HH:MM"
+  dndEnd: string; // "HH:MM"
   // Category toggles
   categories: Record<NotificationCategory, boolean>;
 }

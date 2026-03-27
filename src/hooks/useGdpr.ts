@@ -23,30 +23,47 @@ export function useGdpr(userId: string) {
     }
   }, [userId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const updateConsent = useCallback(async (type: ConsentType, granted: boolean) => {
-    try {
-      const updated = await gdprService.updateConsent(userId, type, granted);
-      setConsents((prev) => prev.map((c) => (c.type === type ? updated : c)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update consent');
-    }
-  }, [userId]);
+  const updateConsent = useCallback(
+    async (type: ConsentType, granted: boolean) => {
+      try {
+        const updated = await gdprService.updateConsent(userId, type, granted);
+        setConsents((prev) => prev.map((c) => (c.type === type ? updated : c)));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to update consent');
+      }
+    },
+    [userId]
+  );
 
   const exportData = useCallback(async () => {
     setLoading(true);
-    try { await gdprService.exportData(userId); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Export failed'); }
-    finally { setLoading(false); }
+    try {
+      await gdprService.exportData(userId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Export failed');
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
-  const requestDeletion = useCallback(async (reason?: string) => {
-    setLoading(true);
-    try { return await gdprService.requestDeletion(userId, reason); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Deletion request failed'); return null; }
-    finally { setLoading(false); }
-  }, [userId]);
+  const requestDeletion = useCallback(
+    async (reason?: string) => {
+      setLoading(true);
+      try {
+        return await gdprService.requestDeletion(userId, reason);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Deletion request failed');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId]
+  );
 
   return { consents, loading, error, updateConsent, exportData, requestDeletion };
 }

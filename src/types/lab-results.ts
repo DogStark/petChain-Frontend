@@ -1,10 +1,10 @@
 export type LabCategory =
-  | "Blood Work"
-  | "Urinalysis"
-  | "Imaging"
-  | "Cytology"
-  | "Microbiology"
-  | "Other";
+  | 'Blood Work'
+  | 'Urinalysis'
+  | 'Imaging'
+  | 'Cytology'
+  | 'Microbiology'
+  | 'Other';
 
 export interface ReferenceRange {
   min: number;

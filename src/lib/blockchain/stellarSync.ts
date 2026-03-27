@@ -1,5 +1,13 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { stellarService, StellarService, MedicalRecord, TransactionResult } from './index';
+import { stellarService, StellarService, TransactionResult } from './index';
+
+export interface MedicalRecord {
+  id: string;
+  petId: string;
+  type: string;
+  critical: boolean;
+  data: Record<string, unknown>;
+}
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'retrying';
 
@@ -63,7 +71,7 @@ class StellarSyncService {
     try {
       const encrypted = this.encrypt(record.data);
       const dataSize = Buffer.from(encrypted).length;
-      
+
       let dataHash: string;
       if (dataSize > 1024) {
         dataHash = await this.uploadToIPFS(encrypted);
@@ -76,9 +84,11 @@ class StellarSyncService {
       const operation = StellarSdk.Operation.manageData({
         name: `pet_${record.petId}_${record.type}`,
         value: dataHash,
-      });
+      }) as unknown as StellarSdk.xdr.Operation<StellarSdk.Operation>;
 
-      const transaction = await this.engine.buildTransaction(sourceKeypair.publicKey(), [operation]);
+      const transaction = await this.engine.buildTransaction(sourceKeypair.publicKey(), [
+        operation,
+      ]);
       transaction.sign(sourceKeypair);
 
       const txResult: TransactionResult = await this.engine.submitTransaction(transaction);
@@ -93,7 +103,7 @@ class StellarSyncService {
     } catch (error) {
       result.error = error instanceof Error ? error.message : 'Unknown error';
       result.status = 'failed';
-      
+
       if (result.attempts < this.maxRetries) {
         await this.retrySync(record, sourceKeypair, encryptionKey, result);
       }
@@ -111,11 +121,11 @@ class StellarSyncService {
   ): Promise<void> {
     previousResult.attempts++;
     previousResult.status = 'retrying';
-    
+
     // Waiting logic is already somewhat handled in StellarService.submitTransaction,
     // but this higher-level retry handles record-specific failures (like IPFS issues).
-    await new Promise(resolve => setTimeout(resolve, 2000 * previousResult.attempts));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000 * previousResult.attempts));
+
     await this.syncRecord(record, sourceKeypair, encryptionKey);
   }
 
@@ -125,7 +135,13 @@ class StellarSyncService {
       if (!syncResult?.txHash) return false;
 
       // Access the Horizon server via the engine for consistency
-      const server = (this.engine as any).server || new StellarSdk.Horizon.Server(process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org');
+      const server =
+        (this.engine as any).server ||
+        new StellarSdk.Horizon.Server(
+          process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public'
+            ? 'https://horizon.stellar.org'
+            : 'https://horizon-testnet.stellar.org'
+        );
       const tx = await server.transactions().transaction(syncResult.txHash).call();
       return tx.successful;
     } catch {
@@ -142,5 +158,4 @@ class StellarSyncService {
   }
 }
 
-export { MedicalRecord };
 export const stellarSync = new StellarSyncService();

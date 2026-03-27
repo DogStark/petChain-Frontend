@@ -45,7 +45,10 @@ export default function SwipeableCard({
     // Only allow swipe in direction that has an action
     if (dx > 0 && !leftAction) return;
     if (dx < 0 && !rightAction) return;
-    const clamped = Math.max(rightAction ? -threshold * 1.2 : 0, Math.min(leftAction ? threshold * 1.2 : 0, dx));
+    const clamped = Math.max(
+      rightAction ? -threshold * 1.2 : 0,
+      Math.min(leftAction ? threshold * 1.2 : 0, dx)
+    );
     setOffset(clamped);
 
     // Haptic at threshold
@@ -105,7 +108,10 @@ export default function SwipeableCard({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        style={{ transform: `translateX(${offset}px)`, transition: offset === 0 ? 'transform 0.25s ease' : 'none' }}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: offset === 0 ? 'transform 0.25s ease' : 'none',
+        }}
         className="relative bg-white touch-pan-y select-none cursor-grab active:cursor-grabbing"
       >
         {children}

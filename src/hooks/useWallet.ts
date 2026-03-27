@@ -65,7 +65,10 @@ export function useWallet() {
 
   // ─── Fee estimate on mount ─────────────────────────────────────────────────
   useEffect(() => {
-    walletService.estimateFee().then(setFeeEstimate).catch(() => null);
+    walletService
+      .estimateFee()
+      .then(setFeeEstimate)
+      .catch(() => null);
   }, []);
 
   const refreshWallets = useCallback(() => {

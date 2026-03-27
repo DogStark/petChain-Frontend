@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/contexts/NotificationContext';
 import {
-  AppNotification, NotificationCategory,
-  CATEGORY_LABELS, CATEGORY_ICONS,
+  AppNotification,
+  NotificationCategory,
+  CATEGORY_LABELS,
+  CATEGORY_ICONS,
 } from '@/types/notification';
 
 // ─── Category filter tabs ─────────────────────────────────────────────────────
@@ -23,9 +25,9 @@ function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => v
 
   const priorityDot: Record<string, string> = {
     urgent: 'bg-red-500',
-    high:   'bg-orange-400',
+    high: 'bg-orange-400',
     normal: 'bg-blue-400',
-    low:    'bg-gray-300',
+    low: 'bg-gray-300',
   };
 
   return (
@@ -36,11 +38,15 @@ function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => v
       role="listitem"
     >
       {/* Category emoji icon */}
-      <span className="text-xl shrink-0 mt-0.5" aria-hidden="true">{icon}</span>
+      <span className="text-xl shrink-0 mt-0.5" aria-hidden="true">
+        {icon}
+      </span>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-sm leading-snug ${n.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
+          <p
+            className={`text-sm leading-snug ${n.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}
+          >
             {n.title}
           </p>
           <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
@@ -54,7 +60,7 @@ function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => v
           {n.actionUrl && (
             <a
               href={n.actionUrl}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="text-[10px] text-blue-600 font-semibold hover:underline"
             >
               View →
@@ -65,10 +71,11 @@ function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => v
 
       {/* Unread dot + priority */}
       <div className="flex flex-col items-center gap-1.5 shrink-0 pt-1">
-        {!n.isRead && (
-          <span className="w-2 h-2 rounded-full bg-blue-500" aria-label="Unread" />
-        )}
-        <span className={`w-1.5 h-1.5 rounded-full ${priorityDot[n.priority] ?? 'bg-gray-300'}`} aria-hidden="true" />
+        {!n.isRead && <span className="w-2 h-2 rounded-full bg-blue-500" aria-label="Unread" />}
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${priorityDot[n.priority] ?? 'bg-gray-300'}`}
+          aria-hidden="true"
+        />
       </div>
     </div>
   );
@@ -77,10 +84,14 @@ function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => v
 // ─── Main panel ───────────────────────────────────────────────────────────────
 export default function NotificationCenter() {
   const {
-    isCenterOpen, toggleCenter,
-    filteredNotifications, unreadCount,
-    activeFilter, setFilter,
-    markRead, markAllRead,
+    isCenterOpen,
+    toggleCenter,
+    filteredNotifications,
+    unreadCount,
+    activeFilter,
+    setFilter,
+    markRead,
+    markAllRead,
     isLoading,
   } = useNotifications();
 
@@ -89,7 +100,9 @@ export default function NotificationCenter() {
   // Close on Escape
   useEffect(() => {
     if (!isCenterOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') toggleCenter(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') toggleCenter();
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [isCenterOpen, toggleCenter]);
@@ -143,8 +156,15 @@ export default function NotificationCenter() {
               aria-label="Close notification center"
               className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
@@ -152,15 +172,17 @@ export default function NotificationCenter() {
 
         {/* Filter tabs */}
         <div className="flex gap-1 px-3 py-2 border-b border-gray-100 overflow-x-auto no-scrollbar shrink-0">
-          {FILTERS.map(f => (
+          {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
               aria-pressed={activeFilter === f.value}
               className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap
-                ${activeFilter === f.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                ${
+                  activeFilter === f.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {f.label}
             </button>
@@ -172,8 +194,19 @@ export default function NotificationCenter() {
           {isLoading && filteredNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3 text-gray-400">
               <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               <span className="text-sm">Loading…</span>
             </div>
@@ -185,7 +218,7 @@ export default function NotificationCenter() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredNotifications.map(n => (
+              {filteredNotifications.map((n) => (
                 <NotifRow key={n.id} n={n} onRead={markRead} />
               ))}
             </div>

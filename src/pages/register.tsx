@@ -25,9 +25,9 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const set = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     // Clear field error on change
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   const validate = (): boolean => {
@@ -60,7 +60,13 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-      await register(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
+      await register(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName,
+        formData.phone
+      );
       savePasswordToHistory(formData.password);
       router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
@@ -75,7 +81,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
-          <Image src="/PETCHAIN.jpeg" alt="PetChain" width={64} height={64} className="rounded-2xl shadow-md" />
+          <Image
+            src="/PETCHAIN.jpeg"
+            alt="PetChain"
+            width={64}
+            height={64}
+            className="rounded-2xl shadow-md"
+          />
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
           <p className="text-sm text-gray-500">
             Already have one?{' '}
@@ -160,7 +172,10 @@ export default function RegisterPage() {
           />
 
           {submitError && (
-            <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div
+              role="alert"
+              className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            >
               {submitError}
             </div>
           )}

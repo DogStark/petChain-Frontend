@@ -88,10 +88,7 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
     }));
   };
 
-  const handleProfileSelectChange = (
-    key: 'preferredLanguage' | 'timezone',
-    value: string,
-  ) => {
+  const handleProfileSelectChange = (key: 'preferredLanguage' | 'timezone', value: string) => {
     setProfileSettings((prev) => ({
       ...prev,
       [key]: value,
@@ -197,8 +194,8 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
             <div className={styles.settingContent}>
               <div className={styles.settingName}>Public Profile</div>
               <p className={styles.settingDescription}>
-                Make your profile publicly visible to anyone. When disabled, only
-                authenticated users can view your profile.
+                Make your profile publicly visible to anyone. When disabled, only authenticated
+                users can view your profile.
               </p>
             </div>
             <label className={styles.toggle}>
@@ -218,13 +215,17 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
 
           <div className={styles.infoBox}>
             <svg className={styles.infoIcon} fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
             </svg>
             <div>
               <p className={styles.infoTitle}>Data Usage</p>
               <p className={styles.infoText}>
-                Your data is used to improve our service and personalize your
-                experience. We never sell your data to third parties.
+                Your data is used to improve our service and personalize your experience. We never
+                sell your data to third parties.
               </p>
             </div>
           </div>
@@ -233,8 +234,7 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
             <div className={styles.settingContent}>
               <div className={styles.settingName}>Share Data for Analytics</div>
               <p className={styles.settingDescription}>
-                Help us improve our service by sharing anonymized usage data and
-                analytics.
+                Help us improve our service by sharing anonymized usage data and analytics.
               </p>
             </div>
             <label className={styles.toggle}>
@@ -251,14 +251,10 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
           <div className={styles.sectionSummary}>
             <p>
               GDPR / CCPA consent status:
-              <strong>
-                {profileSettings.dataShareConsent ? ' Granted' : ' Not granted'}
-              </strong>
+              <strong>{profileSettings.dataShareConsent ? ' Granted' : ' Not granted'}</strong>
             </p>
             {policyAcceptedAt && (
-              <p>
-                Last policy acceptance: {new Date(policyAcceptedAt).toLocaleString()}
-              </p>
+              <p>Last policy acceptance: {new Date(policyAcceptedAt).toLocaleString()}</p>
             )}
           </div>
         </div>
@@ -298,9 +294,7 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               id="timezone"
               className={styles.select}
               value={profileSettings.timezone}
-              onChange={(event) =>
-                handleProfileSelectChange('timezone', event.target.value)
-              }
+              onChange={(event) => handleProfileSelectChange('timezone', event.target.value)}
               disabled={isSubmitting || isLoading}
             >
               <option value="UTC">UTC</option>
@@ -313,16 +307,10 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
           </div>
         </div>
 
-        {successMessage && (
-          <div className={styles.success}>{successMessage}</div>
-        )}
+        {successMessage && <div className={styles.success}>{successMessage}</div>}
 
         <div className={styles.actions}>
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={isSubmitting || isLoading}
-          >
+          <button type="submit" className={styles.submitBtn} disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : 'Save Settings'}
           </button>
         </div>

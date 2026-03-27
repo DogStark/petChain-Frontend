@@ -3,7 +3,13 @@ import axios, { AxiosInstance } from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
-export type TransactionType = 'record_creation' | 'record_update' | 'access_grant' | 'access_revoke' | 'vaccination' | 'transfer';
+export type TransactionType =
+  | 'record_creation'
+  | 'record_update'
+  | 'access_grant'
+  | 'access_revoke'
+  | 'vaccination'
+  | 'transfer';
 
 export interface Transaction {
   id: string;
@@ -115,7 +121,10 @@ class TransactionAPI {
     return response.data;
   }
 
-  async getTotalCosts(startDate?: string, endDate?: string): Promise<{
+  async getTotalCosts(
+    startDate?: string,
+    endDate?: string
+  ): Promise<{
     totalFees: string;
     totalTransactions: number;
     averageFee: string;

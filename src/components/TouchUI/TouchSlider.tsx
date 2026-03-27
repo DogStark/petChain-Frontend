@@ -24,7 +24,7 @@ export default function TouchSlider({
   step = 1,
   value,
   onChange,
-  formatValue = v => String(v),
+  formatValue = (v) => String(v),
   hint,
   disabled = false,
 }: TouchSliderProps) {
@@ -34,20 +34,25 @@ export default function TouchSlider({
 
   const pct = ((value - min) / (max - min)) * 100;
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const next = Number(e.target.value);
-    onChange(next);
-    // Haptic tick every step boundary
-    if (next !== lastHapticVal.current) {
-      trigger('light');
-      lastHapticVal.current = next;
-    }
-  }, [onChange, trigger]);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const next = Number(e.target.value);
+      onChange(next);
+      // Haptic tick every step boundary
+      if (next !== lastHapticVal.current) {
+        trigger('light');
+        lastHapticVal.current = next;
+      }
+    },
+    [onChange, trigger]
+  );
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label htmlFor={id} className="text-sm font-medium text-gray-700">{label}</label>
+        <label htmlFor={id} className="text-sm font-medium text-gray-700">
+          {label}
+        </label>
         <span
           className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg min-w-[2.5rem] text-center"
           aria-live="polite"

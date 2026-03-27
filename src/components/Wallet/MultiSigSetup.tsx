@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, AlertTriangle, CheckCircle, Eye, EyeOff, Info } from 'lucide-react';
-import type { WalletAccount, MultiSigConfig, WalletSigner, BroadcastResult, WalletMonitoringData } from '../../types/wallet';
+import type {
+  WalletAccount,
+  MultiSigConfig,
+  WalletSigner,
+  BroadcastResult,
+  WalletMonitoringData,
+} from '../../types/wallet';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -41,10 +47,13 @@ export default function MultiSigSetup({
   const [removingKey, setRemovingKey] = useState<string | null>(null);
 
   if (!wallet) {
-    return <div className="text-center py-12 text-gray-400">Select a wallet to configure multi-sig.</div>;
+    return (
+      <div className="text-center py-12 text-gray-400">Select a wallet to configure multi-sig.</div>
+    );
   }
 
-  const existingSigners = accountData?.signers.filter((s) => s.publicKey !== wallet.publicKey) ?? [];
+  const existingSigners =
+    accountData?.signers.filter((s) => s.publicKey !== wallet.publicKey) ?? [];
 
   function addSigner() {
     setSigners((prev) => [...prev, { publicKey: '', weight: 1 }]);
@@ -55,9 +64,7 @@ export default function MultiSigSetup({
   }
 
   function updateSigner(idx: number, field: keyof WalletSigner, value: string | number) {
-    setSigners((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
-    );
+    setSigners((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
   }
 
   function validateSigners(): string | null {
@@ -119,10 +126,13 @@ export default function MultiSigSetup({
     <div className="max-w-2xl space-y-6">
       {/* Info Banner */}
       <div className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-4 text-sm text-purple-800">
-        <p className="font-semibold flex items-center gap-1.5 mb-1"><Info size={15} /> Multi-Signature Wallets</p>
+        <p className="font-semibold flex items-center gap-1.5 mb-1">
+          <Info size={15} /> Multi-Signature Wallets
+        </p>
         <p>
-          Add co-signers to require multiple parties to approve transactions. Set thresholds to control
-          how many signature weights are needed for low, medium (payments), and high (account changes) operations.
+          Add co-signers to require multiple parties to approve transactions. Set thresholds to
+          control how many signature weights are needed for low, medium (payments), and high
+          (account changes) operations.
         </p>
       </div>
 
@@ -165,7 +175,9 @@ export default function MultiSigSetup({
             ))}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <label className="block text-xs font-medium text-gray-600 mb-1">PIN to remove signers</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              PIN to remove signers
+            </label>
             <div className="flex gap-2">
               <input
                 type="password"
@@ -180,7 +192,10 @@ export default function MultiSigSetup({
       )}
 
       {/* Setup Form */}
-      <form onSubmit={handleSetup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5">
+      <form
+        onSubmit={handleSetup}
+        className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5"
+      >
         <h3 className="font-semibold text-gray-900">Configure Multi-Sig</h3>
 
         {/* Co-signers */}
@@ -195,7 +210,8 @@ export default function MultiSigSetup({
                   onChange={(e) => updateSigner(idx, 'publicKey', e.target.value.trim())}
                   placeholder="G... (Stellar public key)"
                   className={`w-full px-3 py-2 border rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    signer.publicKey && (!signer.publicKey.startsWith('G') || signer.publicKey.length !== 56)
+                    signer.publicKey &&
+                    (!signer.publicKey.startsWith('G') || signer.publicKey.length !== 56)
                       ? 'border-red-400'
                       : 'border-gray-300'
                   }`}
@@ -231,21 +247,18 @@ export default function MultiSigSetup({
         {/* Thresholds */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Master Weight
-            </label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Master Weight</label>
             <input
               type="number"
               value={masterWeight}
-              min={0} max={255}
+              min={0}
+              max={255}
               onChange={(e) => setMasterWeight(parseInt(e.target.value) || 0)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Low Threshold
-            </label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Low Threshold</label>
             <input
               type="number"
               value={lowThreshold}
@@ -282,8 +295,8 @@ export default function MultiSigSetup({
 
         {/* Weight summary */}
         <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-600">
-          Total available weight: <strong>{totalWeight}</strong>.
-          Payments require <strong>{medThreshold}</strong> — ensure your signers can meet the threshold.
+          Total available weight: <strong>{totalWeight}</strong>. Payments require{' '}
+          <strong>{medThreshold}</strong> — ensure your signers can meet the threshold.
         </div>
 
         {/* PIN */}

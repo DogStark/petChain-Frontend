@@ -18,7 +18,11 @@ const TouchTextarea = forwardRef<HTMLTextAreaElement, TouchTextareaProps>(functi
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
         {label}
-        {rest.required && <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>}
+        {rest.required && (
+          <span className="text-red-500 ml-0.5" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
 
       <textarea
@@ -40,7 +44,11 @@ const TouchTextarea = forwardRef<HTMLTextAreaElement, TouchTextareaProps>(functi
         {...rest}
       />
 
-      {hint && !error && <p id={hintId} className="text-xs text-gray-500">{hint}</p>}
+      {hint && !error && (
+        <p id={hintId} className="text-xs text-gray-500">
+          {hint}
+        </p>
+      )}
       {error && (
         <p id={errorId} role="alert" className="text-xs text-red-600 flex items-center gap-1">
           <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">

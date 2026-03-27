@@ -22,11 +22,7 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-async function deriveKey(
-  pin: string,
-  salt: Uint8Array,
-  usage: KeyUsage[]
-): Promise<CryptoKey> {
+async function deriveKey(pin: string, salt: Uint8Array, usage: KeyUsage[]): Promise<CryptoKey> {
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(pin),
@@ -97,10 +93,7 @@ export async function decryptSecretKey(
  * Computes a SHA-256 hex digest of a string — used to detect backup tampering.
  */
 export async function computeChecksum(data: string): Promise<string> {
-  const hashBuffer = await window.crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(data)
-  );
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');

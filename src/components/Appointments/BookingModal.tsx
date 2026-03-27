@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { AppointmentType } from '@/types/appointments';
-import { TouchSelect, TouchDatePicker, TouchPillGroup, TouchTextarea, TouchButton } from '@/components/TouchUI';
+import {
+  TouchSelect,
+  TouchDatePicker,
+  TouchPillGroup,
+  TouchTextarea,
+  TouchButton,
+} from '@/components/TouchUI';
 import { useHaptic } from '@/hooks/useHaptic';
 
 interface BookingModalProps {
@@ -9,12 +15,20 @@ interface BookingModalProps {
 }
 
 const APPOINTMENT_TYPES: { value: AppointmentType; label: string; color: string }[] = [
-  { value: 'Checkup',      label: 'Checkup',      color: 'bg-green-100 text-green-700 border-green-200' },
-  { value: 'Emergency',    label: 'Emergency',    color: 'bg-red-100 text-red-700 border-red-200' },
-  { value: 'Surgery',      label: 'Surgery',      color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'Vaccination',  label: 'Vaccination',  color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { value: 'Dental',       label: 'Dental',       color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  { value: 'Consultation', label: 'Consultation', color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  { value: 'Checkup', label: 'Checkup', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'Emergency', label: 'Emergency', color: 'bg-red-100 text-red-700 border-red-200' },
+  { value: 'Surgery', label: 'Surgery', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  {
+    value: 'Vaccination',
+    label: 'Vaccination',
+    color: 'bg-purple-100 text-purple-700 border-purple-200',
+  },
+  { value: 'Dental', label: 'Dental', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  {
+    value: 'Consultation',
+    label: 'Consultation',
+    color: 'bg-pink-100 text-pink-700 border-pink-200',
+  },
 ];
 
 const PET_OPTIONS = [
@@ -69,7 +83,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
     setIsSubmitting(true);
     try {
       // Simulate API call
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 600));
       trigger('success');
       onClose();
     } finally {
@@ -95,8 +109,13 @@ export default function BookingModal({ onClose }: BookingModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           {/* Drag handle (mobile) */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full sm:hidden" aria-hidden="true" />
-          <h2 id="booking-modal-title" className="text-xl font-bold text-blue-900">Book Appointment</h2>
+          <div
+            className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full sm:hidden"
+            aria-hidden="true"
+          />
+          <h2 id="booking-modal-title" className="text-xl font-bold text-blue-900">
+            Book Appointment
+          </h2>
           <button
             onClick={onClose}
             aria-label="Close booking modal"
@@ -107,13 +126,17 @@ export default function BookingModal({ onClose }: BookingModalProps) {
         </div>
 
         {/* Scrollable form body */}
-        <form onSubmit={handleSubmit} noValidate className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="overflow-y-auto flex-1 px-5 py-5 space-y-5"
+        >
           <TouchSelect
             label="Select pet"
             options={PET_OPTIONS}
             placeholder="Choose your pet"
             value={formData.pet_id}
-            onChange={e => setFormData(f => ({ ...f, pet_id: e.target.value }))}
+            onChange={(e) => setFormData((f) => ({ ...f, pet_id: e.target.value }))}
             required
             error={errors.pet_id}
           />
@@ -122,14 +145,14 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             label="Appointment type"
             options={APPOINTMENT_TYPES}
             value={formData.appointment_type}
-            onChange={v => setFormData(f => ({ ...f, appointment_type: v }))}
+            onChange={(v) => setFormData((f) => ({ ...f, appointment_type: v }))}
           />
 
           <div className="grid grid-cols-2 gap-3">
             <TouchDatePicker
               label="Date"
               value={formData.date}
-              onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
+              onChange={(e) => setFormData((f) => ({ ...f, date: e.target.value }))}
               min={new Date().toISOString().split('T')[0]}
               required
               error={errors.date}
@@ -138,7 +161,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
               label="Time"
               options={TIME_OPTIONS}
               value={formData.time}
-              onChange={e => setFormData(f => ({ ...f, time: e.target.value }))}
+              onChange={(e) => setFormData((f) => ({ ...f, time: e.target.value }))}
             />
           </div>
 
@@ -147,7 +170,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             options={VET_OPTIONS}
             placeholder="Select a vet"
             value={formData.vet_id}
-            onChange={e => setFormData(f => ({ ...f, vet_id: e.target.value }))}
+            onChange={(e) => setFormData((f) => ({ ...f, vet_id: e.target.value }))}
             required
             error={errors.vet_id}
           />
@@ -155,7 +178,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
           <TouchTextarea
             label="Notes (optional)"
             value={formData.notes}
-            onChange={e => setFormData(f => ({ ...f, notes: e.target.value }))}
+            onChange={(e) => setFormData((f) => ({ ...f, notes: e.target.value }))}
             placeholder="Any special instructions or concerns…"
             rows={3}
           />

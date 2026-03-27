@@ -18,7 +18,7 @@ export const twoFactorAPI = {
   getStatus: async (token: string): Promise<TwoFactorStatusResponse> => {
     const response = await fetch(`${API_BASE_URL}/auth/2fa/status`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -35,7 +35,7 @@ export const twoFactorAPI = {
     const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -52,7 +52,7 @@ export const twoFactorAPI = {
     const response = await fetch(`${API_BASE_URL}/auth/2fa/enable`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ token: totpToken }),
@@ -70,7 +70,7 @@ export const twoFactorAPI = {
     const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ token: totpToken }),
@@ -103,7 +103,7 @@ export const twoFactorAPI = {
     const response = await fetch(`${API_BASE_URL}/auth/2fa/backup-codes`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });

@@ -1,5 +1,5 @@
-import React from "react";
-import { StaffMember } from "@/types/clinic";
+import React from 'react';
+import { StaffMember } from '@/types/clinic';
 
 interface StaffListProps {
   staff: StaffMember[];
@@ -15,11 +15,7 @@ export default function StaffList({ staff }: StaffListProps) {
         >
           <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-50 shrink-0 border-2 border-white shadow-sm">
             {member.avatar ? (
-              <img
-                src={member.avatar}
-                alt={member.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-blue-300 font-bold text-xl uppercase">
                 {member.name[0]}

@@ -39,7 +39,10 @@ class QRCodeAPI {
     });
   }
 
-  async create(petId: string, opts?: { emergencyContact?: string; customMessage?: string }): Promise<QRCodeRecord> {
+  async create(
+    petId: string,
+    opts?: { emergencyContact?: string; customMessage?: string }
+  ): Promise<QRCodeRecord> {
     const { data } = await this.api.post('/', { petId, ...opts });
     return data;
   }
@@ -54,7 +57,10 @@ class QRCodeAPI {
     return data;
   }
 
-  async update(qrCodeId: string, patch: Partial<Pick<QRCodeRecord, 'isActive' | 'emergencyContact' | 'customMessage'>>): Promise<QRCodeRecord> {
+  async update(
+    qrCodeId: string,
+    patch: Partial<Pick<QRCodeRecord, 'isActive' | 'emergencyContact' | 'customMessage'>>
+  ): Promise<QRCodeRecord> {
     const { data } = await this.api.patch(`/${qrCodeId}`, patch);
     return data;
   }
@@ -69,7 +75,10 @@ class QRCodeAPI {
     return data;
   }
 
-  async recordScan(qrCodeId: string, meta?: { deviceType?: string; city?: string; country?: string }): Promise<void> {
+  async recordScan(
+    qrCodeId: string,
+    meta?: { deviceType?: string; city?: string; country?: string }
+  ): Promise<void> {
     await this.api.post(`/${qrCodeId}/scan`, meta ?? {});
   }
 

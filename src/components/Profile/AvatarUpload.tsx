@@ -94,11 +94,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
         {preview ? (
           <div className={styles.previewContainer}>
-            <img
-              src={preview}
-              alt="Avatar preview"
-              className={styles.preview}
-            />
+            <img src={preview} alt="Avatar preview" className={styles.preview} />
             {isLoading && <div className={styles.loader} />}
           </div>
         ) : (
@@ -113,13 +109,9 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
               />
             </svg>
             <p className={styles.text}>
-              {isDragging
-                ? 'Drop your image here'
-                : 'Drag and drop or click to upload'}
+              {isDragging ? 'Drop your image here' : 'Drag and drop or click to upload'}
             </p>
-            <p className={styles.subtext}>
-              JPEG, PNG, WebP or GIF (Max 5MB)
-            </p>
+            <p className={styles.subtext}>JPEG, PNG, WebP or GIF (Max 5MB)</p>
           </div>
         )}
       </div>

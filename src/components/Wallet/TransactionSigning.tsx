@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Send, ExternalLink, AlertTriangle, CheckCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import type { WalletAccount, BroadcastResult, FeeEstimate, WalletBalance } from '../../types/wallet';
+import {
+  Send,
+  ExternalLink,
+  AlertTriangle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  RefreshCw,
+} from 'lucide-react';
+import type {
+  WalletAccount,
+  BroadcastResult,
+  FeeEstimate,
+  WalletBalance,
+} from '../../types/wallet';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -8,7 +21,14 @@ interface Props {
   feeEstimate: FeeEstimate | null;
   onSendPayment: (
     pin: string,
-    tx: { sourcePublicKey: string; destination: string; amount: string; asset: string; memo?: string; fee?: string }
+    tx: {
+      sourcePublicKey: string;
+      destination: string;
+      amount: string;
+      asset: string;
+      memo?: string;
+      fee?: string;
+    }
   ) => Promise<BroadcastResult>;
   onRefreshFee: () => Promise<FeeEstimate | null>;
   loading: boolean;
@@ -63,8 +83,9 @@ export default function TransactionSigning({
   const xlmBalance = balances.find((b) => b.asset_type === 'native');
   const currentBalance =
     selectedAsset === 'XLM'
-      ? xlmBalance?.balance ?? '0'
-      : balances.find((b) => `${b.asset_code}:${b.asset_issuer}` === selectedAsset)?.balance ?? '0';
+      ? (xlmBalance?.balance ?? '0')
+      : (balances.find((b) => `${b.asset_code}:${b.asset_issuer}` === selectedAsset)?.balance ??
+        '0');
 
   const selectedFee = feeEstimate ? feeEstimate[feeLevel] : null;
 
@@ -72,8 +93,7 @@ export default function TransactionSigning({
     if (!destination.trim()) return 'Destination address is required.';
     if (!destination.startsWith('G') || destination.length !== 56)
       return 'Invalid destination — must be a 56-character Stellar public key starting with G.';
-    if (wallet && destination === wallet.publicKey)
-      return 'Cannot send to your own address.';
+    if (wallet && destination === wallet.publicKey) return 'Cannot send to your own address.';
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
       return 'Enter a valid positive amount.';
     if (parseFloat(amount) > parseFloat(currentBalance))
@@ -117,7 +137,9 @@ export default function TransactionSigning({
   const displayError = localError || error;
 
   if (!wallet) {
-    return <div className="text-center py-12 text-gray-400">Select a wallet to send a transaction.</div>;
+    return (
+      <div className="text-center py-12 text-gray-400">Select a wallet to send a transaction.</div>
+    );
   }
 
   return (
@@ -146,7 +168,10 @@ export default function TransactionSigning({
         </div>
       )}
 
-      <form onSubmit={handleSend} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+      <form
+        onSubmit={handleSend}
+        className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4"
+      >
         <h3 className="font-semibold text-gray-900">Send Payment</h3>
 
         {/* Asset */}
@@ -158,18 +183,23 @@ export default function TransactionSigning({
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             {assetOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
           <p className="text-xs text-gray-400 mt-1">
-            Available: {parseFloat(currentBalance).toLocaleString(undefined, { maximumFractionDigits: 7 })}{' '}
+            Available:{' '}
+            {parseFloat(currentBalance).toLocaleString(undefined, { maximumFractionDigits: 7 })}{' '}
             {selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}
           </p>
         </div>
 
         {/* Destination */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Destination Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Destination Address
+          </label>
           <input
             type="text"
             value={destination}
@@ -223,7 +253,9 @@ export default function TransactionSigning({
             <label className="text-sm font-medium text-gray-700">Transaction Fee</label>
             <button
               type="button"
-              onClick={async () => { await onRefreshFee(); }}
+              onClick={async () => {
+                await onRefreshFee();
+              }}
               className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
             >
               <RefreshCw size={11} /> Refresh
@@ -241,9 +273,13 @@ export default function TransactionSigning({
                     : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
                 }`}
               >
-                <p className="font-medium capitalize">{level === 'recommended' ? 'Standard' : level}</p>
+                <p className="font-medium capitalize">
+                  {level === 'recommended' ? 'Standard' : level}
+                </p>
                 {feeEstimate && (
-                  <p className="text-xs opacity-75 mt-0.5">{stroopsToXLM(feeEstimate[level])} XLM</p>
+                  <p className="text-xs opacity-75 mt-0.5">
+                    {stroopsToXLM(feeEstimate[level])} XLM
+                  </p>
                 )}
               </button>
             ))}
@@ -274,8 +310,18 @@ export default function TransactionSigning({
         {/* Summary */}
         {destination && amount && parseFloat(amount) > 0 && (
           <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-600 space-y-1">
-            <p>Sending <strong>{amount} {selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}</strong></p>
-            <p>To <code className="text-gray-800">{destination.slice(0, 10)}…{destination.slice(-6)}</code></p>
+            <p>
+              Sending{' '}
+              <strong>
+                {amount} {selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}
+              </strong>
+            </p>
+            <p>
+              To{' '}
+              <code className="text-gray-800">
+                {destination.slice(0, 10)}…{destination.slice(-6)}
+              </code>
+            </p>
             {selectedFee && <p>Fee ~{stroopsToXLM(selectedFee)} XLM</p>}
             {memo && <p>Memo: &quot;{memo}&quot;</p>}
           </div>

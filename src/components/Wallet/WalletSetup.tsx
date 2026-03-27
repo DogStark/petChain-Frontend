@@ -48,13 +48,7 @@ function PinInput({
   );
 }
 
-function SecretKeyInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function SecretKeyInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [show, setShow] = useState(false);
   const isValid = value.startsWith('S') && value.length === 56;
 
@@ -72,11 +66,12 @@ function SecretKeyInput({
           }`}
         />
         <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
-          {value && (
-            isValid
-              ? <CheckCircle size={14} className="text-green-500" />
-              : <AlertTriangle size={14} className="text-red-400" />
-          )}
+          {value &&
+            (isValid ? (
+              <CheckCircle size={14} className="text-green-500" />
+            ) : (
+              <AlertTriangle size={14} className="text-red-400" />
+            ))}
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
@@ -95,7 +90,13 @@ function SecretKeyInput({
   );
 }
 
-export default function WalletSetup({ onCreateWallet, onImportWallet, loading, error, onClearError }: Props) {
+export default function WalletSetup({
+  onCreateWallet,
+  onImportWallet,
+  loading,
+  error,
+  onClearError,
+}: Props) {
   const [tab, setTab] = useState<Tab>('create');
 
   // Create form
@@ -113,7 +114,8 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
 
   function validateCreate(): string | null {
     if (!createLabel.trim()) return 'Please enter a wallet name.';
-    if (createPin.length < PIN_MIN_LENGTH) return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
+    if (createPin.length < PIN_MIN_LENGTH)
+      return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (createPin !== createPinConfirm) return 'PINs do not match.';
     return null;
   }
@@ -122,7 +124,8 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
     if (!importLabel.trim()) return 'Please enter a wallet name.';
     if (!importSecretKey.startsWith('S') || importSecretKey.length !== 56)
       return 'Invalid Stellar secret key format.';
-    if (importPin.length < PIN_MIN_LENGTH) return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
+    if (importPin.length < PIN_MIN_LENGTH)
+      return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (importPin !== importPinConfirm) return 'PINs do not match.';
     return null;
   }
@@ -167,7 +170,10 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
         {(['create', 'import'] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); onClearError(); }}
+            onClick={() => {
+              setTab(t);
+              onClearError();
+            }}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
@@ -186,8 +192,9 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
 
       {/* Security Notice */}
       <div className="mb-5 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
-        <strong>Security:</strong> Your secret key is encrypted with AES-256-GCM using your PIN before
-        being stored. The PIN is never stored — if you forget it, your key cannot be recovered.
+        <strong>Security:</strong> Your secret key is encrypted with AES-256-GCM using your PIN
+        before being stored. The PIN is never stored — if you forget it, your key cannot be
+        recovered.
       </div>
 
       {/* ── Create Form ─────────────────────────────────────── */}
@@ -209,8 +216,17 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <PinInput value={createPin} onChange={setCreatePin} label={`PIN (min ${PIN_MIN_LENGTH} chars)`} />
-          <PinInput value={createPinConfirm} onChange={setCreatePinConfirm} label="Confirm PIN" placeholder="Re-enter PIN…" />
+          <PinInput
+            value={createPin}
+            onChange={setCreatePin}
+            label={`PIN (min ${PIN_MIN_LENGTH} chars)`}
+          />
+          <PinInput
+            value={createPinConfirm}
+            onChange={setCreatePinConfirm}
+            label="Confirm PIN"
+            placeholder="Re-enter PIN…"
+          />
           {createPin && createPinConfirm && createPin !== createPinConfirm && (
             <p className="text-xs text-red-500">PINs do not match.</p>
           )}
@@ -244,8 +260,17 @@ export default function WalletSetup({ onCreateWallet, onImportWallet, loading, e
             />
           </div>
           <SecretKeyInput value={importSecretKey} onChange={setImportSecretKey} />
-          <PinInput value={importPin} onChange={setImportPin} label={`New PIN (min ${PIN_MIN_LENGTH} chars)`} />
-          <PinInput value={importPinConfirm} onChange={setImportPinConfirm} label="Confirm PIN" placeholder="Re-enter PIN…" />
+          <PinInput
+            value={importPin}
+            onChange={setImportPin}
+            label={`New PIN (min ${PIN_MIN_LENGTH} chars)`}
+          />
+          <PinInput
+            value={importPinConfirm}
+            onChange={setImportPinConfirm}
+            label="Confirm PIN"
+            placeholder="Re-enter PIN…"
+          />
           {importPin && importPinConfirm && importPin !== importPinConfirm && (
             <p className="text-xs text-red-500">PINs do not match.</p>
           )}

@@ -1,16 +1,23 @@
 import { forwardRef, useState } from 'react';
 
 // Maps semantic field names to the correct mobile input type + inputMode + autocomplete
-const INPUT_TYPE_MAP: Record<string, { type: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; autoComplete?: string }> = {
-  email:           { type: 'email',    inputMode: 'email',   autoComplete: 'email' },
-  password:        { type: 'password',                       autoComplete: 'current-password' },
-  'new-password':  { type: 'password',                       autoComplete: 'new-password' },
-  phone:           { type: 'tel',      inputMode: 'tel',     autoComplete: 'tel' },
-  number:          { type: 'number',   inputMode: 'numeric' },
-  decimal:         { type: 'number',   inputMode: 'decimal' },
-  search:          { type: 'search',   inputMode: 'search',  autoComplete: 'off' },
-  url:             { type: 'url',      inputMode: 'url' },
-  text:            { type: 'text',     inputMode: 'text' },
+const INPUT_TYPE_MAP: Record<
+  string,
+  {
+    type: string;
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+    autoComplete?: string;
+  }
+> = {
+  email: { type: 'email', inputMode: 'email', autoComplete: 'email' },
+  password: { type: 'password', autoComplete: 'current-password' },
+  'new-password': { type: 'password', autoComplete: 'new-password' },
+  phone: { type: 'tel', inputMode: 'tel', autoComplete: 'tel' },
+  number: { type: 'number', inputMode: 'numeric' },
+  decimal: { type: 'number', inputMode: 'decimal' },
+  search: { type: 'search', inputMode: 'search', autoComplete: 'off' },
+  url: { type: 'url', inputMode: 'url' },
+  text: { type: 'text', inputMode: 'text' },
 };
 
 export interface TouchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -40,7 +47,11 @@ const TouchInput = forwardRef<HTMLInputElement, TouchInputProps>(function TouchI
     <div className="flex flex-col gap-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
         {label}
-        {rest.required && <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>}
+        {rest.required && (
+          <span className="text-red-500 ml-0.5" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
 
       <div className="relative">
@@ -70,17 +81,29 @@ const TouchInput = forwardRef<HTMLInputElement, TouchInputProps>(function TouchI
           <button
             type="button"
             aria-label={showPw ? 'Hide password' : 'Show password'}
-            onClick={() => setShowPw(v => !v)}
+            onClick={() => setShowPw((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             {showPw ? (
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
                 <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
@@ -90,7 +113,9 @@ const TouchInput = forwardRef<HTMLInputElement, TouchInputProps>(function TouchI
       </div>
 
       {hint && !error && (
-        <p id={hintId} className="text-xs text-gray-500">{hint}</p>
+        <p id={hintId} className="text-xs text-gray-500">
+          {hint}
+        </p>
       )}
       {error && (
         <p id={errorId} role="alert" className="text-xs text-red-600 flex items-center gap-1">

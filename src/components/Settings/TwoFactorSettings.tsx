@@ -22,7 +22,7 @@ export default function TwoFactorSettings() {
 
   const loadStatus = async () => {
     if (!tokens?.accessToken) return;
-    
+
     try {
       const status = await twoFactorAPI.getStatus(tokens.accessToken);
       setIsEnabled(status.isEnabled);
@@ -34,10 +34,10 @@ export default function TwoFactorSettings() {
 
   const handleDisable = async () => {
     if (!tokens?.accessToken || !totpToken) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       await twoFactorAPI.disable(tokens.accessToken, totpToken);
       setIsEnabled(false);
@@ -52,10 +52,10 @@ export default function TwoFactorSettings() {
 
   const handleGenerateBackupCodes = async () => {
     if (!tokens?.accessToken) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       const data = await twoFactorAPI.generateBackupCodes(tokens.accessToken);
       setNewBackupCodes(data.backupCodes);
@@ -94,13 +94,11 @@ export default function TwoFactorSettings() {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
-      
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="font-medium">Status: {isEnabled ? 'Enabled' : 'Disabled'}</p>
-          {isEnabled && (
-            <p className="text-sm text-gray-600">Backup codes: {backupCodesCount}</p>
-          )}
+          {isEnabled && <p className="text-sm text-gray-600">Backup codes: {backupCodesCount}</p>}
         </div>
         <div className={`w-3 h-3 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
       </div>
@@ -171,7 +169,9 @@ export default function TwoFactorSettings() {
               <p className="text-sm text-gray-600 mb-2">Save these codes in a safe place:</p>
               <div className="grid grid-cols-2 gap-1 text-sm font-mono">
                 {newBackupCodes.map((code, i) => (
-                  <div key={i} className="bg-white p-2 rounded">{code}</div>
+                  <div key={i} className="bg-white p-2 rounded">
+                    {code}
+                  </div>
                 ))}
               </div>
               <button

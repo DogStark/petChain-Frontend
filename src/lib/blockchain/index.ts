@@ -5,7 +5,8 @@ import { NETWORK_CONFIGS } from './types';
 declare const process: any;
 
 // Detect network from environment
-const isTestnet = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public' : true;
+const isTestnet =
+  typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public' : true;
 const defaultConfig = isTestnet ? NETWORK_CONFIGS.TESTNET : NETWORK_CONFIGS.PUBLIC;
 
 // Export shared instance (Singleton pattern for common use cases)

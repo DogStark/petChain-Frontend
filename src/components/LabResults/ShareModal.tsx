@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { Share2, Link, Mail, CheckCircle2, X } from "lucide-react";
+import React, { useState } from 'react';
+import { Share2, Link, Mail, CheckCircle2, X } from 'lucide-react';
 
 interface ShareModalProps {
   onClose: () => void;
 }
 
 export default function ShareModal({ onClose }: ShareModalProps) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -20,7 +20,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText("https://petchain.app/share/lr_9x8f7a6d");
+    navigator.clipboard.writeText('https://petchain.app/share/lr_9x8f7a6d');
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
@@ -32,7 +32,10 @@ export default function ShareModal({ onClose }: ShareModalProps) {
       aria-modal="true"
       aria-labelledby="share-modal-title"
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in" role="document">
+      <div
+        className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
+        role="document"
+      >
         <button
           onClick={onClose}
           aria-label="Close share dialog"
@@ -47,18 +50,14 @@ export default function ShareModal({ onClose }: ShareModalProps) {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-blue-900">Share Results</h2>
-            <p className="text-sm text-gray-500">
-              Securely send these lab results to a vet.
-            </p>
+            <p className="text-sm text-gray-500">Securely send these lab results to a vet.</p>
           </div>
         </div>
 
         {success ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
-            <p className="text-lg font-semibold text-green-700">
-              Sent Successfully!
-            </p>
+            <p className="text-lg font-semibold text-green-700">Sent Successfully!</p>
             <p className="text-sm text-gray-500 mt-1">
               They will receive an email with secure access.
             </p>
@@ -66,9 +65,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
         ) : (
           <div className="space-y-6">
             <form onSubmit={handleShare} className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Email Address</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
@@ -95,9 +92,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or share via link
-                </span>
+                <span className="px-2 bg-white text-gray-500">Or share via link</span>
               </div>
             </div>
 
@@ -105,8 +100,8 @@ export default function ShareModal({ onClose }: ShareModalProps) {
               onClick={handleCopyLink}
               className={`w-full flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-semibold transition-all ${
                 linkCopied
-                  ? "border-green-500 text-green-600 bg-green-50"
-                  : "border-blue-100 text-blue-600 hover:bg-blue-50"
+                  ? 'border-green-500 text-green-600 bg-green-50'
+                  : 'border-blue-100 text-blue-600 hover:bg-blue-50'
               }`}
             >
               {linkCopied ? (

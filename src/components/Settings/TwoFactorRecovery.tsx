@@ -16,10 +16,10 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
 
   const handleGenerateBackupCodes = async () => {
     if (!tokens?.accessToken) return;
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       const data = await twoFactorAPI.generateBackupCodes(tokens.accessToken);
       setBackupCodes(data.backupCodes);
@@ -57,11 +57,12 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">2FA Recovery Codes</h2>
-      
+
       {!backupCodes.length ? (
         <div>
           <p className="text-gray-600 mb-6">
-            Generate backup codes to recover your account if you lose access to your authenticator app.
+            Generate backup codes to recover your account if you lose access to your authenticator
+            app.
           </p>
           <div className="flex gap-3">
             <button
@@ -91,7 +92,9 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
           <div className="mb-4 p-3 bg-gray-50 border rounded">
             <div className="grid grid-cols-2 gap-2 text-sm font-mono">
               {backupCodes.map((code, i) => (
-                <div key={i} className="bg-white p-2 rounded border">{code}</div>
+                <div key={i} className="bg-white p-2 rounded border">
+                  {code}
+                </div>
               ))}
             </div>
           </div>
@@ -119,7 +122,7 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
           </button>
         </div>
       )}
-      
+
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
           {error}

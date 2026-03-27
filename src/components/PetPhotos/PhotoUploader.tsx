@@ -79,7 +79,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         setIsCompressing(false);
       }
     },
-    [remainingSlots, stagedFiles.length],
+    [remainingSlots, stagedFiles.length]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -185,11 +185,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           <div className={styles.previewGrid}>
             {stagedFiles.map((pf, i) => (
               <div key={i} className={styles.previewItem}>
-                <img
-                  src={pf.previewUrl}
-                  alt={pf.file.name}
-                  className={styles.previewImage}
-                />
+                <img src={pf.previewUrl} alt={pf.file.name} className={styles.previewImage} />
                 <button
                   type="button"
                   className={styles.removePreview}
@@ -209,7 +205,9 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               onClick={handleUpload}
               disabled={isUploading}
             >
-              {isUploading ? 'Uploading...' : `Upload ${stagedFiles.length} photo${stagedFiles.length !== 1 ? 's' : ''}`}
+              {isUploading
+                ? 'Uploading...'
+                : `Upload ${stagedFiles.length} photo${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
             <button
               type="button"
@@ -226,10 +224,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {isUploading && (
         <div className={styles.progressContainer}>
           <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${uploadProgress}%` }}
-            />
+            <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }} />
           </div>
           <p className={styles.progressText}>{uploadProgress}%</p>
         </div>

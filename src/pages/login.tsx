@@ -32,7 +32,9 @@ export default function LoginPage() {
         setShow2FA(true);
       } else {
         const msg = err instanceof Error ? err.message : 'Login failed';
-        setError(msg === 'Invalid credentials' ? 'Invalid email or password. Please try again.' : msg);
+        setError(
+          msg === 'Invalid credentials' ? 'Invalid email or password. Please try again.' : msg
+        );
       }
     } finally {
       setIsLoading(false);
@@ -68,7 +70,13 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
-          <Image src="/PETCHAIN.jpeg" alt="PetChain" width={64} height={64} className="rounded-2xl shadow-md" />
+          <Image
+            src="/PETCHAIN.jpeg"
+            alt="PetChain"
+            width={64}
+            height={64}
+            className="rounded-2xl shadow-md"
+          />
           <h1 className="text-2xl font-bold text-gray-900">Sign in to PetChain</h1>
           <p className="text-sm text-gray-500">
             No account?{' '}
@@ -87,7 +95,7 @@ export default function LoginPage() {
             label="Email address"
             fieldType="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
             autoFocus
@@ -98,13 +106,16 @@ export default function LoginPage() {
             fieldType="password"
             showPasswordToggle
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
           />
 
           {error && (
-            <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
+            <div
+              role="alert"
+              className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-start gap-2"
+            >
               <svg className="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
               </svg>
@@ -113,7 +124,10 @@ export default function LoginPage() {
           )}
 
           <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium min-h-[44px] flex items-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium min-h-[44px] flex items-center"
+            >
               Forgot password?
             </Link>
           </div>

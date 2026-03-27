@@ -5,18 +5,21 @@ export function useZkp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateProof = useCallback(async (vaccinationId: string, expiresAt?: string): Promise<ZkpProof | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      return await zkpService.generateProof(vaccinationId, expiresAt);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate proof');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const generateProof = useCallback(
+    async (vaccinationId: string, expiresAt?: string): Promise<ZkpProof | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        return await zkpService.generateProof(vaccinationId, expiresAt);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to generate proof');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const verifyProof = useCallback(async (proofId: string): Promise<VerifyResult | null> => {
     setLoading(true);

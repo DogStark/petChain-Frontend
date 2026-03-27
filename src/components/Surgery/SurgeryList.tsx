@@ -20,7 +20,14 @@ export const SurgeryList: React.FC<SurgeryListProps> = ({ surgeries, onSelect, o
           <p className={styles.date}>{new Date(surgery.surgeryDate).toLocaleDateString()}</p>
           {surgery.preOpNotes && <p className={styles.notes}>{surgery.preOpNotes}</p>}
           <div className={styles.actions}>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(surgery.id); }}>Delete</button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(surgery.id);
+              }}
+            >
+              Delete
+            </button>
           </div>
         </div>
       ))}

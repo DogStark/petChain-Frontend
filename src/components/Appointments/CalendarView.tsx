@@ -1,17 +1,11 @@
-import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-} from "lucide-react";
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const daysInMonth = (year: number, month: number) =>
-    new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) =>
-    new Date(year, month, 1).getDay();
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -20,18 +14,18 @@ export default function CalendarView() {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   const days = [];
@@ -41,24 +35,20 @@ export default function CalendarView() {
   // Padding for previous month
   for (let i = 0; i < startOffset; i++) {
     days.push(
-      <div
-        key={`prev-${i}`}
-        className="h-24 md:h-32 border border-gray-100 bg-gray-50/50"
-      ></div>,
+      <div key={`prev-${i}`} className="h-24 md:h-32 border border-gray-100 bg-gray-50/50"></div>
     );
   }
 
   // Current month days
   for (let d = 1; d <= totalDays; d++) {
-    const isToday =
-      new Date().toDateString() === new Date(year, month, d).toDateString();
+    const isToday = new Date().toDateString() === new Date(year, month, d).toDateString();
     days.push(
       <div
         key={d}
-        className={`h-24 md:h-32 border border-gray-100 p-2 transition-all hover:bg-blue-50/50 cursor-pointer relative group ${isToday ? "bg-blue-50/30" : "bg-white"}`}
+        className={`h-24 md:h-32 border border-gray-100 p-2 transition-all hover:bg-blue-50/50 cursor-pointer relative group ${isToday ? 'bg-blue-50/30' : 'bg-white'}`}
       >
         <span
-          className={`text-sm font-semibold ${isToday ? "bg-blue-600 text-white w-7 h-7 flex items-center justify-center rounded-full" : "text-gray-700"}`}
+          className={`text-sm font-semibold ${isToday ? 'bg-blue-600 text-white w-7 h-7 flex items-center justify-center rounded-full' : 'text-gray-700'}`}
         >
           {d}
         </span>
@@ -74,7 +64,7 @@ export default function CalendarView() {
             Surgery: Max
           </div>
         )}
-      </div>,
+      </div>
     );
   }
 
@@ -112,7 +102,7 @@ export default function CalendarView() {
       </div>
 
       <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
           <div
             key={day}
             className="py-3 text-center text-sm font-bold text-gray-500 uppercase tracking-wider"
