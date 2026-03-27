@@ -340,7 +340,7 @@ export default function SearchPage() {
               </div>
             )
           ) : (
-            <SearchResults
+            <SearchResults<any>
               results={searchResults?.results || []}
               total={searchResults?.total || 0}
               page={searchResults?.page || 1}

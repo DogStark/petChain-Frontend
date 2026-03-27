@@ -226,6 +226,31 @@
   margin-top: 20px;
 }
 
+.policyText {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.complianceLog {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+}
+
+.complianceLog ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.complianceLog li {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
 /* Modal Styles */
 .modal {
   position: fixed;

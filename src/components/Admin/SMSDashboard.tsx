@@ -34,6 +34,7 @@ export const SMSDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [month, setMonth] = useState(currentMonth);
   const [year, setYear] = useState(currentYear);
+  const descId = 'sms-dashboard-description';
 
   const fetchStats = async () => {
     setLoading(true);
@@ -71,9 +72,15 @@ export const SMSDashboard: React.FC = () => {
           Monthly SMS delivery and spending. Configure Twilio and enable SMS in backend to send alerts.
         </p>
         <div className={styles.filters}>
-          <label>
-            <span className={styles.label}>Month</span>
+          <fieldset className={styles.filterFieldset} aria-describedby={descId}>
+            <legend className={styles.visuallyHidden}>Filters</legend>
+
+            <label htmlFor="sms-filter-month">
+              <span className={styles.label}>Month</span>
+            </label>
             <select
+              id="sms-filter-month"
+              name="month"
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value, 10))}
               className={styles.select}
@@ -84,10 +91,13 @@ export const SMSDashboard: React.FC = () => {
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            <span className={styles.label}>Year</span>
+
+            <label htmlFor="sms-filter-year">
+              <span className={styles.label}>Year</span>
+            </label>
             <select
+              id="sms-filter-year"
+              name="year"
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value, 10))}
               className={styles.select}
@@ -96,18 +106,25 @@ export const SMSDashboard: React.FC = () => {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-          </label>
-          <button type="button" onClick={fetchStats} className={styles.refresh}>
-            Refresh
-          </button>
+
+            <button
+              type="button"
+              onClick={fetchStats}
+              className={styles.refresh}
+              aria-label="Refresh SMS statistics"
+              disabled={loading}
+            >
+              Refresh
+            </button>
+          </fieldset>
         </div>
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+  {error && <div role="alert" aria-live="assertive" className={styles.error}>{error}</div>}
 
       {stats && (
         <>
-          <div className={styles.cards}>
+          <div className={styles.cards} role="region" aria-label="Global SMS statistics">
             <div className={styles.card}>
               <div className={styles.cardLabel}>Sent</div>
               <div className={styles.cardValue}>{g?.sent ?? 0}</div>
@@ -144,25 +161,26 @@ export const SMSDashboard: React.FC = () => {
               <p className={styles.empty}>No SMS usage this period.</p>
             ) : (
               <div className={styles.tableWrap}>
-                <table className={styles.table}>
+                <table className={styles.table} aria-describedby="sms-table-caption">
+                  <caption id="sms-table-caption">Monthly SMS usage by user</caption>
                   <thead>
                     <tr>
-                      <th>User ID</th>
-                      <th>Sent</th>
-                      <th>Delivered</th>
-                      <th>Failed</th>
-                      <th>Cost</th>
-                      <th>Limit</th>
+                      <th scope="col">User ID</th>
+                      <th scope="col">Sent</th>
+                      <th scope="col">Delivered</th>
+                      <th scope="col">Failed</th>
+                      <th scope="col">Cost</th>
+                      <th scope="col">Limit</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.byUser.map((u) => (
+                    {stats.byUser.map((u, idx) => (
                       <tr key={u.userId}>
-                        <td className={styles.userId}>{u.userId}</td>
+                        <th scope="row" className={styles.userId} aria-rowindex={idx + 1}>{u.userId}</th>
                         <td>{u.sent}</td>
                         <td>{u.delivered}</td>
                         <td>{u.failed}</td>
-                        <td>${(u.costCents / 100).toFixed(2)}</td>
+                        <td aria-label={`Cost ${((u.costCents ?? 0) / 100).toFixed(2)} dollars`}>${(u.costCents / 100).toFixed(2)}</td>
                         <td>{u.limitCents != null ? `$${(u.limitCents / 100).toFixed(2)}` : '—'}</td>
                       </tr>
                     ))}

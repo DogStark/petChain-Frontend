@@ -10,7 +10,7 @@ export default function LocationMap({ locations }: LocationMapProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
       {/* Visual Placeholder for actual Map */}
-      <div className="bg-blue-100 rounded-3xl overflow-hidden relative group min-h-[300px]">
+      <div className="bg-blue-100 rounded-3xl overflow-hidden relative group min-h-[300px]" role="region" aria-label="Clinic location map">
         <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/-0.1276,51.5072,12/800x600?access_token=none')] bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-700"></div>
         <div className="absolute inset-0 bg-blue-900/10 group-hover:bg-blue-900/0 transition-colors"></div>
 
@@ -30,7 +30,7 @@ export default function LocationMap({ locations }: LocationMapProps) {
       </div>
 
       {/* Details List */}
-      <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-blue-200">
+      <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-blue-200" role="region" aria-label="Clinic location details">
         {locations.map((loc) => (
           <div
             key={loc.id}

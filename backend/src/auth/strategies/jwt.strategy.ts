@@ -35,6 +35,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found or inactive');
     }
+
+    if (
+      user.passwordChangedAt &&
+      payload.iat !== undefined &&
+      payload.iat * 1000 < user.passwordChangedAt.getTime()
+    ) {
+      throw new UnauthorizedException(
+        'Session invalidated due to password change',
+      );
+    }
+
     return user;
   }
 }

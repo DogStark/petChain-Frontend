@@ -17,6 +17,10 @@ export default function CategoryTabs({
       {categories.map((cat) => (
         <button
           key={cat}
+          type="button"
+          role="tab"
+          aria-selected={activeCategory === cat}
+          aria-controls={`panel-${cat}`}
           onClick={() => onSelect(cat)}
           className={`whitespace-nowrap px-4 py-2 rounded-full font-medium transition-all ${
             activeCategory === cat

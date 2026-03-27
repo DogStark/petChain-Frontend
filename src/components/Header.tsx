@@ -1,5 +1,6 @@
 //import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 
 export default function HeaderComponent() {
@@ -29,6 +30,8 @@ export default function HeaderComponent() {
               <>
                 <li><Link href="/dashboard" className="hover:text-blue-200">Dashboard</Link></li>
                 <li><Link href="/sessions" className="hover:text-blue-200">Sessions</Link></li>
+                <li><Link href="/wallet" className="hover:text-blue-200">Wallet</Link></li>
+                <li><Link href="/activity-log" className="hover:text-blue-200">Activity Log</Link></li>
                 <li><Link href="/admin/reports" className="hover:text-blue-200 text-yellow-300 font-semibold flex items-center gap-1">📊 Reports</Link></li>
                 <li className="text-blue-200">Welcome, {user?.firstName}!</li>
                 <li>
@@ -53,6 +56,7 @@ export default function HeaderComponent() {
                 </li>
               </>
             )}
+            <li><ThemeToggle /></li>
           </ul>
         </nav>
       </div>

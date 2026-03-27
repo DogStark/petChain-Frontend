@@ -3,4 +3,5 @@ export enum RoleName {
   Veterinarian = 'Veterinarian',
   VetStaff = 'VetStaff',
   Admin = 'Admin',
+  EmergencyResponder = 'EmergencyResponder',
 }

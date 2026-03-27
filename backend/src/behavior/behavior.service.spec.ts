@@ -15,12 +15,17 @@ describe('BehaviorService', () => {
         find: jest.fn(),
         findOne: jest.fn(),
         remove: jest.fn(),
-        createQueryBuilder: jest.fn(() => ({
-            where: jest.fn().mockReturnThis(),
-            andWhere: jest.fn().mockReturnThis(),
-            orderBy: jest.fn().mockReturnThis(),
-            getMany: jest.fn(),
-        })),
+        createQueryBuilder: jest.fn(() => {
+            const qb = {
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                orderBy: jest.fn().mockReturnThis(),
+                skip: jest.fn().mockReturnThis(),
+                take: jest.fn().mockReturnThis(),
+                getMany: jest.fn().mockResolvedValue([]),
+            };
+            return qb;
+        }),
     };
 
     beforeEach(async () => {
@@ -68,7 +73,7 @@ describe('BehaviorService', () => {
             const logs = [{ id: '1', petId }, { id: '2', petId }];
 
             const qb = mockRepository.createQueryBuilder();
-            (qb.getMany as jest.Mock).mockResolvedValue(logs);
+            (qb.getMany as jest.Mock).mockResolvedValueOnce(logs);
 
             const result = await service.findAll(petId, {});
             expect(result).toEqual(logs);

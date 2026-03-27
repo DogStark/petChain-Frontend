@@ -100,7 +100,7 @@ export default function EmergencyAccessPage() {
                         <User size={18} /> Owner Contacts
                     </h2>
                     <div className="space-y-3">
-                        {data.contacts.sort((a, b) => a.priority - b.priority).map((contact) => (
+                        {data.contacts.sort((a: EmergencyContact, b: EmergencyContact) => a.priority - b.priority).map((contact: EmergencyContact) => (
                             <a
                                 key={contact.id}
                                 href={`tel:${contact.phone}`}

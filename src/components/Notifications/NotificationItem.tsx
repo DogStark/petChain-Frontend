@@ -1,19 +1,28 @@
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { 
-  Bell, 
-  Calendar, 
-  AlertTriangle, 
-  MessageSquare, 
-  Syringe, 
-  Search, 
-  FileText, 
+import {
+  Bell,
+  Calendar,
+  AlertTriangle,
+  MessageSquare,
+  Syringe,
+  Search,
+  FileText,
   Info,
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
 
+const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return date.toLocaleDateString();
+};
 export interface NotificationItemProps {
   notification: {
     id: string;
@@ -60,7 +69,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   } = notification;
 
   const date = new Date(createdAt);
-  const timeAgo = formatDistanceToNow(date, { addSuffix: true });
+  const timeAgo = formatTimeAgo(date);
 
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,7 +97,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         {/* Rich Notification: Image Display */}
         {metadata?.imageUrl && (
           <div className={styles.imageContainer}>
-            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} />
+            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
           </div>
         )}
 

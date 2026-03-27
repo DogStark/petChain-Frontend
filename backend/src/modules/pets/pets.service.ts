@@ -55,11 +55,15 @@ export class PetsService {
       ? { ownerId, deletedAt: IsNull() }
       : { deletedAt: IsNull() };
 
-    return await this.petRepository.find({
-      where,
-      relations: ['breed', 'owner', 'photos'],
-      order: { createdAt: 'DESC' },
-    });
+    // Optimized: Use SelectQueryBuilder with explicit joins to avoid N+1
+    const queryBuilder = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where(where);
+
+    return await queryBuilder.getMany();
   }
 
   async findAllForOwner(
@@ -104,6 +108,7 @@ export class PetsService {
     const page = this.normalizePage(query.page);
     const limit = this.normalizeLimit(query.limit);
 
+    // Optimized: Single query with all necessary joins
     const qb = this.petRepository
       .createQueryBuilder('pet')
       .innerJoinAndSelect(
@@ -135,11 +140,19 @@ export class PetsService {
   }
 
   async findOne(id: string, withDeleted = false): Promise<Pet> {
-    const pet = await this.petRepository.findOne({
-      where: { id },
-      withDeleted,
-      relations: ['breed', 'owner', 'photos'],
-    });
+    // Optimized: Use QueryBuilder for better control
+    const qb = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where('pet.id = :id', { id });
+
+    if (withDeleted) {
+      qb.withDeleted();
+    }
+
+    const pet = await qb.getOne();
 
     if (!pet || (!withDeleted && pet.deletedAt)) {
       throw new NotFoundException(`Pet with ID ${id} not found`);
@@ -282,11 +295,15 @@ export class PetsService {
   async listPetShares(petId: string, ownerId: string): Promise<PetShare[]> {
     await this.findOwnedPet(petId, ownerId);
 
-    return await this.petShareRepository.find({
-      where: { petId, isActive: true },
-      relations: ['sharedWithUser', 'sharedByUser'],
-      order: { createdAt: 'DESC' },
-    });
+    // Optimized: Single query with joins instead of N+1
+    return await this.petShareRepository
+      .createQueryBuilder('share')
+      .leftJoinAndSelect('share.sharedWithUser', 'sharedWithUser')
+      .leftJoinAndSelect('share.sharedByUser', 'sharedByUser')
+      .where('share.petId = :petId', { petId })
+      .andWhere('share.isActive = :isActive', { isActive: true })
+      .orderBy('share.createdAt', 'DESC')
+      .getMany();
   }
 
   async verifyOwnership(petId: string, ownerId: string): Promise<boolean> {
@@ -397,11 +414,20 @@ export class PetsService {
     ownerId: string,
     withDeleted = false,
   ): Promise<Pet> {
-    const pet = await this.petRepository.findOne({
-      where: { id: petId, ownerId },
-      withDeleted,
-      relations: ['breed', 'owner', 'photos'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const qb = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where('pet.id = :petId', { petId })
+      .andWhere('pet.ownerId = :ownerId', { ownerId });
+
+    if (withDeleted) {
+      qb.withDeleted();
+    }
+
+    const pet = await qb.getOne();
 
     if (!pet) {
       throw new NotFoundException('Pet not found for this owner');
