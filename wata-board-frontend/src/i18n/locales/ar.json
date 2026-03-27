@@ -1,0 +1,257 @@
+{
+  "app": {
+    "title": "واتا-بورد",
+    "tagline": "مدفوعات الخدمات العامة اللامركزية على بلوكشين ستيلار",
+    "description": "ادفع فواتير الخدمات العامة باستخدام العملة المشفرة على شبكة ستيلار"
+  },
+  "navigation": {
+    "home": "دفع الفاتورة",
+    "about": "من نحن",
+    "contact": "اتصل بنا",
+    "rate": "قيّمنا",
+    "language": "اللغة"
+  },
+  "payment": {
+    "form": {
+      "title": "معلومات الدفع",
+      "meterNumber": "رقم العداد",
+      "meterPlaceholder": "مثال: METER-123",
+      "meterDescription": "أدخل رقم عداد الخدمات كما هو موضح في فاتورتك",
+      "amount": "المبلغ",
+      "amountPlaceholder": "رقم صحيح",
+      "amountDescription": "أدخل مبلغ الدفع بالعملة XLM الصحيحة",
+      "payButton": "دفع الفاتورة",
+      "processing": "جاري المعالجة...",
+      "rateLimited": "تم الوصول للحد",
+      "requiresExtension": "يتطلب إضافة فرايتر. حد 5 معاملات في الدقيقة."
+    },
+    "status": {
+      "title": "الحالة",
+      "ready": "جاهز.",
+      "installWallet": "يرجى تثبيت إضافة محفظة فرايتر!",
+      "enterMeter": "يرجى إدخال رقم العداد.",
+      "enterValidAmount": "يرجى إدخال مبلغ صحيح أكبر من 0.",
+      "wholeNumber": "يجب أن يكون المبلغ رقماً صحيحاً.",
+      "amountTooLarge": "المبلغ كبير جداً.",
+      "insufficientBalance": "الرصيد غير كافٍ. يرجى إضافة المزيد من XLM إلى محفظتك.",
+      "estimatingFees": "جاري تقدير رسوم المعاملة... يرجى الانتظار.",
+      "paymentSuccess": "تم الدفع بنجاح! معرف المعاملة: {{id}}...",
+      "paymentFailed": "فشل الدفع: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "تقدير رسوم المعاملة",
+      "calculating": "(جاري الحساب...)",
+      "calculatingFees": "جاري حساب الرسوم المقدرة...",
+      "paymentAmount": "مبلغ الدفع",
+      "estimatedNetworkFee": "رسوم الشبكة المقدرة",
+      "totalCost": "إجمالي التكلفة",
+      "unableToEstimate": "لا يمكن تقدير الرسوم في الوقت الحالي"
+    },
+    "rateLimit": {
+      "title": "حالة حد المعدل",
+      "requestsAvailable": "{{count}}/5 طلبات متاحة",
+      "rateLimited": "تم الوصول للحد. إعادة تعيين في {{time}}",
+      "queue": "الطابور: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "رصيد المحفظة",
+      "available": "الرصيد المتاح",
+      "total": "إجمالي الرصيد",
+      "loading": "جاري تحميل الرصيد...",
+      "error": "فشل تحميل الرصيد",
+      "reconnect": "يرجى إعادة الاتصال بمحفظتك",
+      "insufficient": "الرصيد غير كافٍ لهذه المعاملة",
+      "lowBalance": "تحذير انخفاض الرصيد"
+    },
+    "connection": {
+      "connected": "متصل",
+      "disconnected": "غير متصل",
+      "connecting": "جاري الاتصال...",
+      "connectWallet": "اتصل بالمحفظة",
+      "switchWallet": "تبديل المحفظة"
+    }
+  },
+  "network": {
+    "mainnet": "الشبكة الرئيسية",
+    "testnet": "شبكة الاختبار",
+    "switchNetwork": "تبديل الشبكة",
+    "currentNetwork": "الشبكة الحالية"
+  },
+  "offline": {
+    "banner": {
+      "title": "أنت غير متصل",
+      "description": "بعض الميزات قد لا تكون متاحة. سيتم وضع الإجراءات في الطابور ومعالجتها عند عودتك إلى الاتصال.",
+      "retry": "إعادة محاولة الاتصال",
+      "details": "تفاصيل الاتصال"
+    },
+    "status": {
+      "online": "متصل",
+      "offline": "غير متصل",
+      "connecting": "جاري الاتصال...",
+      "queueStatus": "{{count}} إجراء في الطابور",
+      "queueStatus_plural": "{{count}} إجراءات في الطابور"
+    },
+    "queue": {
+      "title": "طابور عدم الاتصال",
+      "description": "سيتم معالجة {{count}} إجراء عند عودتك إلى الاتصال",
+      "description_plural": "سيتم معالجة {{count}} إجراءات عند عودتك إلى الاتصال"
+    },
+    "error": {
+      "paymentOffline": "الدفع في الطابور للمعالجة عند عودتك إلى الاتصال",
+      "generalOffline": "الإجراء في الطابور للمعالجة عند عودتك إلى الاتصال"
+    }
+  },
+  "about": {
+    "title": "حول واتا-بورد",
+    "description": "واتا-بورد هي منصة دفع خدمات عامة لامركزية مبنية على بلوكشين ستيلار. نتمكن من دفع فواتير الخدمات الآمنة والشفافة والفعالة باستخدام العملة المشفرة.",
+    "features": {
+      "title": "الميزات الرئيسية",
+      "secure": "معاملات آمنة",
+      "secureDescription": "مبنية على بلوكشين ستيلار مع أمان على مستوى المؤسسات",
+      "fast": "دفعات سريعة",
+      "fastDescription": "تسوية شبه فورية مع رسوم معاملات منخفضة",
+      "transparent": "سجلات شفافة",
+      "transparentDescription": "جميع المعاملات مسجلة على البلوكشين العام",
+      "decentralized": "لامركزي",
+      "decentralizedDescription": "لا يوجد نقطة واحدة للفشل أو التحكم"
+    },
+    "howItWorks": {
+      "title": "كيف تعمل",
+      "step1": "اتصل بمحفظتك",
+      "step2": "أدخل تفاصيل العداد",
+      "step3": "أكد الدفع",
+      "step4": "تمت معالجة الدفع"
+    }
+  },
+  "contact": {
+    "title": "اتصل بنا",
+    "description": "تواصل مع فريقنا للحصول على الدعم أو الأسئلة أو الملاحظات.",
+    "form": {
+      "name": "الاسم",
+      "namePlaceholder": "أدخل اسمك",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "subject": "الموضوع",
+      "subjectPlaceholder": "أدخل الموضوع",
+      "message": "الرسالة",
+      "messagePlaceholder": "أدخل رسالتك",
+      "sendButton": "إرسال الرسالة",
+      "sending": "جاري الإرسال..."
+    },
+    "info": {
+      "email": "البريد الإلكتروني",
+      "support": "الدعم",
+      "website": "الموقع الإلكتروني"
+    }
+  },
+  "rate": {
+    "title": "قيم تجربتك",
+    "description": "ساعدنا في التحسين من خلال تقييم تجربتك مع واتا-بورد.",
+    "rating": {
+      "excellent": "ممتاز",
+      "good": "جيد",
+      "average": "متوسط",
+      "poor": "ضعيف",
+      "terrible": "سيء جداً"
+    },
+    "review": {
+      "title": "اكتب مراجعة",
+      "placeholder": "شارك تجربتك مع واتا-بورد...",
+      "submit": "إرسال المراجعة",
+      "thankYou": "شكراً على ملاحظاتك!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "خطأ",
+      "unknown": "حدث خطأ غير معروف",
+      "tryAgain": "يرجى المحاولة مرة أخرى",
+      "contactSupport": "اتصل بالدعم إذا استمرت المشكلة"
+    },
+    "network": {
+      "title": "خطأ في الشبكة",
+      "description": "لا يمكن الاتصال بالشبكة",
+      "checkConnection": "يرجى فحص اتصالك بالإنترنت"
+    },
+    "wallet": {
+      "title": "خطأ في المحفظة",
+      "notConnected": "المحفظة غير متصلة",
+      "notInstalled": "محفظة فرايتر غير مثبتة",
+      "installFreighter": "يرجى تثبيت إضافة محفظة فرايتر"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "تخطي إلى المحتوى الرئيسي",
+    "skipToNavigation": "تخطي إلى التنقل",
+    "menuToggle": "تبديل قائمة التنقل",
+    "closeMenu": "إغلاق القائمة",
+    "openMenu": "فتح القائمة",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح",
+    "warning": "تحذير",
+    "info": "معلومات"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تحرير",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "reset": "إعادة تعيين",
+    "clear": "مسح",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح",
+    "retry": "إعادة المحاولة",
+    "refresh": "تحديث",
+    "copy": "نسخ",
+    "copied": "تم النسخ!",
+    "learnMore": "تعلم المزيد",
+    "viewDetails": "عرض التفاصيل",
+    "hideDetails": "إخفاء التفاصيل"
+  },
+  "time": {
+    "seconds": "ثانية",
+    "seconds_plural": "ثواني",
+    "minutes": "دقيقة",
+    "minutes_plural": "دقائق",
+    "hours": "ساعة",
+    "hours_plural": "ساعات",
+    "days": "يوم",
+    "days_plural": "أيام",
+    "weeks": "أسبوع",
+    "weeks_plural": "أسابيع",
+    "months": "شهر",
+    "months_plural": "أشهر",
+    "years": "سنة",
+    "years_plural": "سنوات",
+    "ago": "منذ {{time}}",
+    "in": "في {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "invalid": "تنسيق غير صالح",
+    "tooShort": "يجب أن يحتوي على الأقل {{min}} حرف",
+    "tooLong": "لا يجب أن يحتوي على أكثر من {{max}} حرف",
+    "invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح",
+    "invalidNumber": "يرجى إدخال رقم صالح",
+    "minValue": "يجب أن يكون على الأقل {{min}}",
+    "maxValue": "لا يجب أن يتجاوز {{max}}"
+  }
+}

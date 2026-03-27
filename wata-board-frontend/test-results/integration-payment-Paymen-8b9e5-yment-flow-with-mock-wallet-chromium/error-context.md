@@ -1,0 +1,66 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation "Main navigation" [ref=e4]:
+    - generic [ref=e6]:
+      - link "Wata-Board home page" [ref=e8] [cursor=pointer]:
+        - /url: /
+        - text: Wata-Board
+      - generic [ref=e9]:
+        - menubar [ref=e10]:
+          - menuitem "Pay Bill" [ref=e11] [cursor=pointer]
+          - menuitem "About" [ref=e12] [cursor=pointer]
+          - menuitem "Contact" [ref=e13] [cursor=pointer]
+          - menuitem "Rate Us" [ref=e14] [cursor=pointer]
+        - generic [ref=e16]:
+          - button "Testnet" [ref=e17]
+          - button "Mainnet" [ref=e18]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - link "Skip to main content" [ref=e21] [cursor=pointer]:
+        - /url: /#main-content
+      - link "Skip to navigation" [ref=e22] [cursor=pointer]:
+        - /url: /#navigation
+      - link "Skip to payment form" [ref=e23] [cursor=pointer]:
+        - /url: /#payment-form
+    - main "Payment form" [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - heading "Wata-Board" [level=1] [ref=e29]
+              - paragraph [ref=e30]: Decentralized utility payments on Stellar blockchain
+            - generic [ref=e31]:
+              - status "Connected to internet" [ref=e32]:
+                - generic [ref=e33]: 🌐
+                - generic [ref=e34]: Online
+              - status [ref=e35]: TESTNET
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - generic [ref=e39]: Wallet Balance
+                - generic [ref=e40]: 1,000.00 XLM
+                - generic [ref=e41]: Healthy balance
+              - button "Refresh balance" [ref=e42]:
+                - img [ref=e43]
+            - generic [ref=e45]: "Last updated: 12:48:43 AM"
+          - region "Transaction Fee Estimation" [ref=e46]:
+            - heading "Transaction Fee Estimation" [level=2] [ref=e47]
+            - generic [ref=e50]: "Estimated Network Fee: 0.00001 XLM"
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e54]: Meter number
+                - textbox "Meter number" [ref=e55]:
+                  - /placeholder: e.g. METER-123
+                  - text: METER-456
+              - generic [ref=e56]:
+                - generic [ref=e57]: Amount (XLM)
+                - spinbutton "Amount (XLM)" [ref=e58]: "50"
+            - generic [ref=e59]:
+              - button "Pay bill" [active] [ref=e60]:
+                - generic [ref=e62]: Pay bill
+              - status [ref=e63]: "Payment failed: Cannot read properties of undefined (reading 'type')"
+        - paragraph [ref=e65]: © 2026 Wata-Board. Modern payment solutions for the decentralized web
+```
