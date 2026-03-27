@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
+import { TouchInput, TouchButton } from '../components/TouchUI';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,213 +16,156 @@ export default function RegisterPage() {
     lastName: '',
     phone: '',
   });
+  const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const { register } = useAuth();
   const router = useRouter();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const set = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    // Clear field error on change
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
+  const validate = (): boolean => {
+    const next: Partial<typeof formData> = {};
 
+    if (!formData.firstName.trim()) next.firstName = 'First name is required';
+    if (!formData.lastName.trim()) next.lastName = 'Last name is required';
+    if (!formData.email.trim()) next.email = 'Email is required';
     if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
-      setError('Enter a valid phone number in international format');
-      return false;
-    }
-    
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
+      next.phone = 'Enter a valid phone number in international format';
     }
 
-    return true;
+    const { valid, errors: pwErrors } = validatePassword(formData.password);
+    if (!valid) next.password = pwErrors[0];
+    else if (isPasswordReused(formData.password)) next.password = 'This password was used recently';
+
+    if (formData.password !== formData.confirmPassword) {
+      next.confirmPassword = 'Passwords do not match';
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
-    if (!validateForm()) {
-      return;
-    }
+    if (isLoading) return;
+    setSubmitError('');
+    if (!validate()) return;
 
     setIsLoading(true);
-
     try {
-      await register(
-        formData.email,
-        formData.password,
-        formData.firstName,
-        formData.lastName,
-        formData.phone,
-      );
+      await register(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
+      savePasswordToHistory(formData.password);
       router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setSubmitError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to your existing account
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-12">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3">
+          <Image src="/PETCHAIN.jpeg" alt="PetChain" width={64} height={64} className="rounded-2xl shadow-md" />
+          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
+          <p className="text-sm text-gray-500">
+            Already have one?{' '}
+            <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
+              Sign in
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="First name"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Last name"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="+1 555 123 4567"
-                value={formData.phone}
-                onChange={handleInputChange}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Use an SMS-capable number so we can send your verification code.
-              </p>
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleInputChange}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters with uppercase, lowercase, numbers, and special characters.
-              </p>
-            </div>
-            
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Confirm password"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-              />
-            </div>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <TouchInput
+              label="First name"
+              fieldType="text"
+              autoComplete="given-name"
+              value={formData.firstName}
+              onChange={set('firstName')}
+              placeholder="Jane"
+              required
+              error={errors.firstName}
+            />
+            <TouchInput
+              label="Last name"
+              fieldType="text"
+              autoComplete="family-name"
+              value={formData.lastName}
+              onChange={set('lastName')}
+              placeholder="Doe"
+              required
+              error={errors.lastName}
+            />
           </div>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
+          <TouchInput
+            label="Email address"
+            fieldType="email"
+            value={formData.email}
+            onChange={set('email')}
+            placeholder="you@example.com"
+            required
+            error={errors.email}
+          />
+
+          <TouchInput
+            label="Phone number"
+            fieldType="phone"
+            value={formData.phone}
+            onChange={set('phone')}
+            placeholder="+1 555 123 4567"
+            required
+            hint="SMS-capable number for verification"
+            error={errors.phone}
+          />
+
+          <div className="space-y-1.5">
+            <TouchInput
+              label="Password"
+              fieldType="new-password"
+              showPasswordToggle
+              value={formData.password}
+              onChange={set('password')}
+              placeholder="••••••••"
+              required
+              error={errors.password}
+            />
+            <PasswordStrengthMeter password={formData.password} />
+          </div>
+
+          <TouchInput
+            label="Confirm password"
+            fieldType="new-password"
+            showPasswordToggle
+            value={formData.confirmPassword}
+            onChange={set('confirmPassword')}
+            placeholder="••••••••"
+            required
+            error={errors.confirmPassword}
+          />
+
+          {submitError && (
+            <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {submitError}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating account...
-                </span>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </div>
+          <TouchButton type="submit" fullWidth loading={isLoading} haptic="medium" size="lg">
+            Create account
+          </TouchButton>
         </form>
       </div>
     </div>

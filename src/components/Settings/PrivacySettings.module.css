@@ -195,6 +195,20 @@
   line-height: 1.4;
 }
 
+.sectionSummary {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #374151;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.sectionSummary strong {
+  color: #111827;
+}
+
 .success {
   padding: 12px 16px;
   background-color: #d1fae5;

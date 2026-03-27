@@ -44,6 +44,10 @@
   color: #6b7280;
 }
 
+.section {
+  margin-top: 32px;
+}
+
 @media (max-width: 640px) {
   .container {
     padding: 16px 12px;

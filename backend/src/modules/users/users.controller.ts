@@ -21,8 +21,11 @@ import { UsersService } from './users.service';
 import { UserPreferenceService } from './services/user-preference.service';
 import { UserSessionService } from './services/user-session.service';
 import { UserActivityLogService } from './services/user-activity-log.service';
+import { OnboardingService } from './services/onboarding.service';
 import { UserSearchService } from './services/user-search.service';
 import { FileUploadService } from './services/file-upload.service';
+import { OnboardingStepId } from './entities/user-onboarding.entity';
+import { ActivityType } from './entities/user-activity-log.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
@@ -42,8 +45,9 @@ export class UsersController {
     private readonly preferenceService: UserPreferenceService,
     private readonly sessionService: UserSessionService,
     private readonly activityLogService: UserActivityLogService,
+    private readonly onboardingService: OnboardingService,
     private readonly searchService: UserSearchService,
-    private readonly fileUploadService?: FileUploadService, // optional injection for direct avatar upload
+    private readonly fileUploadService?: FileUploadService,
   ) {}
 
   /**
@@ -359,6 +363,33 @@ export class UsersController {
   }
 
   /**
+   * Export activity logs as CSV
+   * GET /users/me/activity/export
+   */
+  @Get('me/activity/export')
+  @UseGuards(JwtAuthGuard)
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="activity-log.csv"')
+  async exportActivityLogs(@CurrentUser() user: User): Promise<StreamableFile> {
+    const logs = await this.activityLogService.getUserActivity(user.id, 10000, 0);
+    const header = 'id,activityType,description,ipAddress,deviceId,isSuspicious,createdAt\n';
+    const rows = logs
+      .map((l) =>
+        [
+          l.id,
+          l.activityType,
+          `"${(l.description ?? '').replace(/"/g, '""')}"`,
+          l.ipAddress ?? '',
+          l.deviceId ?? '',
+          l.isSuspicious,
+          l.createdAt,
+        ].join(','),
+      )
+      .join('\n');
+    return new StreamableFile(Buffer.from(header + rows, 'utf-8'));
+  }
+
+  /**
    * Get activity logs
    * GET /users/me/activity
    */
@@ -368,12 +399,12 @@ export class UsersController {
     @CurrentUser() user: User,
     @Query('limit') limit: number = 50,
     @Query('offset') offset: number = 0,
+    @Query('activityType') activityType?: ActivityType,
   ) {
-    return await this.activityLogService.getUserActivity(
-      user.id,
-      limit,
-      offset,
-    );
+    if (activityType) {
+      return await this.activityLogService.getActivityByType(user.id, activityType, limit);
+    }
+    return await this.activityLogService.getUserActivity(user.id, limit, offset);
   }
 
   /**

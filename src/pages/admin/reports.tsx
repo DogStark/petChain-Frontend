@@ -119,8 +119,8 @@ export default function AdminReports() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all ${activeTab === tab.id
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 shadow-sm'
                                         }`}
                                 >
                                     {tab.icon}
