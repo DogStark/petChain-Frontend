@@ -91,7 +91,7 @@ function ToothChart({ teeth, onToothClick }: {
                 />
                 <span className="text-[9px] text-gray-500 mt-0.5 font-mono">{tooth.toothId}</span>
                 {/* Tooltip */}
-                <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-xl">
+                <div className="absolute -top-9 left-1/2 -translate--1/2 bg-gray-900 text-white text-[10px] rounded-lg px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-xl">
                     {cfg.emoji} {tooth.label}: {cfg.label}
                     {tooth.notes && <span className="block opacity-70">{tooth.notes}</span>}
                 </div>
@@ -110,7 +110,7 @@ function ToothChart({ teeth, onToothClick }: {
             </div>
             {/* Divider */}
             <div className="w-full max-w-xs border-t-2 border-dashed border-blue-200 relative">
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-3 text-xs text-blue-400 font-semibold">gum line</span>
+                <span className="absolute -top-3 left-1/2 -translate--1/2 bg-white px-3 text-xs text-blue-400 font-semibold">gum line</span>
             </div>
             {/* Lower jaw */}
             <div>
@@ -251,7 +251,7 @@ export default function DentalHealthPage() {
 
                 {/* Tab Bar */}
                 <div className="max-w-6xl mx-auto px-4">
-                    <div className="flex gap-1 overflow-x-auto no-scrollbar pb-0">
+                    <div className="flex gap-1 overflow--auto no-scrollbar pb-0">
                         {TABS.map(tab => (
                             <button
                                 key={tab.id}

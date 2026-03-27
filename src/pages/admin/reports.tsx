@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Head from 'next/head';
 import Header from '@/components/Header';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 
 // Import Charts
@@ -112,8 +112,8 @@ export default function AdminReports() {
                     </div>
 
                     {/* Report Tabs - Hidden on Print */}
-                    <div className="mb-8 overflow-x-auto pb-2 print:hidden hide-scrollbar">
-                        <div className="flex space-x-2 min-w-max">
+                    <div className="mb-8 overflow--auto pb-2 print:hidden hide-scrollbar">
+                        <div className="flex space--2 min-w-max">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
@@ -256,7 +256,7 @@ export default function AdminReports() {
                                     </button>
                                 </div>
 
-                                <div className="overflow-x-auto">
+                                <div className="overflow--auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b border-slate-200">

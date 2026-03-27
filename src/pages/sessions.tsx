@@ -124,6 +124,102 @@ export default function SessionsPage() {
   }
 
   return (
+    <>
+      <Head>
+        <title>Active Sessions - PetChain</title>
+        <meta name="description" content="Manage your active PetChain sessions" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-900">Active Sessions</h1>
+              <p className="text-sm text-gray-600 mt-2">
+                Manage devices that are currently logged in to your PetChain account.
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="p-6 text-center">
+                <div className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2">⏳</div>
+                <p className="text-gray-600">Loading sessions...</p>
+              </div>
+            ) : (
+              <div className="p-6">
+                <div className="space-y-4">
+                  {sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
+                    >
+                      <div className="flex items-start space--4">
+                        <div className="shrink-0">
+                          {session.isCurrent ? (
+                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                              <span className="text-green-600 font-semibold">✓</span>
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                              <span className="text-gray-600">📱</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {session.device}
+                            {session.isCurrent && (
+                              <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                Current
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {session.location} • {session.ip}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Last active: {session.lastActive}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!session.isCurrent && (
+                        <button
+                          onClick={() => handleRevoke(session.id)}
+                          disabled={actionLoading === session.id}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                        >
+                          {actionLoading === session.id ? 'Revoking...' : 'Revoke'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {sessions.filter(s => !s.isCurrent).length > 1 && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <button
+                      onClick={handleRevokeAll}
+                      disabled={actionLoading === 'all'}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+                    >
+                      {actionLoading === 'all' ? 'Revoking...' : 'Log out of all other devices'}
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      This will log you out of all devices except this one.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+  return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <Head>
         <title>Session Management | PetChain</title>
@@ -156,7 +252,7 @@ export default function SessionsPage() {
             {sessions.map((session) => (
               <li key={session.id}>
                 <div className="px-4 py-5 sm:px-6 flex items-center justify-between hover:bg-gray-50 transition">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space--4">
                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                       {/* Placeholder for Device Icon */}
                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

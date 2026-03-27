@@ -66,7 +66,7 @@ export default function TransactionHistory() {
         </select>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow--auto">
         <table className="min-w-full bg-white border">
           <thead>
             <tr className="bg-gray-100">

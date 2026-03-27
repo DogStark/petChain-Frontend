@@ -91,7 +91,7 @@ export default function Home() {
             Smart, secure, and always-available health tracking for your pet.{" "}
             <br />
           </span>
-          <div className="relative w-full overflow-x-hidden mt-4">
+          <div className="relative w-full overflow--hidden mt-4">
             <div className="animate-marquee whitespace-nowrap">
               <span className="inline-block bg-gradient-to-r from-blue-400 via-pink-400 to-green-400 bg-clip-text text-transparent font-bold px-6 py-2 rounded-full shadow-md text-2xl md:text-3xl">
                 Decentralized, Private & Vet-Ready. &nbsp; Decentralized,

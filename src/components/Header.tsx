@@ -21,7 +21,7 @@ export default function HeaderComponent() {
           </Link>
         </h1>
         <nav>
-          <ul className="flex space-x-4 items-center">
+          <ul className="flex space--4 items-center">
             <li><Link href="/" className="hover:text-blue-200">Home</Link></li>
             <li><Link href="/search" className="hover:text-blue-200">Search</Link></li>
             <li><Link href="/dental" className="hover:text-blue-200 flex items-center gap-1">🦷 Dental</Link></li>
