@@ -77,12 +77,12 @@ describe('MedicalRecordsService', () => {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockImplementation(async () =>
-        mockMedicalRecordRepo.find(),
-      ),
-      getOne: jest.fn().mockImplementation(async () =>
-        mockMedicalRecordRepo.findOne(),
-      ),
+      getMany: jest
+        .fn()
+        .mockImplementation(async () => mockMedicalRecordRepo.find()),
+      getOne: jest
+        .fn()
+        .mockImplementation(async () => mockMedicalRecordRepo.findOne()),
     }));
 
     jest.clearAllMocks();

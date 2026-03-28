@@ -6,9 +6,7 @@ import { RolesService } from './roles.service';
 import { Role } from '../entities/role.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { RolePermission } from '../entities/role-permission.entity';
-import {
-  RoleAuditLog,
-} from '../entities/role-audit-log.entity';
+import { RoleAuditLog } from '../entities/role-audit-log.entity';
 import { RoleName } from '../constants/roles.enum';
 import { Permission } from '../constants/permissions.enum';
 import { AssignRoleDto, RemoveRoleDto } from '../dto/role.dto';

@@ -1,16 +1,15 @@
 import {
   Controller,
   Get,
-  Query,
-  UseGuards,
-  Res,
   HttpStatus,
+  Query,
+  Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AnalyticsService } from './analytics.service';
-import { AnalyticsQueryDto, ExportFormat } from './dto/analytics-query.dto';
-import { Parser } from 'json2csv';
+import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 
 @Controller('analytics')
 @UseGuards(JwtAuthGuard)
@@ -27,6 +26,11 @@ export class AnalyticsController {
     return this.analyticsService.getPetRegistrationTrends(query);
   }
 
+  @Get('health/trends')
+  async getPetHealthTrends(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.getPetHealthTrends(query);
+  }
+
   @Get('vaccinations/compliance')
   async getVaccinationCompliance(@Query() query: AnalyticsQueryDto) {
     return this.analyticsService.getVaccinationCompliance(query);
@@ -37,9 +41,19 @@ export class AnalyticsController {
     return this.analyticsService.getAppointmentStatistics(query);
   }
 
+  @Get('usage/system')
+  async getSystemUsageAnalytics(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.getSystemUsageAnalytics(query);
+  }
+
   @Get('geographic/distribution')
   async getGeographicDistribution(@Query() query: AnalyticsQueryDto) {
     return this.analyticsService.getGeographicDistribution(query);
+  }
+
+  @Get('reports/custom')
+  async getCustomReport(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.generateCustomReport(query);
   }
 
   @Get('dashboard')
@@ -49,59 +63,18 @@ export class AnalyticsController {
 
   @Get('export')
   async exportReport(@Query() query: AnalyticsQueryDto, @Res() res: Response) {
-    const data = await this.analyticsService.getDashboardOverview(query);
-    const format = query.format || ExportFormat.JSON;
+    const exportResult = await this.analyticsService.exportReport(query);
 
-    if (format === ExportFormat.CSV) {
-      const parser = new Parser();
-      const csv = parser.parse([
-        {
-          metric: 'Total Users',
-          value: data.users.totalUsers,
-        },
-        {
-          metric: 'Active Users',
-          value: data.users.activeUsers,
-        },
-        {
-          metric: 'New Users',
-          value: data.users.newUsers,
-        },
-        {
-          metric: 'Total Pets',
-          value: data.pets.totalPets,
-        },
-        {
-          metric: 'New Pets',
-          value: data.pets.newPets,
-        },
-        {
-          metric: 'Total Vaccinations',
-          value: data.vaccinations.totalVaccinations,
-        },
-        {
-          metric: 'Vaccination Compliance Rate',
-          value: `${data.vaccinations.complianceRate}%`,
-        },
-        {
-          metric: 'Total Appointments',
-          value: data.appointments.total,
-        },
-      ]);
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=analytics-report-${Date.now()}.csv`,
-      );
-      return res.status(HttpStatus.OK).send(csv);
-    }
-
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Type', exportResult.contentType);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=analytics-report-${Date.now()}.json`,
+      `attachment; filename=${exportResult.filename}`,
     );
-    return res.status(HttpStatus.OK).json(data);
+
+    if (exportResult.contentType === 'application/json') {
+      return res.status(HttpStatus.OK).json(exportResult.body);
+    }
+
+    return res.status(HttpStatus.OK).send(exportResult.body);
   }
 }

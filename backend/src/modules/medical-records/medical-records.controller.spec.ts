@@ -151,9 +151,13 @@ describe('MedicalRecordsController', () => {
       );
 
       expect(result).toEqual(updated);
-      expect(mockService.update).toHaveBeenCalledWith('rec-1', {
-        diagnosis: 'Updated',
-      }, 'user-1');
+      expect(mockService.update).toHaveBeenCalledWith(
+        'rec-1',
+        {
+          diagnosis: 'Updated',
+        },
+        'user-1',
+      );
     });
   });
 
@@ -179,10 +183,18 @@ describe('MedicalRecordsController', () => {
       };
       mockService.verifyRecord.mockResolvedValue(verified);
 
-      const result = await controller.verifyRecord('rec-1', verifyDto as any, 'user-1');
+      const result = await controller.verifyRecord(
+        'rec-1',
+        verifyDto as any,
+        'user-1',
+      );
 
       expect(result.verified).toBe(true);
-      expect(mockService.verifyRecord).toHaveBeenCalledWith('rec-1', verifyDto, 'user-1');
+      expect(mockService.verifyRecord).toHaveBeenCalledWith(
+        'rec-1',
+        verifyDto,
+        'user-1',
+      );
     });
   });
 
@@ -192,10 +204,18 @@ describe('MedicalRecordsController', () => {
       const revoked = { id: 'rec-1', verified: false };
       mockService.revokeVerification.mockResolvedValue(revoked);
 
-      const result = await controller.revokeVerification('rec-1', revokeDto as any, 'user-1');
+      const result = await controller.revokeVerification(
+        'rec-1',
+        revokeDto as any,
+        'user-1',
+      );
 
       expect(result.verified).toBe(false);
-      expect(mockService.revokeVerification).toHaveBeenCalledWith('rec-1', revokeDto, 'user-1');
+      expect(mockService.revokeVerification).toHaveBeenCalledWith(
+        'rec-1',
+        revokeDto,
+        'user-1',
+      );
     });
   });
 

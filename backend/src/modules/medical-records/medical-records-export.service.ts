@@ -92,7 +92,6 @@ export class MedicalRecordsExportService {
       case ExportFormat.FHIR:
         return this.exportFhir(records, includeAttachments);
       default:
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new BadRequestException(`Unsupported format: ${dto.format}`);
     }
   }

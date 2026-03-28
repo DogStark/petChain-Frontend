@@ -14,7 +14,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new AuditInterceptor(auditService));
 
   // Trust proxy for correct IP address detection
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
 
   // ── Helmet (security headers) ──────────────────────────────────────────────

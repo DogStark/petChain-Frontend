@@ -112,8 +112,8 @@ describe('PetsService', () => {
     mockPetRepository.restore.mockResolvedValue({ affected: 1 });
     mockPetRepository.createQueryBuilder.mockReturnValueOnce(
       makePetQb({
-      ...pet,
-      deletedAt: null,
+        ...pet,
+        deletedAt: null,
       }),
     );
 
@@ -149,10 +149,12 @@ describe('PetsService', () => {
   });
 
   it('shares pet with family and allows unshare', async () => {
-    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb({
-      id: 'pet-1',
-      ownerId: 'owner-1',
-    }));
+    mockPetRepository.createQueryBuilder.mockReturnValue(
+      makePetQb({
+        id: 'pet-1',
+        ownerId: 'owner-1',
+      }),
+    );
     mockUsersService.findOne.mockResolvedValue({ id: 'user-2' });
     mockPetShareRepository.findOne.mockResolvedValue(null);
     mockPetShareRepository.create.mockReturnValue({
@@ -174,10 +176,12 @@ describe('PetsService', () => {
     });
     expect(shared.sharedWithUserId).toBe('user-2');
 
-    mockPetRepository.createQueryBuilder.mockReturnValue(makePetQb({
-      id: 'pet-1',
-      ownerId: 'owner-1',
-    }));
+    mockPetRepository.createQueryBuilder.mockReturnValue(
+      makePetQb({
+        id: 'pet-1',
+        ownerId: 'owner-1',
+      }),
+    );
     mockPetShareRepository.findOne.mockResolvedValue({
       id: 'share-1',
       petId: 'pet-1',
@@ -214,8 +218,8 @@ describe('PetsService', () => {
 
     mockPetRepository.createQueryBuilder.mockReturnValueOnce(
       makePetQb({
-      id: 'pet-1',
-      deletedAt: null,
+        id: 'pet-1',
+        deletedAt: null,
       }),
     );
     const one = await service.findOne('pet-1');
@@ -269,8 +273,8 @@ describe('PetsService', () => {
   it('lists active shares for owner', async () => {
     mockPetRepository.createQueryBuilder.mockReturnValue(
       makePetQb({
-      id: 'pet-1',
-      ownerId: 'owner-1',
+        id: 'pet-1',
+        ownerId: 'owner-1',
       }),
     );
     mockPetShareRepository.createQueryBuilder.mockReturnValue({
