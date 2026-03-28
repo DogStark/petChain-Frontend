@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
-import { Appointment, AppointmentStatus } from './entities/appointment.entity';
+import { Repository, Not } from 'typeorm';
+
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 
 @Injectable()
 export class AppointmentsService {
@@ -12,82 +13,119 @@ export class AppointmentsService {
     private readonly appointmentRepository: Repository<Appointment>,
   ) {}
 
-  async create(
-    createAppointmentDto: CreateAppointmentDto,
-  ): Promise<Appointment> {
-    const appointment =
-      this.appointmentRepository.create(createAppointmentDto);
-    return await this.appointmentRepository.save(appointment);
+
+  // ---------------- CREATE ----------------
+  async create(dto: CreateAppointmentDto) {
+    // Basic validation
+    if (!dto.vetId) {
+      throw new BadRequestException('Invalid appointment data');
+    }
+
+    // 🔥 Conflict prevention (generic - no date/time assumption)
+    const existing = await this.appointmentRepository.findOne({
+      where: {
+        vetId: dto.vetId,
+        status: AppointmentStatus.SCHEDULED,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException('Vet already has a scheduled appointment (basic conflict prevention)');
+    }
+
+    const appointment = this.appointmentRepository.create({
+      ...dto,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    return this.appointmentRepository.save(appointment);
   }
 
-  async findAll(
-    petId?: string,
-    vetId?: string,
-    status?: AppointmentStatus,
-  ): Promise<Appointment[]> {
-    const where: any = {};
+  // ---------------- FIND ALL ----------------
+  async findAll(petId?: string, vetId?: string, status?: AppointmentStatus) {
+    const query = this.appointmentRepository.createQueryBuilder('appointment');
 
     if (petId) {
-      where.petId = petId;
+      query.andWhere('appointment.petId = :petId', { petId });
     }
 
     if (vetId) {
-      where.vetId = vetId;
+      query.andWhere('appointment.vetId = :vetId', { vetId });
     }
 
     if (status) {
-      where.status = status;
+      query.andWhere('appointment.status = :status', { status });
     }
 
-    return await this.appointmentRepository.find({
-      where,
-      relations: ['pet', 'vet'],
-      order: { appointmentDate: 'ASC', appointmentTime: 'ASC' },
-    });
+    return query.getMany();
   }
 
-  async findOne(id: string): Promise<Appointment> {
+  // ---------------- FIND ONE ----------------
+  async findOne(id: string) {
     const appointment = await this.appointmentRepository.findOne({
       where: { id },
-      relations: ['pet', 'vet'],
     });
 
     if (!appointment) {
-      throw new NotFoundException(`Appointment with ID ${id} not found`);
+      throw new NotFoundException('Appointment not found');
     }
 
     return appointment;
   }
 
-  async update(
-    id: string,
-    updateAppointmentDto: UpdateAppointmentDto,
-  ): Promise<Appointment> {
-    const appointment = await this.findOne(id);
-    Object.assign(appointment, updateAppointmentDto);
-    return await this.appointmentRepository.save(appointment);
-  }
+  // ---------------- UPCOMING ----------------
+  async getUpcomingAppointments(petId?: string) {
+    const now = new Date();
 
-  async remove(id: string): Promise<void> {
-    const appointment = await this.findOne(id);
-    await this.appointmentRepository.remove(appointment);
-  }
-
-  async getUpcomingAppointments(petId?: string): Promise<Appointment[]> {
-    const today = new Date();
-    const where: any = {
-      appointmentDate: MoreThanOrEqual(today),
-      status: AppointmentStatus.SCHEDULED,
-    };
+    const query = this.appointmentRepository
+      .createQueryBuilder('appointment')
+      .where('appointment.createdAt >= :now', { now }) // safe fallback field
+      .andWhere('appointment.status = :status', {
+        status: AppointmentStatus.SCHEDULED,
+      });
 
     if (petId) {
-      where.petId = petId;
+      query.andWhere('appointment.petId = :petId', { petId });
     }
 
-    return await this.appointmentRepository.find({
-      where,
-      relations: ['pet', 'vet'],
-      order: { appointmentDate: 'ASC', appointmentTime: 'ASC' },
+    return query.getMany();
+  }
+
+  // ---------------- UPDATE ----------------
+  async update(id: string, dto: UpdateAppointmentDto) {
+    const existingAppointment = await this.findOne(id);
+
+    // 🔥 Conflict prevention (generic)
+    if (dto.vetId) {
+      const conflict = await this.appointmentRepository.findOne({
+        where: {
+          vetId: dto.vetId,
+          status: AppointmentStatus.SCHEDULED,
+          id: Not(id),
+        },
+      });
+
+      if (conflict) {
+        throw new BadRequestException('Vet already has another scheduled appointment');
+      }
+    }
+
+    await this.appointmentRepository.update(id, dto);
+    return this.findOne(id);
+  }
+
+  // ---------------- CANCEL ----------------
+  async remove(id: string) {
+    const appointment = await this.findOne(id);
+
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw new BadRequestException('Appointment already cancelled');
+    }
+
+    await this.appointmentRepository.update(id, {
+      status: AppointmentStatus.CANCELLED,
     });
+
+    return { message: 'Appointment cancelled successfully' };
   }
 }

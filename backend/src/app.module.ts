@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -13,6 +14,7 @@ import { cdnConfig } from './config/cdn.config';
 import { stellarConfig } from './config/stellar.config';
 import { smsConfig } from './config/sms.config';
 import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
 
 // Feature Modules
 import { UsersModule } from './modules/users/users.module';
@@ -53,6 +55,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { DatabaseModule } from './modules/database/database.module';
 
 @Module({
   imports: [
@@ -71,7 +74,10 @@ import { WebSocketModule } from './websocket/websocket.module';
       ],
       envFilePath: '.env',
     }),
-
+ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     // Scheduler Module
     ScheduleModule.forRoot(),
 
@@ -89,6 +95,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     }),
 
     // Feature Modules
+    ObservabilityModule,
     AuthModule,
     UsersModule,
     BreedsModule,
@@ -107,6 +114,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     LostPetsModule,
     AllergiesModule,
     ConditionsModule,
+    AuditModule,
 
     VerificationModule,
     GdprModule,
@@ -128,6 +136,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     AnalyticsModule,
     SmsModule,
     WebSocketModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -75,31 +75,46 @@ export class VaccinationsService {
    * Get all vaccinations
    */
   async findAll(): Promise<Vaccination[]> {
-    return await this.vaccinationRepository.find({
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-      order: { administeredDate: 'DESC' },
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    return await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .orderBy('vaccination.administeredDate', 'DESC')
+      .getMany();
   }
 
   /**
    * Get vaccinations by pet ID
    */
   async findByPet(petId: string): Promise<Vaccination[]> {
-    return await this.vaccinationRepository.find({
-      where: { petId },
-      relations: ['vet', 'vetClinic', 'adverseReactions'],
-      order: { administeredDate: 'DESC' },
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    return await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.petId = :petId', { petId })
+      .orderBy('vaccination.administeredDate', 'DESC')
+      .getMany();
   }
 
   /**
    * Get a single vaccination by ID
    */
   async findOne(id: string): Promise<Vaccination> {
-    const vaccination = await this.vaccinationRepository.findOne({
-      where: { id },
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const vaccination = await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.id = :id', { id })
+      .getOne();
+      
     if (!vaccination) {
       throw new NotFoundException(`Vaccination with ID ${id} not found`);
     }
@@ -110,10 +125,16 @@ export class VaccinationsService {
    * Find vaccination by certificate code
    */
   async findByCertificateCode(code: string): Promise<Vaccination> {
-    const vaccination = await this.vaccinationRepository.findOne({
-      where: { certificateCode: code },
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const vaccination = await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.certificateCode = :code', { code })
+      .getOne();
+      
     if (!vaccination) {
       throw new NotFoundException(
         `Vaccination with certificate code ${code} not found`,

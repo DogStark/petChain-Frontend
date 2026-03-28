@@ -97,7 +97,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         {/* Rich Notification: Image Display */}
         {metadata?.imageUrl && (
           <div className={styles.imageContainer}>
-            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} />
+            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
           </div>
         )}
 

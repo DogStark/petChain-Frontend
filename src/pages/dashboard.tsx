@@ -20,7 +20,7 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">PetChain Dashboard</h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space--4">
                 <Link href="/sessions" className="text-blue-600 hover:text-blue-500 font-medium">
                   Sessions
                 </Link>

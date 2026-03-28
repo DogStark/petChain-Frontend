@@ -276,7 +276,7 @@ export default function SearchPage() {
 
         {/* Search Type Tabs */}
         <div className="mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow--auto pb-2">
             {[
               { value: 'global', label: 'All' },
               { value: 'pets', label: 'Pets' },
@@ -340,7 +340,7 @@ export default function SearchPage() {
               </div>
             )
           ) : (
-            <SearchResults
+            <SearchResults<any>
               results={searchResults?.results || []}
               total={searchResults?.total || 0}
               page={searchResults?.page || 1}

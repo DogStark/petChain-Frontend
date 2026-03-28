@@ -4,28 +4,27 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var stored = localStorage.getItem('petchain-theme');
-                  var valid = ['light', 'dark', 'high-contrast'];
-                  if (stored && valid.includes(stored)) {
-                    document.documentElement.setAttribute('data-theme', stored);
-                  } else {
-                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    var prefersHC = window.matchMedia('(prefers-contrast: more)').matches;
-                    document.documentElement.setAttribute(
-                      'data-theme',
-                      prefersHC ? 'high-contrast' : prefersDark ? 'dark' : 'light'
-                    );
-                  }
-                } catch(e) {}
-              })();
-            `,
-          }}
+        {/* DNS Prefetch & Preconnect for external resources */}
+        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* Load Inter font (modern, readable, optimized) */}
+        <link
+          rel="preload"
+          as="style"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+
+        {/* Theme color for mobile browsers */}
+        <meta name="theme-color" content="#1d4ed8" />
+
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.ico" />
       </Head>
       <body className="antialiased">
         <Main />

@@ -75,10 +75,13 @@ export class User {
   lockedUntil: Date | null;
 
   @Column({ nullable: true })
-  passwordResetToken: string;
+  passwordResetToken: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  passwordResetExpires: Date;
+  passwordResetTokenExpiresAt: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  passwordChangedAt: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
   lastLogin: Date;
