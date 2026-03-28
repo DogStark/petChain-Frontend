@@ -8,6 +8,7 @@ import {
   OnboardingStepId,
 } from '../lib/api/userAPI';
 import styles from '../styles/pages/OnboardingPage.module.css';
+import { GetServerSideProps } from 'next';
 
 const DEFAULT_STATUS: OnboardingStatus = {
   userId: '',
@@ -145,3 +146,9 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

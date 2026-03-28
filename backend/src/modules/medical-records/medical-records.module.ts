@@ -10,7 +10,7 @@ import { MedicalRecord } from './entities/medical-record.entity';
 import { RecordTemplate } from './entities/record-template.entity';
 import { RecordVersion } from './entities/record-version.entity';
 import { AuditModule } from '../audit/audit.module';
-import { SecurityModule } from '../../security/security.module';
+import { SecurityModule } from '../security/security.module';
 import { AuthModule } from '../../auth/auth.module';
 import { EncryptionService } from '../../security/services/encryption.service';
 import { KeyRotationService } from '../../security/services/key-rotation.service';

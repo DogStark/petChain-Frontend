@@ -59,7 +59,7 @@ export class UsersService {
       .createQueryBuilder('user')
       .where('user.id = :id', { id })
       .getOne();
-      
+
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }

@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
@@ -9,7 +6,10 @@ import { ConfigService } from '@nestjs/config';
 import { User } from '../../modules/users/entities/user.entity';
 import { PasswordUtil } from '../utils/password.util';
 import { TokenUtil } from '../utils/token.util';
-import { AuthSecurityEvent, AuthSecurityEventType } from '../entities/auth-security-event.entity';
+import {
+  AuthSecurityEvent,
+  AuthSecurityEventType,
+} from '../entities/auth-security-event.entity';
 import { EmailNotificationService } from './email-notification.service';
 import { SessionService } from './session.service';
 
@@ -29,10 +29,7 @@ export class PasswordResetService {
    * Starts a password reset flow: stores a hashed token and emails a plain link.
    * Always completes without error (no user enumeration).
    */
-  async requestPasswordReset(
-    email: string,
-    ipAddress: string,
-  ): Promise<void> {
+  async requestPasswordReset(email: string, ipAddress: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       return;

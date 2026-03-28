@@ -15,7 +15,9 @@ describe('LoginAttemptService', () => {
   let historyRepo: jest.Mocked<
     Pick<Repository<LoginHistory>, 'create' | 'save' | 'find' | 'update'>
   >;
-  let securityRepo: jest.Mocked<Pick<Repository<AuthSecurityEvent>, 'create' | 'save'>>;
+  let securityRepo: jest.Mocked<
+    Pick<Repository<AuthSecurityEvent>, 'create' | 'save'>
+  >;
 
   beforeEach(async () => {
     userRepo = {
@@ -23,13 +25,13 @@ describe('LoginAttemptService', () => {
       save: jest.fn(),
     };
     historyRepo = {
-      create: jest.fn((x) => x),
+      create: jest.fn((x: any) => x) as any,
       save: jest.fn(),
       find: jest.fn(),
       update: jest.fn(),
     };
     securityRepo = {
-      create: jest.fn((x) => x),
+      create: jest.fn((x: any) => x) as any,
       save: jest.fn(),
     };
 

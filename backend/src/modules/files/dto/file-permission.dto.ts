@@ -6,7 +6,10 @@ import {
   IsDate,
   MaxLength,
 } from 'class-validator';
-import { PermissionType, AccessLevel } from '../entities/file-permission.entity';
+import {
+  PermissionType,
+  AccessLevel,
+} from '../entities/file-permission.entity';
 import { Type } from 'class-transformer';
 
 /**

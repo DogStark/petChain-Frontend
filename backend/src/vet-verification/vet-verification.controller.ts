@@ -13,9 +13,7 @@ import { VerificationStatus } from './vet-verification.entity';
 
 @Controller('vet-verification')
 export class VetVerificationController {
-  constructor(
-    private readonly vetService: VetVerificationService,
-  ) {}
+  constructor(private readonly vetService: VetVerificationService) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -37,10 +35,7 @@ export class VetVerificationController {
   }
 
   @Post('review')
-  review(
-    @Body('id') id: string,
-    @Body('status') status: VerificationStatus,
-  ) {
+  review(@Body('id') id: string, @Body('status') status: VerificationStatus) {
     return this.vetService.manualReview(id, status);
   }
 }

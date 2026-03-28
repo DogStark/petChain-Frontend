@@ -64,7 +64,10 @@ export class VaccinationsService {
     const saved = await this.vaccinationRepository.save(vaccination);
 
     if (createVaccinationDto.adverseReactions?.length) {
-      await this.addAdverseReactions(saved.id, createVaccinationDto.adverseReactions);
+      await this.addAdverseReactions(
+        saved.id,
+        createVaccinationDto.adverseReactions,
+      );
     }
 
     await this.ensureReminder(saved, pet);
@@ -114,7 +117,7 @@ export class VaccinationsService {
       .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
       .where('vaccination.id = :id', { id })
       .getOne();
-      
+
     if (!vaccination) {
       throw new NotFoundException(`Vaccination with ID ${id} not found`);
     }
@@ -134,7 +137,7 @@ export class VaccinationsService {
       .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
       .where('vaccination.certificateCode = :code', { code })
       .getOne();
-      
+
     if (!vaccination) {
       throw new NotFoundException(
         `Vaccination with certificate code ${code} not found`,
@@ -154,7 +157,8 @@ export class VaccinationsService {
     Object.assign(vaccination, updateVaccinationDto);
     if (
       updateVaccinationDto.nextDueDate === undefined &&
-      (updateVaccinationDto.vaccineName || updateVaccinationDto.administeredDate)
+      (updateVaccinationDto.vaccineName ||
+        updateVaccinationDto.administeredDate)
     ) {
       const pet = await this.petRepository.findOne({
         where: { id: vaccination.petId },
@@ -275,7 +279,10 @@ export class VaccinationsService {
     };
   }
 
-  private async ensureReminder(vaccination: Vaccination, pet: Pet): Promise<void> {
+  private async ensureReminder(
+    vaccination: Vaccination,
+    pet: Pet,
+  ): Promise<void> {
     if (!vaccination.nextDueDate) {
       return;
     }
@@ -284,15 +291,9 @@ export class VaccinationsService {
       .createQueryBuilder('reminder')
       .where('reminder.type = :type', { type: ReminderType.VACCINATION })
       .andWhere('reminder.petId = :petId', { petId: vaccination.petId })
-      .andWhere(
-        'reminder.status NOT IN (:...excludedStatuses)',
-        {
-          excludedStatuses: [
-            ReminderStatus.COMPLETED,
-            ReminderStatus.CANCELLED,
-          ],
-        },
-      )
+      .andWhere('reminder.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [ReminderStatus.COMPLETED, ReminderStatus.CANCELLED],
+      })
       .andWhere(`reminder.metadata ->> 'vaccinationId' = :vaccinationId`, {
         vaccinationId: vaccination.id,
       })

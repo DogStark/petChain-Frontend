@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { SMSDashboard } from '../../components/Admin/SMSDashboard';
 import styles from '../../styles/pages/PreferencesPage.module.css';
 
@@ -18,3 +19,9 @@ export default function AdminSMSPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

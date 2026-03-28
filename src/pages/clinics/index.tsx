@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Head from "next/head";
+import { GetServerSideProps } from "next";
 import HeaderComponent from "@/components/Header";
 import ClinicCard from "@/components/Clinics/ClinicCard";
 import { Search, Filter, Star } from "lucide-react";
@@ -291,3 +292,9 @@ export default function ClinicDirectory() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

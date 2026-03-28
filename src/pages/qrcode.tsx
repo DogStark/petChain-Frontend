@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { qrcodeAPI, QRCodeRecord, ScanAnalytics } from '@/lib/api/qrcodeAPI';
+import { GetServerSideProps } from 'next';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -264,3 +265,9 @@ export default function QRCodePage() {
     </ProtectedRoute>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

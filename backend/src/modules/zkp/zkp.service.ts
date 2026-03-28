@@ -25,7 +25,9 @@ export class ZkpService {
 
   /** Generate a ZK proof that a vaccination record exists and is valid */
   async generateProof(dto: GenerateProofDto): Promise<ZkpProof> {
-    const vaccination = await this.vaccinationsService.findOne(dto.vaccinationId);
+    const vaccination = await this.vaccinationsService.findOne(
+      dto.vaccinationId,
+    );
 
     // Public inputs: only non-sensitive fields exposed to the verifier
     const publicInputs = {
@@ -46,7 +48,10 @@ export class ZkpService {
       certificateCode: vaccination.certificateCode,
     };
 
-    const { proof, commitment } = this._simulateProof(publicInputs, privateWitness);
+    const { proof, commitment } = this._simulateProof(
+      publicInputs,
+      privateWitness,
+    );
 
     const entity = this.proofRepository.create({
       vaccinationId: vaccination.id,
@@ -54,22 +59,32 @@ export class ZkpService {
       publicInputs,
       proof,
       commitment,
-      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : this._defaultExpiry(),
+      expiresAt: dto.expiresAt
+        ? new Date(dto.expiresAt)
+        : this._defaultExpiry(),
     });
 
     return this.proofRepository.save(entity);
   }
 
   /** Verify a previously generated proof without revealing private data */
-  async verifyProof(dto: VerifyProofDto): Promise<{ valid: boolean; publicInputs: Record<string, unknown> }> {
-    const record = await this.proofRepository.findOne({ where: { id: dto.proofId } });
+  async verifyProof(
+    dto: VerifyProofDto,
+  ): Promise<{ valid: boolean; publicInputs: Record<string, unknown> }> {
+    const record = await this.proofRepository.findOne({
+      where: { id: dto.proofId },
+    });
     if (!record) throw new NotFoundException(`Proof ${dto.proofId} not found`);
 
     if (record.expiresAt && record.expiresAt < new Date()) {
       return { valid: false, publicInputs: record.publicInputs };
     }
 
-    const valid = this._simulateVerify(record.publicInputs, record.proof, record.commitment);
+    const valid = this._simulateVerify(
+      record.publicInputs,
+      record.proof,
+      record.commitment,
+    );
 
     record.verifiedAt = new Date();
     record.isValid = valid;
@@ -83,12 +98,17 @@ export class ZkpService {
 
   /** Get all proofs for a pet (public inputs only) */
   async getProofsForPet(petId: string): Promise<ZkpProof[]> {
-    return this.proofRepository.find({ where: { petId }, order: { createdAt: 'DESC' } });
+    return this.proofRepository.find({
+      where: { petId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   /** Revoke a proof */
   async revokeProof(proofId: string): Promise<void> {
-    const record = await this.proofRepository.findOne({ where: { id: proofId } });
+    const record = await this.proofRepository.findOne({
+      where: { id: proofId },
+    });
     if (!record) throw new NotFoundException(`Proof ${proofId} not found`);
     record.isValid = false;
     record.expiresAt = new Date();

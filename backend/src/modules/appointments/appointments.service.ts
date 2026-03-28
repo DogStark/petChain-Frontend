@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 
@@ -12,7 +16,6 @@ export class AppointmentsService {
     @InjectRepository(Appointment)
     private readonly appointmentRepository: Repository<Appointment>,
   ) {}
-
 
   // ---------------- CREATE ----------------
   async create(dto: CreateAppointmentDto) {
@@ -30,7 +33,9 @@ export class AppointmentsService {
     });
 
     if (existing) {
-      throw new BadRequestException('Vet already has a scheduled appointment (basic conflict prevention)');
+      throw new BadRequestException(
+        'Vet already has a scheduled appointment (basic conflict prevention)',
+      );
     }
 
     const appointment = this.appointmentRepository.create({
@@ -106,7 +111,9 @@ export class AppointmentsService {
       });
 
       if (conflict) {
-        throw new BadRequestException('Vet already has another scheduled appointment');
+        throw new BadRequestException(
+          'Vet already has another scheduled appointment',
+        );
       }
     }
 

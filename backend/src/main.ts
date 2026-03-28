@@ -14,7 +14,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new AuditInterceptor(auditService));
 
   // Trust proxy for correct IP address detection
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
 
   // ── Helmet (security headers) ──────────────────────────────────────────────
@@ -76,7 +76,9 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   const port = configService.get<number>('app.port') || 3000;
-  await app.listen(port);
+  const server = await app.listen(port);
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
 
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/${apiPrefix}`);

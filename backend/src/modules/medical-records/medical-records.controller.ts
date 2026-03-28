@@ -20,7 +20,10 @@ import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 import { AppendRecordDto } from './dto/append-record.dto';
 import { SearchMedicalRecordsDto } from './dto/search-medical-records.dto';
-import { VerifyRecordDto, RevokeVerificationDto } from './dto/verify-record.dto';
+import {
+  VerifyRecordDto,
+  RevokeVerificationDto,
+} from './dto/verify-record.dto';
 import {
   ExportMedicalRecordsDto,
   EmailExportMedicalRecordsDto,
@@ -75,7 +78,12 @@ export class MedicalRecordsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.medicalRecordsService.findAll(petId, recordType, startDate, endDate);
+    return this.medicalRecordsService.findAll(
+      petId,
+      recordType,
+      startDate,
+      endDate,
+    );
   }
 
   @Get('templates/:petType')
@@ -92,7 +100,12 @@ export class MedicalRecordsController {
     @Body('templateFields') templateFields: Record<string, any>,
     @Body('description') description?: string,
   ) {
-    return this.medicalRecordsService.createTemplate(petType, recordType, templateFields, description);
+    return this.medicalRecordsService.createTemplate(
+      petType,
+      recordType,
+      templateFields,
+      description,
+    );
   }
 
   @Get('export')
@@ -106,9 +119,17 @@ export class MedicalRecordsController {
     @Query('endDate') endDate?: string,
     @Query('includeAttachments') includeAttachments?: string,
   ) {
-    const recordIds = recordIdsStr?.split(',').map((s) => s.trim()).filter(Boolean);
+    const recordIds = recordIdsStr
+      ?.split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     const dto: ExportMedicalRecordsDto = {
-      format, recordIds, petId, recordType, startDate, endDate,
+      format,
+      recordIds,
+      petId,
+      recordType,
+      startDate,
+      endDate,
       includeAttachments: includeAttachments !== 'false',
     };
     const result = await this.exportService.export(dto);
@@ -135,7 +156,10 @@ export class MedicalRecordsController {
     @Query('userEmail') userEmail?: string,
   ) {
     const recipient = dto.to || userEmail;
-    if (!recipient) throw new BadRequestException('Provide "to" in body or userEmail query param.');
+    if (!recipient)
+      throw new BadRequestException(
+        'Provide "to" in body or userEmail query param.',
+      );
     return this.exportService.sendExportByEmail(dto, recipient);
   }
 

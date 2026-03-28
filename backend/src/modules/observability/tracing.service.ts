@@ -24,9 +24,15 @@ export class TracingService {
   private readonly logger = new Logger('Tracing');
   private readonly activeSpans = new Map<string, Span>();
 
-  startSpan(name: string, attributes: Record<string, string | number | boolean> = {}, parentSpanId?: string): Span {
+  startSpan(
+    name: string,
+    attributes: Record<string, string | number | boolean> = {},
+    parentSpanId?: string,
+  ): Span {
     const span: Span = {
-      traceId: parentSpanId ? this._traceIdFor(parentSpanId) : randomUUID().replace(/-/g, ''),
+      traceId: parentSpanId
+        ? this._traceIdFor(parentSpanId)
+        : randomUUID().replace(/-/g, ''),
       spanId: randomUUID().replace(/-/g, '').slice(0, 16),
       parentSpanId,
       name,
@@ -45,11 +51,13 @@ export class TracingService {
       span.error = error.message;
     }
     this.activeSpans.delete(span.spanId);
-    this.logger.log(JSON.stringify({
-      type: 'span',
-      ...span,
-      durationMs: span.endTime - span.startTime,
-    }));
+    this.logger.log(
+      JSON.stringify({
+        type: 'span',
+        ...span,
+        durationMs: span.endTime - span.startTime,
+      }),
+    );
   }
 
   /** Wrap an async function in a span */
@@ -71,6 +79,8 @@ export class TracingService {
   }
 
   private _traceIdFor(spanId: string): string {
-    return this.activeSpans.get(spanId)?.traceId ?? randomUUID().replace(/-/g, '');
+    return (
+      this.activeSpans.get(spanId)?.traceId ?? randomUUID().replace(/-/g, '')
+    );
   }
 }

@@ -39,7 +39,7 @@ export enum AccessLevel {
 
 /**
  * File Permission Entity
- * 
+ *
  * Manages access control for files. Allows:
  * - Sharing files with specific users
  * - Setting different permission levels

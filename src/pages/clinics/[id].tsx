@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { GetStaticProps, GetStaticPaths } from "next";
 import HeaderComponent from "@/components/Header";
 import StaffList from "@/components/Clinics/StaffList";
 import ServiceList from "@/components/Clinics/ServiceList";
@@ -346,3 +347,17 @@ export default function ClinicProfile() {
     </div>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { GetServerSideProps } from 'next';
 import Head from "next/head";
 import HeaderComponent from "@/components/Header";
 import CalendarView from "@/components/Appointments/CalendarView";
@@ -137,3 +138,9 @@ export default function AppointmentsPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

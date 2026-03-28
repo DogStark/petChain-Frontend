@@ -4,6 +4,6 @@ import { VetVerificationController } from './vet-verification.controller';
 
 @Module({
   providers: [VetVerificationService],
-  controllers: [VetVerificationController]
+  controllers: [VetVerificationController],
 })
 export class VetVerificationModule {}

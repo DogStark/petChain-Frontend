@@ -41,11 +41,13 @@ export class PetPhotosService {
   ): Promise<PetPhoto[]> {
     await this.ensurePetExists(petId);
 
-    const existingCount = await this.photoRepository.count({ where: { petId } });
+    const existingCount = await this.photoRepository.count({
+      where: { petId },
+    });
     if (existingCount + files.length > MAX_PHOTOS_PER_PET) {
       throw new BadRequestException(
         `Cannot exceed ${MAX_PHOTOS_PER_PET} photos per pet. ` +
-        `Currently ${existingCount}, trying to add ${files.length}.`,
+          `Currently ${existingCount}, trying to add ${files.length}.`,
       );
     }
 
@@ -177,9 +179,7 @@ export class PetPhotosService {
     });
 
     if (photos.length !== photoIds.length) {
-      throw new BadRequestException(
-        'Some photo IDs do not belong to this pet',
-      );
+      throw new BadRequestException('Some photo IDs do not belong to this pet');
     }
 
     const updates = photoIds.map((id, index) =>

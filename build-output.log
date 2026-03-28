@@ -1,0 +1,21 @@
+
+> pet-medical-tracka@0.1.0 build
+> next build
+
+▲ Next.js 16.2.1 (Turbopack)
+
+  Skipping validation of types
+  Finished TypeScript config validation in 16ms ...
+  Creating an optimized production build ...
+✓ Compiled successfully in 15.8s
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/27) ...
+ReferenceError: useState is not defined
+    at n (.next/server/chunks/ssr/[root-of-the-server]__0f9v~ui._.js:9:1815)
+Error occurred prerendering page "/appointments". Read more: https://nextjs.org/docs/messages/prerender-error
+ReferenceError: useState is not defined
+    at n (.next/server/chunks/ssr/[root-of-the-server]__0f9v~ui._.js:9:1815)
+Export encountered an error on /appointments, exiting the build.
+ReferenceError: useState is not defined
+    at n (.next/server/chunks/ssr/[root-of-the-server]__0f9v~ui._.js:9:1815)
+⨯ Next.js build worker exited with code: 1 and signal: null

@@ -1,5 +1,8 @@
 import { validate } from 'class-validator';
-import { PasswordResetConfirmDto, PasswordResetRequestDto } from './password-reset-security.dto';
+import {
+  PasswordResetConfirmDto,
+  PasswordResetRequestDto,
+} from './password-reset-security.dto';
 
 describe('Password reset DTOs', () => {
   it('PasswordResetConfirmDto rejects weak password', async () => {

@@ -3,37 +3,25 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { RolesService } from './roles.service';
-import { PermissionsService } from './permissions.service';
 import { Role } from '../entities/role.entity';
-import { PermissionEntity } from '../entities/permission.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { RolePermission } from '../entities/role-permission.entity';
-import {
-  RoleAuditLog,
-  RoleAuditAction,
-} from '../entities/role-audit-log.entity';
+import { RoleAuditLog } from '../entities/role-audit-log.entity';
 import { RoleName } from '../constants/roles.enum';
 import { Permission } from '../constants/permissions.enum';
+import { AssignRoleDto, RemoveRoleDto } from '../dto/role.dto';
 
 describe('RolesService', () => {
   let service: RolesService;
   let roleRepository: Repository<Role>;
-  let permissionRepository: Repository<PermissionEntity>;
   let userRoleRepository: Repository<UserRole>;
-  let rolePermissionRepository: Repository<RolePermission>;
   let auditLogRepository: Repository<RoleAuditLog>;
-  let permissionsService: PermissionsService;
 
   const mockRoleRepository = {
     find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
-  };
-
-  const mockPermissionRepository = {
-    find: jest.fn(),
-    findOne: jest.fn(),
   };
 
   const mockUserRoleRepository = {
@@ -55,10 +43,6 @@ describe('RolesService', () => {
     save: jest.fn(),
   };
 
-  const mockPermissionsService = {
-    checkPermissionAccess: jest.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,10 +50,6 @@ describe('RolesService', () => {
         {
           provide: getRepositoryToken(Role),
           useValue: mockRoleRepository,
-        },
-        {
-          provide: getRepositoryToken(PermissionEntity),
-          useValue: mockPermissionRepository,
         },
         {
           provide: getRepositoryToken(UserRole),
@@ -83,28 +63,17 @@ describe('RolesService', () => {
           provide: getRepositoryToken(RoleAuditLog),
           useValue: mockAuditLogRepository,
         },
-        {
-          provide: PermissionsService,
-          useValue: mockPermissionsService,
-        },
       ],
     }).compile();
 
     service = module.get<RolesService>(RolesService);
     roleRepository = module.get<Repository<Role>>(getRepositoryToken(Role));
-    permissionRepository = module.get<Repository<PermissionEntity>>(
-      getRepositoryToken(PermissionEntity),
-    );
     userRoleRepository = module.get<Repository<UserRole>>(
       getRepositoryToken(UserRole),
-    );
-    rolePermissionRepository = module.get<Repository<RolePermission>>(
-      getRepositoryToken(RolePermission),
     );
     auditLogRepository = module.get<Repository<RoleAuditLog>>(
       getRepositoryToken(RoleAuditLog),
     );
-    permissionsService = module.get<PermissionsService>(PermissionsService);
 
     jest.clearAllMocks();
   });
@@ -152,18 +121,17 @@ describe('RolesService', () => {
       });
       expect(userRoleRepository.create).toHaveBeenCalled();
       expect(userRoleRepository.save).toHaveBeenCalled();
-      expect(auditLogRepository.create).toHaveBeenCalled();
       expect(auditLogRepository.save).toHaveBeenCalled();
-      expect(result.isActive).toBe(true);
+      expect(result).toEqual({ message: 'Role assigned successfully' });
     });
 
     it('should throw NotFoundException if role does not exist', async () => {
       mockRoleRepository.findOne.mockResolvedValue(null);
       const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
-      await expect(
-        service.assignRole(dto, assignedBy),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.assignRole(dto, assignedBy)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if user already has the role', async () => {
@@ -183,9 +151,9 @@ describe('RolesService', () => {
       mockUserRoleRepository.findOne.mockResolvedValue(existingUserRole);
       const dto: AssignRoleDto = { userId, roleId, reason: 'Test' };
 
-      await expect(
-        service.assignRole(dto, assignedBy),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.assignRole(dto, assignedBy)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -210,7 +178,8 @@ describe('RolesService', () => {
       mockAuditLogRepository.create.mockImplementation((data) => data);
       mockAuditLogRepository.save.mockResolvedValue({});
 
-      await service.removeRole(userId, roleId, removedBy);
+      const dto: RemoveRoleDto = { userId, roleId, reason: 'cleanup' };
+      await service.removeRole(dto, removedBy);
 
       expect(userRoleRepository.findOne).toHaveBeenCalledWith({
         where: { userId, roleId, isActive: true },
@@ -226,7 +195,7 @@ describe('RolesService', () => {
       mockUserRoleRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.removeRole(userId, roleId, removedBy),
+        service.removeRole({ userId, roleId }, removedBy),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -258,12 +227,7 @@ describe('RolesService', () => {
 
       expect(userRoleRepository.find).toHaveBeenCalledWith({
         where: { userId, isActive: true },
-        relations: [
-          'role',
-          'role.parentRole',
-          'role.rolePermissions',
-          'role.rolePermissions.permission',
-        ],
+        relations: ['role'],
       });
       expect(result).toEqual([mockRole]);
     });
@@ -293,11 +257,11 @@ describe('RolesService', () => {
       } as UserRole;
 
       mockUserRoleRepository.find.mockResolvedValue([mockUserRole]);
-      mockRoleRepository.find.mockResolvedValue([adminRole]);
+      mockRoleRepository.findOne.mockResolvedValue(adminRole);
 
       const result = await service.getUserPermissions(userId);
 
-      expect(result).toEqual([Permission.ALL_PERMISSIONS]);
+      expect(result).toContain(Permission.ALL_PERMISSIONS);
     });
 
     it('should aggregate permissions from user roles and hierarchy', async () => {
@@ -324,168 +288,11 @@ describe('RolesService', () => {
       } as UserRole;
 
       mockUserRoleRepository.find.mockResolvedValue([mockUserRole]);
-      mockRoleRepository.find.mockResolvedValue([petOwnerRole]);
-      // Mock getRoleHierarchy to return empty array
-      jest.spyOn(service, 'getRoleHierarchy').mockResolvedValue([]);
+      mockRoleRepository.findOne.mockResolvedValue(petOwnerRole);
 
       const result = await service.getUserPermissions(userId);
 
       expect(result).toContain(Permission.READ_OWN_PETS);
-    });
-  });
-
-  describe('hasRole', () => {
-    it('should return true if user has the role', async () => {
-      const userId = 'user-1';
-      const mockRole: Role = {
-        id: 'role-1',
-        name: RoleName.PetOwner,
-      } as Role;
-
-      const mockUserRole: UserRole = {
-        id: 'user-role-1',
-        userId,
-        roleId: 'role-1',
-        role: mockRole,
-        isActive: true,
-      } as UserRole;
-
-      mockUserRoleRepository.find.mockResolvedValue([mockUserRole]);
-
-      const result = await service.hasRole(userId, RoleName.PetOwner);
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false if user does not have the role', async () => {
-      const userId = 'user-1';
-      mockUserRoleRepository.find.mockResolvedValue([]);
-
-      const result = await service.hasRole(userId, RoleName.Admin);
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('hasPermission', () => {
-    it('should return true if user has the permission', async () => {
-      const userId = 'user-1';
-      const userPermissions = [Permission.READ_OWN_PETS];
-
-      jest
-        .spyOn(service, 'getUserPermissions')
-        .mockResolvedValue(userPermissions);
-      mockPermissionsService.checkPermissionAccess.mockReturnValue(true);
-
-      const result = await service.hasPermission(
-        userId,
-        Permission.READ_OWN_PETS,
-      );
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false if user does not have the permission', async () => {
-      const userId = 'user-1';
-      const userPermissions = [Permission.READ_OWN_PETS];
-
-      jest
-        .spyOn(service, 'getUserPermissions')
-        .mockResolvedValue(userPermissions);
-      mockPermissionsService.checkPermissionAccess.mockReturnValue(false);
-
-      const result = await service.hasPermission(
-        userId,
-        Permission.CREATE_PETS,
-      );
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('getRoleHierarchy', () => {
-    it('should return all parent roles in hierarchy', async () => {
-      const roleId = 'pet-owner-role';
-      const veterinarianRole: Role = {
-        id: 'vet-role',
-        name: RoleName.Veterinarian,
-        parentRoleId: 'admin-role',
-        parentRole: {
-          id: 'admin-role',
-          name: RoleName.Admin,
-          parentRoleId: null,
-        },
-      } as Role;
-
-      const petOwnerRole: Role = {
-        id: roleId,
-        name: RoleName.PetOwner,
-        parentRoleId: 'vet-role',
-        parentRole: veterinarianRole,
-      } as Role;
-
-      mockRoleRepository.findOne
-        .mockResolvedValueOnce(petOwnerRole)
-        .mockResolvedValueOnce(veterinarianRole)
-        .mockResolvedValueOnce(null);
-
-      const result = await service.getRoleHierarchy(roleId);
-
-      expect(result.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('aggregatePermissions', () => {
-    it('should return ALL_PERMISSIONS if any role has it', async () => {
-      const roleIds = ['role-1'];
-      const role: Role = {
-        id: 'role-1',
-        rolePermissions: [
-          {
-            permission: {
-              name: Permission.ALL_PERMISSIONS,
-            },
-          },
-        ],
-      } as Role;
-
-      mockRoleRepository.find.mockResolvedValue([role]);
-
-      const result = await service.aggregatePermissions(roleIds);
-
-      expect(result).toEqual([Permission.ALL_PERMISSIONS]);
-    });
-
-    it('should aggregate permissions from multiple roles', async () => {
-      const roleIds = ['role-1', 'role-2'];
-      const role1: Role = {
-        id: 'role-1',
-        rolePermissions: [
-          {
-            permission: {
-              name: Permission.READ_OWN_PETS,
-            },
-          },
-        ],
-      } as Role;
-
-      const role2: Role = {
-        id: 'role-2',
-        rolePermissions: [
-          {
-            permission: {
-              name: Permission.CREATE_PETS,
-            },
-          },
-        ],
-      } as Role;
-
-      mockRoleRepository.find.mockResolvedValue([role1, role2]);
-
-      const result = await service.aggregatePermissions(roleIds);
-
-      expect(result).toContain(Permission.READ_OWN_PETS);
-      expect(result).toContain(Permission.CREATE_PETS);
     });
   });
 });

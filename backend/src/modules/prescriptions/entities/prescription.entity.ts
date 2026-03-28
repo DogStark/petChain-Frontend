@@ -79,11 +79,9 @@ export class Prescription {
   })
   status: PrescriptionStatus;
 
-  @OneToMany(
-    () => PrescriptionRefill,
-    (refill) => refill.prescription,
-    { eager: true },
-  )
+  @OneToMany(() => PrescriptionRefill, (refill) => refill.prescription, {
+    eager: true,
+  })
   refills: PrescriptionRefill[];
 
   @CreateDateColumn()

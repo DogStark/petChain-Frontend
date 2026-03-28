@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
-import { getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Shield, AlertTriangle, Activity, Users, Clock, CheckCircle, XCircle, Home, Settings, LogOut } from 'lucide-react';
 
@@ -429,17 +428,6 @@ export default function SecurityDashboard() {
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const session = await getSession(context);
-
-  if (!session || session.user.role !== 'admin') {
-    return {
-      redirect: {
-        destination: '/login',
-        permanent: false,
-      },
-    };
-  }
-
   return {
     props: {},
   };

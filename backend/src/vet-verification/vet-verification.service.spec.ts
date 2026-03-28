@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VetVerificationService } from './vet-verification.service';
 
+jest.mock('uuid', () => ({
+  v4: () => 'test-uuid',
+}));
+
 describe('VetVerificationService', () => {
   let service: VetVerificationService;
 

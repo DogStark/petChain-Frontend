@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { GetServerSideProps } from 'next';
 import {
     MOCK_DENTAL_EXAMS,
     MOCK_CLEANINGS,
@@ -749,3 +750,9 @@ export default function DentalHealthPage() {
         </div>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

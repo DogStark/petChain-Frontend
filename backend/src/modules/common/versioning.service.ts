@@ -7,7 +7,8 @@ export class VersioningService {
   private readonly minSupportedAppVersion: string;
 
   constructor(private configService: ConfigService) {
-    this.minSupportedAppVersion = this.configService.get<string>('app.minVersion') || '1.0.0';
+    this.minSupportedAppVersion =
+      this.configService.get<string>('app.minVersion') || '1.0.0';
   }
 
   /**
@@ -48,7 +49,9 @@ export class VersioningService {
   validateFormat(version: string): void {
     const semverRegex = /^\d+\.\d+\.\d+$/;
     if (!semverRegex.test(version)) {
-      throw new BadRequestException(`Invalid version format: ${version}. Expected x.y.z`);
+      throw new BadRequestException(
+        `Invalid version format: ${version}. Expected x.y.z`,
+      );
     }
   }
 

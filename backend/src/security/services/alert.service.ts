@@ -3,7 +3,11 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
-import { SecurityEvent, SecurityEventType, SecuritySeverity } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SecurityEventType,
+  SecuritySeverity,
+} from '../entities/security-event.entity';
 import { NotificationCategory } from '../../modules/notifications/entities/notification.entity';
 
 export interface AlertConfig {
@@ -24,40 +28,58 @@ export class AlertService {
   private readonly logger = new Logger(AlertService.name);
 
   private readonly alertRules: Map<SecurityEventType, AlertConfig> = new Map([
-    [SecurityEventType.SQL_INJECTION_ATTEMPT, {
-      severity: SecuritySeverity.CRITICAL,
-      enabled: true,
-      notifyAdmins: true,
-      escalateAfterMinutes: 5,
-    }],
-    [SecurityEventType.XSS_ATTEMPT, {
-      severity: SecuritySeverity.HIGH,
-      enabled: true,
-      notifyAdmins: true,
-      escalateAfterMinutes: 10,
-    }],
-    [SecurityEventType.BRUTE_FORCE_ATTEMPT, {
-      severity: SecuritySeverity.HIGH,
-      enabled: true,
-      notifyAdmins: true,
-      escalateAfterMinutes: 15,
-    }],
-    [SecurityEventType.DDOS_ATTACK, {
-      severity: SecuritySeverity.CRITICAL,
-      enabled: true,
-      notifyAdmins: true,
-      escalateAfterMinutes: 2,
-    }],
-    [SecurityEventType.UNAUTHORIZED_ACCESS, {
-      severity: SecuritySeverity.MEDIUM,
-      enabled: true,
-      notifyAdmins: false,
-    }],
-    [SecurityEventType.RATE_LIMIT_EXCEEDED, {
-      severity: SecuritySeverity.LOW,
-      enabled: true,
-      notifyAdmins: false,
-    }],
+    [
+      SecurityEventType.SQL_INJECTION_ATTEMPT,
+      {
+        severity: SecuritySeverity.CRITICAL,
+        enabled: true,
+        notifyAdmins: true,
+        escalateAfterMinutes: 5,
+      },
+    ],
+    [
+      SecurityEventType.XSS_ATTEMPT,
+      {
+        severity: SecuritySeverity.HIGH,
+        enabled: true,
+        notifyAdmins: true,
+        escalateAfterMinutes: 10,
+      },
+    ],
+    [
+      SecurityEventType.BRUTE_FORCE_ATTEMPT,
+      {
+        severity: SecuritySeverity.HIGH,
+        enabled: true,
+        notifyAdmins: true,
+        escalateAfterMinutes: 15,
+      },
+    ],
+    [
+      SecurityEventType.DDOS_ATTACK,
+      {
+        severity: SecuritySeverity.CRITICAL,
+        enabled: true,
+        notifyAdmins: true,
+        escalateAfterMinutes: 2,
+      },
+    ],
+    [
+      SecurityEventType.UNAUTHORIZED_ACCESS,
+      {
+        severity: SecuritySeverity.MEDIUM,
+        enabled: true,
+        notifyAdmins: false,
+      },
+    ],
+    [
+      SecurityEventType.RATE_LIMIT_EXCEEDED,
+      {
+        severity: SecuritySeverity.LOW,
+        enabled: true,
+        notifyAdmins: false,
+      },
+    ],
   ]);
 
   constructor(
@@ -93,16 +115,24 @@ export class AlertService {
     if (!rule?.enabled) return;
 
     const message = this.generateAlertMessage(payload);
-    await this.createAlert({
-      level: payload.severity,
-      message,
-      details: payload,
-      eventId: payload.eventId,
-    }, rule);
+    await this.createAlert(
+      {
+        level: payload.severity,
+        message,
+        details: payload,
+        eventId: payload.eventId,
+      },
+      rule,
+    );
   }
 
   private async createAlert(
-    payload: { level: SecuritySeverity; message: string; details: any; eventId?: string },
+    payload: {
+      level: SecuritySeverity;
+      message: string;
+      details: any;
+      eventId?: string;
+    },
     config: AlertConfig,
   ) {
     this.logger.warn(`SECURITY ALERT [${payload.level}]: ${payload.message}`);
@@ -123,13 +153,20 @@ export class AlertService {
 
     // Schedule escalation if configured
     if (config.escalateAfterMinutes) {
-      setTimeout(() => {
-        this.escalateAlert(payload, config);
-      }, config.escalateAfterMinutes * 60 * 1000);
+      setTimeout(
+        () => {
+          this.escalateAlert(payload, config);
+        },
+        config.escalateAfterMinutes * 60 * 1000,
+      );
     }
   }
 
-  private async notifyAdmins(message: string, details: any, severity: SecuritySeverity) {
+  private async notifyAdmins(
+    message: string,
+    details: any,
+    severity: SecuritySeverity,
+  ) {
     try {
       // Get admin user IDs (you might want to have a separate admin role or config)
       const adminUserIds = await this.getAdminUserIds();
@@ -174,7 +211,9 @@ export class AlertService {
     });
   }
 
-  private findAlertRule(eventType: SecurityEventType): { config: AlertConfig } | undefined {
+  private findAlertRule(
+    eventType: SecurityEventType,
+  ): { config: AlertConfig } | undefined {
     const config = this.alertRules.get(eventType);
     return config ? { config } : undefined;
   }
@@ -198,7 +237,10 @@ export class AlertService {
     return [];
   }
 
-  async updateAlertRule(eventType: SecurityEventType, config: Partial<AlertConfig>) {
+  async updateAlertRule(
+    eventType: SecurityEventType,
+    config: Partial<AlertConfig>,
+  ) {
     const existing = this.alertRules.get(eventType);
     if (existing) {
       this.alertRules.set(eventType, { ...existing, ...config });

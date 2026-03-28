@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "profile": "load",
+    "description": "Baseline for CI regression checks. Update deliberately after verified optimization improvements.",
+    "updatedAt": "2026-03-27T00:00:00.000Z"
+  },
+  "metrics": {
+    "http_req_failed": {
+      "values": {
+        "rate": 0.02
+      }
+    },
+    "http_req_duration": {
+      "values": {
+        "p(95)": 1200
+      }
+    },
+    "frontend_page_duration": {
+      "values": {
+        "p(95)": 1400
+      }
+    },
+    "api_request_duration": {
+      "values": {
+        "p(95)": 900
+      }
+    }
+  }
+}

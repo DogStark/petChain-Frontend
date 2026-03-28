@@ -4,7 +4,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { IpBlacklistService } from './ip-blacklist.service';
-import { SecurityEvent, SecurityEventType, SecuritySeverity } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SecurityEventType,
+  SecuritySeverity,
+} from '../entities/security-event.entity';
 import { SECURITY_CONSTANTS } from '../constants/security.constants';
 
 export interface IncidentResponseAction {
@@ -66,9 +70,7 @@ export class IncidentResponseService {
     {
       eventType: SecurityEventType.UNAUTHORIZED_ACCESS,
       severity: SecuritySeverity.MEDIUM,
-      actions: [
-        { type: 'log_only', reason: 'Unauthorized access attempt' },
-      ],
+      actions: [{ type: 'log_only', reason: 'Unauthorized access attempt' }],
       cooldownPeriod: 5,
     },
   ];
@@ -103,7 +105,9 @@ export class IncidentResponseService {
     type: string;
     threatScore: number;
   }) {
-    this.logger.error(`CRITICAL THREAT RESPONSE: ${payload.type} from ${payload.ipAddress}`);
+    this.logger.error(
+      `CRITICAL THREAT RESPONSE: ${payload.type} from ${payload.ipAddress}`,
+    );
 
     // Immediate blocking for critical threats
     await this.ipBlacklistService.blacklistIp(
@@ -138,8 +142,13 @@ export class IncidentResponseService {
       const cooldownKey = `${payload.ipAddress}:${action.type}`;
       const lastExecuted = this.actionCooldowns.get(cooldownKey);
 
-      if (lastExecuted && Date.now() - lastExecuted.getTime() < rule.cooldownPeriod * 60 * 1000) {
-        this.logger.debug(`Action ${action.type} in cooldown for ${payload.ipAddress}`);
+      if (
+        lastExecuted &&
+        Date.now() - lastExecuted.getTime() < rule.cooldownPeriod * 60 * 1000
+      ) {
+        this.logger.debug(
+          `Action ${action.type} in cooldown for ${payload.ipAddress}`,
+        );
         continue;
       }
 
@@ -153,7 +162,9 @@ export class IncidentResponseService {
     }
 
     if (executedActions.length > 0) {
-      this.logger.log(`Executed incident response actions for ${payload.type}: ${executedActions.join(', ')}`);
+      this.logger.log(
+        `Executed incident response actions for ${payload.type}: ${executedActions.join(', ')}`,
+      );
 
       this.eventEmitter.emit('incident.response.executed', {
         eventId: payload.eventId,
@@ -206,9 +217,12 @@ export class IncidentResponseService {
     }
   }
 
-  private findResponseRule(eventType: SecurityEventType, severity: SecuritySeverity): IncidentResponseRule | undefined {
-    return this.responseRules.find(rule =>
-      rule.eventType === eventType && rule.severity === severity
+  private findResponseRule(
+    eventType: SecurityEventType,
+    severity: SecuritySeverity,
+  ): IncidentResponseRule | undefined {
+    return this.responseRules.find(
+      (rule) => rule.eventType === eventType && rule.severity === severity,
     );
   }
 
@@ -218,12 +232,13 @@ export class IncidentResponseService {
     const expiredKeys: string[] = [];
 
     for (const [key, timestamp] of this.actionCooldowns.entries()) {
-      if (now.getTime() - timestamp.getTime() > 60 * 60 * 1000) { // 1 hour
+      if (now.getTime() - timestamp.getTime() > 60 * 60 * 1000) {
+        // 1 hour
         expiredKeys.push(key);
       }
     }
 
-    expiredKeys.forEach(key => this.actionCooldowns.delete(key));
+    expiredKeys.forEach((key) => this.actionCooldowns.delete(key));
 
     if (expiredKeys.length > 0) {
       this.logger.debug(`Cleaned up ${expiredKeys.length} expired cooldowns`);
@@ -244,7 +259,7 @@ export class IncidentResponseService {
     const ipCounts = new Map<string, number>();
     const typeCounts = new Map<SecurityEventType, number>();
 
-    events.forEach(event => {
+    events.forEach((event) => {
       ipCounts.set(event.ipAddress, (ipCounts.get(event.ipAddress) || 0) + 1);
       typeCounts.set(event.type, (typeCounts.get(event.type) || 0) + 1);
     });
@@ -252,7 +267,9 @@ export class IncidentResponseService {
     // Check for IPs with high activity
     for (const [ip, count] of ipCounts.entries()) {
       if (count >= 10) {
-        this.logger.warn(`High activity detected from IP ${ip}: ${count} events in last hour`);
+        this.logger.warn(
+          `High activity detected from IP ${ip}: ${count} events in last hour`,
+        );
         this.eventEmitter.emit('security.pattern.detected', {
           type: 'high_activity_ip',
           ipAddress: ip,
@@ -265,7 +282,9 @@ export class IncidentResponseService {
     // Check for prevalent threat types
     for (const [type, count] of typeCounts.entries()) {
       if (count >= 20) {
-        this.logger.warn(`Prevalent threat type: ${type} (${count} events in last hour)`);
+        this.logger.warn(
+          `Prevalent threat type: ${type} (${count} events in last hour)`,
+        );
         this.eventEmitter.emit('security.pattern.detected', {
           type: 'prevalent_threat',
           threatType: type,
@@ -280,13 +299,20 @@ export class IncidentResponseService {
     return [...this.responseRules];
   }
 
-  async updateResponseRule(eventType: SecurityEventType, severity: SecuritySeverity, rule: Partial<IncidentResponseRule>) {
-    const existingIndex = this.responseRules.findIndex(r =>
-      r.eventType === eventType && r.severity === severity
+  async updateResponseRule(
+    eventType: SecurityEventType,
+    severity: SecuritySeverity,
+    rule: Partial<IncidentResponseRule>,
+  ) {
+    const existingIndex = this.responseRules.findIndex(
+      (r) => r.eventType === eventType && r.severity === severity,
     );
 
     if (existingIndex >= 0) {
-      this.responseRules[existingIndex] = { ...this.responseRules[existingIndex], ...rule };
+      this.responseRules[existingIndex] = {
+        ...this.responseRules[existingIndex],
+        ...rule,
+      };
     }
   }
 }

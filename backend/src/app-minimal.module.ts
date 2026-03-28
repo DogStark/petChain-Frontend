@@ -15,11 +15,7 @@ import { VetVerificationModule } from './vet-verification/vet-verification.modul
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [
-        appConfig,
-        authConfig,
-        databaseConfig,
-      ],
+      load: [appConfig, authConfig, databaseConfig],
       envFilePath: '.env',
     }),
 

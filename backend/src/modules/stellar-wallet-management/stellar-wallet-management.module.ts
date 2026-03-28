@@ -6,9 +6,7 @@ import { StellarWalletManagementService } from './stellar-wallet-management.serv
 import { StellarWalletManagementController } from './stellar-wallet-management.controller';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([StellarWallet, StellarWalletAuditLog]),
-  ],
+  imports: [TypeOrmModule.forFeature([StellarWallet, StellarWalletAuditLog])],
   controllers: [StellarWalletManagementController],
   providers: [StellarWalletManagementService],
   exports: [StellarWalletManagementService],

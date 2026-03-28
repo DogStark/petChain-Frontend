@@ -4,6 +4,7 @@ import { surgeryAPI, Surgery, CreateSurgeryDto } from '../lib/api/surgeryAPI';
 import { SurgeryForm } from '../components/Surgery/SurgeryForm';
 import { SurgeryList } from '../components/Surgery/SurgeryList';
 import styles from '../styles/pages/SurgeriesPage.module.css';
+import { GetServerSideProps } from 'next';
 
 export default function SurgeriesPage() {
   const router = useRouter();
@@ -85,3 +86,9 @@ export default function SurgeriesPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

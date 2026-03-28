@@ -218,11 +218,11 @@ describe('AuthService', () => {
       expect(PasswordUtil.hashPassword).toHaveBeenCalled();
       expect(mockUserRepository.create).toHaveBeenCalled();
       expect(mockUserRepository.save).toHaveBeenCalled();
-      expect(mockUserPreferenceService.createDefaultPreferences).toHaveBeenCalledWith(
-        mockUser.id,
-      );
+      expect(
+        mockUserPreferenceService.createDefaultPreferences,
+      ).toHaveBeenCalledWith(mockUser.id);
       expect(result.email).toBe(registerDto.email);
-      expect(result.password).toBeUndefined();
+      expect('password' in result).toBe(false);
     });
 
     it('should throw ConflictException if user already exists', async () => {
@@ -264,7 +264,9 @@ describe('AuthService', () => {
       jest
         .spyOn(DeviceFingerprintUtil, 'createFingerprint')
         .mockReturnValue('device-fingerprint');
-      mockLoginAttemptService.isAccountLocked.mockResolvedValue({ locked: false });
+      mockLoginAttemptService.isAccountLocked.mockResolvedValue({
+        locked: false,
+      });
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'auth.jwtAccessExpiration') return '15m';
         if (key === 'auth.jwtRefreshExpiration') return '7d';
@@ -286,7 +288,9 @@ describe('AuthService', () => {
     it('should login successfully with valid credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
       jest.spyOn(PasswordUtil, 'comparePassword').mockResolvedValue(true);
-      mockLoginAttemptService.isAccountLocked.mockResolvedValue({ locked: false });
+      mockLoginAttemptService.isAccountLocked.mockResolvedValue({
+        locked: false,
+      });
       mockLoginAttemptService.recordAttempt.mockResolvedValue({
         id: 'hist-1',
         userId: mockUser.id,
@@ -316,7 +320,9 @@ describe('AuthService', () => {
           typeof PasswordUtil.comparePassword
         >
       ).mockResolvedValue(false);
-      mockLoginAttemptService.isAccountLocked.mockResolvedValue({ locked: false });
+      mockLoginAttemptService.isAccountLocked.mockResolvedValue({
+        locked: false,
+      });
       mockLoginAttemptService.recordAttempt.mockResolvedValue(null);
 
       await expect(
@@ -356,7 +362,9 @@ describe('AuthService', () => {
           typeof PasswordUtil.comparePassword
         >
       ).mockResolvedValue(false);
-      mockLoginAttemptService.isAccountLocked.mockResolvedValue({ locked: false });
+      mockLoginAttemptService.isAccountLocked.mockResolvedValue({
+        locked: false,
+      });
       mockLoginAttemptService.recordAttempt.mockResolvedValue(null);
 
       await expect(
@@ -378,8 +386,13 @@ describe('AuthService', () => {
           typeof PasswordUtil.comparePassword
         >
       ).mockResolvedValue(false);
-      mockLoginAttemptService.isAccountLocked.mockResolvedValue({ locked: false });
-      const lockedErr = new HttpException({ message: 'locked' }, HttpStatus.LOCKED);
+      mockLoginAttemptService.isAccountLocked.mockResolvedValue({
+        locked: false,
+      });
+      const lockedErr = new HttpException(
+        { message: 'locked' },
+        HttpStatus.LOCKED,
+      );
       mockLoginAttemptService.recordAttempt.mockRejectedValue(lockedErr);
 
       await expect(
@@ -593,18 +606,21 @@ describe('AuthService', () => {
     };
 
     it('should delegate password reset request with IP', async () => {
-      mockPasswordResetService.requestPasswordReset.mockResolvedValue(undefined);
+      mockPasswordResetService.requestPasswordReset.mockResolvedValue(
+        undefined,
+      );
 
       await service.forgotPassword(forgotPasswordDto, '203.0.113.1');
 
-      expect(mockPasswordResetService.requestPasswordReset).toHaveBeenCalledWith(
-        forgotPasswordDto.email,
-        '203.0.113.1',
-      );
+      expect(
+        mockPasswordResetService.requestPasswordReset,
+      ).toHaveBeenCalledWith(forgotPasswordDto.email, '203.0.113.1');
     });
 
     it('should not throw error if user does not exist (security)', async () => {
-      mockPasswordResetService.requestPasswordReset.mockResolvedValue(undefined);
+      mockPasswordResetService.requestPasswordReset.mockResolvedValue(
+        undefined,
+      );
 
       await expect(
         service.forgotPassword(forgotPasswordDto, '127.0.0.1'),

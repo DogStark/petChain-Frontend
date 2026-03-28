@@ -14,10 +14,8 @@ export class AppleStrategy extends PassportStrategy(Strategy, 'apple') {
     super({
       clientID:
         configService.get<string>('APPLE_CLIENT_ID') || 'apple-client-id',
-      teamID:
-        configService.get<string>('APPLE_TEAM_ID') || 'apple-team-id',
-      keyID:
-        configService.get<string>('APPLE_KEY_ID') || 'apple-key-id',
+      teamID: configService.get<string>('APPLE_TEAM_ID') || 'apple-team-id',
+      keyID: configService.get<string>('APPLE_KEY_ID') || 'apple-key-id',
       privateKeyString:
         configService.get<string>('APPLE_PRIVATE_KEY') || 'apple-private-key',
       callbackURL:

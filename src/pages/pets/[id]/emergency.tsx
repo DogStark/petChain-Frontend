@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { GetStaticProps, GetStaticPaths } from 'next';
 import { useRouter } from 'next/router';
 import {
     Phone,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { petAPI } from '@/lib/api/petAPI';
 import { PetEmergencyInfo } from '../../../../types/pet';
+import { GetStaticProps, GetStaticPaths } from 'next';
 
 export default function EmergencyAccessPage() {
     const router = useRouter();
@@ -199,3 +201,17 @@ export default function EmergencyAccessPage() {
         </div>
     );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

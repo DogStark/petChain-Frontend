@@ -1,4 +1,10 @@
-import { FIRST_NAMES, LAST_NAMES, PET_NAMES, CITIES, STREETS } from '../data/mock-data';
+import {
+  FIRST_NAMES,
+  LAST_NAMES,
+  PET_NAMES,
+  CITIES,
+  STREETS,
+} from '../data/mock-data';
 
 export class EntityFactory {
   static getRandomElement<T>(array: T[]): T {

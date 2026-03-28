@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class ApiKeysTable1742900000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -6,7 +6,13 @@ export class ApiKeysTable1742900000000 implements MigrationInterface {
       new Table({
         name: 'api_keys',
         columns: [
-          { name: 'id', type: 'uuid', isPrimary: true, generationStrategy: 'uuid', default: 'uuid_generate_v4()' },
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            generationStrategy: 'uuid',
+            default: 'uuid_generate_v4()',
+          },
           { name: 'key_hash', type: 'varchar', isUnique: true },
           { name: 'name', type: 'varchar', length: '100' },
           { name: 'owner_id', type: 'uuid', isNullable: true },
@@ -25,7 +31,10 @@ export class ApiKeysTable1742900000000 implements MigrationInterface {
 
     await queryRunner.createIndex(
       'api_keys',
-      new Index({ columnNames: ['key_hash'], name: 'IDX_api_keys_key_hash' }),
+      new TableIndex({
+        columnNames: ['key_hash'],
+        name: 'IDX_api_keys_key_hash',
+      }),
     );
   }
 

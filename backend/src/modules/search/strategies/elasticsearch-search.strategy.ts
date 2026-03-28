@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from '@elastic/elasticsearch';
 import { ISearchStrategy } from '../interfaces/search-strategy.interface';
 import { SearchQueryDto } from '../dto/search-query.dto';
-import { SearchResult, FacetCount } from '../interfaces/search-result.interface';
+import {
+  SearchResult,
+  FacetCount,
+} from '../interfaces/search-result.interface';
 
 @Injectable()
 export class ElasticsearchSearchStrategy implements ISearchStrategy {
@@ -11,7 +14,9 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
   private readonly logger = new Logger(ElasticsearchSearchStrategy.name);
 
   constructor(private readonly configService: ConfigService) {
-    const node = this.configService.get<string>('ELASTICSEARCH_URL') ?? 'http://localhost:9200';
+    const node =
+      this.configService.get<string>('ELASTICSEARCH_URL') ??
+      'http://localhost:9200';
     const apiKey = this.configService.get<string>('ELASTICSEARCH_API_KEY');
 
     this.client = new Client({
@@ -73,7 +78,7 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
     }
 
     try {
-      const response = await this.client.search({
+      const response = await (this.client as any).search({
         index: 'pets',
         from,
         size: limit,
@@ -95,17 +100,24 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
         },
       });
 
-      const hits = (response as any).hits;
-      const total = typeof hits.total === 'object' ? hits.total.value : hits.total;
+      const hits = response.hits;
+      const total =
+        typeof hits.total === 'object' ? hits.total.value : hits.total;
       const results = hits.hits.map((h: any) => ({
         ...h._source,
         relevanceScore: h._score,
       }));
 
-      const aggs = (response as any).aggregations ?? {};
+      const aggs = response.aggregations ?? {};
       const facets: Record<string, FacetCount[]> = {
-        breed: (aggs.breed?.buckets ?? []).map((b: any) => ({ value: b.key, count: b.doc_count })),
-        species: (aggs.species?.buckets ?? []).map((b: any) => ({ value: b.key, count: b.doc_count })),
+        breed: (aggs.breed?.buckets ?? []).map((b: any) => ({
+          value: b.key,
+          count: b.doc_count,
+        })),
+        species: (aggs.species?.buckets ?? []).map((b: any) => ({
+          value: b.key,
+          count: b.doc_count,
+        })),
       };
 
       return {
@@ -138,7 +150,14 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
       mustClauses.push({
         multi_match: {
           query: dto.query,
-          fields: ['vetName^3', 'clinicName^2', 'specializations', 'city', 'state', 'address'],
+          fields: [
+            'vetName^3',
+            'clinicName^2',
+            'specializations',
+            'city',
+            'state',
+            'address',
+          ],
         },
       });
     } else {
@@ -171,7 +190,7 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
     }
 
     try {
-      const response = await this.client.search({
+      const response = await (this.client as any).search({
         index: 'vets',
         from,
         size: limit,
@@ -191,8 +210,9 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
         },
       });
 
-      const hits = (response as any).hits;
-      const total = typeof hits.total === 'object' ? hits.total.value : hits.total;
+      const hits = response.hits;
+      const total =
+        typeof hits.total === 'object' ? hits.total.value : hits.total;
       const results = hits.hits.map((h: any) => {
         const sortValues = h.sort;
         const distance = hasGeo && sortValues ? sortValues[0] : undefined;
@@ -203,12 +223,14 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
         };
       });
 
-      const aggs = (response as any).aggregations ?? {};
+      const aggs = response.aggregations ?? {};
       const facets: Record<string, FacetCount[]> = {
-        specializations: (aggs.specializations?.buckets ?? []).map((b: any) => ({
-          value: b.key,
-          count: b.doc_count,
-        })),
+        specializations: (aggs.specializations?.buckets ?? []).map(
+          (b: any) => ({
+            value: b.key,
+            count: b.doc_count,
+          }),
+        ),
       };
 
       return {
@@ -266,7 +288,7 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
     }
 
     try {
-      const response = await this.client.search({
+      const response = await (this.client as any).search({
         index: 'medical_records',
         from,
         size: limit,
@@ -285,14 +307,15 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
         },
       });
 
-      const hits = (response as any).hits;
-      const total = typeof hits.total === 'object' ? hits.total.value : hits.total;
+      const hits = response.hits;
+      const total =
+        typeof hits.total === 'object' ? hits.total.value : hits.total;
       const results = hits.hits.map((h: any) => ({
         ...h._source,
         relevanceScore: h._score,
       }));
 
-      const aggs = (response as any).aggregations ?? {};
+      const aggs = response.aggregations ?? {};
       const facets: Record<string, FacetCount[]> = {
         recordType: (aggs.recordType?.buckets ?? []).map((b: any) => ({
           value: b.key,
@@ -326,9 +349,8 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
       'medical-records': ['diagnosis', 'treatment'],
     };
 
-    const targetTypes = type && indexFieldMap[type]
-      ? [type]
-      : Object.keys(indexFieldMap);
+    const targetTypes =
+      type && indexFieldMap[type] ? [type] : Object.keys(indexFieldMap);
 
     try {
       for (const t of targetTypes) {
@@ -337,7 +359,7 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
           prefix: { [f]: { value: query } },
         }));
 
-        const response = await this.client.search({
+        const response = await (this.client as any).search({
           index: t === 'medical-records' ? 'medical_records' : t,
           size: 10,
           body: {
@@ -348,7 +370,7 @@ export class ElasticsearchSearchStrategy implements ISearchStrategy {
           },
         });
 
-        const hits = (response as any).hits?.hits ?? [];
+        const hits = response.hits?.hits ?? [];
         for (const h of hits) {
           for (const f of fields) {
             const val = h._source?.[f];

@@ -71,7 +71,7 @@ describe('PasswordResetService', () => {
         email: 'e@e.com',
       } as User;
       userRepo.findOne.mockResolvedValue(user);
-      userRepo.save.mockImplementation(async (u) => u);
+      userRepo.save.mockImplementation(async (u: any) => u);
       mockConfig.get.mockReturnValue('http://app.test');
       jest.spyOn(TokenUtil, 'hashToken').mockReturnValue('hashed');
 
@@ -102,7 +102,7 @@ describe('PasswordResetService', () => {
         passwordResetTokenExpiresAt: new Date(Date.now() + 60_000),
       } as User;
       userRepo.findOne.mockResolvedValue(user);
-      userRepo.save.mockImplementation(async (u) => u);
+      userRepo.save.mockImplementation(async (u: any) => u);
       jest.spyOn(PasswordUtil, 'hashPassword').mockResolvedValue('newhash');
       mockConfig.get.mockReturnValue(12);
 

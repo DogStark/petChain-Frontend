@@ -25,7 +25,7 @@ export enum BackupStatus {
 
 /**
  * File Backup Entity
- * 
+ *
  * Tracks file backups for disaster recovery and version management.
  * Maintains point-in-time recovery capability.
  */

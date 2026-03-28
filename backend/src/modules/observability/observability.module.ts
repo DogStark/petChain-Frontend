@@ -6,6 +6,8 @@ import { LogAggregatorService } from './log-aggregator.service';
 import { AlertingService } from './alerting.service';
 import { HttpMetricsInterceptor } from './http-metrics.interceptor';
 import { ObservabilityController } from './observability.controller';
+import { PerformanceMonitoringService } from './performance-monitoring.service';
+import { PerformanceInsightsService } from './performance-insights.service';
 
 @Global()
 @Module({
@@ -15,8 +17,17 @@ import { ObservabilityController } from './observability.controller';
     TracingService,
     LogAggregatorService,
     AlertingService,
+    PerformanceMonitoringService,
+    PerformanceInsightsService,
     { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
   ],
-  exports: [MetricsService, TracingService, LogAggregatorService, AlertingService],
+  exports: [
+    MetricsService,
+    TracingService,
+    LogAggregatorService,
+    AlertingService,
+    PerformanceMonitoringService,
+    PerformanceInsightsService,
+  ],
 })
 export class ObservabilityModule {}

@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { Processor, Process } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -34,7 +34,7 @@ interface DeleteJobData {
  * using BullMQ job queue.
  */
 @Processor('file-backup')
-export class FileBackupProcessor {
+export class FileBackupProcessor extends WorkerHost {
   private readonly logger = new Logger(FileBackupProcessor.name);
 
   constructor(
@@ -42,13 +42,33 @@ export class FileBackupProcessor {
     private readonly backupRepository: Repository<FileBackup>,
     private readonly storageService: StorageService,
     private readonly fileBackupService: FileBackupService,
-  ) {}
+  ) {
+    super();
+  }
+
+  async process(
+    job: Job<BackupJobData | RestoreJobData | DeleteJobData>,
+  ): Promise<void> {
+    if (job.name === 'backup-file') {
+      await this.processBackup(job as Job<BackupJobData>);
+      return;
+    }
+    if (job.name === 'restore-backup') {
+      await this.processRestore(job as Job<RestoreJobData>);
+      return;
+    }
+    if (job.name === 'delete-backup') {
+      await this.processDelete(job as Job<DeleteJobData>);
+      return;
+    }
+
+    this.logger.warn(`Unknown file-backup job type: ${job.name}`);
+  }
 
   /**
    * Process backup job
    * Downloads file from storage, creates backup copy, updates metadata
    */
-  @Process('backup-file')
   async processBackup(job: Job<BackupJobData>): Promise<void> {
     const { backupId, fileId, storageKey, backupStorageKey } = job.data;
 
@@ -61,13 +81,14 @@ export class FileBackupProcessor {
       });
 
       // Calculate checksum
-      const checksum = this.calculateChecksum(fileData.buffer);
+      const checksum = this.calculateChecksum(fileData.body);
 
       // Upload to backup location
       const uploadResult = await this.storageService.upload({
         key: backupStorageKey,
-        body: fileData.buffer,
-        contentType: fileData.metadata?.contentType || 'application/octet-stream',
+        body: fileData.body,
+        contentType:
+          fileData.metadata?.contentType || 'application/octet-stream',
         metadata: {
           backupId,
           fileId,
@@ -80,10 +101,12 @@ export class FileBackupProcessor {
       await this.fileBackupService.completeBackup(
         backupId,
         checksum,
-        fileData.buffer.length,
+        fileData.body.length,
       );
 
-      this.logger.log(`Backup completed: ${backupId}, size: ${fileData.buffer.length} bytes`);
+      this.logger.log(
+        `Backup completed: ${backupId}, size: ${fileData.body.length} bytes`,
+      );
     } catch (error) {
       this.logger.error(`Backup failed for ${backupId}:`, error);
       await this.fileBackupService.failBackup(
@@ -98,7 +121,6 @@ export class FileBackupProcessor {
    * Process restore job
    * Downloads backup file, restores to original location or creates new version
    */
-  @Process('restore-backup')
   async processRestore(job: Job<RestoreJobData>): Promise<void> {
     const { backupId, fileId, backupStorageKey, replaceOriginal } = job.data;
 
@@ -125,18 +147,16 @@ export class FileBackupProcessor {
         // Upload to original location (overwrite)
         await this.storageService.upload({
           key: fileMetadata.file.storageKey,
-          body: backupData.buffer,
+          body: backupData.body,
           contentType: fileMetadata.file.mimeType,
           metadata: {
-            restored: true,
+            restored: 'true',
             restoredAt: new Date().toISOString(),
             restoredFrom: backupId,
           },
         });
 
-        this.logger.log(
-          `Restore completed: replaced original file ${fileId}`,
-        );
+        this.logger.log(`Restore completed: replaced original file ${fileId}`);
       } else {
         // Create new version in a versioned location
         const versionedKey = this.generateVersionedKey(
@@ -146,8 +166,9 @@ export class FileBackupProcessor {
 
         await this.storageService.upload({
           key: versionedKey,
-          body: backupData.buffer,
-          contentType: backupData.metadata?.contentType || 'application/octet-stream',
+          body: backupData.body,
+          contentType:
+            backupData.metadata?.contentType || 'application/octet-stream',
           metadata: {
             restoredFrom: backupId,
             restoredAt: new Date().toISOString(),
@@ -168,7 +189,6 @@ export class FileBackupProcessor {
    * Process backup deletion job
    * Removes backup file from storage and updates record
    */
-  @Process('delete-backup')
   async processDelete(job: Job<DeleteJobData>): Promise<void> {
     const { backupId, backupStorageKey } = job.data;
 

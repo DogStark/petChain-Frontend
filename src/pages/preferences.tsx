@@ -4,6 +4,7 @@ import { NotificationPreferences } from '../components/Settings/NotificationPref
 import { PrivacySettings } from '../components/Settings/PrivacySettings';
 import { userAPI, UpdateUserPreferencesDto, UserProfile } from '../lib/api/userAPI';
 import styles from '../styles/pages/PreferencesPage.module.css';
+import { GetServerSideProps } from 'next';
 
 type NotificationPreferenceState = {
   emailNotifications: boolean;
@@ -204,3 +205,9 @@ export default function PreferencesPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

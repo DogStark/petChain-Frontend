@@ -1,3 +1,4 @@
+import { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import SearchBar, { SearchFilters } from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
@@ -358,3 +359,9 @@ export default function SearchPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

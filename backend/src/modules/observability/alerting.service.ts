@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { MetricsService } from './metrics.service';
+import { PerformanceInsightsService } from './performance-insights.service';
 
 export interface AlertRule {
   name: string;
@@ -26,8 +28,16 @@ export class AlertingService {
   private readonly rules: AlertRule[] = [];
   private readonly firedAlerts: Alert[] = [];
 
-  constructor(private readonly metrics: MetricsService) {
+  constructor(
+    private readonly metrics: MetricsService,
+    private readonly performanceInsights: PerformanceInsightsService,
+  ) {
     this._registerDefaultRules();
+  }
+
+  @Interval(60000)
+  evaluateScheduled(): void {
+    this.evaluate();
   }
 
   registerRule(rule: AlertRule): void {
@@ -36,9 +46,13 @@ export class AlertingService {
 
   evaluate(): Alert[] {
     const newAlerts: Alert[] = [];
+    const activeAlertNames = new Set(
+      this.getActiveAlerts().map((alert) => alert.name),
+    );
+
     for (const rule of this.rules) {
       try {
-        if (rule.condition()) {
+        if (rule.condition() && !activeAlertNames.has(rule.name)) {
           const alert: Alert = {
             name: rule.name,
             severity: rule.severity,
@@ -47,8 +61,13 @@ export class AlertingService {
           };
           this.firedAlerts.push(alert);
           newAlerts.push(alert);
-          this.logger.warn(`[ALERT][${rule.severity.toUpperCase()}] ${rule.name}: ${rule.message}`);
-          this.metrics.inc('alerts_fired_total', `severity="${rule.severity}",rule="${rule.name}"`);
+          this.logger.warn(
+            `[ALERT][${rule.severity.toUpperCase()}] ${rule.name}: ${rule.message}`,
+          );
+          this.metrics.inc(
+            'alerts_fired_total',
+            `severity="${rule.severity}",rule="${rule.name}"`,
+          );
         }
       } catch {
         // rule evaluation must never crash the app
@@ -60,16 +79,42 @@ export class AlertingService {
   getActiveAlerts(): Alert[] {
     // Return alerts from the last 5 minutes
     const cutoff = Date.now() - 5 * 60 * 1000;
-    return this.firedAlerts.filter((a) => new Date(a.firedAt).getTime() > cutoff);
+    return this.firedAlerts.filter(
+      (a) => new Date(a.firedAt).getTime() > cutoff,
+    );
   }
 
   private _registerDefaultRules(): void {
-    // These reference metric names tracked by the HTTP interceptor
     this.registerRule({
       name: 'high_error_rate',
       severity: 'critical',
       message: 'HTTP 5xx error rate is elevated',
-      condition: () => false, // placeholder — wire to real counter ratio in production
+      condition: () => {
+        const summary = this.performanceInsights.getSummary();
+        return (
+          summary.http.totalRequests >= 50 && summary.http.errorRate >= 0.05
+        );
+      },
+    });
+
+    this.registerRule({
+      name: 'high_memory_pressure',
+      severity: 'warning',
+      message: 'Process heap utilization is above 85%',
+      condition: () => {
+        const summary = this.performanceInsights.getSummary();
+        return summary.system.memory.heapUtilizationRatio >= 0.85;
+      },
+    });
+
+    this.registerRule({
+      name: 'high_event_loop_lag',
+      severity: 'warning',
+      message: 'Average event loop lag is above 250ms',
+      condition: () => {
+        const summary = this.performanceInsights.getSummary();
+        return summary.system.eventLoopLagMs >= 250;
+      },
     });
   }
 }

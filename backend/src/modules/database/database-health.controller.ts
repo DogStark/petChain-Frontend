@@ -28,12 +28,10 @@ export class DatabaseHealthController {
       await queryRunner.query('SELECT 1');
       const isConnected = true;
 
-      const poolStats = await this.databasePerformanceService['getPoolStats'](
-        queryRunner,
-      );
-      const dbStats = await this.databasePerformanceService['getDatabaseStats'](
-        queryRunner,
-      );
+      const poolStats =
+        await this.databasePerformanceService['getPoolStats'](queryRunner);
+      const dbStats =
+        await this.databasePerformanceService['getDatabaseStats'](queryRunner);
 
       return {
         status: 'healthy',
@@ -109,9 +107,8 @@ export class DatabaseHealthController {
     }
 
     try {
-      const plan = await this.databasePerformanceService.getQueryExecutionPlan(
-        query,
-      );
+      const plan =
+        await this.databasePerformanceService.getQueryExecutionPlan(query);
       return { executionPlan: plan };
     } catch (error) {
       return { error: error.message };
@@ -133,9 +130,8 @@ export class DatabaseHealthController {
       this.databasePerformanceService['dataSource'].createQueryRunner();
 
     try {
-      const stats = await this.databasePerformanceService['getPoolStats'](
-        queryRunner,
-      );
+      const stats =
+        await this.databasePerformanceService['getPoolStats'](queryRunner);
       return {
         pool: {
           ...stats,
@@ -155,9 +151,8 @@ export class DatabaseHealthController {
       this.databasePerformanceService['dataSource'].createQueryRunner();
 
     try {
-      const sizes = await this.databasePerformanceService['getTableSizes'](
-        queryRunner,
-      );
+      const sizes =
+        await this.databasePerformanceService['getTableSizes'](queryRunner);
 
       // Format sizes in human-readable format
       const formattedSizes: Record<string, string> = {};

@@ -8,7 +8,10 @@ jest.mock('../notifications/notifications.service', () => ({
 }));
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { LostPetsService } from './lost-pets.service';
-import { LostPetReport, LostPetStatus } from './entities/lost-pet-report.entity';
+import {
+  LostPetReport,
+  LostPetStatus,
+} from './entities/lost-pet-report.entity';
 import { UserLocation } from '../users/entities/user-location.entity';
 import { PetsService } from '../pets/pets.service';
 import { QRCodesService } from '../qrcodes/qrcodes.service';
@@ -50,8 +53,14 @@ describe('LostPetsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LostPetsService,
-        { provide: getRepositoryToken(LostPetReport), useValue: mockLostPetReportRepo },
-        { provide: getRepositoryToken(UserLocation), useValue: mockUserLocationRepo },
+        {
+          provide: getRepositoryToken(LostPetReport),
+          useValue: mockLostPetReportRepo,
+        },
+        {
+          provide: getRepositoryToken(UserLocation),
+          useValue: mockUserLocationRepo,
+        },
         { provide: PetsService, useValue: mockPetsService },
         { provide: QRCodesService, useValue: mockQRCodesService },
         { provide: NotificationsService, useValue: mockNotificationsService },
@@ -83,7 +92,9 @@ describe('LostPetsService', () => {
       };
       mockLostPetReportRepo.create.mockReturnValue(created);
       mockLostPetReportRepo.save.mockResolvedValue(created);
-      mockQRCodesService.findByPetId.mockResolvedValue([{ qrCodeId: 'qr-1', isActive: true }]);
+      mockQRCodesService.findByPetId.mockResolvedValue([
+        { qrCodeId: 'qr-1', isActive: true },
+      ]);
       mockPetsService.findOne.mockResolvedValue({ id: petId, name: 'Buddy' });
       mockUserLocationRepo.createQueryBuilder.mockReturnValue({
         select: jest.fn().mockReturnThis(),
@@ -91,11 +102,16 @@ describe('LostPetsService', () => {
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([]),
       });
-      mockLostPetReportRepo.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(created);
+      mockLostPetReportRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(created);
 
       const result = await service.reportLost(petId, ownerId, dto);
 
-      expect(mockPetsService.verifyOwnership).toHaveBeenCalledWith(petId, ownerId);
+      expect(mockPetsService.verifyOwnership).toHaveBeenCalledWith(
+        petId,
+        ownerId,
+      );
       expect(mockLostPetReportRepo.create).toHaveBeenCalled();
       expect(mockLostPetReportRepo.save).toHaveBeenCalled();
       expect(mockQRCodesService.update).toHaveBeenCalled();
@@ -104,22 +120,32 @@ describe('LostPetsService', () => {
 
     it('should throw when pet already reported as lost', async () => {
       mockPetsService.verifyOwnership.mockResolvedValue(true);
-      mockLostPetReportRepo.findOne.mockResolvedValue({ id: 'existing', status: LostPetStatus.LOST });
+      mockLostPetReportRepo.findOne.mockResolvedValue({
+        id: 'existing',
+        status: LostPetStatus.LOST,
+      });
 
-      await expect(service.reportLost(petId, ownerId, dto)).rejects.toThrow(BadRequestException);
+      await expect(service.reportLost(petId, ownerId, dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw when not owner', async () => {
       mockPetsService.verifyOwnership.mockResolvedValue(false);
 
-      await expect(service.reportLost(petId, ownerId, dto)).rejects.toThrow(NotFoundException);
+      await expect(service.reportLost(petId, ownerId, dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('reportFound', () => {
     const petId = 'pet-1';
     const ownerId = 'owner-1';
-    const dto = { foundLocation: 'Central Park', foundDetails: 'Near fountain' };
+    const dto = {
+      foundLocation: 'Central Park',
+      foundDetails: 'Near fountain',
+    };
 
     it('should update report to found and clear QR message', async () => {
       const existing = {
@@ -130,8 +156,13 @@ describe('LostPetsService', () => {
       };
       mockPetsService.verifyOwnership.mockResolvedValue(true);
       mockLostPetReportRepo.findOne.mockResolvedValue(existing);
-      mockLostPetReportRepo.save.mockResolvedValue({ ...existing, status: LostPetStatus.FOUND });
-      mockQRCodesService.findByPetId.mockResolvedValue([{ qrCodeId: 'qr-1', isActive: true }]);
+      mockLostPetReportRepo.save.mockResolvedValue({
+        ...existing,
+        status: LostPetStatus.FOUND,
+      });
+      mockQRCodesService.findByPetId.mockResolvedValue([
+        { qrCodeId: 'qr-1', isActive: true },
+      ]);
       mockLostPetReportRepo.findOne
         .mockResolvedValueOnce(existing)
         .mockResolvedValueOnce({ ...existing, status: LostPetStatus.FOUND });
@@ -147,7 +178,9 @@ describe('LostPetsService', () => {
       mockPetsService.verifyOwnership.mockResolvedValue(true);
       mockLostPetReportRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.reportFound(petId, ownerId, dto)).rejects.toThrow(NotFoundException);
+      await expect(service.reportFound(petId, ownerId, dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -166,7 +199,9 @@ describe('LostPetsService', () => {
       mockPetsService.verifyOwnership.mockResolvedValue(true);
       mockLostPetReportRepo.findOne.mockResolvedValue(existing);
       mockLostPetReportRepo.save.mockResolvedValue({ ...existing, ...dto });
-      mockQRCodesService.findByPetId.mockResolvedValue([{ qrCodeId: 'qr-1', isActive: true }]);
+      mockQRCodesService.findByPetId.mockResolvedValue([
+        { qrCodeId: 'qr-1', isActive: true },
+      ]);
 
       const result = await service.updateLostMessage(petId, ownerId, dto);
 
@@ -205,7 +240,9 @@ describe('LostPetsService', () => {
 
       const result = await service.findNearby(40.7128, -74.006, 10);
 
-      expect(mockLostPetReportRepo.createQueryBuilder).toHaveBeenCalledWith('report');
+      expect(mockLostPetReportRepo.createQueryBuilder).toHaveBeenCalledWith(
+        'report',
+      );
       expect(result).toHaveLength(1);
     });
   });
@@ -235,7 +272,11 @@ describe('LostPetsService', () => {
 
   describe('updateUserLocation', () => {
     it('should create new user location when none exists', async () => {
-      const dto = { latitude: 40.7, longitude: -74.0, receiveLostPetAlerts: true };
+      const dto = {
+        latitude: 40.7,
+        longitude: -74.0,
+        receiveLostPetAlerts: true,
+      };
       const created = { id: 'loc-1', userId: 'u1', ...dto };
       mockUserLocationRepo.findOne.mockResolvedValue(null);
       mockUserLocationRepo.create.mockReturnValue(created);
@@ -243,7 +284,9 @@ describe('LostPetsService', () => {
 
       const result = await service.updateUserLocation('u1', dto);
 
-      expect(mockUserLocationRepo.findOne).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      expect(mockUserLocationRepo.findOne).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+      });
       expect(mockUserLocationRepo.create).toHaveBeenCalledWith({
         userId: 'u1',
         latitude: dto.latitude,
@@ -268,7 +311,9 @@ describe('LostPetsService', () => {
 
       const result = await service.updateUserLocation('u1', dto);
 
-      expect(mockUserLocationRepo.findOne).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+      expect(mockUserLocationRepo.findOne).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+      });
       expect(mockUserLocationRepo.save).toHaveBeenCalled();
       expect(result.latitude).toBe(40.8);
       expect(result.longitude).toBe(-74.1);

@@ -82,7 +82,8 @@ export class CertificatesService {
         manufacturer: vaccination.manufacturer,
         batchNumber: vaccination.batchNumber,
         site: vaccination.site,
-        veterinarianName: vaccination.veterinarianName || vaccination.vet?.vetName || 'N/A',
+        veterinarianName:
+          vaccination.veterinarianName || vaccination.vet?.vetName || 'N/A',
       },
       pet: {
         id: vaccination.pet.id,
@@ -175,7 +176,9 @@ export class CertificatesService {
       doc.moveDown(1.5);
 
       doc.fontSize(11).text(`Certificate Code: ${certificate.certificateCode}`);
-      doc.text(`Issued Date: ${new Date(certificate.issuedDate).toDateString()}`);
+      doc.text(
+        `Issued Date: ${new Date(certificate.issuedDate).toDateString()}`,
+      );
       doc.text(`Valid: ${certificate.isValid ? 'Yes' : 'No'}`);
       doc.moveDown();
 
@@ -196,7 +199,9 @@ export class CertificatesService {
       doc.text(
         `Date Administered: ${new Date(certificate.vaccination.administeredDate).toDateString()}`,
       );
-      doc.text(`Manufacturer: ${certificate.vaccination.manufacturer ?? 'N/A'}`);
+      doc.text(
+        `Manufacturer: ${certificate.vaccination.manufacturer ?? 'N/A'}`,
+      );
       doc.text(`Batch Number: ${certificate.vaccination.batchNumber ?? 'N/A'}`);
       doc.text(`Site: ${certificate.vaccination.site ?? 'N/A'}`);
       doc.text(`Veterinarian: ${certificate.vaccination.veterinarianName}`);
@@ -221,10 +226,9 @@ export class CertificatesService {
 
       doc
         .fontSize(10)
-        .text(
-          `Verification URL: ${certificate.verificationUrl}`,
-          { align: 'left' },
-        );
+        .text(`Verification URL: ${certificate.verificationUrl}`, {
+          align: 'left',
+        });
 
       doc.end();
     });

@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import type { NextWebVitalsMetric } from "next/app";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";

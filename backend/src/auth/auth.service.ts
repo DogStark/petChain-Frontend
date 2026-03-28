@@ -247,7 +247,7 @@ export class AuthService {
       user.id,
       ipAddress,
       userAgent,
-      loginRow!.id,
+      loginRow.id,
     );
 
     const deviceFingerprint = DeviceFingerprintUtil.createFingerprint(
@@ -420,16 +420,15 @@ export class AuthService {
     ).emailVerificationExpires = null;
     await this.userRepository.save(user);
 
-    return this.buildVerificationStatus(
-      user,
-      'Email verified successfully',
-    );
+    return this.buildVerificationStatus(user, 'Email verified successfully');
   }
 
   async resendEmailVerification(
     resendVerificationDto: ResendVerificationDto,
   ): Promise<void> {
-    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+    const user = await this.usersService.findByEmail(
+      resendVerificationDto.email,
+    );
 
     if (!user || user.emailVerified) {
       return;
@@ -444,7 +443,10 @@ export class AuthService {
     await this.userRepository.save(user);
 
     try {
-      await this.emailService.sendVerificationEmail(user.email, verificationToken);
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        verificationToken,
+      );
     } catch (error) {
       console.error('Failed to resend verification email:', error);
     }
@@ -485,7 +487,9 @@ export class AuthService {
   async resendPhoneVerification(
     resendVerificationDto: ResendVerificationDto,
   ): Promise<void> {
-    const user = await this.usersService.findByEmail(resendVerificationDto.email);
+    const user = await this.usersService.findByEmail(
+      resendVerificationDto.email,
+    );
 
     if (!user || user.phoneVerified || !user.phone) {
       return;
@@ -535,7 +539,10 @@ export class AuthService {
   /**
    * Confirm password reset with token (Issue #145 route).
    */
-  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  async confirmPasswordReset(
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
     await this.passwordResetService.resetPassword(token, newPassword);
   }
 

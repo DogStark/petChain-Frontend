@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Image from 'next/image';
+import { GetServerSideProps } from 'next';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
@@ -171,3 +172,9 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

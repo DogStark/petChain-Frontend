@@ -72,7 +72,10 @@ export class StellarWalletManagementService {
     const keypair = Keypair.random();
     const secretKey = keypair.secret();
     const masterKey = this.getMasterKey();
-    const { ciphertext, iv, authTag } = AesEncryption.encrypt(secretKey, masterKey);
+    const { ciphertext, iv, authTag } = AesEncryption.encrypt(
+      secretKey,
+      masterKey,
+    );
 
     wallet = this.walletRepository.create({
       userId,
@@ -119,11 +122,16 @@ export class StellarWalletManagementService {
   async createWallet(
     userId: string,
     network: StellarWalletNetwork,
-    multisigConfig?: { threshold: number; signers: { key: string; weight: number }[] },
+    multisigConfig?: {
+      threshold: number;
+      signers: { key: string; weight: number }[];
+    },
   ): Promise<StellarWallet> {
     const existing = await this.findForUserAndNetwork(userId, network);
     if (existing) {
-      throw new BadRequestException(`Wallet already exists for network ${network}`);
+      throw new BadRequestException(
+        `Wallet already exists for network ${network}`,
+      );
     }
 
     const keypair = Keypair.random();
@@ -293,7 +301,10 @@ export class StellarWalletManagementService {
     );
 
     const netConfig = this.stellarCfg.networks[network];
-    const transaction = new Transaction(unsignedXdr, netConfig.networkPassphrase);
+    const transaction = new Transaction(
+      unsignedXdr,
+      netConfig.networkPassphrase,
+    );
     const keypair = Keypair.fromSecret(secretKey);
     transaction.sign(keypair);
 
@@ -328,7 +339,10 @@ export class StellarWalletManagementService {
     const server = this.getServer(net);
 
     try {
-      const transaction = new Transaction(signedXdr, netConfig.networkPassphrase);
+      const transaction = new Transaction(
+        signedXdr,
+        netConfig.networkPassphrase,
+      );
       const result = await server.submitTransaction(transaction);
 
       await this.recordAudit(wallet, userId, 'SUBMIT_TRANSACTION', {
@@ -378,7 +392,10 @@ export class StellarWalletManagementService {
         encryptionAuthTag: wallet.encryptionAuthTag,
         network: wallet.network,
         isMultiSig: wallet.isMultiSig,
-        multisigConfig: wallet.multisigConfig as Record<string, unknown> | null,
+        multisigConfig: wallet.multisigConfig as unknown as Record<
+          string,
+          unknown
+        > | null,
         exportedAt: new Date().toISOString(),
       },
     };
@@ -403,7 +420,9 @@ export class StellarWalletManagementService {
       where: { userId, publicKey: backupData.publicKey },
     });
     if (existing) {
-      throw new BadRequestException('Wallet with this public key already exists');
+      throw new BadRequestException(
+        'Wallet with this public key already exists',
+      );
     }
 
     const wallet = this.walletRepository.create({
@@ -418,7 +437,9 @@ export class StellarWalletManagementService {
     });
 
     const saved = await this.walletRepository.save(wallet);
-    await this.recordAudit(saved, userId, 'RECOVERY', { network: saved.network });
+    await this.recordAudit(saved, userId, 'RECOVERY', {
+      network: saved.network,
+    });
     return saved;
   }
 

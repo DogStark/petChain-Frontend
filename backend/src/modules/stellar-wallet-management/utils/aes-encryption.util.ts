@@ -27,9 +27,14 @@ export class AesEncryption {
   /**
    * Encrypt plaintext using AES-256-GCM.
    */
-  static encrypt(plaintext: string, key: Buffer): { ciphertext: string; iv: string; authTag: string } {
+  static encrypt(
+    plaintext: string,
+    key: Buffer,
+  ): { ciphertext: string; iv: string; authTag: string } {
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
     let encrypted = cipher.update(plaintext, 'utf8', 'base64');
     encrypted += cipher.final('base64');
     const authTag = cipher.getAuthTag();
