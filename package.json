@@ -1,5 +1,5 @@
 {
-  "name": "petchain-frontend",
+  "name": "pet-medical-tracka",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,16 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf .next out",
-    "clean:all": "rm -rf .next out node_modules",
-    "audit:fix": "npm audit fix",
-    "validate": "npm run type-check && npm run lint && npm run format:check",
-    "prepare": "husky",
-    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts"
+    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "security:audit": "npm audit --omit=dev --audit-level=critical || true",
+    "debug": "NODE_OPTIONS='--inspect' next dev",
+    "analyze": "ANALYZE=true next build",
+    "perf:smoke": "bash ./performance/scripts/run-k6.sh smoke",
+    "perf:load": "bash ./performance/scripts/run-k6.sh load",
+    "perf:benchmark": "node ./performance/scripts/benchmark-report.mjs ./performance/results/load-summary.json",
+    "perf:compare": "node ./performance/scripts/compare-baseline.mjs ./performance/results/load-summary.json ./performance/baselines/load-summary-baseline.json 0.15",
+    "perf:refresh-baseline": "cp ./performance/results/load-summary.json ./performance/baselines/load-summary-baseline.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -29,8 +28,7 @@
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
-    "next": "^15.3.5",
-    "next-auth": "^4.24.13",
+    "next": "^16.2.1",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
@@ -39,29 +37,16 @@
     "speakeasy": "^2.0.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.3.5",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.7",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.23",
     "eslint": "^9",
     "eslint-config-next": "15.2.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "postcss": "^8.5.6",
-    "prettier": "^3.4.2",
     "sharp": "^0.34.5",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "prettier --write",
-      "eslint --fix"
-    ],
-    "*.{json,md,css}": [
-      "prettier --write"
-    ]
   }
 }

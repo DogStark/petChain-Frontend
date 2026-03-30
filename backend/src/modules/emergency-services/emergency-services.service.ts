@@ -30,9 +30,7 @@ export class EmergencyServicesService {
       where: { id },
     });
     if (!emergencyService) {
-      throw new NotFoundException(
-        `Emergency Service with ID ${id} not found`,
-      );
+      throw new NotFoundException(`Emergency Service with ID ${id} not found`);
     }
     return emergencyService;
   }

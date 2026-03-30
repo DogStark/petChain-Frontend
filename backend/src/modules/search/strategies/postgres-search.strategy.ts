@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ISearchStrategy } from '../interfaces/search-strategy.interface';
 import { SearchQueryDto } from '../dto/search-query.dto';
-import { SearchResult, FacetCount } from '../interfaces/search-result.interface';
+import {
+  SearchResult,
+  FacetCount,
+} from '../interfaces/search-result.interface';
 
 @Injectable()
 export class PostgresSearchStrategy implements ISearchStrategy {
@@ -33,7 +36,9 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     if (dto.query) {
       tsQuery = this.sanitizeQuery(dto.query);
       params.push(tsQuery);
-      conditions.push(`p.search_vector @@ to_tsquery('english', $${params.length})`);
+      conditions.push(
+        `p.search_vector @@ to_tsquery('english', $${params.length})`,
+      );
     }
 
     if (!dto.includeInactive) {
@@ -57,15 +62,21 @@ export class PostgresSearchStrategy implements ISearchStrategy {
 
     if (dto.minAge !== undefined) {
       params.push(dto.minAge);
-      conditions.push(`EXTRACT(YEAR FROM AGE(NOW(), p.date_of_birth)) >= $${params.length}`);
+      conditions.push(
+        `EXTRACT(YEAR FROM AGE(NOW(), p.date_of_birth)) >= $${params.length}`,
+      );
     }
 
     if (dto.maxAge !== undefined) {
       params.push(dto.maxAge);
-      conditions.push(`EXTRACT(YEAR FROM AGE(NOW(), p.date_of_birth)) <= $${params.length}`);
+      conditions.push(
+        `EXTRACT(YEAR FROM AGE(NOW(), p.date_of_birth)) <= $${params.length}`,
+      );
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
 
     let relevanceSelect = '';
     if (tsQuery) {
@@ -142,8 +153,14 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     ]);
 
     const facets: Record<string, FacetCount[]> = {
-      breed: breedFacets.map((r: any) => ({ value: r.value ?? 'Unknown', count: parseInt(r.count, 10) })),
-      species: speciesFacets.map((r: any) => ({ value: r.value, count: parseInt(r.count, 10) })),
+      breed: breedFacets.map((r: any) => ({
+        value: r.value ?? 'Unknown',
+        count: parseInt(r.count, 10),
+      })),
+      species: speciesFacets.map((r: any) => ({
+        value: r.value,
+        count: parseInt(r.count, 10),
+      })),
     };
 
     return {
@@ -172,7 +189,9 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     if (dto.query) {
       tsQuery = this.sanitizeQuery(dto.query);
       params.push(tsQuery);
-      conditions.push(`v.search_vector @@ to_tsquery('english', $${params.length})`);
+      conditions.push(
+        `v.search_vector @@ to_tsquery('english', $${params.length})`,
+      );
     }
 
     if (dto.specialty) {
@@ -182,10 +201,14 @@ export class PostgresSearchStrategy implements ISearchStrategy {
 
     if (dto.location) {
       params.push(`%${dto.location}%`);
-      conditions.push(`(v.city ILIKE $${params.length} OR v.state ILIKE $${params.length})`);
+      conditions.push(
+        `(v.city ILIKE $${params.length} OR v.state ILIKE $${params.length})`,
+      );
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
 
     let relevanceSelect = '';
     if (tsQuery) {
@@ -257,9 +280,16 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     const total = parseInt(countRows[0]?.total ?? '0', 10);
 
     // Facets for specializations (unnest simple-array stored as comma-separated)
-    const facetConditions = conditions.filter((c) => !c.includes('search_vector'));
-    const facetWhere = facetConditions.length ? `WHERE ${facetConditions.join(' AND ')}` : '';
-    const facetParams = params.slice(tsQuery ? 1 : 0, params.length - (hasGeo ? 5 : 2));
+    const facetConditions = conditions.filter(
+      (c) => !c.includes('search_vector'),
+    );
+    const facetWhere = facetConditions.length
+      ? `WHERE ${facetConditions.join(' AND ')}`
+      : '';
+    const facetParams = params.slice(
+      tsQuery ? 1 : 0,
+      params.length - (hasGeo ? 5 : 2),
+    );
 
     const specFacetSql = `
       SELECT unnest(string_to_array(v.specializations, ',')) AS value, COUNT(*) AS count
@@ -302,7 +332,9 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     if (dto.query) {
       tsQuery = this.sanitizeQuery(dto.query);
       params.push(tsQuery);
-      conditions.push(`mr.search_vector @@ to_tsquery('english', $${params.length})`);
+      conditions.push(
+        `mr.search_vector @@ to_tsquery('english', $${params.length})`,
+      );
     }
 
     if (dto.condition) {
@@ -330,7 +362,9 @@ export class PostgresSearchStrategy implements ISearchStrategy {
       conditions.push(`mr.visit_date <= $${params.length}`);
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
 
     let relevanceSelect = '';
     if (tsQuery) {
@@ -374,8 +408,12 @@ export class PostgresSearchStrategy implements ISearchStrategy {
     const total = parseInt(countRows[0]?.total ?? '0', 10);
 
     // Facets for record_type
-    const facetConditions = conditions.filter((c) => !c.includes('search_vector'));
-    const facetWhere = facetConditions.length ? `WHERE ${facetConditions.join(' AND ')}` : '';
+    const facetConditions = conditions.filter(
+      (c) => !c.includes('search_vector'),
+    );
+    const facetWhere = facetConditions.length
+      ? `WHERE ${facetConditions.join(' AND ')}`
+      : '';
     const facetParams = params.slice(tsQuery ? 1 : 0, params.length - 2);
 
     const rtFacetSql = `

@@ -10,7 +10,7 @@ async function bootstrap() {
   });
 
   const migrationCli = app.get(MigrationCliService);
-  
+
   const args = process.argv.slice(2);
   const [command, ...commandArgs] = args;
 
@@ -31,7 +31,7 @@ async function bootstrap() {
   }
 }
 
-bootstrap().catch(error => {
+bootstrap().catch((error) => {
   console.error('❌ Bootstrap failed:', error);
   process.exit(1);
 });

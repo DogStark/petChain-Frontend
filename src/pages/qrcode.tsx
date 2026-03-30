@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { qrcodeAPI, QRCodeRecord, ScanAnalytics } from '@/lib/api/qrcodeAPI';
+import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -327,3 +328,9 @@ export default function QRCodePage() {
     </ProtectedRoute>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

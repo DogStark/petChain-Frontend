@@ -1,3 +1,4 @@
+import { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import type React from 'react';
 import SearchBar, { SearchFilters } from '../components/SearchBar';
@@ -290,7 +291,7 @@ export default function SearchPage() {
 
         {/* Search Type Tabs */}
         <div className="mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow--auto pb-2">
             {[
               { value: 'global', label: 'All' },
               { value: 'pets', label: 'Pets' },
@@ -354,7 +355,7 @@ export default function SearchPage() {
               </div>
             )
           ) : (
-            <SearchResults
+            <SearchResults<any>
               results={searchResults?.results || []}
               total={searchResults?.total || 0}
               page={searchResults?.page || 1}
@@ -374,3 +375,9 @@ export default function SearchPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

@@ -11,13 +11,22 @@ export class VerificationController {
   async verify(@Body() body: VerifyRecordDto, @Req() req: Request) {
     const userId = (req as any).user?.id || body.userId; // Fallback to body if req.user not available
     const ipAddress = req.ip;
-    return await this.verificationService.verifyRecord(body.recordId, body.recordType, userId, ipAddress);
+    return await this.verificationService.verifyRecord(
+      body.recordId,
+      body.recordType,
+      userId,
+      ipAddress,
+    );
   }
 
   @Post('verify-batch')
   async verifyBatch(@Body() body: VerifyBatchDto, @Req() req: Request) {
     const userId = (req as any).user?.id;
-    return await this.verificationService.verifyBatch(body.recordIds, body.recordType, userId);
+    return await this.verificationService.verifyBatch(
+      body.recordIds,
+      body.recordType,
+      userId,
+    );
   }
 
   @Get('history/:recordId')

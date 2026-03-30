@@ -77,7 +77,9 @@ export class AuthController {
     @Body() resendVerificationDto: ResendVerificationDto,
   ) {
     await this.authService.resendEmailVerification(resendVerificationDto);
-    return { message: 'If the account exists, a new verification email was sent' };
+    return {
+      message: 'If the account exists, a new verification email was sent',
+    };
   }
 
   @Post('verify-phone')
@@ -92,7 +94,9 @@ export class AuthController {
     @Body() resendVerificationDto: ResendVerificationDto,
   ) {
     await this.authService.resendPhoneVerification(resendVerificationDto);
-    return { message: 'If the account exists, a new verification code was sent' };
+    return {
+      message: 'If the account exists, a new verification code was sent',
+    };
   }
 
   @Post('forgot-password')
@@ -117,7 +121,8 @@ export class AuthController {
     const { ipAddress } = DeviceFingerprintUtil.extractFromRequest(req);
     await this.authService.requestPasswordReset(body.email, ipAddress);
     return {
-      message: 'If the email exists, password reset instructions have been sent',
+      message:
+        'If the email exists, password reset instructions have been sent',
     };
   }
 

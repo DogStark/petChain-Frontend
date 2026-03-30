@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { BackupStatus } from '../entities/file-backup.entity';
 
 /**

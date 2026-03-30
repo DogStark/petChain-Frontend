@@ -2,15 +2,24 @@
 
 import { useEffect, useState } from 'react';
 
-interface Alert {
-  name: string;
-  severity: string;
-  message: string;
-  firedAt: string;
+interface Alert { name: string; severity: string; message: string; firedAt: string }
+interface PerformanceStatus {
+  system?: {
+    cpuUsagePercent: number;
+    eventLoopLagMs: number;
+    memory: { heapUtilizationRatio: number };
+  };
+  http?: {
+    totalRequests: number;
+    errorRate: number;
+    averageLatencyMs: number;
+  };
 }
+
 interface Status {
   health: { status: string; timestamp: string };
   alerts: Alert[];
+  performance?: PerformanceStatus;
 }
 
 export default function ObservabilityStatus() {
@@ -32,16 +41,13 @@ export default function ObservabilityStatus() {
   if (!status) return <div className="text-sm text-gray-400">Loading…</div>;
 
   const isUp = status.health?.status === 'ok';
+  const performance = status.performance;
 
   return (
     <div className="space-y-4">
-      <div
-        className={`flex items-center gap-2 rounded-lg px-4 py-3 ${isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}
-      >
+      <div className={`flex items-center gap-2 rounded-lg px-4 py-3 ${isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
         <span className={`h-2.5 w-2.5 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span
-          className={`text-sm font-medium ${isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}
-        >
+        <span className={`text-sm font-medium ${isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
           Backend {isUp ? 'Healthy' : 'Degraded'}
         </span>
         <span className="ml-auto text-xs text-gray-400">
@@ -51,9 +57,7 @@ export default function ObservabilityStatus() {
 
       {status.alerts?.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Active Alerts
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Alerts</p>
           {status.alerts.map((a, i) => (
             <div
               key={i}
@@ -65,32 +69,41 @@ export default function ObservabilityStatus() {
         </div>
       )}
 
+      {performance?.http && performance?.system && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Avg Latency"
+            value={`${performance.http.averageLatencyMs.toFixed(0)} ms`}
+          />
+          <MetricCard
+            label="Error Rate"
+            value={`${(performance.http.errorRate * 100).toFixed(1)}%`}
+          />
+          <MetricCard
+            label="CPU"
+            value={`${performance.system.cpuUsagePercent.toFixed(1)}%`}
+          />
+          <MetricCard
+            label="Heap Utilization"
+            value={`${(performance.system.memory.heapUtilizationRatio * 100).toFixed(1)}%`}
+          />
+        </div>
+      )}
+
       <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <a
-          href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'}
-          target="_blank"
-          rel="noreferrer"
-          className="hover:underline"
-        >
-          Grafana →
-        </a>
-        <a
-          href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'}
-          target="_blank"
-          rel="noreferrer"
-          className="hover:underline"
-        >
-          Kibana →
-        </a>
-        <a
-          href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'}
-          target="_blank"
-          rel="noreferrer"
-          className="hover:underline"
-        >
-          Prometheus →
-        </a>
+        <a href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'} target="_blank" rel="noreferrer" className="hover:underline">Grafana →</a>
+        <a href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'} target="_blank" rel="noreferrer" className="hover:underline">Kibana →</a>
+        <a href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'} target="_blank" rel="noreferrer" className="hover:underline">Prometheus →</a>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</p>
     </div>
   );
 }

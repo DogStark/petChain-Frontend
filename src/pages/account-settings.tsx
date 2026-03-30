@@ -4,6 +4,7 @@ import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
+import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,3 +194,9 @@ export default function AccountSettingsPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

@@ -20,7 +20,9 @@ export class EncryptionService {
   private loadKeys(): void {
     const primary = this.configService.get<string>('FIELD_ENCRYPTION_KEY');
     if (!primary) {
-      this.logger.warn('FIELD_ENCRYPTION_KEY not set — field encryption disabled');
+      this.logger.warn(
+        'FIELD_ENCRYPTION_KEY not set — field encryption disabled',
+      );
       return;
     }
 
@@ -29,7 +31,9 @@ export class EncryptionService {
 
     // Support key rotation: FIELD_ENCRYPTION_KEY_V2, V3, …
     for (let v = 2; v <= 10; v++) {
-      const rotated = this.configService.get<string>(`FIELD_ENCRYPTION_KEY_V${v}`);
+      const rotated = this.configService.get<string>(
+        `FIELD_ENCRYPTION_KEY_V${v}`,
+      );
       if (!rotated) break;
       this.currentKeyId = `v${v}`;
       this.keys.set(`v${v}`, this.deriveKey(rotated));
@@ -43,11 +47,14 @@ export class EncryptionService {
   encrypt(plaintext: string): string {
     if (!this.currentKeyId) return plaintext;
 
-    const key = this.keys.get(this.currentKeyId)!;
+    const key = this.keys.get(this.currentKeyId);
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv) as crypto.CipherGCM;
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
-    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const encrypted = Buffer.concat([
+      cipher.update(plaintext, 'utf8'),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
 
     // Format: keyId:iv:tag:ciphertext (all hex)
@@ -74,7 +81,7 @@ export class EncryptionService {
     const tag = Buffer.from(tagHex, 'hex');
     const data = Buffer.from(dataHex, 'hex');
 
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv) as crypto.DecipherGCM;
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(tag);
 
     return decipher.update(data) + decipher.final('utf8');
@@ -88,6 +95,10 @@ export class EncryptionService {
   }
 
   isEncrypted(value: string): boolean {
-    return typeof value === 'string' && value.includes(':') && value.split(':').length === 4;
+    return (
+      typeof value === 'string' &&
+      value.includes(':') &&
+      value.split(':').length === 4
+    );
   }
 }

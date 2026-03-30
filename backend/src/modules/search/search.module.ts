@@ -5,7 +5,11 @@ import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
 import { SearchAnalyticsService } from './search-analytics.service';
 import { IndexingService } from './indexing.service';
-import { SearchStrategyFactory, POSTGRES_SEARCH_STRATEGY, ELASTICSEARCH_SEARCH_STRATEGY } from './search-strategy.factory';
+import {
+  SearchStrategyFactory,
+  POSTGRES_SEARCH_STRATEGY,
+  ELASTICSEARCH_SEARCH_STRATEGY,
+} from './search-strategy.factory';
 import { PostgresSearchStrategy } from './strategies/postgres-search.strategy';
 import { ElasticsearchSearchStrategy } from './strategies/elasticsearch-search.strategy';
 import { SearchAnalytics } from './entities/search-analytics.entity';

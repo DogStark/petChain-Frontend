@@ -39,14 +39,25 @@ export class GdprController {
     @Req() req: Request,
     @Headers('user-agent') userAgent?: string,
   ) {
-    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] ?? req.socket.remoteAddress ?? null;
-    return this.gdprService.updateConsent(userId, dto, ip ?? undefined, userAgent);
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ??
+      req.socket.remoteAddress ??
+      null;
+    return this.gdprService.updateConsent(
+      userId,
+      dto,
+      ip ?? undefined,
+      userAgent,
+    );
   }
 
   /** POST /gdpr/users/:userId/deletion-request */
   @Post('users/:userId/deletion-request')
   @HttpCode(HttpStatus.CREATED)
-  requestDeletion(@Param('userId') userId: string, @Body() dto: RequestDeletionDto) {
+  requestDeletion(
+    @Param('userId') userId: string,
+    @Body() dto: RequestDeletionDto,
+  ) {
     return this.gdprService.requestDeletion(userId, dto);
   }
 

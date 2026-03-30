@@ -1,3 +1,4 @@
+import { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import TransactionHistory from '@/components/TransactionHistory';
 import TransactionDetails from '@/components/TransactionDetails';
@@ -29,3 +30,9 @@ export default function TransactionsPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

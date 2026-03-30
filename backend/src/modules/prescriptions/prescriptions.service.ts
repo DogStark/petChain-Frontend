@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
-import { Prescription, PrescriptionStatus } from './entities/prescription.entity';
+import {
+  Prescription,
+  PrescriptionStatus,
+} from './entities/prescription.entity';
 import { PrescriptionRefill } from './entities/prescription-refill.entity';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
@@ -53,9 +56,7 @@ export class PrescriptionsService {
 
     if (createPrescriptionDto.duration && !createPrescriptionDto.endDate) {
       const endDate = new Date(createPrescriptionDto.startDate);
-      endDate.setDate(
-        endDate.getDate() + createPrescriptionDto.duration,
-      );
+      endDate.setDate(endDate.getDate() + createPrescriptionDto.duration);
       prescription.endDate = endDate;
     }
 
@@ -99,10 +100,7 @@ export class PrescriptionsService {
     Object.assign(prescription, updatePrescriptionDto);
 
     // Recalculate endDate if duration changed
-    if (
-      updatePrescriptionDto.duration &&
-      !updatePrescriptionDto.endDate
-    ) {
+    if (updatePrescriptionDto.duration && !updatePrescriptionDto.endDate) {
       const endDate = new Date(prescription.startDate);
       endDate.setDate(endDate.getDate() + updatePrescriptionDto.duration);
       prescription.endDate = endDate;
@@ -218,7 +216,8 @@ export class PrescriptionsService {
       );
 
       const daysUntilRefill = Math.ceil(
-        (estimatedRefillDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        (estimatedRefillDate.getTime() - today.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysUntilRefill <= daysWindow && daysUntilRefill >= 0) {
@@ -257,7 +256,10 @@ export class PrescriptionsService {
       refillDate: new Date(),
       quantity,
       pharmacyName,
-      expirationDate: this.calculateRefillExpiration(new Date(), prescription.duration),
+      expirationDate: this.calculateRefillExpiration(
+        new Date(),
+        prescription.duration,
+      ),
     });
 
     const savedRefill = await this.refillRepository.save(refill);
@@ -278,7 +280,9 @@ export class PrescriptionsService {
   /**
    * Get refill history for a prescription
    */
-  async getRefillHistory(prescriptionId: string): Promise<PrescriptionRefill[]> {
+  async getRefillHistory(
+    prescriptionId: string,
+  ): Promise<PrescriptionRefill[]> {
     return await this.refillRepository.find({
       where: { prescriptionId },
       order: { refillDate: 'DESC' },
@@ -302,13 +306,18 @@ export class PrescriptionsService {
    */
   async checkRefillNeeded(prescriptionId: string): Promise<boolean> {
     const prescription = await this.findOne(prescriptionId);
-    return prescription.refillsRemaining > 0 && prescription.status === PrescriptionStatus.ACTIVE;
+    return (
+      prescription.refillsRemaining > 0 &&
+      prescription.status === PrescriptionStatus.ACTIVE
+    );
   }
 
   /**
    * Get prescriptions expiring soon
    */
-  async getExpiringPrescriptions(daysWindow: number = 30): Promise<Prescription[]> {
+  async getExpiringPrescriptions(
+    daysWindow: number = 30,
+  ): Promise<Prescription[]> {
     const today = new Date();
     const windowEnd = new Date();
     windowEnd.setDate(windowEnd.getDate() + daysWindow);
@@ -326,10 +335,15 @@ export class PrescriptionsService {
   /**
    * Discontinue a prescription
    */
-  async discontinuePrescription(prescriptionId: string, reason?: string): Promise<Prescription> {
+  async discontinuePrescription(
+    prescriptionId: string,
+    reason?: string,
+  ): Promise<Prescription> {
     const prescription = await this.findOne(prescriptionId);
     prescription.status = PrescriptionStatus.DISCONTINUED;
-    prescription.notes = (prescription.notes || '') + `\nDiscontinued: ${reason || 'No reason provided'}`;
+    prescription.notes =
+      (prescription.notes || '') +
+      `\nDiscontinued: ${reason || 'No reason provided'}`;
     return await this.prescriptionRepository.save(prescription);
   }
 
@@ -343,7 +357,9 @@ export class PrescriptionsService {
     const startDate = new Date(prescription.startDate);
     startDate.setHours(0, 0, 0, 0);
 
-    const endDate = prescription.endDate ? new Date(prescription.endDate) : null;
+    const endDate = prescription.endDate
+      ? new Date(prescription.endDate)
+      : null;
     if (endDate) {
       endDate.setHours(0, 0, 0, 0);
     }
@@ -380,7 +396,10 @@ export class PrescriptionsService {
     return nextRefill;
   }
 
-  private calculateRefillExpiration(refillDate: Date, durationDays?: number): Date {
+  private calculateRefillExpiration(
+    refillDate: Date,
+    durationDays?: number,
+  ): Date {
     const expiration = new Date(refillDate);
     const days = durationDays || 30; // Default 30-day supply
     expiration.setDate(expiration.getDate() + days);

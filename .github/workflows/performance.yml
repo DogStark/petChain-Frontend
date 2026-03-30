@@ -3,6 +3,7 @@ name: Performance Testing
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,6 +15,167 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  load-testing:
+    name: k6 Load Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: petchain
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d petchain"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Start backend server
+        env:
+          NODE_ENV: production
+          PORT: 3001
+          API_PREFIX: api/v1
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: petchain
+          DB_SYNCHRONIZE: "true"
+          DB_LOGGING: "false"
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          JWT_SECRET: perf-test-jwt-secret-32-chars-min
+          FIELD_ENCRYPTION_KEY: perf-test-field-encryption-key
+          FILE_ENCRYPTION_KEY: perf-test-file-encryption-key
+        run: |
+          npm --prefix backend run start:prod > backend-server.log 2>&1 &
+          echo $! > backend-server.pid
+
+      - name: Start production server
+        run: |
+          npx next start -H 127.0.0.1 -p 3000 > next-server.log 2>&1 &
+          echo $! > next-server.pid
+
+      - name: Wait for backend server
+        run: |
+          for attempt in {1..45}; do
+            if curl -fsS http://127.0.0.1:3001/api/v1/observability/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend server did not start in time" >&2
+          cat backend-server.log >&2
+          exit 1
+
+      - name: Wait for server
+        run: |
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js server did not start in time" >&2
+          cat next-server.log >&2
+          exit 1
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run smoke profile
+        run: |
+          mkdir -p performance/results
+          k6 run \
+            --summary-export performance/results/smoke-summary.json \
+            -e TARGET_FRONTEND_URL=http://127.0.0.1:3000 \
+            -e TARGET_API_URL=http://127.0.0.1:3001/api/v1 \
+            performance/k6/smoke.js
+
+      - name: Run load profile
+        run: |
+          k6 run \
+            --summary-export performance/results/load-summary.json \
+            -e TARGET_FRONTEND_URL=http://127.0.0.1:3000 \
+            -e TARGET_API_URL=http://127.0.0.1:3001/api/v1 \
+            performance/k6/load.js
+
+      - name: Enforce baseline regression gate
+        run: |
+          node performance/scripts/compare-baseline.mjs \
+            performance/results/load-summary.json \
+            performance/baselines/load-summary-baseline.json \
+            0.15
+
+      - name: Publish benchmark summary
+        run: |
+          echo "## k6 Smoke Report" >> "$GITHUB_STEP_SUMMARY"
+          node performance/scripts/benchmark-report.mjs performance/results/smoke-summary.json >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "## k6 Load Report" >> "$GITHUB_STEP_SUMMARY"
+          node performance/scripts/benchmark-report.mjs performance/results/load-summary.json >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "## Baseline Regression Check" >> "$GITHUB_STEP_SUMMARY"
+          node performance/scripts/compare-baseline.mjs \
+            performance/results/load-summary.json \
+            performance/baselines/load-summary-baseline.json \
+            0.15 \
+            --summary-only >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload load test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-results
+          path: |
+            performance/results/*.json
+            next-server.log
+            backend-server.log
+          retention-days: 14
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f next-server.pid ]; then
+            kill $(cat next-server.pid) || true
+          fi
+          if [ -f backend-server.pid ]; then
+            kill $(cat backend-server.pid) || true
+          fi
+
   lighthouse:
     name: Lighthouse Audit
     runs-on: ubuntu-latest

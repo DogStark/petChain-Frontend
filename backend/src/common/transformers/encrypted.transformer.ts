@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { EncryptionService } from '../security/services/encryption.service';
+import { EncryptionService } from '../../security/services/encryption.service';
 
 let encryptionServiceInstance: EncryptionService | null = null;
 

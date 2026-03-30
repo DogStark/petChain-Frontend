@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/ActivityLogPage.module.css';
@@ -231,3 +232,9 @@ export default function ActivityLogPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

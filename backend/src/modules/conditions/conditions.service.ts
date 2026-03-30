@@ -88,7 +88,7 @@ export class ConditionsService {
     requiresOngoingCare: number;
   }> {
     const conditions = await this.findByPet(petId);
-    
+
     return {
       total: conditions.length,
       active: conditions.filter((c) => c.status === ConditionStatus.ACTIVE)

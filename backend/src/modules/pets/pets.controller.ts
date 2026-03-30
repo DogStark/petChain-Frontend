@@ -120,7 +120,10 @@ export class PetsController {
   async getHealthSummary(@Param('id') id: string, @CurrentUser() user: User) {
     const pet = await this.petsService.findOneForUser(id, user.id);
     const age = this.petsService.calculateAge(pet.dateOfBirth);
-    const lifeStage = this.petsService.getLifeStage(pet.dateOfBirth, pet.species);
+    const lifeStage = this.petsService.getLifeStage(
+      pet.dateOfBirth,
+      pet.species,
+    );
 
     return {
       petId: id,
@@ -148,7 +151,10 @@ export class PetsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string, @CurrentUser() user: User): Promise<void> {
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<void> {
     await this.petsService.softDeleteForUser(id, user.id);
   }
 }

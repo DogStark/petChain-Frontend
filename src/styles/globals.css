@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
 
 :root {
   --background: #ffffff;
@@ -16,7 +19,7 @@
   --color-success: #16a34a;
 }
 
-[data-theme='dark'] {
+[data-theme="dark"] {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
   --color-text-primary: #f1f5f9;
@@ -28,7 +31,7 @@
   --color-success: #4ade80;
 }
 
-[data-theme='high-contrast'] {
+[data-theme="high-contrast"] {
   --color-bg: #000000;
   --color-surface: #1a1a1a;
   --color-text-primary: #ffffff;
@@ -41,18 +44,14 @@
 }
 
 @media print {
-  [data-theme],
-  :root {
+  [data-theme], :root {
     --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-text-primary: #000000;
     --color-text-secondary: #333333;
     --color-border: #cccccc;
   }
-  body {
-    background: white !important;
-    color: black !important;
-  }
+  body { background: white !important; color: black !important; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -65,114 +64,59 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
+  /* ── Marquee animation ── */
   .animate-marquee {
     animation: marquee 18s linear infinite;
   }
   @keyframes marquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(-33%);
-    }
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-33%); }
   }
 
+  /* ── Fade-in-up animation ── */
   .animate-fade-in-up {
     animation: fadeInUp 0.4s ease both;
   }
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.3s ease both;
-  }
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
+  /* ── Fade-in animation ── */
   .animate-fade-in {
-    animation: fadeIn 0.25s ease both;
+    animation: fadeIn 0.3s ease both;
   }
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
-  /* iOS safe area for bottom nav */
-  .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* ── Hide scrollbar ── */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Skeleton shimmer (CLS-safe loading placeholder) ── */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 
-  /* Touch button ripple */
-  @keyframes ripple {
-    from {
-      transform: scale(0);
-      opacity: 0.6;
-    }
-    to {
-      transform: scale(6);
-      opacity: 0;
-    }
-  }
-  .animate-ripple {
-    animation: ripple 0.6s linear forwards;
+  /* ── Content-visibility for off-screen sections (perf) ── */
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
   }
 
-  /* Prevent text selection on interactive touch elements */
-  .touch-manipulation {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-  }
-
-  /* Notification center slide-in from right */
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-  .animate-slide-in-right {
-    animation: slideInRight 0.25s ease both;
-  }
+  /* ── Aspect ratio helpers for CLS prevention ── */
+  .aspect-hero { aspect-ratio: 1 / 1; }
+  .aspect-card { aspect-ratio: 16 / 10; }
 }

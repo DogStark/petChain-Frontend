@@ -76,11 +76,7 @@ export class EmergencyGateway {
           this.userPreferenceService.getNotificationPreferences(userId),
         ]);
         const phone = user?.phone ?? data.contactNumber;
-        if (
-          phone &&
-          prefs.smsNotifications &&
-          prefs.smsEmergencyAlerts
-        ) {
+        if (phone && prefs.smsNotifications && prefs.smsEmergencyAlerts) {
           const templateName =
             data.type === EmergencyType.LOST_PET
               ? 'EMERGENCY_LOST_PET'

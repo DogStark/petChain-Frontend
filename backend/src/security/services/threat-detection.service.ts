@@ -96,7 +96,7 @@ export class ThreatDetectionService {
 
     if (threats.length > 0) {
       const event = await this.logSecurityEvent({
-        type: detectedType!,
+        type: detectedType,
         severity,
         ipAddress: request.ip,
         userId: request.user?.id,
@@ -190,11 +190,17 @@ export class ThreatDetectionService {
     if (recentEvents.length >= 5) return true;
 
     // Check for login endpoint with suspicious patterns
-    if (request.url.includes('/auth/login') || request.url.includes('/auth/signin')) {
+    if (
+      request.url.includes('/auth/login') ||
+      request.url.includes('/auth/signin')
+    ) {
       const failedAttempts = await this.securityEventRepository.count({
         where: {
           ipAddress: request.ip,
-          type: In([SecurityEventType.UNAUTHORIZED_ACCESS, SecurityEventType.BRUTE_FORCE_ATTEMPT]),
+          type: In([
+            SecurityEventType.UNAUTHORIZED_ACCESS,
+            SecurityEventType.BRUTE_FORCE_ATTEMPT,
+          ]),
           timestamp: new Date(Date.now() - 30 * 60 * 1000), // Last 30 minutes
         },
       });
@@ -212,7 +218,10 @@ export class ThreatDetectionService {
     }
 
     // Check for API access with invalid tokens
-    if (request.url.includes('/api') && request.get('authorization') === undefined) {
+    if (
+      request.url.includes('/api') &&
+      request.get('authorization') === undefined
+    ) {
       return true;
     }
 
@@ -227,8 +236,8 @@ export class ThreatDetectionService {
       'wpscan',
     ];
 
-    return suspiciousAgents.some(agent =>
-      userAgent.toLowerCase().includes(agent.toLowerCase())
+    return suspiciousAgents.some((agent) =>
+      userAgent.toLowerCase().includes(agent.toLowerCase()),
     );
   }
 
@@ -238,12 +247,15 @@ export class ThreatDetectionService {
       // Large payloads
       JSON.stringify(request.body || {}).length > 10000,
       // Unusual headers
-      request.get('x-forwarded-for') && request.get('x-forwarded-for').split(',').length > 3,
+      request.get('x-forwarded-for') &&
+        request.get('x-forwarded-for').split(',').length > 3,
       // Non-standard methods
-      !['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'].includes(request.method),
+      !['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'].includes(
+        request.method,
+      ),
     ];
 
-    return suspiciousPatterns.some(pattern => pattern === true);
+    return suspiciousPatterns.some((pattern) => pattern === true);
   }
 
   private calculateSeverity(threatScore: number): SecuritySeverity {

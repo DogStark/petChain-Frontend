@@ -17,7 +17,10 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
-import { RecordShareService, ShareAccessContext } from '../services/record-share.service';
+import {
+  RecordShareService,
+  ShareAccessContext,
+} from '../services/record-share.service';
 import {
   CreateRecordShareDto,
   UpdateRecordShareDto,
@@ -135,7 +138,10 @@ export class RecordShareController {
     @Param('recordId') recordId: string,
     @CurrentUser() user: User,
   ) {
-    const count = await this.shareService.revokeAllSharesForRecord(recordId, user.id);
+    const count = await this.shareService.revokeAllSharesForRecord(
+      recordId,
+      user.id,
+    );
     return { message: `${count} share link(s) revoked` };
   }
 
@@ -164,8 +170,11 @@ export class RecordShareController {
       recipientEmail: dto.recipientEmail,
       data: {
         recipientName: dto.recipientEmail.split('@')[0],
-        title: dto.subject || `${user.firstName} shared a medical record with you`,
-        message: dto.message || 'A medical record has been shared with you. Click the button below to view it.',
+        title:
+          dto.subject || `${user.firstName} shared a medical record with you`,
+        message:
+          dto.message ||
+          'A medical record has been shared with you. Click the button below to view it.',
         severity: 'info',
         actionLabel: 'View Medical Record',
         actionUrl: share.shareUrl,
@@ -225,11 +234,12 @@ export class RecordShareController {
       userAgent,
     };
 
-    const { share, medicalRecord } = await this.shareService.validateAndAccessShare(
-      token,
-      context,
-      action || AccessAction.VIEW,
-    );
+    const { share, medicalRecord } =
+      await this.shareService.validateAndAccessShare(
+        token,
+        context,
+        action || AccessAction.VIEW,
+      );
 
     return {
       permission: share.permission,
@@ -237,20 +247,24 @@ export class RecordShareController {
       medicalRecord: {
         id: medicalRecord.id,
         recordType: medicalRecord.recordType,
-        date: medicalRecord.date,
+        date: medicalRecord.visitDate,
         diagnosis: medicalRecord.diagnosis,
         treatment: medicalRecord.treatment,
         notes: medicalRecord.notes,
         attachments: medicalRecord.attachments,
-        pet: medicalRecord.pet ? {
-          name: medicalRecord.pet.name,
-          species: medicalRecord.pet.species,
-          breed: medicalRecord.pet.breed,
-        } : undefined,
-        vet: medicalRecord.vet ? {
-          name: medicalRecord.vet.vetName,
-          clinicName: medicalRecord.vet.clinicName,
-        } : undefined,
+        pet: medicalRecord.pet
+          ? {
+              name: medicalRecord.pet.name,
+              species: medicalRecord.pet.species,
+              breed: medicalRecord.pet.breed,
+            }
+          : undefined,
+        vet: medicalRecord.vet
+          ? {
+              name: medicalRecord.vet.vetName,
+              clinicName: medicalRecord.vet.clinicName,
+            }
+          : undefined,
       },
     };
   }

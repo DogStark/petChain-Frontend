@@ -18,6 +18,7 @@ import WalletBackup from '../components/Wallet/WalletBackup';
 import MultiSigSetup from '../components/Wallet/MultiSigSetup';
 import TransactionSigning from '../components/Wallet/TransactionSigning';
 import WalletRecovery from '../components/Wallet/WalletRecovery';
+import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -280,3 +281,9 @@ export default function WalletPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

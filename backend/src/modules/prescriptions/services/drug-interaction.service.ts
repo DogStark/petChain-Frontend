@@ -10,7 +10,9 @@ export class DrugInteractionService {
     private readonly drugInteractionRepository: Repository<DrugInteraction>,
   ) {}
 
-  async checkInteractions(medicationNames: string[]): Promise<{ interactions: DrugInteraction[] }> {
+  async checkInteractions(
+    medicationNames: string[],
+  ): Promise<{ interactions: DrugInteraction[] }> {
     if (!medicationNames?.length) return { interactions: [] };
     const interactions = await this.drugInteractionRepository.find({
       where: { isActive: true },
@@ -19,7 +21,9 @@ export class DrugInteractionService {
     return { interactions };
   }
 
-  async getInteractionsByMedication(medicationId: string): Promise<DrugInteraction[]> {
+  async getInteractionsByMedication(
+    medicationId: string,
+  ): Promise<DrugInteraction[]> {
     return this.drugInteractionRepository.find({
       where: [{ medicationId1: medicationId }, { medicationId2: medicationId }],
       relations: ['medication1', 'medication2'],

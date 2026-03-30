@@ -6,7 +6,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { SecurityEvent, SecurityEventType, SecuritySeverity } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SecurityEventType,
+  SecuritySeverity,
+} from '../entities/security-event.entity';
 import { BlacklistedIp } from '../entities/blacklisted-ip.entity';
 
 export interface SecurityMetrics {
@@ -73,9 +77,12 @@ export class SecurityMonitoringService {
 
     // Auto-acknowledge low severity alerts after 5 minutes
     if (payload.severity === SecuritySeverity.LOW) {
-      setTimeout(() => {
-        this.acknowledgeAlert(alert.id);
-      }, 5 * 60 * 1000);
+      setTimeout(
+        () => {
+          this.acknowledgeAlert(alert.id);
+        },
+        5 * 60 * 1000,
+      );
     }
   }
 
@@ -100,7 +107,9 @@ export class SecurityMonitoringService {
     this.eventEmitter.emit('monitoring.alert.new', alert);
   }
 
-  async getSecurityMetrics(timeRange: '1h' | '24h' | '7d' = '24h'): Promise<SecurityMetrics> {
+  async getSecurityMetrics(
+    timeRange: '1h' | '24h' | '7d' = '24h',
+  ): Promise<SecurityMetrics> {
     const cacheKey = `security_metrics_${timeRange}`;
     const cached = await this.cacheManager.get<SecurityMetrics>(cacheKey);
 
@@ -117,17 +126,23 @@ export class SecurityMonitoringService {
     });
 
     // Calculate metrics
-    const eventsByType = events.reduce((acc, event) => {
-      acc[event.type] = (acc[event.type] || 0) + 1;
-      return acc;
-    }, {} as Record<SecurityEventType, number>);
+    const eventsByType = events.reduce(
+      (acc, event) => {
+        acc[event.type] = (acc[event.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<SecurityEventType, number>,
+    );
 
-    const eventsBySeverity = events.reduce((acc, event) => {
-      acc[event.severity] = (acc[event.severity] || 0) + 1;
-      return acc;
-    }, {} as Record<SecuritySeverity, number>);
+    const eventsBySeverity = events.reduce(
+      (acc, event) => {
+        acc[event.severity] = (acc[event.severity] || 0) + 1;
+        return acc;
+      },
+      {} as Record<SecuritySeverity, number>,
+    );
 
-    const blockedRequests = events.filter(e => e.blocked).length;
+    const blockedRequests = events.filter((e) => e.blocked).length;
 
     const activeBlacklistedIPs = await this.blacklistRepository.count({
       where: [
@@ -155,7 +170,9 @@ export class SecurityMonitoringService {
   }
 
   async getActiveAlerts(): Promise<RealTimeAlert[]> {
-    return Array.from(this.activeAlerts.values()).filter(alert => !alert.acknowledged);
+    return Array.from(this.activeAlerts.values()).filter(
+      (alert) => !alert.acknowledged,
+    );
   }
 
   async acknowledgeAlert(alertId: string): Promise<boolean> {
@@ -166,16 +183,23 @@ export class SecurityMonitoringService {
     this.eventEmitter.emit('monitoring.alert.acknowledged', alert);
 
     // Keep acknowledged alerts for 1 hour then remove
-    setTimeout(() => {
-      this.activeAlerts.delete(alertId);
-    }, 60 * 60 * 1000);
+    setTimeout(
+      () => {
+        this.activeAlerts.delete(alertId);
+      },
+      60 * 60 * 1000,
+    );
 
     return true;
   }
 
   async getThreatIntelligence(): Promise<{
     topThreatSources: Array<{ ip: string; count: number; lastSeen: Date }>;
-    threatPatterns: Array<{ type: SecurityEventType; frequency: number; trend: 'increasing' | 'decreasing' | 'stable' }>;
+    threatPatterns: Array<{
+      type: SecurityEventType;
+      frequency: number;
+      trend: 'increasing' | 'decreasing' | 'stable';
+    }>;
     riskScore: number;
   }> {
     const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -193,7 +217,7 @@ export class SecurityMonitoringService {
       .limit(10)
       .getRawMany();
 
-    const topThreatSources = threatEvents.map(row => ({
+    const topThreatSources = threatEvents.map((row) => ({
       ip: row.ip,
       count: parseInt(row.count),
       lastSeen: new Date(row.lastSeen),
@@ -208,7 +232,7 @@ export class SecurityMonitoringService {
       .groupBy('event.type')
       .getRawMany();
 
-    const threatPatterns = typeEvents.map(row => ({
+    const threatPatterns = typeEvents.map((row) => ({
       type: row.type as SecurityEventType,
       frequency: parseInt(row.count),
       trend: 'stable' as const, // Would need more complex logic for trend analysis
@@ -226,7 +250,7 @@ export class SecurityMonitoringService {
       },
     });
 
-    const riskScore = Math.min(100, (totalEvents * 2) + (criticalEvents * 10));
+    const riskScore = Math.min(100, totalEvents * 2 + criticalEvents * 10);
 
     return {
       topThreatSources,
@@ -263,7 +287,7 @@ export class SecurityMonitoringService {
       }
     }
 
-    toRemove.forEach(id => this.activeAlerts.delete(id));
+    toRemove.forEach((id) => this.activeAlerts.delete(id));
 
     if (toRemove.length > 0) {
       this.logger.debug(`Cleaned up ${toRemove.length} old alerts`);
@@ -272,14 +296,20 @@ export class SecurityMonitoringService {
 
   private getTimeRangeMs(timeRange: '1h' | '24h' | '7d'): number {
     switch (timeRange) {
-      case '1h': return 60 * 60 * 1000;
-      case '24h': return 24 * 60 * 60 * 1000;
-      case '7d': return 7 * 24 * 60 * 60 * 1000;
-      default: return 24 * 60 * 60 * 1000;
+      case '1h':
+        return 60 * 60 * 1000;
+      case '24h':
+        return 24 * 60 * 60 * 1000;
+      case '7d':
+        return 7 * 24 * 60 * 60 * 1000;
+      default:
+        return 24 * 60 * 60 * 1000;
     }
   }
 
-  private async calculateThreatTrends(timeRange: '1h' | '24h' | '7d'): Promise<SecurityMetrics['threatTrends']> {
+  private async calculateThreatTrends(
+    timeRange: '1h' | '24h' | '7d',
+  ): Promise<SecurityMetrics['threatTrends']> {
     const now = new Date();
     const periods = timeRange === '1h' ? 6 : timeRange === '24h' ? 24 : 7;
     const periodMs = this.getTimeRangeMs(timeRange) / periods;
@@ -293,7 +323,7 @@ export class SecurityMonitoringService {
       const events = await this.securityEventRepository.count({
         where: {
           timestamp: MoreThan(periodStart),
-          ... (i < periods - 1 ? { timestamp: LessThan(periodEnd) } : {}),
+          ...(i < periods - 1 ? { timestamp: LessThan(periodEnd) } : {}),
         },
       });
 
@@ -301,7 +331,7 @@ export class SecurityMonitoringService {
         where: {
           timestamp: MoreThan(periodStart),
           blocked: true,
-          ... (i < periods - 1 ? { timestamp: LessThan(periodEnd) } : {}),
+          ...(i < periods - 1 ? { timestamp: LessThan(periodEnd) } : {}),
         },
       });
 

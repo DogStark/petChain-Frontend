@@ -61,7 +61,9 @@ async function bootstrap() {
     const apiPrefix = configService.get('app.apiPrefix') || 'api/v1';
     app.setGlobalPrefix(apiPrefix);
     const port = configService.get('app.port') || 3000;
-    await app.listen(port);
+    const server = await app.listen(port);
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
     console.log(`🚀 Application is running on: http://localhost:${port}`);
     console.log(`📚 API Documentation: http://localhost:${port}/${apiPrefix}`);
 }

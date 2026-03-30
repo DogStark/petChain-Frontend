@@ -60,8 +60,7 @@ export class DosageCalculationService {
     };
 
     const medName = request.medicationName.toLowerCase();
-    const dosagePerKg =
-      request.dosagePerKg || medicationDosages[medName] || 0;
+    const dosagePerKg = request.dosagePerKg || medicationDosages[medName] || 0;
 
     if (dosagePerKg === 0) {
       warnings.push(`No standard dosage found for ${request.medicationName}`);
@@ -72,11 +71,11 @@ export class DosageCalculationService {
 
     // Age-based adjustments
     if (request.age && request.age < 0.5) {
-      warnings.push('This is a very young pet - dosage should be verified by vet');
-    } else if (request.age && request.age > 7) {
       warnings.push(
-        'Senior pet - liver/kidney function should be considered',
+        'This is a very young pet - dosage should be verified by vet',
       );
+    } else if (request.age && request.age > 7) {
+      warnings.push('Senior pet - liver/kidney function should be considered');
     }
 
     // Calculate volume if concentration is provided
@@ -188,7 +187,12 @@ export class DosageCalculationService {
   getMedicationFrequencies(): { [key: string]: string[] } {
     return {
       'Once daily': ['omeprazole', 'meloxicam', 'azithromycin'],
-      'Twice daily': ['carprofen', 'doxycycline', 'enrofloxacin', 'metronidazole'],
+      'Twice daily': [
+        'carprofen',
+        'doxycycline',
+        'enrofloxacin',
+        'metronidazole',
+      ],
       'Three times daily': [
         'amoxicillin',
         'tramadol',
@@ -217,10 +221,7 @@ export class DosageCalculationService {
       daysSupply = quantity;
     } else if (frequency.includes('twice daily') || frequency.includes('2x')) {
       daysSupply = Math.floor(quantity / 2);
-    } else if (
-      frequency.includes('three times') ||
-      frequency.includes('3x')
-    ) {
+    } else if (frequency.includes('three times') || frequency.includes('3x')) {
       daysSupply = Math.floor(quantity / 3);
     } else {
       // Default to 30 days if frequency unclear

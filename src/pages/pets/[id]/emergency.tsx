@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { GetStaticProps, GetStaticPaths } from 'next';
 import { useRouter } from 'next/router';
 import { Phone, MapPin, AlertOctagon, User, Stethoscope, Dna, ExternalLink } from 'lucide-react';
 import { petAPI } from '@/lib/api/petAPI';
-import { PetEmergencyInfo, EmergencyContact } from '../../../types/pet';
+import { PetEmergencyInfo } from '../../../../types/pet';
+import { GetStaticProps, GetStaticPaths } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -210,3 +212,17 @@ export default function EmergencyAccessPage() {
     </div>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

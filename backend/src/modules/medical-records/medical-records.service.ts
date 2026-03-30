@@ -16,7 +16,10 @@ import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 import { AppendRecordDto } from './dto/append-record.dto';
 import { SearchMedicalRecordsDto } from './dto/search-medical-records.dto';
-import { VerifyRecordDto, RevokeVerificationDto } from './dto/verify-record.dto';
+import {
+  VerifyRecordDto,
+  RevokeVerificationDto,
+} from './dto/verify-record.dto';
 import { PetSpecies } from '../pets/entities/pet.entity';
 import { RecordType } from './entities/medical-record.entity';
 import { AuditService } from '../audit/audit.service';
@@ -34,7 +37,7 @@ export class MedicalRecordsService {
     private readonly versionRepository: Repository<RecordVersion>,
     private readonly auditService: AuditService,
     @Optional() private readonly hashAnchoringService?: HashAnchoringService,
-  ) { }
+  ) {}
 
   async create(
     createMedicalRecordDto: CreateMedicalRecordDto,
@@ -47,7 +50,12 @@ export class MedicalRecordsService {
     await this.generateQRCode(savedRecord.id);
 
     // Create initial version snapshot
-    await this.createVersionSnapshot(savedRecord.id, 1, userId, 'Initial creation');
+    await this.createVersionSnapshot(
+      savedRecord.id,
+      1,
+      userId,
+      'Initial creation',
+    );
 
     // Audit log
     if (userId) {
@@ -97,16 +105,73 @@ export class MedicalRecordsService {
     return await qb.getMany();
   }
 
+  async search(dto: SearchMedicalRecordsDto): Promise<MedicalRecord[]> {
+    const qb = this.medicalRecordRepository
+      .createQueryBuilder('record')
+      .leftJoinAndSelect('record.pet', 'pet')
+      .leftJoinAndSelect('record.vet', 'vet')
+      .leftJoinAndSelect('record.verifiedByVet', 'verifiedByVet')
+      .orderBy('record.visitDate', 'DESC');
+
+    if (dto.q) {
+      qb.andWhere(
+        '(record.diagnosis ILIKE :q OR record.treatment ILIKE :q OR record.notes ILIKE :q)',
+        { q: `%${dto.q}%` },
+      );
+    }
+    if (dto.petId) {
+      qb.andWhere('record.petId = :petId', { petId: dto.petId });
+    }
+    if (dto.recordType) {
+      qb.andWhere('record.recordType = :recordType', {
+        recordType: dto.recordType,
+      });
+    }
+    if (dto.vetId) {
+      qb.andWhere('record.vetId = :vetId', { vetId: dto.vetId });
+    }
+    if (dto.verified !== undefined) {
+      qb.andWhere('record.verified = :verified', { verified: dto.verified });
+    }
+    if (dto.startDate) {
+      qb.andWhere('record.visitDate >= :startDate', {
+        startDate: new Date(dto.startDate),
+      });
+    }
+    if (dto.endDate) {
+      qb.andWhere('record.visitDate <= :endDate', {
+        endDate: new Date(dto.endDate),
+      });
+    }
+
+    return qb.getMany();
+  }
+
   /** Append-only: adds a timestamped observation to notes, snapshots version */
-  async append(id: string, dto: AppendRecordDto, userId?: string): Promise<MedicalRecord> {
+  async append(
+    id: string,
+    dto: AppendRecordDto,
+    userId?: string,
+  ): Promise<MedicalRecord> {
     const record = await this.findOne(id);
-    await this.createVersionSnapshot(id, record.version, userId, 'Observation appended');
+    await this.createVersionSnapshot(
+      id,
+      record.version,
+      userId,
+      'Observation appended',
+    );
 
     const entry = `[${new Date().toISOString()}${userId ? ` by ${userId}` : ''}]: ${dto.observation}`;
     record.notes = record.notes ? `${record.notes}\n${entry}` : entry;
 
     const saved = await this.medicalRecordRepository.save(record);
-    if (userId) await this.auditService.log(userId, 'medical_record', id, AuditAction.UPDATE);
+    if (userId)
+      await this.auditService.log(
+        userId,
+        'medical_record',
+        id,
+        AuditAction.UPDATE,
+      );
     this.hashAnchoringService?.queueAnchor(id).catch(() => null);
     return saved;
   }
@@ -130,7 +195,7 @@ export class MedicalRecordsService {
 
   async findByIds(ids: string[]): Promise<MedicalRecord[]> {
     if (!ids.length) return [];
-    
+
     // Optimized: Single query with explicit joins for multiple records
     const records = await this.medicalRecordRepository
       .createQueryBuilder('record')
@@ -140,7 +205,7 @@ export class MedicalRecordsService {
       .where('record.id IN (:...ids)', { ids })
       .orderBy('record.visitDate', 'DESC')
       .getMany();
-    
+
     return records;
   }
 
@@ -316,7 +381,9 @@ export class MedicalRecordsService {
     });
 
     if (!record) {
-      throw new NotFoundException(`Medical record with ID ${recordId} not found`);
+      throw new NotFoundException(
+        `Medical record with ID ${recordId} not found`,
+      );
     }
 
     const snapshot = { ...record };

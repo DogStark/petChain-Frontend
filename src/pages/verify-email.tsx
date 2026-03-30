@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -162,3 +163,9 @@ export default function VerifyEmailPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

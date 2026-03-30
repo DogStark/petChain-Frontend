@@ -22,13 +22,18 @@ export class SmsCostService {
     month: number,
     year: number,
   ): Promise<SmsCost> {
-    const where = userId === null
-      ? { userId: IsNull(), month, year }
-      : { userId, month, year };
+    const where =
+      userId === null
+        ? { userId: IsNull(), month, year }
+        : { userId, month, year };
     let cost = await this.smsCostRepository.findOne({ where });
     if (!cost) {
-      const defaultLimit = this.configService.get<number>('sms.defaultSpendingLimitCents');
-      const monthlyLimit = this.configService.get<number>('sms.monthlyLimitCents');
+      const defaultLimit = this.configService.get<number>(
+        'sms.defaultSpendingLimitCents',
+      );
+      const monthlyLimit = this.configService.get<number>(
+        'sms.monthlyLimitCents',
+      );
       cost = this.smsCostRepository.create({
         userId: userId ?? null,
         month,
@@ -37,21 +42,28 @@ export class SmsCostService {
         totalDelivered: 0,
         totalFailed: 0,
         totalCostCents: '0',
-        spendingLimitCents: userId != null ? String(defaultLimit ?? 1000) : String(monthlyLimit ?? 5000),
+        spendingLimitCents:
+          userId != null
+            ? String(defaultLimit ?? 1000)
+            : String(monthlyLimit ?? 5000),
       });
       await this.smsCostRepository.save(cost);
     }
     return cost;
   }
 
-  async canSendSms(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  async canSendSms(
+    userId: string,
+  ): Promise<{ allowed: boolean; reason?: string }> {
     const now = new Date();
     const cost = await this.getOrCreateMonthlyCost(
       userId,
       now.getMonth() + 1,
       now.getFullYear(),
     );
-    const limit = cost.spendingLimitCents ? parseFloat(cost.spendingLimitCents) : 0;
+    const limit = cost.spendingLimitCents
+      ? parseFloat(cost.spendingLimitCents)
+      : 0;
     const current = parseFloat(cost.totalCostCents);
     if (limit > 0 && current >= limit) {
       return { allowed: false, reason: 'MONTHLY_LIMIT_REACHED' };
@@ -76,7 +88,9 @@ export class SmsCostService {
     );
     await this.smsCostRepository.save(cost);
 
-    const limit = cost.spendingLimitCents ? parseFloat(cost.spendingLimitCents) : 0;
+    const limit = cost.spendingLimitCents
+      ? parseFloat(cost.spendingLimitCents)
+      : 0;
     const current = parseFloat(cost.totalCostCents);
     if (limit > 0) {
       const pct = (current / limit) * 100;
@@ -124,7 +138,13 @@ export class SmsCostService {
     userId: string,
     month?: number,
     year?: number,
-  ): Promise<{ sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }> {
+  ): Promise<{
+    sent: number;
+    delivered: number;
+    failed: number;
+    costCents: number;
+    limitCents: number | null;
+  }> {
     const now = new Date();
     const m = month ?? now.getMonth() + 1;
     const y = year ?? now.getFullYear();
@@ -134,11 +154,16 @@ export class SmsCostService {
       delivered: cost.totalDelivered,
       failed: cost.totalFailed,
       costCents: parseFloat(cost.totalCostCents),
-      limitCents: cost.spendingLimitCents ? parseFloat(cost.spendingLimitCents) : null,
+      limitCents: cost.spendingLimitCents
+        ? parseFloat(cost.spendingLimitCents)
+        : null,
     };
   }
 
-  async getGlobalUsage(month?: number, year?: number): Promise<{
+  async getGlobalUsage(
+    month?: number,
+    year?: number,
+  ): Promise<{
     totalSent: number;
     totalDelivered: number;
     totalFailed: number;
@@ -160,9 +185,25 @@ export class SmsCostService {
     };
   }
 
-  async getAdminStats(month?: number, year?: number): Promise<{
-    global: { sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null };
-    byUser: Array<{ userId: string; sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }>;
+  async getAdminStats(
+    month?: number,
+    year?: number,
+  ): Promise<{
+    global: {
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    };
+    byUser: Array<{
+      userId: string;
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    }>;
   }> {
     const now = new Date();
     const m = month ?? now.getMonth() + 1;
@@ -175,12 +216,14 @@ export class SmsCostService {
     const byUser = costs
       .filter((c) => c.userId)
       .map((c) => ({
-        userId: c.userId!,
+        userId: c.userId,
         sent: c.totalSent,
         delivered: c.totalDelivered,
         failed: c.totalFailed,
         costCents: parseFloat(c.totalCostCents),
-        limitCents: c.spendingLimitCents ? parseFloat(c.spendingLimitCents) : null,
+        limitCents: c.spendingLimitCents
+          ? parseFloat(c.spendingLimitCents)
+          : null,
       }));
     return {
       global: {

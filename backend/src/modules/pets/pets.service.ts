@@ -382,10 +382,7 @@ export class PetsService {
     return value === 'true';
   }
 
-  private applyFilters(
-    qb: SelectQueryBuilder<Pet>,
-    query: QueryPetsDto,
-  ): void {
+  private applyFilters(qb: SelectQueryBuilder<Pet>, query: QueryPetsDto): void {
     if (query.species) {
       qb.andWhere('pet.species = :species', { species: query.species });
     }
@@ -451,7 +448,9 @@ export class PetsService {
     });
 
     if (!editableShare) {
-      throw new ForbiddenException('You do not have permission to edit this pet');
+      throw new ForbiddenException(
+        'You do not have permission to edit this pet',
+      );
     }
   }
 }

@@ -36,7 +36,9 @@ export class AppointmentWaitlistService {
   /**
    * Join the waitlist (create entry).
    */
-  async join(dto: CreateAppointmentWaitlistEntryDto): Promise<AppointmentWaitlistEntry> {
+  async join(
+    dto: CreateAppointmentWaitlistEntryDto,
+  ): Promise<AppointmentWaitlistEntry> {
     await this.petsService.findOne(dto.petId);
     await this.vetClinicsService.findOne(dto.vetClinicId);
 
@@ -153,10 +155,9 @@ export class AppointmentWaitlistService {
       .addOrderBy('e.createdAt', 'ASC');
 
     if (cancelledAppointment.type) {
-      qb.andWhere(
-        '(e.preferredType IS NULL OR e.preferredType = :type)',
-        { type: cancelledAppointment.type },
-      );
+      qb.andWhere('(e.preferredType IS NULL OR e.preferredType = :type)', {
+        type: cancelledAppointment.type,
+      });
     }
 
     const entries = await qb.getMany();

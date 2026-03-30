@@ -1,8 +1,16 @@
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserConsent, ConsentType } from './entities/user-consent.entity';
-import { DataDeletionRequest, DeletionStatus } from './entities/data-deletion-request.entity';
+import {
+  DataDeletionRequest,
+  DeletionStatus,
+} from './entities/data-deletion-request.entity';
 import { UpdateConsentDto, RequestDeletionDto } from './dto/gdpr.dto';
 
 @Injectable()
@@ -29,7 +37,9 @@ export class GdprService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<UserConsent> {
-    let consent = await this.consentRepo.findOne({ where: { userId, type: dto.type } });
+    let consent = await this.consentRepo.findOne({
+      where: { userId, type: dto.type },
+    });
     if (!consent) {
       consent = this.consentRepo.create({ userId, type: dto.type });
     }
@@ -43,7 +53,9 @@ export class GdprService {
     const existing = await this.consentRepo.find({ where: { userId } });
     const existingTypes = new Set(existing.map((c) => c.type));
 
-    const defaults = Object.values(ConsentType).filter((t) => !existingTypes.has(t));
+    const defaults = Object.values(ConsentType).filter(
+      (t) => !existingTypes.has(t),
+    );
     if (!defaults.length) return existing;
 
     const entities = defaults.map((type) =>
@@ -59,11 +71,15 @@ export class GdprService {
 
   // ── Right to be Forgotten ─────────────────────────────────────────────────
 
-  async requestDeletion(userId: string, dto: RequestDeletionDto): Promise<DataDeletionRequest> {
+  async requestDeletion(
+    userId: string,
+    dto: RequestDeletionDto,
+  ): Promise<DataDeletionRequest> {
     const pending = await this.deletionRepo.findOne({
       where: { userId, status: DeletionStatus.PENDING },
     });
-    if (pending) throw new ConflictException('A deletion request is already pending');
+    if (pending)
+      throw new ConflictException('A deletion request is already pending');
 
     const request = this.deletionRepo.create({
       userId,
@@ -74,8 +90,11 @@ export class GdprService {
   }
 
   async processDeletion(requestId: string): Promise<DataDeletionRequest> {
-    const request = await this.deletionRepo.findOne({ where: { id: requestId } });
-    if (!request) throw new NotFoundException(`Deletion request ${requestId} not found`);
+    const request = await this.deletionRepo.findOne({
+      where: { id: requestId },
+    });
+    if (!request)
+      throw new NotFoundException(`Deletion request ${requestId} not found`);
 
     request.status = DeletionStatus.PROCESSING;
     await this.deletionRepo.save(request);
@@ -142,7 +161,9 @@ export class GdprService {
       request.completedAt = new Date();
       request.deletedEntities = deletedEntities;
     } catch (err) {
-      this.logger.error(`Deletion failed for request ${requestId}: ${err.message}`);
+      this.logger.error(
+        `Deletion failed for request ${requestId}: ${err.message}`,
+      );
       request.status = DeletionStatus.FAILED;
     }
 
@@ -172,18 +193,31 @@ export class GdprService {
 
     const petIds: string[] = pets.map((p: { id: string }) => p.id);
 
-    const [vaccinations, medicalRecords, prescriptions, consents] = await Promise.all([
-      petIds.length
-        ? this.dataSource.query(`SELECT * FROM vaccinations WHERE pet_id = ANY($1)`, [petIds])
-        : Promise.resolve([]),
-      petIds.length
-        ? this.dataSource.query(`SELECT * FROM medical_records WHERE pet_id = ANY($1)`, [petIds])
-        : Promise.resolve([]),
-      petIds.length
-        ? this.dataSource.query(`SELECT * FROM prescriptions WHERE pet_id = ANY($1)`, [petIds])
-        : Promise.resolve([]),
-      this.dataSource.query(`SELECT type, granted, created_at FROM user_consents WHERE user_id = $1`, [userId]),
-    ]);
+    const [vaccinations, medicalRecords, prescriptions, consents] =
+      await Promise.all([
+        petIds.length
+          ? this.dataSource.query(
+              `SELECT * FROM vaccinations WHERE pet_id = ANY($1)`,
+              [petIds],
+            )
+          : Promise.resolve([]),
+        petIds.length
+          ? this.dataSource.query(
+              `SELECT * FROM medical_records WHERE pet_id = ANY($1)`,
+              [petIds],
+            )
+          : Promise.resolve([]),
+        petIds.length
+          ? this.dataSource.query(
+              `SELECT * FROM prescriptions WHERE pet_id = ANY($1)`,
+              [petIds],
+            )
+          : Promise.resolve([]),
+        this.dataSource.query(
+          `SELECT type, granted, created_at FROM user_consents WHERE user_id = $1`,
+          [userId],
+        ),
+      ]);
 
     return {
       exportedAt: new Date().toISOString(),
@@ -210,7 +244,9 @@ export class GdprService {
 
     let purged = 0;
     for (const { id } of result) {
-      const req = await this.requestDeletion(id, { reason: 'retention-policy' }).catch(() => null);
+      const req = await this.requestDeletion(id, {
+        reason: 'retention-policy',
+      }).catch(() => null);
       if (req) {
         await this.processDeletion(req.id);
         purged++;

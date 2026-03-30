@@ -35,10 +35,7 @@ export class UploadsController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: User,
   ) {
-    const avatarUrl = await this.fileUploadService.uploadAvatar(
-      file,
-      user.id,
-    );
+    const avatarUrl = await this.fileUploadService.uploadAvatar(file, user.id);
 
     // Update user profile with new avatar
     const updated = await this.usersService.updateAvatar(user.id, avatarUrl);

@@ -26,7 +26,7 @@ export class SearchBreedsDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @Transform(({ value }) => Array.isArray(value) ? value : value.split(','))
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
   temperament?: string[];
 
   @IsOptional()

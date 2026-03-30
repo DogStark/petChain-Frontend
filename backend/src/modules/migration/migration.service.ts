@@ -64,19 +64,22 @@ export class MigrationService implements OnModuleInit {
     const executedMigrations = await migrationExecutor.getExecutedMigrations();
     const pendingMigrations = await migrationExecutor.getPendingMigrations();
 
-    const executed = executedMigrations.map(m => m.name);
-    const pending = pendingMigrations.map(m => m.name);
+    const executed = executedMigrations.map((m) => m.name);
+    const pending = pendingMigrations.map((m) => m.name);
 
     return {
       pending,
       executed,
-      lastExecuted: executed.length > 0 ? executed[executed.length - 1] : undefined,
+      lastExecuted:
+        executed.length > 0 ? executed[executed.length - 1] : undefined,
       totalPending: pending.length,
       totalExecuted: executed.length,
     };
   }
 
-  async runMigrations(options: { transaction?: boolean } = {}): Promise<MigrationResult[]> {
+  async runMigrations(
+    options: { transaction?: boolean } = {},
+  ): Promise<MigrationResult[]> {
     if (!this.dataSource.isInitialized) {
       await this.initializeDataSource();
     }
@@ -92,7 +95,7 @@ export class MigrationService implements OnModuleInit {
 
     try {
       const migrationExecutor = new MigrationExecutor(this.dataSource);
-      
+
       if (options.transaction !== false) {
         await this.dataSource.query('BEGIN');
       }
@@ -102,14 +105,16 @@ export class MigrationService implements OnModuleInit {
         try {
           await migrationExecutor.executePendingMigrations();
           const duration = Date.now() - startTime;
-          
+
           results.push({
             success: true,
             migration,
             duration,
           });
-          
-          this.logger.log(`Migration ${migration} executed successfully (${duration}ms)`);
+
+          this.logger.log(
+            `Migration ${migration} executed successfully (${duration}ms)`,
+          );
           break; // executePendingMigrations runs all pending migrations at once
         } catch (error) {
           const duration = Date.now() - startTime;
@@ -119,9 +124,9 @@ export class MigrationService implements OnModuleInit {
             error: error.message,
             duration,
           });
-          
+
           this.logger.error(`Migration ${migration} failed`, error);
-          
+
           if (options.transaction !== false) {
             await this.dataSource.query('ROLLBACK');
           }
@@ -129,7 +134,7 @@ export class MigrationService implements OnModuleInit {
         }
       }
 
-      if (options.transaction !== false && results.every(r => r.success)) {
+      if (options.transaction !== false && results.every((r) => r.success)) {
         await this.dataSource.query('COMMIT');
         this.logger.log('All migrations committed successfully');
       }
@@ -151,7 +156,7 @@ export class MigrationService implements OnModuleInit {
 
     const startTime = Date.now();
     const status = await this.getMigrationStatus();
-    
+
     if (status.totalExecuted === 0) {
       this.logger.log('No migrations to rollback');
       return {
@@ -162,20 +167,22 @@ export class MigrationService implements OnModuleInit {
     }
 
     this.logger.log('Rolling back last migration...');
-    
+
     try {
       await this.dataSource.query('BEGIN');
-      
+
       const migrationExecutor = new MigrationExecutor(this.dataSource);
       const lastMigration = status.executed[status.executed.length - 1];
-      
+
       await migrationExecutor.undoLastMigration();
-      
+
       await this.dataSource.query('COMMIT');
-      
+
       const duration = Date.now() - startTime;
-      this.logger.log(`Migration ${lastMigration} rolled back successfully (${duration}ms)`);
-      
+      this.logger.log(
+        `Migration ${lastMigration} rolled back successfully (${duration}ms)`,
+      );
+
       return {
         success: true,
         rolledBack: [lastMigration],
@@ -184,7 +191,7 @@ export class MigrationService implements OnModuleInit {
     } catch (error) {
       await this.dataSource.query('ROLLBACK');
       this.logger.error('Failed to rollback migration', error);
-      
+
       return {
         success: false,
         rolledBack: [],
@@ -201,14 +208,16 @@ export class MigrationService implements OnModuleInit {
 
     const startTime = Date.now();
     const status = await this.getMigrationStatus();
-    
+
     const targetIndex = status.executed.indexOf(targetVersion);
     if (targetIndex === -1) {
-      throw new Error(`Migration version ${targetVersion} not found in executed migrations`);
+      throw new Error(
+        `Migration version ${targetVersion} not found in executed migrations`,
+      );
     }
 
     const migrationsToRollback = status.executed.slice(targetIndex + 1);
-    
+
     if (migrationsToRollback.length === 0) {
       this.logger.log(`No migrations to rollback to version ${targetVersion}`);
       return {
@@ -218,25 +227,29 @@ export class MigrationService implements OnModuleInit {
       };
     }
 
-    this.logger.log(`Rolling back ${migrationsToRollback.length} migrations to version ${targetVersion}...`);
-    
+    this.logger.log(
+      `Rolling back ${migrationsToRollback.length} migrations to version ${targetVersion}...`,
+    );
+
     try {
       await this.dataSource.query('BEGIN');
-      
+
       const migrationExecutor = new MigrationExecutor(this.dataSource);
       const rolledBack: string[] = [];
-      
+
       for (const migration of migrationsToRollback.reverse()) {
         await migrationExecutor.undoLastMigration();
         rolledBack.push(migration);
         this.logger.log(`Migration ${migration} rolled back`);
       }
-      
+
       await this.dataSource.query('COMMIT');
-      
+
       const duration = Date.now() - startTime;
-      this.logger.log(`Successfully rolled back to version ${targetVersion} (${duration}ms)`);
-      
+      this.logger.log(
+        `Successfully rolled back to version ${targetVersion} (${duration}ms)`,
+      );
+
       return {
         success: true,
         rolledBack,
@@ -245,7 +258,7 @@ export class MigrationService implements OnModuleInit {
     } catch (error) {
       await this.dataSource.query('ROLLBACK');
       this.logger.error('Failed to rollback migrations', error);
-      
+
       return {
         success: false,
         rolledBack: [],
@@ -263,7 +276,7 @@ export class MigrationService implements OnModuleInit {
       'src',
       'database',
       'migrations',
-      `${migrationName}.ts`
+      `${migrationName}.ts`,
     );
 
     const template = `import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -283,30 +296,37 @@ export class ${this.toPascalCase(name)}${timestamp} implements MigrationInterfac
 
     await fs.writeFile(migrationPath, template, 'utf-8');
     this.logger.log(`Generated migration file: ${migrationPath}`);
-    
+
     return migrationPath;
   }
 
   async validateMigrations(): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
-    
+
     try {
-      const migrationPath = path.join(process.cwd(), 'src', 'database', 'migrations');
+      const migrationPath = path.join(
+        process.cwd(),
+        'src',
+        'database',
+        'migrations',
+      );
       const files = await fs.readdir(migrationPath);
-      const migrationFiles = files.filter(file => file.endsWith('.ts'));
+      const migrationFiles = files.filter((file) => file.endsWith('.ts'));
 
       for (const file of migrationFiles) {
         const filePath = path.join(migrationPath, file);
         const content = await fs.readFile(filePath, 'utf-8');
-        
+
         if (!content.includes('implements MigrationInterface')) {
-          errors.push(`Migration ${file} does not implement MigrationInterface`);
+          errors.push(
+            `Migration ${file} does not implement MigrationInterface`,
+          );
         }
-        
+
         if (!content.includes('public async up(')) {
           errors.push(`Migration ${file} missing up() method`);
         }
-        
+
         if (!content.includes('public async down(')) {
           errors.push(`Migration ${file} missing down() method`);
         }

@@ -194,7 +194,12 @@ export class FilesController {
     @Body() dto: UpdateFilePermissionDto,
     @CurrentUser('id') userId: string,
   ): Promise<FilePermissionResponseDto> {
-    return this.filePermissionService.updatePermission(id, permissionId, userId, dto);
+    return this.filePermissionService.updatePermission(
+      id,
+      permissionId,
+      userId,
+      dto,
+    );
   }
 
   /**
@@ -208,7 +213,11 @@ export class FilesController {
     @Param('permissionId', ParseUUIDPipe) permissionId: string,
     @CurrentUser('id') userId: string,
   ): Promise<void> {
-    return this.filePermissionService.revokePermission(id, permissionId, userId);
+    return this.filePermissionService.revokePermission(
+      id,
+      permissionId,
+      userId,
+    );
   }
 
   /**
@@ -218,10 +227,15 @@ export class FilesController {
   @Get('shared/with-me')
   async getFilesSharedWithMe(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize: number = 20,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 20,
     @CurrentUser('id') userId: string,
   ) {
-    return this.filePermissionService.getFilesSharedWithMe(userId, page, pageSize);
+    return this.filePermissionService.getFilesSharedWithMe(
+      userId,
+      page,
+      pageSize,
+    );
   }
 
   // ============= FILE BACKUP & RECOVERY =============
@@ -259,7 +273,8 @@ export class FilesController {
   async getFileBackups(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize: number = 20,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 20,
     @CurrentUser('id') userId: string,
   ): Promise<FileBackupListResponseDto> {
     return this.fileBackupService.getFileBackups(id, userId, page, pageSize);
@@ -275,7 +290,11 @@ export class FilesController {
     @Body() dto: RestoreFromBackupDto,
     @CurrentUser('id') userId: string,
   ): Promise<FileBackupResponseDto> {
-    return this.fileBackupService.restoreFromBackup(backupId, userId, dto.replaceOriginal);
+    return this.fileBackupService.restoreFromBackup(
+      backupId,
+      userId,
+      dto.replaceOriginal,
+    );
   }
 
   /**

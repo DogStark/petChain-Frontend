@@ -5,7 +5,7 @@ import { VetVerification } from './vet-verification.entity';
 
 @Injectable()
 export class VetVerificationService {
- private records: VetVerification[] = [];
+  private records: VetVerification[] = [];
 
   async create(data: any) {
     const record = {
@@ -36,11 +36,11 @@ export class VetVerificationService {
   }
 
   async getStatus(id: string) {
-    return this.records.find(r => r.id === id);
+    return this.records.find((r) => r.id === id);
   }
 
   async manualReview(id: string, status: VerificationStatus) {
-    const record = this.records.find(r => r.id === id);
+    const record = this.records.find((r) => r.id === id);
 
     if (!record) return null;
 

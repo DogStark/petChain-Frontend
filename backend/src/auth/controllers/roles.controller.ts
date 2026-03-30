@@ -29,20 +29,14 @@ export class RolesController {
   @Post('assign')
   @Roles(RoleName.Admin)
   @HttpCode(HttpStatus.CREATED)
-  async assignRole(
-    @Body() dto: AssignRoleDto,
-    @CurrentUser() admin: User,
-  ) {
+  async assignRole(@Body() dto: AssignRoleDto, @CurrentUser() admin: User) {
     return this.rolesService.assignRole(dto, admin.id);
   }
 
   @Post('remove')
   @Roles(RoleName.Admin)
   @HttpCode(HttpStatus.OK)
-  async removeRole(
-    @Body() dto: RemoveRoleDto,
-    @CurrentUser() admin: User,
-  ) {
+  async removeRole(@Body() dto: RemoveRoleDto, @CurrentUser() admin: User) {
     return this.rolesService.removeRole(dto, admin.id);
   }
 

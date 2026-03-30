@@ -15,4 +15,4 @@ import { AuditModule } from '../audit/audit.module';
   controllers: [BlockController, ReportController],
   exports: [BlockService, ReportService],
 })
-export class BlockingReportingModule { }
+export class BlockingReportingModule {}

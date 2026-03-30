@@ -1,4 +1,9 @@
-import { Module, forwardRef, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import {
+  Module,
+  forwardRef,
+  NestModule,
+  MiddlewareConsumer,
+} from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
@@ -68,10 +73,18 @@ import { EmailService as AppEmailService } from '../modules/email/email.service'
           const value = parseInt(match[1], 10);
           const unit = match[2];
           switch (unit) {
-            case 's': expiresInSeconds = value; break;
-            case 'm': expiresInSeconds = value * 60; break;
-            case 'h': expiresInSeconds = value * 3600; break;
-            case 'd': expiresInSeconds = value * 86400; break;
+            case 's':
+              expiresInSeconds = value;
+              break;
+            case 'm':
+              expiresInSeconds = value * 60;
+              break;
+            case 'h':
+              expiresInSeconds = value * 3600;
+              break;
+            case 'd':
+              expiresInSeconds = value * 86400;
+              break;
           }
         }
         return {

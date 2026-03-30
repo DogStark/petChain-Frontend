@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
+import Image from 'next/image';
+import { GetStaticProps, GetStaticPaths } from 'next';
+import { ArrowLeft, PawPrint } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
@@ -98,10 +100,13 @@ export default function PetDetailPage() {
 
         <div className={styles.petHeader}>
           {primaryPhoto ? (
-            <img
+            <Image
               src={primaryPhoto.thumbnailUrl || primaryPhoto.photoUrl}
               alt={pet.name}
+              fill
+              sizes="80px"
               className={styles.petAvatar}
+              style={{ objectFit: 'cover' }}
             />
           ) : (
             <div className={styles.petAvatar}>
@@ -214,3 +219,17 @@ function getAge(dateOfBirth: string): string | null {
   if (months > 0) return `${months} mo${months !== 1 ? 's' : ''} old`;
   return 'Newborn';
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

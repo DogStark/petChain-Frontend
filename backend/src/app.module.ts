@@ -56,6 +56,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { DatabaseModule } from './modules/database/database.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
 
 @Module({
   imports: [
@@ -74,10 +75,12 @@ import { DatabaseModule } from './modules/database/database.module';
       ],
       envFilePath: '.env',
     }),
-ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 5,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 5,
+      },
+    ]),
     // Scheduler Module
     ScheduleModule.forRoot(),
 
@@ -140,4 +143,4 @@ ThrottlerModule.forRoot([{
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,9 +1,4 @@
-// @ts-nocheck
-import {
-  Injectable,
-  NestMiddleware,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { FilePermissionService } from '../services/file-permission.service';
 
@@ -19,14 +14,13 @@ import { FilePermissionService } from '../services/file-permission.service';
  */
 @Injectable()
 export class FileAccessMiddleware implements NestMiddleware {
-  constructor(
-    private readonly filePermissionService: FilePermissionService,
-  ) {}
+  constructor(private readonly filePermissionService: FilePermissionService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
     // Extract file ID from route
-    const fileId = req.params.id;
-    
+    const rawFileId = req.params.id;
+    const fileId = Array.isArray(rawFileId) ? rawFileId[0] : rawFileId;
+
     // Skip middleware for share link access
     if (req.path.includes('/access/')) {
       return next();
@@ -45,7 +39,10 @@ export class FileAccessMiddleware implements NestMiddleware {
       }
 
       // Check if user has access to file
-      const hasAccess = await this.filePermissionService.canAccessFile(fileId, userId);
+      const hasAccess = await this.filePermissionService.canAccessFile(
+        fileId,
+        userId,
+      );
 
       if (!hasAccess) {
         throw new ForbiddenException('Access to file denied');

@@ -11,15 +11,15 @@ import { NotificationsController } from './notifications.controller';
 import { WebSocketModule } from 'src/websocket/websocket.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Notification, NotificationSetting, DeviceToken]),
-        BullModule.registerQueue({
-            name: 'push-notifications',
-        }),
-        forwardRef(() => WebSocketModule),
-    ],
-    controllers: [NotificationsController],
-    providers: [NotificationsService, FirebaseService, PushProcessor],
-    exports: [NotificationsService, FirebaseService],
+  imports: [
+    TypeOrmModule.forFeature([Notification, NotificationSetting, DeviceToken]),
+    BullModule.registerQueue({
+      name: 'push-notifications',
+    }),
+    forwardRef(() => WebSocketModule),
+  ],
+  controllers: [NotificationsController],
+  providers: [NotificationsService, FirebaseService, PushProcessor],
+  exports: [NotificationsService, FirebaseService],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

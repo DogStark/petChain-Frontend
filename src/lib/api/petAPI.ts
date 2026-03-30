@@ -1,14 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-// import { PetEmergencyInfo } from '../types/pet';
-
-// Temporary type definition to fix build
-interface PetEmergencyInfo {
-  petId: string;
-  contacts: any[];
-  emergencyVet?: any;
-  poisonControl?: any;
-  medicalNotes?: string;
-}
+import { PetEmergencyInfo } from '@/types/pet';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 

@@ -5,7 +5,8 @@ export const blockchainConfig = registerAs('blockchain', () => ({
     network: process.env.STELLAR_NETWORK || 'TESTNET',
     secretKey: process.env.STELLAR_SECRET_KEY,
     publicKey: process.env.STELLAR_PUBLIC_KEY,
-    rpcUrl: process.env.STELLAR_RPC_URL || 'https://horizon-testnet.stellar.org',
+    rpcUrl:
+      process.env.STELLAR_RPC_URL || 'https://horizon-testnet.stellar.org',
   },
   ipfs: {
     url: process.env.IPFS_URL || 'http://localhost:5001',

@@ -30,14 +30,24 @@ describe('UploadsController', () => {
   });
 
   it('should upload avatar and update user', async () => {
-    const file = { buffer: Buffer.from(''), mimetype: 'image/png', originalname: 'pic.png' } as any;
+    const file = {
+      buffer: Buffer.from(''),
+      mimetype: 'image/png',
+      originalname: 'pic.png',
+    } as any;
     const user = { id: 'u1' } as any;
     mockFileService.uploadAvatar.mockResolvedValue('/path/url');
-    mockUserService.updateAvatar.mockResolvedValue({ ...user, avatarUrl: '/path/url' });
+    mockUserService.updateAvatar.mockResolvedValue({
+      ...user,
+      avatarUrl: '/path/url',
+    });
 
     const result = await controller.uploadAvatar(file, user);
     expect(mockFileService.uploadAvatar).toHaveBeenCalledWith(file, 'u1');
-    expect(mockUserService.updateAvatar).toHaveBeenCalledWith('u1', '/path/url');
+    expect(mockUserService.updateAvatar).toHaveBeenCalledWith(
+      'u1',
+      '/path/url',
+    );
     expect(result.user.avatarUrl).toBe('/path/url');
     expect(result.message).toMatch(/success/i);
   });

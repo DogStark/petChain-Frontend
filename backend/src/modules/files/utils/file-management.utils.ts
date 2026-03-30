@@ -3,7 +3,7 @@ import { parse } from 'path';
 
 /**
  * File Management Utilities
- * 
+ *
  * Helper functions for file operations, validation, and transformation
  */
 
@@ -25,11 +25,11 @@ export function generateStorageKey(
   const timestamp = Date.now();
   const filename = parse(originalFilename).name;
   const ext = parse(originalFilename).ext;
-  
+
   if (petId) {
     return `uploads/${userId}/pets/${petId}/${timestamp}-${filename}${ext}`;
   }
-  
+
   return `uploads/${userId}/${timestamp}-${filename}${ext}`;
 }
 
@@ -38,9 +38,7 @@ export function generateStorageKey(
  */
 export function sanitizeFilename(filename: string): string {
   // Remove unsafe characters
-  return filename
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .substring(0, 255);
+  return filename.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
 }
 
 /**
@@ -70,7 +68,7 @@ export function isAllowedMimeType(
   }
 
   // Wildcard match (e.g., 'image/*')
-  return allowedTypes.some(allowed => {
+  return allowedTypes.some((allowed) => {
     if (allowed.endsWith('/*')) {
       const [type] = allowed.split('/');
       return mimeType.startsWith(type + '/');
@@ -137,7 +135,7 @@ export function isDocument(mimeType: string): boolean {
     'application/vnd.openxmlformats-officedocument',
     'text/plain',
   ];
-  return documentTypes.some(type => mimeType.includes(type));
+  return documentTypes.some((type) => mimeType.includes(type));
 }
 
 /**

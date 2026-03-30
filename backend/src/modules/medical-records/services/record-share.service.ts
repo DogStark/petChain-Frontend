@@ -9,7 +9,10 @@ import { Repository, IsNull } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { RecordShare, SharePermission } from '../entities/record-share.entity';
-import { RecordShareAccess, AccessAction } from '../entities/record-share-access.entity';
+import {
+  RecordShareAccess,
+  AccessAction,
+} from '../entities/record-share-access.entity';
 import { MedicalRecord } from '../entities/medical-record.entity';
 import {
   CreateRecordShareDto,
@@ -48,7 +51,8 @@ export class RecordShareService {
    * Build the shareable URL from token
    */
   private buildShareUrl(token: string): string {
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const baseUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     return `${baseUrl}/api/v1/medical-records/share/access/${token}`;
   }
 
@@ -67,7 +71,9 @@ export class RecordShareService {
     });
 
     if (!record) {
-      throw new NotFoundException(`Medical record ${medicalRecordId} not found`);
+      throw new NotFoundException(
+        `Medical record ${medicalRecordId} not found`,
+      );
     }
 
     // Verify user owns the pet (authorization should be handled at controller level,
@@ -96,13 +102,18 @@ export class RecordShareService {
 
     const savedShare = await this.shareRepository.save(share);
 
-    return this.toResponseDto(Array.isArray(savedShare) ? savedShare[0] : savedShare);
+    return this.toResponseDto(
+      Array.isArray(savedShare) ? savedShare[0] : savedShare,
+    );
   }
 
   /**
    * Get all shares for a medical record
    */
-  async getSharesByRecord(medicalRecordId: string, userId: string): Promise<RecordShareResponseDto[]> {
+  async getSharesByRecord(
+    medicalRecordId: string,
+    userId: string,
+  ): Promise<RecordShareResponseDto[]> {
     const shares = await this.shareRepository.find({
       where: { medicalRecordId, createdById: userId },
       order: { createdAt: 'DESC' },
@@ -170,8 +181,13 @@ export class RecordShareService {
     }
 
     // Check permission for edit actions
-    if (action === AccessAction.EDIT && share.permission !== SharePermission.EDIT) {
-      throw new ForbiddenException('This share link does not have edit permission');
+    if (
+      action === AccessAction.EDIT &&
+      share.permission !== SharePermission.EDIT
+    ) {
+      throw new ForbiddenException(
+        'This share link does not have edit permission',
+      );
     }
 
     // Log access
@@ -225,7 +241,10 @@ export class RecordShareService {
   /**
    * Revoke all shares for a medical record
    */
-  async revokeAllSharesForRecord(medicalRecordId: string, userId: string): Promise<number> {
+  async revokeAllSharesForRecord(
+    medicalRecordId: string,
+    userId: string,
+  ): Promise<number> {
     const result = await this.shareRepository.update(
       { medicalRecordId, createdById: userId, revokedAt: IsNull() },
       { revokedAt: new Date() },
@@ -257,7 +276,10 @@ export class RecordShareService {
   /**
    * Get access logs for a share
    */
-  async getAccessLogs(shareId: string, userId: string): Promise<RecordShareAccess[]> {
+  async getAccessLogs(
+    shareId: string,
+    userId: string,
+  ): Promise<RecordShareAccess[]> {
     // Verify ownership
     await this.getShareById(shareId, userId);
 
@@ -271,7 +293,10 @@ export class RecordShareService {
   /**
    * Get access logs for a medical record (all shares)
    */
-  async getAccessLogsByRecord(medicalRecordId: string, userId: string): Promise<RecordShareAccess[]> {
+  async getAccessLogsByRecord(
+    medicalRecordId: string,
+    userId: string,
+  ): Promise<RecordShareAccess[]> {
     const shares = await this.shareRepository.find({
       where: { medicalRecordId, createdById: userId },
       select: ['id'],
@@ -323,7 +348,9 @@ export class RecordShareService {
       .createQueryBuilder()
       .delete()
       .where('expiresAt < :cutoffDate', { cutoffDate })
-      .andWhere('revokedAt IS NOT NULL OR expiresAt < :now', { now: new Date() })
+      .andWhere('revokedAt IS NOT NULL OR expiresAt < :now', {
+        now: new Date(),
+      })
       .execute();
 
     return result.affected || 0;

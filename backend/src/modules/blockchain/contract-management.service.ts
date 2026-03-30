@@ -3,7 +3,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { StellarService } from './stellar.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BlockchainSync } from './entities/blockchain-sync.entity';
+import {
+  BlockchainSync,
+  RecordType,
+  SyncStatus,
+} from './entities/blockchain-sync.entity';
 
 @Injectable()
 export class ContractManagementService {
@@ -16,15 +20,21 @@ export class ContractManagementService {
   ) {}
 
   async deployNewContract(wasmHash: string, name: string): Promise<string> {
-    this.logger.log(`Deploying new contract: ${name} with WASM hash: ${wasmHash}`);
-    
+    this.logger.log(
+      `Deploying new contract: ${name} with WASM hash: ${wasmHash}`,
+    );
+
     try {
-      const { contractId, txHash } = await this.stellarService.deployContract(wasmHash);
-      
+      const { contractId, txHash } =
+        await this.stellarService.deployContract(wasmHash);
+
       // Store contract metadata in BlockchainSync entity (using it as a simple store for now)
       const contractMeta = this.syncRepository.create({
+        recordId: `contract:${name}:${Date.now()}`,
+        recordType: RecordType.TREATMENT,
+        recordHash: txHash,
         txHash,
-        status: 'COMPLETED',
+        status: SyncStatus.SYNCED,
         height: 0, // Not applicable for deployment but kept for schema
         data: {
           contractId,
@@ -33,7 +43,7 @@ export class ContractManagementService {
           deployedAt: new Date().toISOString(),
         },
       });
-      
+
       await this.syncRepository.save(contractMeta);
       this.logger.log(`Contract ${name} deployed with ID: ${contractId}`);
       return contractId;
@@ -47,21 +57,29 @@ export class ContractManagementService {
     const records = await this.syncRepository.find({
       order: { createdAt: 'DESC' },
     });
-    
-    const record = records.find(r => r.data?.name === name);
-    return record?.data?.contractId || null;
+
+    const record = records.find((r) => (r.data as any)?.name === name);
+    return ((record?.data as any)?.contractId as string | undefined) || null;
   }
 
   async upgradeContract(name: string, newWasmHash: string): Promise<string> {
     const contractId = await this.getContractId(name);
     if (!contractId) throw new Error(`Contract ${name} not found`);
 
-    this.logger.log(`Upgrading contract ${name} (${contractId}) to new WASM hash: ${newWasmHash}`);
-    const txHash = await this.stellarService.upgradeContract(contractId, newWasmHash);
+    this.logger.log(
+      `Upgrading contract ${name} (${contractId}) to new WASM hash: ${newWasmHash}`,
+    );
+    const txHash = await this.stellarService.upgradeContract(
+      contractId,
+      newWasmHash,
+    );
 
     const upgradeMeta = this.syncRepository.create({
+      recordId: `contract-upgrade:${name}:${Date.now()}`,
+      recordType: RecordType.TREATMENT,
+      recordHash: txHash,
       txHash,
-      status: 'COMPLETED',
+      status: SyncStatus.SYNCED,
       height: 0,
       data: {
         contractId,

@@ -67,7 +67,10 @@ describe('EmailNotificationService', () => {
     const mod = await Test.createTestingModule({
       providers: [
         EmailNotificationService,
-        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue(undefined) } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue(undefined) },
+        },
       ],
     }).compile();
     const s = mod.get(EmailNotificationService);

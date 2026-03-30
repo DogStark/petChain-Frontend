@@ -80,10 +80,12 @@ exports.AppModule = AppModule = __decorate([
                 ],
                 envFilePath: '.env',
             }),
-            throttler_1.ThrottlerModule.forRoot([{
+            throttler_1.ThrottlerModule.forRoot([
+                {
                     ttl: 60000,
                     limit: 5,
-                }]),
+                },
+            ]),
             schedule_1.ScheduleModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],

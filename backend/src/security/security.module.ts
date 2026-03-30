@@ -22,6 +22,7 @@ import { SqlInjectionDetectionMiddleware } from './middleware/sql-injection-dete
 import { XssProtectionMiddleware } from './middleware/xss-protection.middleware';
 import { SecurityExceptionFilter } from './filters/security-exception.filter';
 import { ApiKeyController } from './controllers/api-key.controller';
+import { SecurityController } from './security.controller';
 
 @Module({
   imports: [
@@ -34,7 +35,7 @@ import { ApiKeyController } from './controllers/api-key.controller';
     ThrottlerModule.forRoot([
       {
         name: 'default',
-        ttl: 60000,   // 1 minute window (ms)
+        ttl: 60000, // 1 minute window (ms)
         limit: 100,
       },
       {

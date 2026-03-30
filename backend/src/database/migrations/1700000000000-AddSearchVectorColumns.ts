@@ -77,22 +77,36 @@ export class AddSearchVectorColumns1700000000000 implements MigrationInterface {
     // ----------------------------------------------------------------
     await queryRunner.query(`UPDATE "pets" SET "name" = "name"`);
     await queryRunner.query(`UPDATE "vets" SET "vetName" = "vetName"`);
-    await queryRunner.query(`UPDATE "medical_records" SET "diagnosis" = "diagnosis"`);
+    await queryRunner.query(
+      `UPDATE "medical_records" SET "diagnosis" = "diagnosis"`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop GIN indexes first
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_medical_records_search_vector"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "idx_medical_records_search_vector"`,
+    );
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_vets_search_vector"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_pets_search_vector"`);
 
     // Drop search_vector columns
-    await queryRunner.query(`ALTER TABLE "medical_records" DROP COLUMN IF EXISTS "search_vector"`);
-    await queryRunner.query(`ALTER TABLE "vets" DROP COLUMN IF EXISTS "search_vector"`);
-    await queryRunner.query(`ALTER TABLE "pets" DROP COLUMN IF EXISTS "search_vector"`);
+    await queryRunner.query(
+      `ALTER TABLE "medical_records" DROP COLUMN IF EXISTS "search_vector"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "vets" DROP COLUMN IF EXISTS "search_vector"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "pets" DROP COLUMN IF EXISTS "search_vector"`,
+    );
 
     // Drop lat/lng columns from vets
-    await queryRunner.query(`ALTER TABLE "vets" DROP COLUMN IF EXISTS "longitude"`);
-    await queryRunner.query(`ALTER TABLE "vets" DROP COLUMN IF EXISTS "latitude"`);
+    await queryRunner.query(
+      `ALTER TABLE "vets" DROP COLUMN IF EXISTS "longitude"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "vets" DROP COLUMN IF EXISTS "latitude"`,
+    );
   }
 }

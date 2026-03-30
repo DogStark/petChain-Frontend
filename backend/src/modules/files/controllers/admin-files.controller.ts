@@ -11,9 +11,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../auth/guards/roles.guard';
+import { Roles } from '../../../auth/decorators/roles.decorator';
 import { FilesService } from '../files.service';
 import { FileBackupService } from '../services/file-backup.service';
 import { BackupStatisticsDto } from '../dto/file-backup.dto';
@@ -65,7 +65,8 @@ export class AdminFilesController {
   @Get('all')
   async getAllFiles(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize: number = 50,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 50,
     @Query('status') status?: string,
     @Query('fileType') fileType?: string,
     @Query('userId', new ParseUUIDPipe({ optional: true })) userId?: string,
@@ -105,7 +106,8 @@ export class AdminFilesController {
   async getFileAuditLog(
     @Param('id', ParseUUIDPipe) fileId: string,
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize: number = 50,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 50,
   ) {
     return this.filesService.getFileAuditLog(fileId, page, pageSize);
   }
@@ -142,7 +144,8 @@ export class AdminFilesController {
   @Get('deleted/pending')
   async getPendingDeletions(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize: number = 50,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 50,
   ) {
     return this.filesService.getPendingDeletions(page, pageSize);
   }

@@ -1,8 +1,7 @@
+import { GetServerSideProps } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -22,7 +21,7 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">PetChain Dashboard</h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space--4">
                 <Link href="/sessions" className="text-blue-600 hover:text-blue-500 font-medium">
                   Sessions
                 </Link>
@@ -50,7 +49,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">My Pets</dt>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        My Pets
+                      </dt>
                       <dd className="text-lg font-medium text-gray-900">3</dd>
                     </dl>
                   </div>
@@ -85,10 +86,7 @@ export default function DashboardPage() {
               </div>
               <div className="bg-gray-50 px-5 py-3">
                 <div className="text-sm">
-                  <Link
-                    href="/medical-records"
-                    className="font-medium text-blue-600 hover:text-blue-500"
-                  >
+                  <Link href="/medical-records" className="font-medium text-blue-600 hover:text-blue-500">
                     View records
                   </Link>
                 </div>
@@ -168,4 +166,10 @@ export default function DashboardPage() {
       </div>
     </ProtectedRoute>
   );
-}
+  }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

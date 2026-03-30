@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import TwoFactorVerify from '../components/Settings/TwoFactorVerify';
 import { TouchInput, TouchButton } from '../components/TouchUI';
+import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
@@ -140,3 +141,9 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};
