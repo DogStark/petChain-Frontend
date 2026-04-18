@@ -52,10 +52,16 @@ export class PetPhotosService {
     }
 
     for (const file of files) {
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      // Validate against allowlist — never trust client-supplied mimetype
+      const detectedType = file.mimetype?.toLowerCase().trim();
+      if (!ALLOWED_MIME_TYPES.includes(detectedType)) {
         throw new BadRequestException(
-          `Invalid file type: ${file.mimetype}. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
+          `Invalid file type. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
         );
+      }
+      // Validate magic bytes for JPEG, PNG, WebP
+      if (!this.hasValidImageMagicBytes(file.buffer)) {
+        throw new BadRequestException('File content does not match an allowed image format');
       }
     }
 
@@ -250,5 +256,21 @@ export class PetPhotosService {
     if (!pet) {
       throw new NotFoundException(`Pet with ID ${petId} not found`);
     }
+  }
+
+  /** Verify file magic bytes to prevent type confusion attacks */
+  private hasValidImageMagicBytes(buffer: Buffer): boolean {
+    if (!buffer || buffer.length < 4) return false;
+    // JPEG: FF D8 FF
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return true;
+    // PNG: 89 50 4E 47
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return true;
+    // WebP: RIFF....WEBP
+    if (
+      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer.length >= 12 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+    ) return true;
+    return false;
   }
 }

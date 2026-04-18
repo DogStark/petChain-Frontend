@@ -1,5 +1,6 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
+import { randomUUID } from 'crypto';
 import type {
   WalletAccount,
   WalletBalance,
@@ -51,28 +52,7 @@ class WalletService {
     const { encryptedKey, iv, salt } = await encryptSecretKey(secretKey, pin);
 
     const wallet: WalletAccount = {
-      id: `wallet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      publicKey,
-      encryptedSecretKey: encryptedKey,
-      iv,
-      salt,
-      label,
-      type: 'standard',
-      network: this.network,
-      createdAt: new Date().toISOString(),
-      backupVerified: false,
-    };
-
-    this.persistWallet(wallet);
-    return wallet;
-  }
-
-  async importWallet(secretKey: string, label: string, pin: string): Promise<WalletAccount> {
-    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const { encryptedKey, iv, salt } = await encryptSecretKey(secretKey, pin);
-
-    const wallet: WalletAccount = {
-      id: `wallet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: `wallet_${randomUUID()}`,
       publicKey: keypair.publicKey(),
       encryptedSecretKey: encryptedKey,
       iv,
@@ -336,7 +316,7 @@ class WalletService {
     await decryptSecretKey(backup.encryptedKey, backup.iv, backup.salt, pin);
 
     const wallet: WalletAccount = {
-      id: `wallet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: `wallet_${randomUUID()}`,
       publicKey: backup.publicKey,
       encryptedSecretKey: backup.encryptedKey,
       iv: backup.iv,

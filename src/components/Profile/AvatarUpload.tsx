@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import NextImage from 'next/image';
 import styles from './AvatarUpload.module.css';
 
 interface AvatarUploadProps {
@@ -94,7 +95,15 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
         {preview ? (
           <div className={styles.previewContainer}>
-            <img src={preview} alt="Avatar preview" className={styles.preview} />
+            <NextImage
+              src={preview}
+              alt="Avatar preview"
+              width={96}
+              height={96}
+              className={styles.preview}
+              style={{ objectFit: 'cover' }}
+              unoptimized={preview.startsWith('blob:')}
+            />
             {isLoading && <div className={styles.loader} />}
           </div>
         ) : (

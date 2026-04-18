@@ -1,29 +1,21 @@
 import * as crypto from 'crypto';
 
+// HMAC secret for token hashing — must be set in environment
+const TOKEN_HMAC_SECRET = process.env.TOKEN_HMAC_SECRET || 'change-me-in-production';
+
 export class TokenUtil {
-  /**
-   * Generate a random token
-   */
   static generateToken(length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
 
-  /**
-   * Hash a token for storage
-   */
+  /** Hash a token using HMAC-SHA256 for storage */
   static hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
+    return crypto.createHmac('sha256', TOKEN_HMAC_SECRET).update(token).digest('hex');
   }
 
-  /**
-   * Verify a token against a hash
-   */
   static verifyToken(token: string, hash: string): boolean {
     const tokenHash = this.hashToken(token);
-    // Ensure buffers are the same length for timingSafeEqual
-    if (tokenHash.length !== hash.length) {
-      return false;
-    }
+    if (tokenHash.length !== hash.length) return false;
     return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
   }
 }

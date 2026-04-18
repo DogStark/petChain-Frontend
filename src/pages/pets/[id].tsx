@@ -29,6 +29,7 @@ interface Pet {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PetDetailPage() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function PetDetailPage() {
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
+    if (!UUID_RE.test(id)) return;
 
     const fetchPet = async () => {
       try {

@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { createHash, randomBytes } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import { ApiKey } from '../entities/api-key.entity';
 import { CreateApiKeyDto, UpdateApiKeyDto } from '../dto/api-key.dto';
+
+const API_KEY_HMAC_SECRET = process.env.API_KEY_HMAC_SECRET || 'change-me-in-production';
 
 export interface ApiKeyValidationResult {
   valid: boolean;
@@ -112,6 +114,6 @@ export class ApiKeyService {
   }
 
   private hash(value: string): string {
-    return createHash('sha256').update(value).digest('hex');
+    return createHmac('sha256', API_KEY_HMAC_SECRET).update(value).digest('hex');
   }
 }

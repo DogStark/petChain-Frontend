@@ -8,9 +8,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiKey } from './entities/api-key.entity';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, createHmac } from 'crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+
+const API_KEY_HMAC_SECRET = process.env.API_KEY_HMAC_SECRET || 'change-me-in-production';
 
 export interface CreateApiKeyOptions {
   userId: string;
@@ -107,7 +109,7 @@ export class ApiKeysService {
   }
 
   private hashKey(plaintext: string): string {
-    return createHash('sha256').update(plaintext).digest('hex');
+    return createHmac('sha256', API_KEY_HMAC_SECRET).update(plaintext).digest('hex');
   }
 
   private async enforceRateLimit(apiKey: ApiKey): Promise<void> {

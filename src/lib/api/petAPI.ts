@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { PetEmergencyInfo } from '@/types/pet';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class PetAPI {
   private api: AxiosInstance;
@@ -22,6 +23,7 @@ class PetAPI {
   }
 
   async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo> {
+    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     try {
       const response = await this.api.get(`/${petId}/emergency`);
       return response.data;
@@ -35,6 +37,7 @@ class PetAPI {
   }
 
   async updatePetEmergencyInfo(petId: string, info: PetEmergencyInfo): Promise<PetEmergencyInfo> {
+    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     const response = await this.api.put(`/${petId}/emergency`, info);
     return response.data;
   }

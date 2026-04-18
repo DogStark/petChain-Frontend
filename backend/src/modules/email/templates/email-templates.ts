@@ -1,3 +1,16 @@
+// Safe HTML-to-text stripper: handles malformed tags and multi-char sequences
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '') // remove tags
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
 import { baseTemplate, emailButton, emailInfoBox } from './base.template';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,7 +351,7 @@ export function systemNotificationTemplate(data: SystemNotificationData): {
   `;
 
   const html = baseTemplate(body, {
-    previewText: data.message.replace(/<[^>]+>/g, '').slice(0, 100),
+    previewText: stripHtml(data.message).slice(0, 100),
     unsubscribeUrl: data.unsubscribeUrl,
     emailTypeLabel: 'system notification',
   });
@@ -348,7 +361,7 @@ ${data.title}
 
 Hi ${data.recipientName},
 
-${data.message.replace(/<[^>]+>/g, '')}
+${data.message.replace ? stripHtml(data.message) : data.message}
 
 ${data.actionLabel && data.actionUrl ? `${data.actionLabel}: ${data.actionUrl}` : ''}
   `.trim();

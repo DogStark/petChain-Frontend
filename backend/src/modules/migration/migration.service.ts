@@ -269,8 +269,13 @@ export class MigrationService implements OnModuleInit {
   }
 
   async generateMigration(name: string): Promise<string> {
+    // Sanitize name: only allow alphanumeric, hyphens, underscores
+    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+    if (!safeName) {
+      throw new Error('Invalid migration name');
+    }
     const timestamp = Date.now();
-    const migrationName = `${timestamp}-${name}`;
+    const migrationName = `${timestamp}-${safeName}`;
     const migrationPath = path.join(
       process.cwd(),
       'src',
@@ -281,7 +286,7 @@ export class MigrationService implements OnModuleInit {
 
     const template = `import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class ${this.toPascalCase(name)}${timestamp} implements MigrationInterface {
+export class ${this.toPascalCase(safeName)}${timestamp} implements MigrationInterface {
   name = '${migrationName}';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
