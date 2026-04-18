@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "overrides": {
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "http-proxy-agent": "^7.0.2"
   },
   "scripts": {
     "build": "nest build",
