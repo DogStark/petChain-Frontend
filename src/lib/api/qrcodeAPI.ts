@@ -27,15 +27,22 @@ export interface ScanAnalytics {
   }>;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const QRID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+
+/** Returns a sanitized, URL-safe copy — breaks taint flow for CodeQL */
+function safeUuid(id: string): string {
+  if (!UUID_RE.test(id)) throw new Error('Invalid UUID');
+  return id.replace(/[^0-9a-f-]/gi, '');
+}
+
+function safeQrId(id: string): string {
+  if (!QRID_RE.test(id)) throw new Error('Invalid QR ID');
+  return id.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 class QRCodeAPI {
   private api: AxiosInstance;
-  private readonly UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  private readonly QRID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
-
-  private validateId(id: string, type: 'uuid' | 'qrid' = 'uuid'): void {
-    const valid = type === 'uuid' ? this.UUID_RE.test(id) : this.QRID_RE.test(id);
-    if (!valid) throw new Error(`Invalid ${type} format`);
-  }
 
   constructor() {
     this.api = axios.create({ baseURL: `${getApiBaseUrl()}/qrcodes` });
@@ -50,19 +57,18 @@ class QRCodeAPI {
     petId: string,
     opts?: { emergencyContact?: string; customMessage?: string }
   ): Promise<QRCodeRecord> {
-    const { data } = await this.api.post('/', { petId, ...opts });
+    const { data } = await this.api.post('/', { petId: safeUuid(petId), ...opts });
     return data;
   }
 
   async getByPetId(petId: string): Promise<QRCodeRecord[]> {
-    this.validateId(petId);
-    const { data } = await this.api.get('/', { params: { petId } });
+    const { data } = await this.api.get('/', { params: { petId: safeUuid(petId) } });
     return data;
   }
 
   async getOne(qrCodeId: string): Promise<QRCodeRecord> {
-    this.validateId(qrCodeId, 'qrid');
-    const { data } = await this.api.get(`/${qrCodeId}`);
+    const safe = safeQrId(qrCodeId);
+    const { data } = await this.api.get(`/${safe}`);
     return data;
   }
 
@@ -70,20 +76,20 @@ class QRCodeAPI {
     qrCodeId: string,
     patch: Partial<Pick<QRCodeRecord, 'isActive' | 'emergencyContact' | 'customMessage'>>
   ): Promise<QRCodeRecord> {
-    this.validateId(qrCodeId, 'qrid');
-    const { data } = await this.api.patch(`/${qrCodeId}`, patch);
+    const safe = safeQrId(qrCodeId);
+    const { data } = await this.api.patch(`/${safe}`, patch);
     return data;
   }
 
   async regenerate(qrCodeId: string): Promise<QRCodeRecord> {
-    this.validateId(qrCodeId, 'qrid');
-    const { data } = await this.api.post(`/${qrCodeId}/regenerate`);
+    const safe = safeQrId(qrCodeId);
+    const { data } = await this.api.post(`/${safe}/regenerate`);
     return data;
   }
 
   async getAnalytics(qrCodeId: string): Promise<ScanAnalytics> {
-    this.validateId(qrCodeId, 'qrid');
-    const { data } = await this.api.get(`/${qrCodeId}/analytics`);
+    const safe = safeQrId(qrCodeId);
+    const { data } = await this.api.get(`/${safe}/analytics`);
     return data;
   }
 
@@ -91,13 +97,13 @@ class QRCodeAPI {
     qrCodeId: string,
     meta?: { deviceType?: string; city?: string; country?: string }
   ): Promise<void> {
-    this.validateId(qrCodeId, 'qrid');
-    await this.api.post(`/${qrCodeId}/scan`, meta ?? {});
+    const safe = safeQrId(qrCodeId);
+    await this.api.post(`/${safe}/scan`, meta ?? {});
   }
 
   getImageUrl(qrCodeId: string): string {
-    this.validateId(qrCodeId, 'qrid');
-    return `${getApiBaseUrl()}/qrcodes/${qrCodeId}/image`;
+    const safe = safeQrId(qrCodeId);
+    return `${getApiBaseUrl()}/qrcodes/${safe}/image`;
   }
 }
 

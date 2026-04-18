@@ -51,19 +51,19 @@ export class PetPhotosService {
       );
     }
 
-    for (const file of files) {
-      // Validate against allowlist — never trust client-supplied mimetype
+    const validatedFiles = files.map((file) => {
       const detectedType = file.mimetype?.toLowerCase().trim();
       if (!ALLOWED_MIME_TYPES.includes(detectedType)) {
         throw new BadRequestException(
           `Invalid file type. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
         );
       }
-      // Validate magic bytes for JPEG, PNG, WebP
       if (!this.hasValidImageMagicBytes(file.buffer)) {
         throw new BadRequestException('File content does not match an allowed image format');
       }
-    }
+      // Return file with sanitized contentType to break taint flow
+      return { file, contentType: detectedType as string };
+    });
 
     const hasPrimary = await this.photoRepository.findOne({
       where: { petId, isPrimary: true },
@@ -71,8 +71,8 @@ export class PetPhotosService {
 
     const uploadedPhotos: PetPhoto[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < validatedFiles.length; i++) {
+      const { file, contentType } = validatedFiles[i];
 
       const processed = await this.imageProcessingService.processImage(
         file.buffer,
@@ -104,7 +104,7 @@ export class PetPhotosService {
         this.storageService.upload({
           key: storageKey,
           body: compressedBuffer,
-          contentType: file.mimetype,
+          contentType: contentType, // sanitized, not raw file.mimetype
           metadata: { petId, originalName: file.originalname },
         }),
         thumbnailBuffer

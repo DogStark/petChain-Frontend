@@ -1,21 +1,30 @@
 import * as crypto from 'crypto';
 
-// HMAC secret for token hashing — must be set in environment
-const TOKEN_HMAC_SECRET = process.env.TOKEN_HMAC_SECRET || 'change-me-in-production';
+// Fixed salt derived from env secret — scrypt provides sufficient computational effort
+const TOKEN_SALT = crypto
+  .createHash('sha256')
+  .update(process.env.TOKEN_HMAC_SECRET || 'change-me-in-production')
+  .digest('hex')
+  .slice(0, 16);
 
 export class TokenUtil {
   static generateToken(length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
 
-  /** Hash a token using HMAC-SHA256 for storage */
+  /** Hash a token using scrypt (memory-hard, sufficient computational effort) */
   static hashToken(token: string): string {
-    return crypto.createHmac('sha256', TOKEN_HMAC_SECRET).update(token).digest('hex');
+    const derived = crypto.scryptSync(token, TOKEN_SALT, 32);
+    return derived.toString('hex');
   }
 
   static verifyToken(token: string, hash: string): boolean {
-    const tokenHash = this.hashToken(token);
-    if (tokenHash.length !== hash.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
+    try {
+      const tokenHash = this.hashToken(token);
+      if (tokenHash.length !== hash.length) return false;
+      return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
+    } catch {
+      return false;
+    }
   }
 }

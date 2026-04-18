@@ -30,10 +30,11 @@ export const SECURITY_CONSTANTS = {
       /union.*select/gi,
       /exec(\s|\+)+(s|x)p\w+/gi,
     ],
+    // NOTE: These are threat DETECTION patterns only — never use for sanitization
     XSS: [
-      /<script\b[^>]*>[\s\S]*?<\/script>/gi,
+      /<script\b[^<]*<\/script>/gi,
       /\bjavascript\s*:/gi,
-      /\bon\w+\s*=/gi,
+      /\bon[a-z]{1,20}\s*=/gi,
       /<iframe\b/gi,
       /\beval\s*\(/gi,
       /\bexpression\s*\(/gi,

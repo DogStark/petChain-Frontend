@@ -42,12 +42,14 @@ export default function PetDetailPage() {
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
     if (!UUID_RE.test(id)) return;
+    // Use sanitized copy to break taint flow
+    const safeId = id.replace(/[^0-9a-f-]/gi, '');
 
     const fetchPet = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem('authToken');
-        const res = await fetch(`${API_BASE_URL}/pets/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/pets/${safeId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 

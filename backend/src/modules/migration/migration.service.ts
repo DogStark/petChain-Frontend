@@ -276,13 +276,18 @@ export class MigrationService implements OnModuleInit {
     }
     const timestamp = Date.now();
     const migrationName = `${timestamp}-${safeName}`;
-    const migrationPath = path.join(
+    const migrationsDir = path.resolve(
       process.cwd(),
       'src',
       'database',
       'migrations',
-      `${migrationName}.ts`,
     );
+    const migrationPath = path.join(migrationsDir, `${migrationName}.ts`);
+
+    // Guard against path traversal: ensure resolved path stays within migrations dir
+    if (!migrationPath.startsWith(migrationsDir + path.sep)) {
+      throw new Error('Invalid migration path');
+    }
 
     const template = `import { MigrationInterface, QueryRunner } from 'typeorm';
 

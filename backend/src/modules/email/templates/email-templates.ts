@@ -1,13 +1,21 @@
-// Safe HTML-to-text stripper: handles malformed tags and multi-char sequences
+// Safe HTML-to-text: removes all tags by iterating characters, no regex on HTML structure
 function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '') // remove tags
+  let result = '';
+  let inTag = false;
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i];
+    if (ch === '<') { inTag = true; continue; }
+    if (ch === '>') { inTag = false; result += ' '; continue; }
+    if (!inTag) result += ch;
+  }
+  return result
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
