@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NetworkSwitcher } from './NetworkSwitcher';
 import MobileNavigation from './MobileNavigation';
-import { announceToScreenReader, trapFocus, removeFocusTrap, generateId, getAriaLabel } from '../utils/accessibility';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { announceToScreenReader, trapFocus, generateId, getAriaLabel } from '../utils/accessibility';
 
 export const ResponsiveNavigation: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -146,11 +147,15 @@ export const ResponsiveNavigation: React.FC = () => {
                   Rate Us
                 </Link>
               </div>
-              <NetworkSwitcher showLabel={false} />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher showNativeName={false} />
+                <NetworkSwitcher showLabel={false} />
+              </div>
             </div>
 
             {/* Mobile menu button */}
             <div className="lg:hidden flex items-center gap-3">
+              <LanguageSwitcher variant="compact" showNativeName={false} />
               <NetworkSwitcher showLabel={false} />
               <button
                 ref={menuButtonRef}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supportedLanguages, getCurrentLanguage, changeLanguage, isRTL } from '../i18n';
+import { supportedLanguages, changeLanguage, isRTL } from '../i18n';
 
 interface LanguageSwitcherProps {
   className?: string;
@@ -18,7 +18,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const currentLang = getCurrentLanguage();
+  const currentLang = supportedLanguages.find((lang) => lang.code === i18n.language) || supportedLanguages[0];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,6 +31,20 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Close dropdown on Escape key
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
