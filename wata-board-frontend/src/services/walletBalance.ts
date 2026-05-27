@@ -1,6 +1,6 @@
 import { Horizon, Asset, Networks, StrKey } from '@stellar/stellar-sdk';
 import { requestAccess, isConnected } from '../utils/wallet-bridge';
-import { getCurrentNetworkConfig } from '../utils/network-config';
+import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 export interface BalanceInfo {
   assetCode: string;
@@ -61,12 +61,36 @@ export class WalletBalanceService {
   private balanceCache: Map<string, { balance: WalletBalance; timestamp: number }> = new Map();
   private updateCallbacks: Set<BalanceUpdateCallback> = new Set();
   private refreshInterval: NodeJS.Timeout | null = null;
-  private readonly CACHE_DURATION = 30000; // 30 seconds cache
+  private readonly CACHE_DURATION = 30000;
+  private networkChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.networkConfig = getCurrentNetworkConfig();
     const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
     this.server = new Horizon.Server(horizonUrl);
+    
+    // Listen for network changes
+    if (typeof window !== 'undefined') {
+      this.networkChangeHandler = () => {
+        this.networkConfig = getCurrentNetworkConfig();
+        const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
+        this.server = new Horizon.Server(horizonUrl);
+        this.clearCache();
+      };
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as any);
+    }
+  }
+
+  clearCache(): void {
+    this.balanceCache.clear();
+  }
+
+  getCachedBalance(publicKey: string): WalletBalance | null {
+    const cached = this.balanceCache.get(publicKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.balance;
+    }
+    return null;
   }
 
   async refreshBalance(): Promise<WalletBalance | null> {

@@ -5,7 +5,7 @@
 
 import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from '@stellar/stellar-sdk';
 import { requestAccess } from '../utils/wallet-bridge';
-import { getCurrentNetworkConfig } from '../utils/network-config';
+import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 export interface FeeEstimate {
   baseFee: number; // Base fee in stroops
@@ -26,9 +26,23 @@ export interface TransactionDetails {
 export class FeeEstimationService {
   private server: Horizon.Server;
   private networkConfig: any;
+  private networkChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.networkConfig = getCurrentNetworkConfig();
+    this.updateServer();
+    
+    // Listen for network changes
+    if (typeof window !== 'undefined') {
+      this.networkChangeHandler = () => {
+        this.networkConfig = getCurrentNetworkConfig();
+        this.updateServer();
+      };
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as any);
+    }
+  }
+
+  private updateServer(): void {
     const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
     this.server = new Horizon.Server(horizonUrl);
   }
