@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PaymentStatus,
   PaymentFrequency,
@@ -122,6 +122,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
 
   const getStatusColor = (status: PaymentStatus): string => {
     const colors = {
+      [PaymentStatus.PENDING]: 'text-slate-400 bg-slate-400/10',
       [PaymentStatus.SCHEDULED]: 'text-sky-400 bg-sky-400/10',
       [PaymentStatus.COMPLETED]: 'text-green-400 bg-green-400/10',
       [PaymentStatus.FAILED]: 'text-red-400 bg-red-400/10',
@@ -312,7 +313,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                     <div className="mt-4">
                       <p className="text-slate-400 text-sm mb-2">Recent Payments</p>
                       <div className="space-y-1">
-                        {schedule.paymentHistory.slice(-3).reverse().map((payment) => (
+                        {schedule.paymentHistory.slice(-3).reverse().map((payment: ScheduledPayment) => (
                           <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span className="text-slate-300">
                               {formatDate(payment.scheduledDate)}
