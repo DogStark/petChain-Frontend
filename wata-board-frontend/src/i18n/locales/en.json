@@ -38,9 +38,11 @@
       "amountTooLarge": "Amount is too large.",
       "insufficientBalance": "Insufficient balance. Please add more XLM to your wallet.",
       "estimatingFees": "Estimating transaction fees... Please wait.",
+      "estimationFailed": "Unable to estimate transaction fees. Please try again.",
       "paymentSuccess": "Payment successful! Transaction ID: {{id}}...",
       "paymentFailed": "Payment failed: {{error}}"
     },
+
     "feeEstimation": {
       "title": "Transaction Fee Estimation",
       "calculating": "(Calculating...)",
