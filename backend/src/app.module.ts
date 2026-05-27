@@ -57,6 +57,8 @@ import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { RedisCacheModule } from './modules/cache/cache.module';
+import { MfaModule } from './modules/mfa/mfa.module';
 
 @Module({
   imports: [
@@ -139,6 +141,8 @@ import { ObservabilityModule } from './modules/observability/observability.modul
     SmsModule,
     WebSocketModule,
     DatabaseModule,
+    RedisCacheModule,
+    MfaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
