@@ -47,3 +47,6 @@ next-env.d.ts
 
 
 bun.lock
+
+# somzilla issues file
+/somzilla.md
