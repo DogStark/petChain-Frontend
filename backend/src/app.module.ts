@@ -32,6 +32,7 @@ import { EmergencyServicesModule } from './modules/emergency-services/emergency-
 import { AppointmentWaitlistModule } from './modules/appointment-waitlist/appointment-waitlist.module';
 import { SearchModule } from './modules/search/search.module';
 import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
+import { BehaviorModule } from './behavior/behavior.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
@@ -114,6 +115,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
     AppointmentWaitlistModule,
     SearchModule,
     LostPetsModule,
+    BehaviorModule,
     AllergiesModule,
     ConditionsModule,
     AuditModule,
