@@ -47,3 +47,6 @@ next-env.d.ts
 
 
 bun.lock
+
+# Project issues file
+vrickish.md
