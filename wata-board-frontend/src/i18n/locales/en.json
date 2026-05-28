@@ -82,7 +82,13 @@
     "mainnet": "MAINNET",
     "testnet": "TESTNET",
     "switchNetwork": "Switch Network",
-    "currentNetwork": "Current Network"
+    "currentNetwork": "Current Network",
+    "switchTo": "Switch to {{network}?",
+    "mainnetWarning": "Warning: This is a production network. Real funds will be used.",
+    "testnetInfo": "You are switching to the Stellar Testnet. Transactions will use test XLM.",
+    "mainnetConfirm": "You are about to switch to the live Stellar Mainnet. Transactions will use real XLM.",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   },
   "offline": {
     "banner": {
