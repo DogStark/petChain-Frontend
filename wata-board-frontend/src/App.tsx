@@ -319,7 +319,7 @@ function Home() {
             </form>
           </div>
 
-          <footer className="mt-12 text-center text-xs text-slate-500">
+          <footer id="footer" className="mt-12 text-center text-xs text-slate-500">
             <p>© {new Date().getFullYear()} Wata-Board. {t('app.footer.tagline')}</p>
           </footer>
         </div>
