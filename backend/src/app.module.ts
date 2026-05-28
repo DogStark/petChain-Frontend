@@ -58,7 +58,8 @@ import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
-import { ZkpModule } from './modules/zkp/zkp.module';
+import { RedisCacheModule } from './modules/cache/cache.module';
+import { MfaModule } from './modules/mfa/mfa.module';
 
 @Module({
   imports: [
