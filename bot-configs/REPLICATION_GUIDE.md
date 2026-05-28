@@ -1,298 +1,158 @@
 # Bot Replication Guide
 
-## Quick Setup for All Repos
+## 1. Architecture Overview
 
-### 1. Backend Repo (petchain_api)
+PetChain uses two GitHub Actions bots for automated PR management:
 
-**Copy these files to `.github/workflows/`:**
+### PR Review Bot (`.github/workflows/pr-review-bot.yml`)
+- **Trigger:** `pull_request` events (`opened`, `synchronize`, `reopened`) targeting `main` or `develop`
+- **Permissions:** `contents: read`, `pull-requests: write`, `issues: write`
+- **What it does:**
+  1. Detects whether the PR touches `backend/` or `src/` (frontend)
+  2. Runs the appropriate checks (lint, type-check, build, tests)
+  3. Posts a structured review comment summarising pass/fail per check
+  4. Applies labels: the area label (`frontend` or `backend`) plus either `ready-for-review` (all checks passed) or `needs-work` (one or more failed)
+
+### Auto-Merge Bot (`.github/workflows/auto-merge.yml`)
+- **Trigger:** `pull_request_review` (submitted) and `check_suite` (completed)
+- **Permissions:** `contents: write`, `pull-requests: write`
+- **What it does:**
+  1. Reads the PR's review list, check-run results, labels, and draft status
+  2. Merges via squash when **all** of the following are true:
+     - ≥ 1 approval
+     - No `CHANGES_REQUESTED` reviews
+     - All check runs passed or were skipped
+     - PR is not a draft
+     - PR carries the `ready-for-review` label
+  3. Deletes the head branch after a successful merge (unless it is `main` or `develop`)
+  4. Posts a comment if auto-merge fails, so maintainers can merge manually
+
+### Interaction between the two bots
+The review bot is the gatekeeper: it only applies `ready-for-review` when checks pass. The auto-merge bot depends on that label, so it will never merge a PR that the review bot has flagged as `needs-work`.
+
+---
+
+## 2. Replicating the Setup in a Fork
+
+1. **Fork the repository** on GitHub.
+2. **Enable GitHub Actions** in your fork:
+   `Settings → Actions → General → Allow all actions and reusable workflows`
+3. **Verify `GITHUB_TOKEN` permissions** (these are the defaults for public forks, but confirm under `Settings → Actions → General → Workflow permissions`):
+   - `contents: write`
+   - `pull-requests: write`
+   - `issues: write`
+4. **No additional secrets are required.** Both bots use only `GITHUB_TOKEN`.
+5. **Create the required labels** (see Section 3) before opening any PRs.
+6. **Push a branch and open a PR** against `main` or `develop` to verify the review bot triggers and posts a comment.
+
+---
+
+## 3. Required Labels
+
+These labels must exist in the repository before the bots run. Create them with the `gh` CLI:
+
 ```bash
-cd /path/to/petchain_api
-mkdir -p .github/workflows
-
-# Copy bot files
-cp /path/to/petChain-Frontend/.github/workflows/auto-merge.yml .github/workflows/
+gh label create frontend        --color 0075ca --repo OWNER/REPO
+gh label create backend         --color e4e669 --repo OWNER/REPO
+gh label create ready-for-review --color 0e8a16 --repo OWNER/REPO
+gh label create needs-work      --color d93f0b --repo OWNER/REPO
+gh label create auto-merge      --color 1d76db --repo OWNER/REPO
+gh label create no-auto-merge   --color b60205 --repo OWNER/REPO
 ```
 
-**Create `.github/workflows/pr-review-bot.yml`:**
-```yaml
-name: PR Review Bot - Backend
+| Label | Created by | Purpose |
+|---|---|---|
+| `frontend` | PR Review Bot | Marks PR as touching frontend code |
+| `backend` | PR Review Bot | Marks PR as touching backend code |
+| `ready-for-review` | PR Review Bot | All automated checks passed |
+| `needs-work` | PR Review Bot | One or more checks failed |
+| `auto-merge` | Auto-Merge Bot | PR is being auto-merged |
+| `no-auto-merge` | Maintainer | Prevents auto-merge |
 
+---
+
+## 4. Customising the Review Bot
+
+**Changing which branches trigger the bot** (`.github/workflows/pr-review-bot.yml`):
+
+```yaml
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-
-jobs:
-  backend-review:
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: petchain_test
-        ports:
-          - 5432:5432
-    
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-    
-    - run: npm ci
-    - run: npm run lint
-      id: lint
-      continue-on-error: true
-    
-    - run: npm run test
-      id: test
-      continue-on-error: true
-    
-    - run: npm run build
-      id: build
-      continue-on-error: true
-    
-    - uses: actions/github-script@v7
-      with:
-        script: |
-          const checks = {
-            lint: '${{ steps.lint.outcome }}' === 'success',
-            test: '${{ steps.test.outcome }}' === 'success',
-            build: '${{ steps.build.outcome }}' === 'success'
-          };
-          
-          const passed = Object.values(checks).every(v => v);
-          const comment = `## 🤖 Backend Review\n\n${
-            checks.lint ? '✅' : '❌'} Linting\n${
-            checks.test ? '✅' : '❌'} Tests\n${
-            checks.build ? '✅' : '❌'} Build\n\n${
-            passed ? '✅ APPROVED' : '❌ NEEDS WORK'}`;
-          
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: comment
-          });
-          
-          await github.rest.issues.addLabels({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            labels: [passed ? 'ready-for-review' : 'needs-work']
-          });
+    branches: [main, develop, staging]  # add branches here
 ```
 
-**Commit and push:**
-```bash
-git add .github/
-git commit -m "Add PR review bot"
-git push
+**Requiring stricter test coverage:**
+
+```yaml
+- name: Backend - Run tests with coverage
+  run: npm run test:cov -- --coverageThreshold=80
+```
+
+**Adding a custom check:**
+
+```yaml
+- name: Custom check
+  id: custom-check
+  continue-on-error: true
+  run: npm run your-script
+```
+
+Then reference the outcome in the `Generate Review Comment` step:
+
+```javascript
+if ('${{ steps.custom-check.outcome }}' === 'failure') {
+  approvalStatus = false;
+  issues.push('❌ **Custom check failed**');
+}
 ```
 
 ---
 
-### 2. Smart Contracts Repo (PetMedTracka-Contracts)
+## 5. Customising Auto-Merge
 
-**Create `.github/workflows/pr-review-bot.yml`:**
-```yaml
-name: PR Review Bot - Smart Contracts
+**Requiring 2 approvals instead of 1** (`.github/workflows/auto-merge.yml`):
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-
-jobs:
-  rust-review:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-    
-    - run: cargo fmt --check
-      id: fmt
-      continue-on-error: true
-    
-    - run: cargo clippy -- -D warnings
-      id: clippy
-      continue-on-error: true
-    
-    - run: cargo test
-      id: test
-      continue-on-error: true
-    
-    - run: cargo build --release
-      id: build
-      continue-on-error: true
-    
-    - uses: actions/github-script@v7
-      with:
-        script: |
-          const checks = {
-            fmt: '${{ steps.fmt.outcome }}' === 'success',
-            clippy: '${{ steps.clippy.outcome }}' === 'success',
-            test: '${{ steps.test.outcome }}' === 'success',
-            build: '${{ steps.build.outcome }}' === 'success'
-          };
-          
-          const passed = Object.values(checks).every(v => v);
-          const comment = `## 🤖 Smart Contract Review\n\n${
-            checks.fmt ? '✅' : '❌'} Formatting\n${
-            checks.clippy ? '✅' : '❌'} Clippy\n${
-            checks.test ? '✅' : '❌'} Tests\n${
-            checks.build ? '✅' : '❌'} Build\n\n${
-            passed ? '✅ APPROVED' : '❌ NEEDS WORK'}`;
-          
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: comment
-          });
-          
-          await github.rest.issues.addLabels({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            labels: [passed ? 'ready-for-review' : 'needs-work']
-          });
+```javascript
+const hasApprovals = approvals.length >= 2;
 ```
 
-**Commit and push:**
-```bash
-git add .github/
-git commit -m "Add PR review bot for Rust"
-git push
+**Preventing auto-merge on a specific PR:**
+Add the `no-auto-merge` label to the PR. Alternatively, removing the `ready-for-review` label also prevents the auto-merge bot from triggering.
+
+**Changing merge strategy** (squash → merge commit or rebase):
+
+```javascript
+merge_method: 'merge'   // or 'rebase'
 ```
 
 ---
 
-### 3. Mobile App Repo (PetMedTracka-MobileApp)
+## 6. Troubleshooting
 
-**Create `.github/workflows/pr-review-bot.yml`:**
-```yaml
-name: PR Review Bot - Mobile
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-
-jobs:
-  mobile-review:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-    
-    - run: npm ci
-    
-    - run: npm run lint
-      id: lint
-      continue-on-error: true
-    
-    - run: npm run test
-      id: test
-      continue-on-error: true
-    
-    - run: npm run build
-      id: build
-      continue-on-error: true
-    
-    - uses: actions/github-script@v7
-      with:
-        script: |
-          const checks = {
-            lint: '${{ steps.lint.outcome }}' === 'success',
-            test: '${{ steps.test.outcome }}' === 'success',
-            build: '${{ steps.build.outcome }}' === 'success'
-          };
-          
-          const passed = Object.values(checks).every(v => v);
-          const comment = `## 🤖 Mobile App Review\n\n${
-            checks.lint ? '✅' : '❌'} Linting\n${
-            checks.test ? '✅' : '❌'} Tests\n${
-            checks.build ? '✅' : '❌'} Build\n\n${
-            passed ? '✅ APPROVED' : '❌ NEEDS WORK'}`;
-          
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: comment
-          });
-          
-          await github.rest.issues.addLabels({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            labels: [passed ? 'ready-for-review' : 'needs-work']
-          });
-```
-
-**Commit and push:**
-```bash
-git add .github/
-git commit -m "Add PR review bot"
-git push
-```
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| Bot not commenting on PR | Actions permissions not enabled | `Settings → Actions → Allow all actions` |
+| Labels not being applied | Labels don't exist in repo | Run the `gh label create` commands in Section 3 |
+| Auto-merge not triggering | `ready-for-review` label missing | Ensure review bot ran and all checks passed |
+| Auto-merge fails with 405 | Branch protection requires more approvals | Adjust protection rules or increase approval count in the workflow |
+| Bot re-reviews on every push | Expected behaviour on `synchronize` event | No action needed |
 
 ---
 
-## One-Command Setup
+## 7. Security Considerations
 
-For each repo, run:
+- Both bots use only `GITHUB_TOKEN` — no personal access tokens or external secrets are needed.
+- The review bot has `contents: read` only; it cannot push code.
+- The auto-merge bot has `contents: write` scoped to merging and branch deletion only.
+- Neither bot can access repository secrets.
+- All bot actions are logged in the **Actions** tab of the repository.
+
+---
+
+## 8. Emergency Manual Merge
+
+If auto-merge fails or is blocked:
 
 ```bash
-# Backend
-cd petchain_api
-mkdir -p .github/workflows
-# Copy the backend YAML above to .github/workflows/pr-review-bot.yml
-# Copy auto-merge.yml from frontend repo
-git add .github/ && git commit -m "Add bots" && git push
-
-# Smart Contracts
-cd PetMedTracka-Contracts
-mkdir -p .github/workflows
-# Copy the Rust YAML above to .github/workflows/pr-review-bot.yml
-# Copy auto-merge.yml from frontend repo
-git add .github/ && git commit -m "Add bots" && git push
-
-# Mobile App
-cd PetMedTracka-MobileApp
-mkdir -p .github/workflows
-# Copy the Mobile YAML above to .github/workflows/pr-review-bot.yml
-# Copy auto-merge.yml from frontend repo
-git add .github/ && git commit -m "Add bots" && git push
+gh pr merge <PR_NUMBER> --squash --repo DogStark/petChain-Frontend
 ```
-
-## Verification
-
-After pushing, check:
-1. Go to repo → Actions tab
-2. Should see workflows listed
-3. Open a test PR to verify bot works
-
-## Cost Estimate
-
-- 4 repos × 40 PRs = 160 PRs/month
-- ~5 min per PR = 800 minutes/month
-- **Still within free tier!** ✅
