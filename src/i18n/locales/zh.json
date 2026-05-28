@@ -1,0 +1,257 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "基于Stellar区块链的去中心化公用事业支付",
+    "description": "在Stellar网络上使用加密货币支付您的公用事业账单"
+  },
+  "navigation": {
+    "home": "支付账单",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "rate": "评价我们",
+    "language": "语言"
+  },
+  "payment": {
+    "form": {
+      "title": "支付信息",
+      "meterNumber": "电表编号",
+      "meterPlaceholder": "例如：METER-123",
+      "meterDescription": "请输入您账单上显示的电表编号",
+      "amount": "金额",
+      "amountPlaceholder": "整数",
+      "amountDescription": "请输入整数XLM的支付金额",
+      "payButton": "支付账单",
+      "processing": "处理中...",
+      "rateLimited": "达到限制",
+      "requiresExtension": "需要Freighter扩展。每分钟5笔交易限制。"
+    },
+    "status": {
+      "title": "状态",
+      "ready": "准备就绪。",
+      "installWallet": "请安装Freighter钱包扩展！",
+      "enterMeter": "请输入电表编号。",
+      "enterValidAmount": "请输入大于0的有效金额。",
+      "wholeNumber": "金额必须是整数。",
+      "amountTooLarge": "金额太大。",
+      "insufficientBalance": "余额不足。请向您的钱包添加更多XLM。",
+      "estimatingFees": "估算交易费用中...请稍候。",
+      "paymentSuccess": "支付成功！交易ID：{{id}}...",
+      "paymentFailed": "支付失败：{{error}}"
+    },
+    "feeEstimation": {
+      "title": "交易费用估算",
+      "calculating": "(计算中...)",
+      "calculatingFees": "计算估算费用中...",
+      "paymentAmount": "支付金额",
+      "estimatedNetworkFee": "估算网络费用",
+      "totalCost": "总成本",
+      "unableToEstimate": "目前无法估算费用"
+    },
+    "rateLimit": {
+      "title": "速率限制状态",
+      "requestsAvailable": "{{count}}/5个可用请求",
+      "rateLimited": "达到限制。{{time}}后重置",
+      "queue": "队列：{{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "钱包余额",
+      "available": "可用余额",
+      "total": "总余额",
+      "loading": "加载余额中...",
+      "error": "加载余额失败",
+      "reconnect": "请重新连接您的钱包",
+      "insufficient": "此交易余额不足",
+      "lowBalance": "低余额警告"
+    },
+    "connection": {
+      "connected": "已连接",
+      "disconnected": "已断开",
+      "connecting": "连接中...",
+      "connectWallet": "连接钱包",
+      "switchWallet": "切换钱包"
+    }
+  },
+  "network": {
+    "mainnet": "主网",
+    "testnet": "测试网",
+    "switchNetwork": "切换网络",
+    "currentNetwork": "当前网络"
+  },
+  "offline": {
+    "banner": {
+      "title": "您处于离线状态",
+      "description": "某些功能可能不可用。操作将被排队并在您重新上线时处理。",
+      "retry": "重试连接",
+      "details": "连接详情"
+    },
+    "status": {
+      "online": "在线",
+      "offline": "离线",
+      "connecting": "连接中...",
+      "queueStatus": "{{count}}个排队操作",
+      "queueStatus_plural": "{{count}}个排队操作"
+    },
+    "queue": {
+      "title": "离线队列",
+      "description": "{{count}}个操作将在您重新上线时处理",
+      "description_plural": "{{count}}个操作将在您重新上线时处理"
+    },
+    "error": {
+      "paymentOffline": "支付已排队，将在您重新上线时处理",
+      "generalOffline": "操作已排队，将在您重新上线时处理"
+    }
+  },
+  "about": {
+    "title": "关于Wata-Board",
+    "description": "Wata-Board是一个基于Stellar区块链构建的去中心化公用事业支付平台。我们使用加密货币实现安全、透明和高效的公用事业账单支付。",
+    "features": {
+      "title": "主要功能",
+      "secure": "安全交易",
+      "secureDescription": "基于Stellar区块链构建，具有企业级安全性",
+      "fast": "快速支付",
+      "fastDescription": "近乎即时的结算，交易费用低",
+      "transparent": "透明记录",
+      "transparentDescription": "所有交易都记录在公共区块链上",
+      "decentralized": "去中心化",
+      "decentralizedDescription": "没有单点故障或控制"
+    },
+    "howItWorks": {
+      "title": "工作原理",
+      "step1": "连接您的钱包",
+      "step2": "输入电表详情",
+      "step3": "确认支付",
+      "step4": "支付处理完成"
+    }
+  },
+  "contact": {
+    "title": "联系我们",
+    "description": "联系我们的团队获取支持、问题或反馈。",
+    "form": {
+      "name": "姓名",
+      "namePlaceholder": "输入您的姓名",
+      "email": "电子邮件",
+      "emailPlaceholder": "输入您的电子邮件",
+      "subject": "主题",
+      "subjectPlaceholder": "输入主题",
+      "message": "消息",
+      "messagePlaceholder": "输入您的消息",
+      "sendButton": "发送消息",
+      "sending": "发送中..."
+    },
+    "info": {
+      "email": "电子邮件",
+      "support": "支持",
+      "website": "网站"
+    }
+  },
+  "rate": {
+    "title": "评价您的体验",
+    "description": "通过评价您使用Wata-Board的体验来帮助我们改进。",
+    "rating": {
+      "excellent": "优秀",
+      "good": "良好",
+      "average": "一般",
+      "poor": "较差",
+      "terrible": "很差"
+    },
+    "review": {
+      "title": "写评论",
+      "placeholder": "分享您使用Wata-Board的体验...",
+      "submit": "提交评论",
+      "thankYou": "感谢您的反馈！"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "错误",
+      "unknown": "发生未知错误",
+      "tryAgain": "请重试",
+      "contactSupport": "如果问题持续存在，请联系支持"
+    },
+    "network": {
+      "title": "网络错误",
+      "description": "无法连接到网络",
+      "checkConnection": "请检查您的互联网连接"
+    },
+    "wallet": {
+      "title": "钱包错误",
+      "notConnected": "钱包未连接",
+      "notInstalled": "未安装Freighter钱包",
+      "installFreighter": "请安装Freighter钱包扩展"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "跳转到主要内容",
+    "skipToNavigation": "跳转到导航",
+    "menuToggle": "切换导航菜单",
+    "closeMenu": "关闭菜单",
+    "openMenu": "打开菜单",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息"
+  },
+  "common": {
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "submit": "提交",
+    "reset": "重置",
+    "clear": "清除",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "retry": "重试",
+    "refresh": "刷新",
+    "copy": "复制",
+    "copied": "已复制！",
+    "learnMore": "了解更多",
+    "viewDetails": "查看详情",
+    "hideDetails": "隐藏详情"
+  },
+  "time": {
+    "seconds": "秒",
+    "seconds_plural": "秒",
+    "minutes": "分钟",
+    "minutes_plural": "分钟",
+    "hours": "小时",
+    "hours_plural": "小时",
+    "days": "天",
+    "days_plural": "天",
+    "weeks": "周",
+    "weeks_plural": "周",
+    "months": "月",
+    "months_plural": "月",
+    "years": "年",
+    "years_plural": "年",
+    "ago": "{{time}}前",
+    "in": "{{time}}后"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "invalid": "格式无效",
+    "tooShort": "必须至少包含{{min}}个字符",
+    "tooLong": "不能超过{{max}}个字符",
+    "invalidEmail": "请输入有效的电子邮件地址",
+    "invalidNumber": "请输入有效数字",
+    "minValue": "必须至少为{{min}}",
+    "maxValue": "不能超过{{max}}"
+  }
+}
