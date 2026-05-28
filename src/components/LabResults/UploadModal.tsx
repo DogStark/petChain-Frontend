@@ -1,52 +1,68 @@
-import React, { useState } from 'react';
-import { UploadCloud, File, X, CheckCircle2 } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { UploadCloud, File, X, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface UploadModalProps {
   onClose: () => void;
 }
 
 export default function UploadModal({ onClose }: UploadModalProps) {
-  const [dragActive, setDragActive] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
+      setIsDragActive(true);
     } else if (e.type === 'dragleave') {
-      setDragActive(false);
+      setIsDragActive(false);
     }
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
-    }
-  };
+    setIsDragActive(false);
+    setError(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      const file = files[0];
+      if (file.type === 'application/pdf') {
+        setSelectedFile(file);
+      } else {
+        setError('Please upload a PDF file.');
+      }
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.type === 'application/pdf') {
+        setSelectedFile(file);
+      } else {
+        setError('Please upload a PDF file.');
+      }
     }
   };
 
   const handleUpload = () => {
-    if (!file) return;
+    if (!selectedFile) return;
     setIsUploading(true);
-    // Simulate upload delay
+    setError(null);
+
+    // Simulate upload delay and processing
     setTimeout(() => {
       setIsUploading(false);
-      setSuccess(true);
+      setIsSuccess(true);
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 2000);
     }, 1500);
   };
 
@@ -69,77 +85,117 @@ export default function UploadModal({ onClose }: UploadModalProps) {
           <X className="w-6 h-6" aria-hidden="true" />
         </button>
 
-        <h2 className="text-2xl font-bold text-blue-900 mb-2">Upload Results</h2>
+        <h2 id="upload-modal-title" className="text-2xl font-bold text-blue-900 mb-2">
+          Upload Results
+        </h2>
         <p className="text-gray-600 mb-6 text-sm">
           Upload your pet&apos;s official lab report PDF to automatically extract and store results
-          securely.
+          securely on the blockchain.
         </p>
 
-        {success ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mb-4 animate-bounce" />
-            <p className="text-lg font-semibold text-green-700">Upload Successful!</p>
-            <p className="text-sm text-gray-500 mt-2">Processing document...</p>
+        {isSuccess ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
+            <div className="p-4 bg-green-100 rounded-full mb-4">
+              <CheckCircle2 className="w-12 h-12 text-green-500" />
+            </div>
+            <p className="text-lg font-bold text-green-700">Upload Successful!</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Our AI is processing your document. Results will appear in your dashboard shortly.
+            </p>
           </div>
         ) : (
-          <>
-            <form
+          <div className="space-y-4">
+            <div
               onDragEnter={handleDrag}
-              onSubmit={(e) => e.preventDefault()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-                dragActive
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-              }`}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-200 ${
+                isDragActive
+                  ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                  : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+              } ${error ? 'border-red-300 bg-red-50' : ''}`}
             >
               <input
                 type="file"
                 accept=".pdf"
-                className="hidden"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 id="file-upload"
-                onChange={handleChange}
+                onChange={handleFileChange}
+                disabled={isUploading}
               />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center justify-center h-full"
-              >
-                {file ? (
-                  <div className="flex items-center gap-3 text-blue-700">
-                    <File className="w-8 h-8" />
-                    <span className="font-medium truncate max-w-[200px]">{file.name}</span>
+              <div className="flex flex-col items-center justify-center">
+                {selectedFile ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                      <File className="w-10 h-10" />
+                    </div>
+                    <span className="font-semibold text-blue-900 truncate max-w-[240px]">
+                      {selectedFile.name}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
                   </div>
                 ) : (
                   <>
-                    <UploadCloud className="w-12 h-12 text-blue-400 mb-4" />
-                    <p className="text-gray-700 font-medium mb-1">Drag & drop your PDF here</p>
-                    <p className="text-gray-500 text-sm">or click to browse files</p>
+                    <div className="p-4 bg-white rounded-2xl shadow-sm mb-4">
+                      <UploadCloud className="w-10 h-10 text-blue-500" />
+                    </div>
+                    <p className="text-gray-700 font-bold mb-1">Drag & drop your PDF</p>
+                    <p className="text-gray-400 text-xs uppercase tracking-widest font-semibold">
+                      or click to browse
+                    </p>
                   </>
                 )}
-              </label>
+              </div>
+            </div>
 
-              {dragActive && (
-                <div
-                  className="absolute inset-0 rounded-2xl"
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                />
-              )}
-            </form>
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-100">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
 
             <button
-              disabled={!file || isUploading}
+              disabled={!selectedFile || isUploading}
               onClick={handleUpload}
-              className={`w-full mt-6 py-3 rounded-full font-bold text-white transition-all shadow-md ${
-                !file || isUploading
-                  ? 'bg-blue-300 cursor-not-allowed'
+              className={`w-full mt-2 py-4 rounded-2xl font-bold text-white transition-all shadow-md active:scale-[0.98] transform ${
+                !selectedFile || isUploading
+                  ? 'bg-blue-200 cursor-not-allowed shadow-none'
                   : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
               }`}
             >
-              {isUploading ? 'Uploading...' : 'Confirm Upload'}
+              {isUploading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Uploading...
+                </span>
+              ) : (
+                'Confirm & Analyze Report'
+              )}
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>
