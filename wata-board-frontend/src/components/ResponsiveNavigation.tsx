@@ -145,11 +145,15 @@ export const ResponsiveNavigation: React.FC = () => {
                   Rate Us
                 </Link>
               </div>
-              <NetworkSwitcher showLabel={false} />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher showNativeName={false} />
+                <NetworkSwitcher showLabel={false} />
+              </div>
             </div>
 
             {/* Mobile menu button */}
             <div className="lg:hidden flex items-center gap-3">
+              <LanguageSwitcher variant="compact" showNativeName={false} />
               <NetworkSwitcher showLabel={false} />
               <button
                 ref={menuButtonRef}
