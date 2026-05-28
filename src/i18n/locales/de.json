@@ -1,0 +1,257 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Dezentralisierte Versorgungsunternehmenzahlungen auf der Stellar-Blockchain",
+    "description": "Bezahlen Sie Ihre Versorgerrechnungen mit Kryptowährung auf dem Stellar-Netzwerk"
+  },
+  "navigation": {
+    "home": "Rechnung Bezahlen",
+    "about": "Über Uns",
+    "contact": "Kontakt",
+    "rate": "Bewerten Sie Uns",
+    "language": "Sprache"
+  },
+  "payment": {
+    "form": {
+      "title": "Zahlungsinformationen",
+      "meterNumber": "Zählernummer",
+      "meterPlaceholder": "z.B. ZÄHLER-123",
+      "meterDescription": "Geben Sie Ihre Versorgerzählernummer wie auf Ihrer Rechnung angegeben ein",
+      "amount": "Betrag",
+      "amountPlaceholder": "Ganzzahl",
+      "amountDescription": "Geben Sie den Zahlungsbetrag in ganzer XLM ein",
+      "payButton": "Rechnung bezahlen",
+      "processing": "Verarbeitung...",
+      "rateLimited": "Limit Erreicht",
+      "requiresExtension": "Benötigt Freighter-Erweiterung. Limit von 5 Transaktionen pro Minute."
+    },
+    "status": {
+      "title": "Status",
+      "ready": "Bereit.",
+      "installWallet": "Bitte installieren Sie die Freighter Wallet-Erweiterung!",
+      "enterMeter": "Bitte geben Sie eine Zählernummer ein.",
+      "enterValidAmount": "Bitte geben Sie einen gültigen Betrag größer als 0 ein.",
+      "wholeNumber": "Der Betrag muss eine Ganzzahl sein.",
+      "amountTooLarge": "Der Betrag ist zu groß.",
+      "insufficientBalance": "Unzureichendes Guthaben. Bitte fügen Sie mehr XLM zu Ihrer Wallet hinzu.",
+      "estimatingFees": "Schätzung der Transaktionsgebühren... Bitte warten.",
+      "paymentSuccess": "Zahlung erfolgreich! Transaktions-ID: {{id}}...",
+      "paymentFailed": "Zahlung fehlgeschlagen: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "Transaktionsgebühren-Schätzung",
+      "calculating": "(Berechnen...)",
+      "calculatingFees": "Berechnung der geschätzten Gebühren...",
+      "paymentAmount": "Zahlungsbetrag",
+      "estimatedNetworkFee": "Geschätzte Netzwerkgebühr",
+      "totalCost": "Gesamtkosten",
+      "unableToEstimate": "Gebühren können derzeit nicht geschätzt werden"
+    },
+    "rateLimit": {
+      "title": "Ratenlimit-Status",
+      "requestsAvailable": "{{count}}/5 Anfragen verfügbar",
+      "rateLimited": "Limit erreicht. Zurücksetzung in {{time}}",
+      "queue": "Warteschlange: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "Wallet-Guthaben",
+      "available": "Verfügbares Guthaben",
+      "total": "Gesamtguthaben",
+      "loading": "Guthaben wird geladen...",
+      "error": "Fehler beim Laden des Guthabens",
+      "reconnect": "Bitte verbinden Sie Ihre Wallet erneut",
+      "insufficient": "Unzureichendes Guthaben für diese Transaktion",
+      "lowBalance": "Niedriges Guthaben Warnung"
+    },
+    "connection": {
+      "connected": "Verbunden",
+      "disconnected": "Getrennt",
+      "connecting": "Verbinden...",
+      "connectWallet": "Wallet Verbinden",
+      "switchWallet": "Wallet Wechseln"
+    }
+  },
+  "network": {
+    "mainnet": "HAUPTNETZ",
+    "testnet": "TESTNETZ",
+    "switchNetwork": "Netzwerk Wechseln",
+    "currentNetwork": "Aktuelles Netzwerk"
+  },
+  "offline": {
+    "banner": {
+      "title": "Sie sind offline",
+      "description": "Einige Funktionen sind möglicherweise nicht verfügbar. Aktionen werden in die Warteschlange gestellt und verarbeitet, wenn Sie wieder online sind.",
+      "retry": "Verbindung Wiederherstellen",
+      "details": "Verbindungsdetails"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "connecting": "Verbinden...",
+      "queueStatus": "{{count}} Aktion in Warteschlange",
+      "queueStatus_plural": "{{count}} Aktionen in Warteschlange"
+    },
+    "queue": {
+      "title": "Offline-Warteschlange",
+      "description": "{{count}} Aktion wird verarbeitet, wenn Sie wieder online sind",
+      "description_plural": "{{count}} Aktionen werden verarbeitet, wenn Sie wieder online sind"
+    },
+    "error": {
+      "paymentOffline": "Zahlung in Warteschlange für wenn Sie wieder online sind",
+      "generalOffline": "Aktion in Warteschlange für wenn Sie wieder online sind"
+    }
+  },
+  "about": {
+    "title": "Über Wata-Board",
+    "description": "Wata-Board ist eine dezentralisierte Versorgerzahlungsplattform, die auf der Stellar-Blockchain aufgebaut ist. Wir ermöglichen sichere, transparente und effiziente Versorgerrechnungszahlungen mit Kryptowährung.",
+    "features": {
+      "title": "Hauptfunktionen",
+      "secure": "Sichere Transaktionen",
+      "secureDescription": "Aufgebaut auf der Stellar-Blockchain mit unternehmenssicherer Sicherheit",
+      "fast": "Schnelle Zahlungen",
+      "fastDescription": "Nahezu sofortige Abwicklung mit niedrigen Transaktionsgebühren",
+      "transparent": "Transparente Aufzeichnungen",
+      "transparentDescription": "Alle Transaktionen werden auf der öffentlichen Blockchain aufgezeichnet",
+      "decentralized": "Dezentralisiert",
+      "decentralizedDescription": "Kein einzelner Ausfallpunkt oder Kontrollpunkt"
+    },
+    "howItWorks": {
+      "title": "Wie Es Funktioniert",
+      "step1": "Verbinden Sie Ihre Wallet",
+      "step2": "Zählerdetails eingeben",
+      "step3": "Zahlung bestätigen",
+      "step4": "Zahlung verarbeitet"
+    }
+  },
+  "contact": {
+    "title": "Kontaktieren Sie Uns",
+    "description": "Kontaktieren Sie unser Team für Support, Fragen oder Feedback.",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "Geben Sie Ihren Namen ein",
+      "email": "E-Mail",
+      "emailPlaceholder": "Geben Sie Ihre E-Mail ein",
+      "subject": "Betreff",
+      "subjectPlaceholder": "Betreff eingeben",
+      "message": "Nachricht",
+      "messagePlaceholder": "Geben Sie Ihre Nachricht ein",
+      "sendButton": "Nachricht Senden",
+      "sending": "Senden..."
+    },
+    "info": {
+      "email": "E-Mail",
+      "support": "Support",
+      "website": "Website"
+    }
+  },
+  "rate": {
+    "title": "Bewerten Sie Ihre Erfahrung",
+    "description": "Helfen Sie uns uns zu verbessern, indem Sie Ihre Erfahrung mit Wata-Board bewerten.",
+    "rating": {
+      "excellent": "Ausgezeichnet",
+      "good": "Gut",
+      "average": "Durchschnittlich",
+      "poor": "Schlecht",
+      "terrible": "Schrecklich"
+    },
+    "review": {
+      "title": "Bewertung Schreiben",
+      "placeholder": "Teilen Sie Ihre Erfahrung mit Wata-Board...",
+      "submit": "Bewertung Einreichen",
+      "thankYou": "Vielen Dank für Ihr Feedback!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "Fehler",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten",
+      "tryAgain": "Bitte versuchen Sie es erneut",
+      "contactSupport": "Kontaktieren Sie den Support, wenn das Problem weiterhin besteht"
+    },
+    "network": {
+      "title": "Netzwerkfehler",
+      "description": "Keine Verbindung zum Netzwerk möglich",
+      "checkConnection": "Bitte überprüfen Sie Ihre Internetverbindung"
+    },
+    "wallet": {
+      "title": "Wallet-Fehler",
+      "notConnected": "Wallet nicht verbunden",
+      "notInstalled": "Freighter Wallet nicht installiert",
+      "installFreighter": "Bitte installieren Sie die Freighter Wallet-Erweiterung"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "Zum Hauptinhalt springen",
+    "skipToNavigation": "Zur Navigation springen",
+    "menuToggle": "Navigationsmenü umschalten",
+    "closeMenu": "Menü schließen",
+    "openMenu": "Menü öffnen",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "warning": "Warnung",
+    "info": "Information"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "submit": "Einreichen",
+    "reset": "Zurücksetzen",
+    "clear": "Löschen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "sort": "Sortieren",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "retry": "Wiederholen",
+    "refresh": "Aktualisieren",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "learnMore": "Mehr Erfahren",
+    "viewDetails": "Details Anzeigen",
+    "hideDetails": "Details Ausblenden"
+  },
+  "time": {
+    "seconds": "Sekunde",
+    "seconds_plural": "Sekunden",
+    "minutes": "Minute",
+    "minutes_plural": "Minuten",
+    "hours": "Stunde",
+    "hours_plural": "Stunden",
+    "days": "Tag",
+    "days_plural": "Tage",
+    "weeks": "Woche",
+    "weeks_plural": "Wochen",
+    "months": "Monat",
+    "months_plural": "Monate",
+    "years": "Jahr",
+    "years_plural": "Jahre",
+    "ago": "vor {{time}}",
+    "in": "in {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalid": "Ungültiges Format",
+    "tooShort": "Muss mindestens {{min}} Zeichen enthalten",
+    "tooLong": "Darf nicht mehr als {{max}} Zeichen enthalten",
+    "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "invalidNumber": "Bitte geben Sie eine gültige Zahl ein",
+    "minValue": "Muss mindestens {{min}} sein",
+    "maxValue": "Darf nicht mehr als {{max}} sein"
+  }
+}

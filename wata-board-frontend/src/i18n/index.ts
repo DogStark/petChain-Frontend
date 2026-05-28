@@ -137,6 +137,16 @@ export const isRTL = (languageCode?: string) => {
   return getTextDirection(langCode) === 'rtl';
 };
 
+// Ensure initial document direction and language are set for detected locale
+const initializeDocumentLanguage = () => {
+  const currentLangInfo = supportedLanguages.find((lang) => lang.code === i18n.language) || supportedLanguages[0];
+  document.documentElement.lang = currentLangInfo.code;
+  document.documentElement.dir = currentLangInfo.dir;
+};
+
+initializeDocumentLanguage();
+i18n.on('languageChanged', initializeDocumentLanguage);
+
 // Helper function to format numbers with locale
 export const formatNumber = (number: number, options?: Intl.NumberFormatOptions) => {
   const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language;

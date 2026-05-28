@@ -5,6 +5,9 @@
 
 import { Horizon, BASE_FEE } from '@stellar/stellar-sdk';
 import { getCurrentNetworkConfig } from '../utils/network-config';
+import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from '@stellar/stellar-sdk';
+import { requestAccess } from '../utils/wallet-bridge';
+import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 const STROOPS_PER_XLM = 10_000_000;
 const CACHE_TTL_MS = 10_000; // 10 second TTL
@@ -41,6 +44,25 @@ export class FeeEstimationService {
   constructor() {
     const config = getCurrentNetworkConfig();
     const horizonUrl = config.rpcUrl.replace('soroban', 'horizon');
+  private networkConfig: any;
+  private networkChangeHandler: (() => void) | null = null;
+
+  constructor() {
+    this.networkConfig = getCurrentNetworkConfig();
+    this.updateServer();
+    
+    // Listen for network changes
+    if (typeof window !== 'undefined') {
+      this.networkChangeHandler = () => {
+        this.networkConfig = getCurrentNetworkConfig();
+        this.updateServer();
+      };
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as any);
+    }
+  }
+
+  private updateServer(): void {
+    const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
     this.server = new Horizon.Server(horizonUrl);
   }
 
@@ -119,4 +141,5 @@ export class FeeEstimationService {
 }
 
 export const feeEstimationService = new FeeEstimationService();
+export default feeEstimationService;
 export default feeEstimationService;
