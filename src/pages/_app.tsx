@@ -1,7 +1,9 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import type { NextWebVitalsMetric } from "next/app";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import Router from "next/router";
+import type { NextPage } from "next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -14,6 +16,16 @@ import {
 } from "@/components/PWAInstallPrompt";
 import ToastContainer from "@/components/Notifications/ToastContainer";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
+
+export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout;
+};
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
@@ -44,7 +56,7 @@ function PWAManager() {
   );
 }
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps }: AppPropsWithLayout) {
   // Register service worker on mount
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -59,17 +71,36 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, []);
 
+  // Global Pageview Analytics Event Tracker
+  useEffect(() => {
+    const handleRouteChange = (url: string) => {
+      // eslint-disable-next-line no-console
+      console.log(`[Analytics] Pageview tracked for: ${url}`);
+    };
+    Router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      Router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, []);
+
+  // Use the layout defined at the page level, or fallback to returning the page directly
+  const getLayout = Component.getLayout ?? ((page) => page);
+
   return (
     <I18nProvider>
     <AuthProvider>
       <ThemeProvider>
         <NotificationProvider>
-          <PWAManager />
-          {/* Global toast queue */}
-          <ToastContainer />
-          {/* Slide-in notification center */}
-          <NotificationCenter />
-          <Component {...pageProps} />
+          <ErrorBoundary>
+            <PWAManager />
+            {/* Custom high-performance route transition feedback */}
+            <RouteProgressBar />
+            {/* Global toast queue */}
+            <ToastContainer />
+            {/* Slide-in notification center */}
+            <NotificationCenter />
+            {getLayout(<Component {...pageProps} />)}
+          </ErrorBoundary>
         </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
