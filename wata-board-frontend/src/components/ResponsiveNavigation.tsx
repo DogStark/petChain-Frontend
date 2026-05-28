@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NetworkSwitcher } from './NetworkSwitcher';
 import MobileNavigation from './MobileNavigation';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { announceToScreenReader, trapFocus, generateId, getAriaLabel } from '../utils/accessibility';
 
 export const ResponsiveNavigation: React.FC = () => {
@@ -12,7 +11,6 @@ export const ResponsiveNavigation: React.FC = () => {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  const navigationId = useRef(generateId('navigation'));
   const menuButtonId = useRef(generateId('menu-button'));
 
   const isActive = (path: string) => {
@@ -96,7 +94,7 @@ export const ResponsiveNavigation: React.FC = () => {
         className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-sm sticky top-0 z-40"
         role="navigation"
         aria-label="Main navigation"
-        id={navigationId.current}
+        id="navigation"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -163,7 +161,7 @@ export const ResponsiveNavigation: React.FC = () => {
                 className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                 aria-label={getAriaLabel('menu-button')}
                 aria-expanded={isMobileMenuOpen}
-                aria-controls={navigationId.current}
+                aria-controls="navigation"
                 id={menuButtonId.current}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

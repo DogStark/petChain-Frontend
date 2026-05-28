@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScheduledPaymentsList } from '../components/ScheduledPaymentsList';
 import { SchedulePaymentForm } from '../components/SchedulePaymentForm';
 import type { PaymentSchedule } from '../types/scheduling';

@@ -1,0 +1,257 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Paiements de services publics décentralisés sur la blockchain Stellar",
+    "description": "Payez vos factures de services publics en utilisant la cryptomonnaie sur le réseau Stellar"
+  },
+  "navigation": {
+    "home": "Payer Facture",
+    "about": "À Propos",
+    "contact": "Contact",
+    "rate": "Nous Noter",
+    "language": "Langue"
+  },
+  "payment": {
+    "form": {
+      "title": "Informations de Paiement",
+      "meterNumber": "Numéro de compteur",
+      "meterPlaceholder": "ex. COMPTEUR-123",
+      "meterDescription": "Entrez votre numéro de compteur de services comme indiqué sur votre facture",
+      "amount": "Montant",
+      "amountPlaceholder": "Nombre entier",
+      "amountDescription": "Entrez le montant du paiement en XLM entier",
+      "payButton": "Payer facture",
+      "processing": "Traitement...",
+      "rateLimited": "Limite Atteinte",
+      "requiresExtension": "Nécessite l'extension Freighter. Limite de 5 transactions par minute."
+    },
+    "status": {
+      "title": "Statut",
+      "ready": "Prêt.",
+      "installWallet": "Veuillez installer l'extension Freighter Wallet !",
+      "enterMeter": "Veuillez entrer un numéro de compteur.",
+      "enterValidAmount": "Veuillez entrer un montant valide supérieur à 0.",
+      "wholeNumber": "Le montant doit être un nombre entier.",
+      "amountTooLarge": "Le montant est trop élevé.",
+      "insufficientBalance": "Solde insuffisant. Veuillez ajouter plus de XLM à votre portefeuille.",
+      "estimatingFees": "Estimation des frais de transaction... Veuillez patienter.",
+      "paymentSuccess": "Paiement réussi ! ID de transaction : {{id}}...",
+      "paymentFailed": "Paiement échoué : {{error}}"
+    },
+    "feeEstimation": {
+      "title": "Estimation des Frais de Transaction",
+      "calculating": "(Calcul...)",
+      "calculatingFees": "Calcul des frais estimés...",
+      "paymentAmount": "Montant du Paiement",
+      "estimatedNetworkFee": "Frais de Réseau Estimés",
+      "totalCost": "Coût Total",
+      "unableToEstimate": "Impossible d'estimer les frais pour le moment"
+    },
+    "rateLimit": {
+      "title": "Statut de Limite de Taux",
+      "requestsAvailable": "{{count}}/5 requêtes disponibles",
+      "rateLimited": "Limite atteinte. Réinitialisation dans {{time}}",
+      "queue": "File d'attente : {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "Solde du Portefeuille",
+      "available": "Solde Disponible",
+      "total": "Solde Total",
+      "loading": "Chargement du solde...",
+      "error": "Échec du chargement du solde",
+      "reconnect": "Veuillez reconnecter votre portefeuille",
+      "insufficient": "Solde insuffisant pour cette transaction",
+      "lowBalance": "Avertissement de solde faible"
+    },
+    "connection": {
+      "connected": "Connecté",
+      "disconnected": "Déconnecté",
+      "connecting": "Connexion...",
+      "connectWallet": "Connecter Portefeuille",
+      "switchWallet": "Changer Portefeuille"
+    }
+  },
+  "network": {
+    "mainnet": "RÉSEAU PRINCIPAL",
+    "testnet": "RÉSEAU DE TEST",
+    "switchNetwork": "Changer Réseau",
+    "currentNetwork": "Réseau Actuel"
+  },
+  "offline": {
+    "banner": {
+      "title": "Vous êtes hors ligne",
+      "description": "Certaines fonctionnalités peuvent ne pas être disponibles. Les actions seront mises en file d'attente et traitées lorsque vous serez de nouveau en ligne.",
+      "retry": "Réessayer la Connexion",
+      "details": "Détails de Connexion"
+    },
+    "status": {
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "connecting": "Connexion...",
+      "queueStatus": "{{count}} action en file d'attente",
+      "queueStatus_plural": "{{count}} actions en file d'attente"
+    },
+    "queue": {
+      "title": "File d'Attente Hors Ligne",
+      "description": "{{count}} action sera traitée lorsque vous serez de nouveau en ligne",
+      "description_plural": "{{count}} actions seront traitées lorsque vous serez de nouveau en ligne"
+    },
+    "error": {
+      "paymentOffline": "Paiement en file d'attente pour lorsque vous serez de nouveau en ligne",
+      "generalOffline": "Action en file d'attente pour lorsque vous serez de nouveau en ligne"
+    }
+  },
+  "about": {
+    "title": "À Propos de Wata-Board",
+    "description": "Wata-Board est une plateforme de paiement de services publics décentralisée construite sur la blockchain Stellar. Nous permettons des paiements de factures de services sécurisés, transparents et efficaces en utilisant la cryptomonnaie.",
+    "features": {
+      "title": "Caractéristiques Clés",
+      "secure": "Transactions Sécurisées",
+      "secureDescription": "Construit sur la blockchain Stellar avec une sécurité de niveau entreprise",
+      "fast": "Paiements Rapides",
+      "fastDescription": "Règlement quasi instantané avec des frais de transaction bas",
+      "transparent": "Registres Transparents",
+      "transparentDescription": "Toutes les transactions sont enregistrées sur la blockchain publique",
+      "decentralized": "Décentralisé",
+      "decentralizedDescription": "Aucun point unique de défaillance ou de contrôle"
+    },
+    "howItWorks": {
+      "title": "Comment Ça Marche",
+      "step1": "Connectez votre portefeuille",
+      "step2": "Entrez les détails du compteur",
+      "step3": "Confirmez le paiement",
+      "step4": "Paiement traité"
+    }
+  },
+  "contact": {
+    "title": "Contactez-nous",
+    "description": "Contactez notre équipe pour du support, des questions ou des commentaires.",
+    "form": {
+      "name": "Nom",
+      "namePlaceholder": "Entrez votre nom",
+      "email": "Email",
+      "emailPlaceholder": "Entrez votre email",
+      "subject": "Sujet",
+      "subjectPlaceholder": "Entrez le sujet",
+      "message": "Message",
+      "messagePlaceholder": "Entrez votre message",
+      "sendButton": "Envoyer Message",
+      "sending": "Envoi..."
+    },
+    "info": {
+      "email": "Email",
+      "support": "Support",
+      "website": "Site web"
+    }
+  },
+  "rate": {
+    "title": "Notez Votre Expérience",
+    "description": "Aidez-nous à nous améliorer en notant votre expérience avec Wata-Board.",
+    "rating": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "average": "Moyen",
+      "poor": "Mauvais",
+      "terrible": "Terrible"
+    },
+    "review": {
+      "title": "Écrire un Avis",
+      "placeholder": "Partagez votre expérience avec Wata-Board...",
+      "submit": "Soumettre Avis",
+      "thankYou": "Merci pour vos commentaires !"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "Erreur",
+      "unknown": "Une erreur inconnue s'est produite",
+      "tryAgain": "Veuillez réessayer",
+      "contactSupport": "Contactez le support si le problème persiste"
+    },
+    "network": {
+      "title": "Erreur Réseau",
+      "description": "Impossible de se connecter au réseau",
+      "checkConnection": "Veuillez vérifier votre connexion internet"
+    },
+    "wallet": {
+      "title": "Erreur de Portefeuille",
+      "notConnected": "Portefeuille non connecté",
+      "notInstalled": "Portefeuille Freighter non installé",
+      "installFreighter": "Veuillez installer l'extension de portefeuille Freighter"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "Aller au contenu principal",
+    "skipToNavigation": "Aller à la navigation",
+    "menuToggle": "Basculer le menu de navigation",
+    "closeMenu": "Fermer le menu",
+    "openMenu": "Ouvrir le menu",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Sauvegarder",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "reset": "Réinitialiser",
+    "clear": "Effacer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "retry": "Réessayer",
+    "refresh": "Actualiser",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "learnMore": "En Savoir Plus",
+    "viewDetails": "Voir Détails",
+    "hideDetails": "Masquer Détails"
+  },
+  "time": {
+    "seconds": "seconde",
+    "seconds_plural": "secondes",
+    "minutes": "minute",
+    "minutes_plural": "minutes",
+    "hours": "heure",
+    "hours_plural": "heures",
+    "days": "jour",
+    "days_plural": "jours",
+    "weeks": "semaine",
+    "weeks_plural": "semaines",
+    "months": "mois",
+    "months_plural": "mois",
+    "years": "an",
+    "years_plural": "ans",
+    "ago": "il y a {{time}}",
+    "in": "dans {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "invalid": "Format invalide",
+    "tooShort": "Doit contenir au moins {{min}} caractères",
+    "tooLong": "Ne doit pas dépasser {{max}} caractères",
+    "invalidEmail": "Veuillez entrer une adresse email valide",
+    "invalidNumber": "Veuillez entrer un nombre valide",
+    "minValue": "Doit être au moins {{min}}",
+    "maxValue": "Ne doit pas dépasser {{max}}"
+  }
+}

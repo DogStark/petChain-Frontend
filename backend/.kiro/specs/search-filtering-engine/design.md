@@ -507,3 +507,11 @@ Integration tests (using `@nestjs/testing` + a test PostgreSQL instance) cover:
 - Geospatial distance filtering with known coordinate fixtures
 - Analytics record creation after a search
 - Reindex endpoint with a small fixture dataset
+
+---
+
+## Revision History
+
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | 2026-05-27 | PetChain Team | Initial design document — architecture diagrams, component interaction flows, database schema design, API endpoint design, caching strategy, performance optimization approach, and security considerations |

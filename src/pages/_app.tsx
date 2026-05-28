@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { I18nProvider } from "@/i18n";
 import { usePWA } from "@/hooks/usePWA";
 import {
   PWAInstallPrompt,
@@ -59,6 +60,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
+    <I18nProvider>
     <AuthProvider>
       <ThemeProvider>
         <NotificationProvider>
@@ -71,6 +73,7 @@ export default function App({ Component, pageProps }: AppProps) {
         </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
+    </I18nProvider>
   );
 }
 
