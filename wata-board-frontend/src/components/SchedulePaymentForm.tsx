@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PaymentFrequency,
 } from '../types/scheduling';
@@ -99,7 +100,7 @@ export function SchedulePaymentForm({
     return service.validateSchedule(formData);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const validationResult = validateForm();
