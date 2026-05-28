@@ -1,6 +1,6 @@
-// PetChain Service Worker — Cache-first for assets, network-first for API
-const CACHE_NAME = "petchain-v1";
-const STATIC_ASSETS = ["/", "/favicon.ico"];
+// PetChain Service Worker — Offline-first with IndexedDB sync
+const CACHE_NAME = "petchain-v2";
+const STATIC_ASSETS = ["/", "/favicon.ico", "/offline"];
 
 // ── Install: pre-cache essential assets ──
 self.addEventListener("install", (event) => {
@@ -25,6 +25,27 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// ── Background Sync: flush offline queue when connection restores ──
+self.addEventListener("sync", (event) => {
+  if (event.tag === "flush-sync-queue") {
+    event.waitUntil(flushSyncQueue());
+  }
+});
+
+async function flushSyncQueue() {
+  const clients = await self.clients.matchAll();
+  clients.forEach((client) => {
+    client.postMessage({ type: "BACKGROUND_SYNC_TRIGGERED" });
+  });
+}
+
+// ── Message handling ──
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // ── Fetch: strategy per request type ──
 self.addEventListener("fetch", (event) => {
   const { request } = event;
@@ -35,7 +56,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for API calls
+  // Stale-while-revalidate for pet profile and medical data APIs
+  if (url.pathname.startsWith("/api/v1/pets") || url.pathname.startsWith("/api/v1/medical")) {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  // Network-first for other API calls
   if (url.pathname.startsWith("/api")) {
     event.respondWith(networkFirst(request));
     return;
@@ -79,4 +106,24 @@ async function networkFirst(request) {
     const cached = await caches.match(request);
     return cached || new Response("", { status: 408, statusText: "Offline" });
   }
+}
+
+async function staleWhileRevalidate(request) {
+  const cached = await caches.match(request);
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      const cache = caches.open(CACHE_NAME);
+      cache.then((c) => c.put(request, response.clone()));
+    }
+    return response;
+  }).catch(() => cached);
+
+  // Return cached immediately if available, otherwise wait for network
+  if (cached) {
+    // Don't block on the network update
+    fetchPromise.catch(() => {});
+    return cached;
+  }
+
+  return fetchPromise;
 }
