@@ -1,6 +1,6 @@
-//import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import OfflineStatusIndicator from '@/components/OfflineStatusIndicator';
 import Link from 'next/link';
 
 export default function HeaderComponent() {
@@ -57,6 +57,7 @@ export default function HeaderComponent() {
               </>
             )}
             <li><ThemeToggle /></li>
+            <li><OfflineStatusIndicator /></li>
           </ul>
         </nav>
       </div>

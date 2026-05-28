@@ -48,5 +48,5 @@ next-env.d.ts
 
 bun.lock
 
-# somzilla issues file
-/somzilla.md
+# Project issues file
+vrickish.md

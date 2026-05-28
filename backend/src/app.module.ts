@@ -32,6 +32,7 @@ import { EmergencyServicesModule } from './modules/emergency-services/emergency-
 import { AppointmentWaitlistModule } from './modules/appointment-waitlist/appointment-waitlist.module';
 import { SearchModule } from './modules/search/search.module';
 import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
+import { BehaviorModule } from './behavior/behavior.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
 
@@ -57,6 +58,8 @@ import { SmsModule } from './modules/sms/sms.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { RedisCacheModule } from './modules/cache/cache.module';
+import { MfaModule } from './modules/mfa/mfa.module';
 
 @Module({
   imports: [
@@ -114,6 +117,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
     AppointmentWaitlistModule,
     SearchModule,
     LostPetsModule,
+    BehaviorModule,
     AllergiesModule,
     ConditionsModule,
     AuditModule,
@@ -139,6 +143,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
     SmsModule,
     WebSocketModule,
     DatabaseModule,
+    ZkpModule,
   ],
   controllers: [AppController],
   providers: [AppService],
