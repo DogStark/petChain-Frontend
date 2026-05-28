@@ -17,6 +17,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Rate from './pages/Rate';
 import ScheduledPayments from './pages/ScheduledPayments';
+import DentalRecords from './pages/DentalRecords';
 import { WalletBalance } from './components/WalletBalance';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useFeeEstimation } from './hooks/useFeeEstimation';
@@ -358,6 +359,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/rate" element={<Rate />} />
             <Route path="/schedules" element={<ScheduledPayments />} />
+            <Route path="/dental" element={<DentalRecords />} />
           </Routes>
         </div>
       </OfflineErrorBoundary>
