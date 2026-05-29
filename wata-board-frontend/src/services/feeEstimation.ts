@@ -4,9 +4,6 @@
  */
 
 import { Horizon, BASE_FEE } from '@stellar/stellar-sdk';
-import { getCurrentNetworkConfig } from '../utils/network-config';
-import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from '@stellar/stellar-sdk';
-import { requestAccess } from '../utils/wallet-bridge';
 import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 const STROOPS_PER_XLM = 10_000_000;
@@ -38,12 +35,8 @@ export const stroopsToXLM = (stroops: number): number => stroops / STROOPS_PER_X
 export const xlmToStroops = (xlm: number): number => Math.floor(xlm * STROOPS_PER_XLM);
 
 export class FeeEstimationService {
-  private server: Horizon.Server;
+  private server!: Horizon.Server;
   private cache: FeeCache | null = null;
-
-  constructor() {
-    const config = getCurrentNetworkConfig();
-    const horizonUrl = config.rpcUrl.replace('soroban', 'horizon');
   private networkConfig: any;
   private networkChangeHandler: (() => void) | null = null;
 
@@ -141,5 +134,4 @@ export class FeeEstimationService {
 }
 
 export const feeEstimationService = new FeeEstimationService();
-export default feeEstimationService;
 export default feeEstimationService;

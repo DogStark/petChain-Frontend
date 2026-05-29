@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Server, Networks, TransactionBuilder, Operation, BASE_FEE } from '@stellar/stellar-sdk';
+import Server, { Networks, TransactionBuilder, Operation, BASE_FEE, Contract, Account, Address, Asset, nativeToScVal } from '@stellar/stellar-sdk';
 import { isConnected, requestAccess, signTransaction } from "@stellar/freighter-api";
 import { getCurrentNetworkConfig } from '../utils/network-config';
 
@@ -58,10 +58,11 @@ export const useRating = (): RatingHookReturn => {
       }
 
       // Get user's public key
-      const publicKey = await requestAccess();
-      if (!publicKey) {
+      const keyResult = await requestAccess();
+      if (!keyResult || !keyResult.address) {
         throw new Error('Could not get wallet access');
       }
+      const publicKey = keyResult.address;
 
       // Load user account
       const account = await server.loadAccount(publicKey);
@@ -75,11 +76,7 @@ export const useRating = (): RatingHookReturn => {
       })
         .addOperation(Operation.payment({
           destination: publicKey, // Self-transfer for minimal cost
-          asset: Operation.payment({
-            destination: networkConfig.contractId,
-            asset: 'native',
-            amount: '0.0000001', // Minimum amount
-          }).asset,
+          asset: Asset.native(),
           amount: '0.0000001',
         }))
         .setTimeout(30)
@@ -105,11 +102,11 @@ export const useRating = (): RatingHookReturn => {
             // reviewer: Address
             new Address(publicKey).toScVal(),
             // rating: i64
-            new XdrLargeInt('i64', rating).toScVal(),
+            nativeToScVal(BigInt(rating), { type: 'i64' }),
             // comment: String
-            new String(comment).toScVal(),
+            nativeToScVal(comment),
             // transaction_hash: String
-            new String(result.hash).toScVal(),
+            nativeToScVal(result.hash),
           ],
         }))
         .setTimeout(30)
@@ -277,7 +274,7 @@ export const useRating = (): RatingHookReturn => {
           function: 'verify_review',
           args: [
             new Address(userAddress).toScVal(),
-            new String(txHash).toScVal(),
+            nativeToScVal(txHash),
           ],
         }))
         .setTimeout(30)

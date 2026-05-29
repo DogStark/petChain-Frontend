@@ -121,7 +121,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
   };
 
   const getStatusColor = (status: PaymentStatus): string => {
-    const colors = {
+    const colors: Record<string, string> = {
       [PaymentStatus.PENDING]: 'text-slate-400 bg-slate-400/10',
       [PaymentStatus.SCHEDULED]: 'text-sky-400 bg-sky-400/10',
       [PaymentStatus.COMPLETED]: 'text-green-400 bg-green-400/10',
