@@ -1,6 +1,6 @@
 import { Horizon, Networks, StrKey } from '@stellar/stellar-sdk';
 import { requestAccess, isConnected } from '../utils/wallet-bridge';
-import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
+import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT, type NetworkConfig } from '../utils/network-config';
 
 export interface BalanceInfo {
   assetCode: string;
@@ -22,6 +22,22 @@ export interface WalletBalance {
 
 export interface BalanceUpdateCallback {
   (balance: WalletBalance): void;
+}
+
+interface StellarBalanceLine {
+  asset_type: BalanceInfo['assetType'];
+  balance: string;
+  asset_code?: string;
+  asset_issuer?: string;
+}
+
+interface StellarAccountLike {
+  id: string;
+  balances: StellarBalanceLine[];
+}
+
+interface WalletTestWindow extends Window {
+  __MOCK_STELLAR_ACCOUNT__?: (publicKey: string) => StellarAccountLike;
 }
 
 export const balanceUtils = {
@@ -58,7 +74,7 @@ export const balanceUtils = {
 
 export class WalletBalanceService {
   private server: Horizon.Server;
-  private networkConfig: any;
+  private networkConfig: NetworkConfig;
   private balanceCache: Map<string, { balance: WalletBalance; timestamp: number }> = new Map();
   private updateCallbacks: Set<BalanceUpdateCallback> = new Set();
   private refreshInterval: NodeJS.Timeout | null = null;
@@ -80,7 +96,7 @@ export class WalletBalanceService {
         this.server = new Horizon.Server(horizonUrl);
         this.clearCache();
       };
-      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as any);
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler);
     }
   }
 
@@ -145,17 +161,18 @@ export class WalletBalanceService {
       console.log(`[WalletBalanceService] Loading account for ${pubKeyString} from ${this.server.serverURL.toString()}`);
       
       // FOR TESTS: Bypass loadAccount if mock is provided
-      let account;
-      if ((window as any).__MOCK_STELLAR_ACCOUNT__) {
+      let account: StellarAccountLike;
+      const testWindow = window as WalletTestWindow;
+      if (testWindow.__MOCK_STELLAR_ACCOUNT__) {
         console.log('[WalletBalanceService] Using mock stellar account');
-        const mockData = (window as any).__MOCK_STELLAR_ACCOUNT__(pubKeyString);
+        const mockData = testWindow.__MOCK_STELLAR_ACCOUNT__(pubKeyString);
         account = {
           id: pubKeyString,
           sequence: '100',
           balances: mockData.balances || [{ asset_type: 'native', balance: '1000.00' }]
-        };
+        } as StellarAccountLike;
       } else {
-        account = await this.server.loadAccount(pubKeyString);
+        account = await this.server.loadAccount(pubKeyString) as StellarAccountLike;
         console.log(`[WalletBalanceService] Account loaded:`, account.id);
       }
       
@@ -189,9 +206,9 @@ export class WalletBalanceService {
     }
   }
 
-  private parseBalances(stellarBalances: any[]): BalanceInfo[] {
+  private parseBalances(stellarBalances: StellarBalanceLine[]): BalanceInfo[] {
     return stellarBalances.map(balance => ({
-      assetCode: balance.asset_type === 'native' ? 'XLM' : balance.asset_code,
+      assetCode: balance.asset_type === 'native' ? 'XLM' : (balance.asset_code ?? 'UNKNOWN'),
       assetIssuer: balance.asset_issuer,
       balance: balance.balance,
       assetType: balance.asset_type,
