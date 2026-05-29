@@ -4,9 +4,6 @@
  */
 
 import { Horizon, BASE_FEE } from '@stellar/stellar-sdk';
-import { getCurrentNetworkConfig } from '../utils/network-config';
-import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from '@stellar/stellar-sdk';
-import { requestAccess } from '../utils/wallet-bridge';
 import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 const STROOPS_PER_XLM = 10_000_000;
@@ -14,16 +11,16 @@ const CACHE_TTL_MS = 10_000; // 10 second TTL
 const SURGE_MULTIPLIER = 1.5; // Applied when network is congested
 
 export interface FeeTiers {
-  min: number;        // Minimum fee in XLM
+  min: number;         // Minimum fee in XLM
   recommended: number; // Recommended fee in XLM (p50)
-  max: number;        // High-priority fee in XLM (p90)
+  max: number;         // High-priority fee in XLM (p90)
 }
 
 export interface FeeEstimate {
   tiers: FeeTiers;
-  totalFee: number;        // recommended total fee in XLM for given op count
+  totalFee: number;            // Recommended total fee in XLM for given op count
   operationCount: number;
-  isSurge: boolean;        // true when surge pricing is active
+  isSurge: boolean;            // true when surge pricing is active
   estimatedTimeSeconds: number;
 }
 
@@ -33,37 +30,35 @@ interface FeeCache {
   timestamp: number;
 }
 
-// Utility conversions
+// ─── Utility conversions ──────────────────────────────────────────────────────
 export const stroopsToXLM = (stroops: number): number => stroops / STROOPS_PER_XLM;
 export const xlmToStroops = (xlm: number): number => Math.floor(xlm * STROOPS_PER_XLM);
 
+// ─── Service ──────────────────────────────────────────────────────────────────
 export class FeeEstimationService {
   private server: Horizon.Server;
   private cache: FeeCache | null = null;
-
-  constructor() {
-    const config = getCurrentNetworkConfig();
-    const horizonUrl = config.rpcUrl.replace('soroban', 'horizon');
-  private networkConfig: any;
+  private networkConfig: ReturnType<typeof getCurrentNetworkConfig>;
   private networkChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.networkConfig = getCurrentNetworkConfig();
-    this.updateServer();
-    
-    // Listen for network changes
+    this.server = this.buildServer();
+
+    // Re-initialise when the user switches networks
     if (typeof window !== 'undefined') {
       this.networkChangeHandler = () => {
         this.networkConfig = getCurrentNetworkConfig();
-        this.updateServer();
+        this.server = this.buildServer();
+        this.cache = null;
       };
-      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as any);
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler as EventListener);
     }
   }
 
-  private updateServer(): void {
+  private buildServer(): Horizon.Server {
     const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
-    this.server = new Horizon.Server(horizonUrl);
+    return new Horizon.Server(horizonUrl);
   }
 
   /**
@@ -108,28 +103,24 @@ export class FeeEstimationService {
   /**
    * Estimate fee for a transaction with the given number of operations.
    */
-  async estimateFee(operationCount: number = 1): Promise<FeeEstimate> {
+  async estimateFee(operationCount = 1): Promise<FeeEstimate> {
     const { tiers, isSurge } = await this.getFeeTiers();
-
-    const totalFee = tiers.recommended * operationCount;
-    const estimatedTimeSeconds = isSurge ? 10 : 5;
-
     return {
       tiers,
-      totalFee,
+      totalFee: tiers.recommended * operationCount,
       operationCount,
       isSurge,
-      estimatedTimeSeconds,
+      estimatedTimeSeconds: isSurge ? 10 : 5,
     };
   }
 
   /** Format a fee value in XLM for display. */
-  formatFee(feeXLM: number, decimals: number = 7): string {
+  formatFee(feeXLM: number, decimals = 7): string {
     return `${feeXLM.toFixed(decimals)} XLM`;
   }
 
   /** Total cost of a payment including the recommended fee. */
-  async totalCost(amountXLM: number, operationCount: number = 1): Promise<number> {
+  async totalCost(amountXLM: number, operationCount = 1): Promise<number> {
     const estimate = await this.estimateFee(operationCount);
     return amountXLM + estimate.totalFee;
   }
@@ -138,8 +129,25 @@ export class FeeEstimationService {
   clearCache(): void {
     this.cache = null;
   }
+
+  /**
+   * Estimate fee for a payment given an XLM amount string and optional destination.
+   * The destination is accepted for API compatibility but fee is based on a
+   * single-operation payment transaction.
+   */
+  async estimatePaymentFee(amount: string, _destination?: string): Promise<FeeEstimate> {
+    // A standard payment is one operation regardless of amount or destination
+    return this.estimateFee(1);
+  }
+
+  /**
+   * Return the current fee tiers and surge status.
+   * Convenience wrapper used by useFeeEstimation.getFeeRecommendations().
+   */
+  async getFeeRecommendations(): Promise<{ tiers: FeeTiers; isSurge: boolean }> {
+    return this.getFeeTiers();
+  }
 }
 
 export const feeEstimationService = new FeeEstimationService();
-export default feeEstimationService;
 export default feeEstimationService;
