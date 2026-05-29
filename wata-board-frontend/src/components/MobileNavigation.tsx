@@ -13,6 +13,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
   const menuRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   const menuId = useRef(generateId('mobile-menu'));
   const closeButtonId = useRef(generateId('close-button'));
@@ -68,6 +69,22 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
     };
   }, []);
 
+  // Swipe-left to close
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    // Swipe left ≥ 60px closes the menu
+    if (deltaX <= -60) {
+      onClose();
+      announceToScreenReader('Navigation menu closed');
+    }
+    touchStartX.current = null;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -89,6 +106,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
         aria-labelledby={menuId.current}
         aria-label="Mobile navigation menu"
         data-testid="mobile-menu"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
