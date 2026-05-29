@@ -387,7 +387,7 @@ export default function DentalRecords() {
             {/* Tooth detail panel */}
             {selectedTooth && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 sm:p-6 shadow-xl shadow-black/20"
-                style={{ borderLeftColor: TOOTH_STATUS_CONFIG[selectedTooth.status].border, borderLeftWidth: 4 }}>
+                style={{ borderInlineStartColor: TOOTH_STATUS_CONFIG[selectedTooth.status].border, borderInlineStartWidth: 4 }}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                     <span>{TOOTH_STATUS_CONFIG[selectedTooth.status].emoji}</span>
@@ -446,7 +446,7 @@ export default function DentalRecords() {
                       <p className="text-sm text-slate-400">{c.vetName}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <p className="font-semibold text-slate-200">{c.date}</p>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize
                       ${c.type === 'professional' ? 'bg-sky-900/50 text-sky-300' : 'bg-green-900/50 text-green-300'}`}>
@@ -499,7 +499,7 @@ export default function DentalRecords() {
             {issues.map(issue => (
               <div key={issue.id}
                 className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 sm:p-6 shadow-xl shadow-black/20 transition-all hover:shadow-xl"
-                style={{ borderLeftColor: issue.severity === 'severe' ? '#ef4444' : issue.severity === 'moderate' ? '#f97316' : '#eab308', borderLeftWidth: 4 }}>
+                style={{ borderInlineStartColor: issue.severity === 'severe' ? '#ef4444' : issue.severity === 'moderate' ? '#f97316' : '#eab308', borderInlineStartWidth: 4 }}>
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">

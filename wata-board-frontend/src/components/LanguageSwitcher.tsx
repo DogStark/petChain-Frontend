@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supportedLanguages, changeLanguage, isRTL } from '../i18n';
+import { supportedLanguages, changeLanguage } from '../i18n';
 
 interface LanguageSwitcherProps {
   className?: string;
@@ -82,7 +82,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         {isOpen && (
           <div
             ref={dropdownRef}
-            className={`absolute top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 ${isRTL() ? 'right-0' : 'left-0'}`}
+            className="absolute top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 start-0 rtl:start-auto rtl:end-0"
             role="listbox"
             aria-label="Language selection"
           >
@@ -91,7 +91,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                 <button
                   key={lang.code}
                   onClick={() => handleLanguageChange(lang.code)}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-800 transition-colors focus:outline-none focus:bg-slate-800 ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-start hover:bg-slate-800 transition-colors focus:outline-none focus:bg-slate-800 ${
                     lang.code === currentLang.code ? 'bg-slate-800 text-sky-400' : 'text-slate-200'
                   }`}
                   role="option"
@@ -104,7 +104,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                     <span className="text-xs text-slate-400">{lang.name}</span>
                   </div>
                   {lang.code === currentLang.code && (
-                    <svg className="w-4 h-4 text-sky-400 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-sky-400 ms-auto" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}
@@ -170,7 +170,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 
       {isOpen && (
         <div
-          className={`absolute top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 min-w-[200px] ${isRTL() ? 'right-0' : 'left-0'}`}
+          className="absolute top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 min-w-[200px] start-0 rtl:start-auto rtl:end-0"
           role="listbox"
           aria-label="Language selection"
         >
@@ -179,7 +179,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
               <button
                 key={lang.code}
                 onClick={() => handleLanguageChange(lang.code)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-800 transition-colors focus:outline-none focus:bg-slate-800 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 text-start hover:bg-slate-800 transition-colors focus:outline-none focus:bg-slate-800 ${
                   lang.code === currentLang.code ? 'bg-slate-800 text-sky-400' : 'text-slate-200'
                 }`}
                 role="option"
