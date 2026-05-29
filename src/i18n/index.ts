@@ -116,9 +116,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
+      const resolveKey = (lang: LanguageCode, baseKey: string): string => {
+        if (params?.count !== undefined) {
+          const pluralForm = new Intl.PluralRules(lang).select(Number(params.count));
+          const pluralKey = `${baseKey}_${pluralForm}`;
+          if (deepGet(resources[lang] as TranslationDict, pluralKey) !== undefined) {
+            return pluralKey;
+          }
+          const legacyPluralKey = `${baseKey}_plural`;
+          if (deepGet(resources[lang] as TranslationDict, legacyPluralKey) !== undefined) {
+            return legacyPluralKey;
+          }
+        }
+        return baseKey;
+      };
+
+      const resolvedKey = resolveKey(language, key);
       const value =
-        deepGet(resources[language] as TranslationDict, key) ??
-        deepGet(resources[FALLBACK] as TranslationDict, key) ??
+        deepGet(resources[language] as TranslationDict, resolvedKey) ??
+        deepGet(resources[FALLBACK] as TranslationDict, resolveKey(FALLBACK, key)) ??
         key;
       return interpolate(value, params);
     },
