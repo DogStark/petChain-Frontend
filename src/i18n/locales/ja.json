@@ -1,243 +1,246 @@
 {
   "app": {
     "title": "Wata-Board",
-    "tagline": "Decentralized utility payments on Stellar blockchain",
-    "description": "Pay your utility bills using cryptocurrency on the Stellar network"
+    "tagline": "Stellarブロックチェーン上の分散型公共料金決済",
+    "description": "Stellarネットワークを使用して暗号資産で公共料金を支払う",
+    "footer": {
+      "tagline": "分散型ウェブ向けの最新決済ソリューション"
+    }
   },
   "navigation": {
-    "home": "Pay Bill",
-    "about": "About",
-    "contact": "Contact",
-    "rate": "Rate Us",
-    "language": "Language"
+    "home": "料金支払い",
+    "about": "について",
+    "contact": "お問い合わせ",
+    "rate": "レビューする",
+    "language": "言語"
   },
   "payment": {
     "form": {
-      "title": "Payment Information",
-      "meterNumber": "Meter number",
-      "meterPlaceholder": "e.g. METER-123",
-      "meterDescription": "Enter your utility meter number as shown on your bill",
-      "amount": "Amount",
-      "amountPlaceholder": "Whole number",
-      "amountDescription": "Enter the payment amount in whole XLM",
-      "payButton": "Pay bill",
-      "processing": "Processing...",
-      "rateLimited": "Rate Limited",
-      "requiresExtension": "Requires Freighter extension. 5 transactions per minute limit."
+      "title": "支払い情報",
+      "meterNumber": "メーター番号",
+      "meterPlaceholder": "例：METER-123",
+      "meterDescription": "請求書に記載されているお客様の公共料金メーター番号を入力してください",
+      "amount": "金額",
+      "amountPlaceholder": "整数",
+      "amountDescription": "支払い金額をXLMの整数で入力してください",
+      "payButton": "料金を支払う",
+      "processing": "処理中...",
+      "rateLimited": "レート制限中",
+      "requiresExtension": "Freighter拡張機能が必要です。1分間に5トランザクションまでの制限があります。"
     },
     "status": {
-      "title": "Status",
-      "ready": "Ready.",
-      "installWallet": "Please install Freighter Wallet extension!",
-      "enterMeter": "Please enter a meter number.",
-      "enterValidAmount": "Please enter a valid amount greater than 0.",
-      "wholeNumber": "Amount must be a whole number.",
-      "amountTooLarge": "Amount is too large.",
-      "insufficientBalance": "Insufficient balance. Please add more XLM to your wallet.",
-      "estimatingFees": "Estimating transaction fees... Please wait.",
-      "paymentSuccess": "Payment successful! Transaction ID: {{id}}...",
-      "paymentFailed": "Payment failed: {{error}}"
+      "title": "ステータス",
+      "ready": "準備完了です。",
+      "installWallet": "Freighter Walletの拡張機能をインストールしてください！",
+      "enterMeter": "メーター番号を入力してください。",
+      "enterValidAmount": "0より大きい有効な金額を入力してください。",
+      "wholeNumber": "金額は整数である必要があります。",
+      "amountTooLarge": "金額が大きすぎます。",
+      "insufficientBalance": "残高が不足しています。ウォレットにさらにXLMを追加してください。",
+      "estimatingFees": "トランザクション手数料を見積中です...しばらくお待ちください。",
+      "paymentSuccess": "支払いが成功しました！トランザクションID：{{id}}...",
+      "paymentFailed": "支払いに失敗しました：{{error}}"
     },
     "feeEstimation": {
-      "title": "Transaction Fee Estimation",
-      "calculating": "(Calculating...)",
-      "calculatingFees": "Calculating estimated fees...",
-      "paymentAmount": "Payment Amount",
-      "estimatedNetworkFee": "Estimated Network Fee",
-      "totalCost": "Total Cost",
-      "unableToEstimate": "Unable to estimate fees at this time"
+      "title": "トランザクション手数料の見積もり",
+      "calculating": "（計算中...）",
+      "calculatingFees": "推定手数料を計算中...",
+      "paymentAmount": "支払い金額",
+      "estimatedNetworkFee": "推定ネットワーク手数料",
+      "totalCost": "合計金額",
+      "unableToEstimate": "現在、手数料を見積もることができません"
     },
     "rateLimit": {
-      "title": "Rate Limit Status",
-      "requestsAvailable": "{{count}}/5 requests available",
-      "rateLimited": "Rate limited. Reset in {{time}}",
-      "queue": "Queue: {{count}}"
+      "title": "レート制限ステータス",
+      "requestsAvailable": "{{count}}/5 リクエスト利用可能",
+      "rateLimited": "レート制限中。{{time}}にリセット",
+      "queue": "キュー：{{count}}"
     }
   },
   "wallet": {
     "balance": {
-      "title": "Wallet Balance",
-      "available": "Available Balance",
-      "total": "Total Balance",
-      "loading": "Loading balance...",
-      "error": "Failed to load balance",
-      "reconnect": "Please reconnect your wallet",
-      "insufficient": "Insufficient balance for this transaction",
-      "lowBalance": "Low balance warning"
+      "title": "ウォレット残高",
+      "available": "利用可能残高",
+      "total": "合計残高",
+      "loading": "残高を読み込み中...",
+      "error": "残高の読み込みに失敗しました",
+      "reconnect": "ウォレットを再接続してください",
+      "insufficient": "このトランザクションに対して残高が不足しています",
+      "lowBalance": "残高が少なくなっています"
     },
     "connection": {
-      "connected": "Connected",
-      "disconnected": "Disconnected",
-      "connecting": "Connecting...",
-      "connectWallet": "Connect Wallet",
-      "switchWallet": "Switch Wallet"
+      "connected": "接続済み",
+      "disconnected": "切断済み",
+      "connecting": "接続中...",
+      "connectWallet": "ウォレットを接続",
+      "switchWallet": "ウォレットを切り替える"
     }
   },
   "network": {
-    "mainnet": "MAINNET",
-    "testnet": "TESTNET",
-    "switchNetwork": "Switch Network",
-    "currentNetwork": "Current Network"
+    "mainnet": "メインネット",
+    "testnet": "テストネット",
+    "switchNetwork": "ネットワークを切り替える",
+    "currentNetwork": "現在のネットワーク"
   },
   "offline": {
     "banner": {
-      "title": "You're offline",
-      "description": "Some features may be unavailable. Actions will be queued and processed when you're back online.",
-      "retry": "Retry Connection",
-      "details": "Connection Details"
+      "title": "オフライン状態です",
+      "description": "いくつかの機能が利用できない場合があります。アクションはキューに入り、オンライン状態に戻った時に処理されます。",
+      "retry": "接続を再試行",
+      "details": "接続の詳細"
     },
     "status": {
-      "online": "Online",
-      "offline": "Offline",
-      "connecting": "Connecting...",
-      "queueStatus": "{{count}} queued action",
-      "queueStatus_plural": "{{count}} queued actions"
+      "online": "オンライン",
+      "offline": "オフライン",
+      "connecting": "接続中...",
+      "queueStatus": "{{count}}件のキュー済みアクション",
+      "queueStatus_plural": "{{count}}件のキュー済みアクション"
     },
     "queue": {
-      "title": "Offline Queue",
-      "description": "{{count}} action will be processed when you're back online",
-      "description_plural": "{{count}} actions will be processed when you're back online"
+      "title": "オフラインキュー",
+      "description": "オンライン状態に戻った時に{{count}}件のアクションが処理されます",
+      "description_plural": "オンライン状態に戻った時に{{count}}件のアクションが処理されます"
     },
     "error": {
-      "paymentOffline": "Payment queued for when you're back online",
-      "generalOffline": "Action queued for when you're back online"
+      "paymentOffline": "支払いはオンライン状態に戻った時にキューに入れられます",
+      "generalOffline": "アクションはオンライン状態に戻った時にキューに入れられます"
     }
   },
   "about": {
-    "title": "About Wata-Board",
-    "description": "Wata-Board is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
+    "title": "Wata-Boardについて",
+    "description": "Wata-Boardは、Stellarブロックチェーンの上に構築された分散型公共料金決済プラットフォームです。暗号資産を使用して、安全で透明性が高く、効率的な公共料金の支払いを実現します。",
     "features": {
-      "title": "Key Features",
-      "secure": "Secure Transactions",
-      "secureDescription": "Built on Stellar blockchain with enterprise-grade security",
-      "fast": "Fast Payments",
-      "fastDescription": "Near-instant settlement with low transaction fees",
-      "transparent": "Transparent Records",
-      "transparentDescription": "All transactions are recorded on the public blockchain",
-      "decentralized": "Decentralized",
-      "decentralizedDescription": "No single point of failure or control"
+      "title": "主な特徴",
+      "secure": "安全なトランザクション",
+      "secureDescription": "エンタープライズグレードのセキュリティを備えたStellarブロックチェーン上に構築",
+      "fast": "高速決済",
+      "fastDescription": "ほぼ瞬時の決済と低い取引手数料",
+      "transparent": "透明な記録",
+      "transparentDescription": "すべてのトランザクションはパブリックブロックチェーンに記録されます",
+      "decentralized": "分散型",
+      "decentralizedDescription": "単一の障害点または制御がない"
     },
     "howItWorks": {
-      "title": "How It Works",
-      "step1": "Connect your wallet",
-      "step2": "Enter meter details",
-      "step3": "Confirm payment",
-      "step4": "Payment processed"
+      "title": "動作方法",
+      "step1": "ウォレットを接続",
+      "step2": "メーターの詳細を入力",
+      "step3": "支払いを確認",
+      "step4": "支払いが処理されました"
     }
   },
   "contact": {
-    "title": "Contact Us",
-    "description": "Get in touch with our team for support, questions, or feedback.",
+    "title": "お問い合わせ",
+    "description": "サポート、質問、またはフィードバックについては、チームにお問い合わせください。",
     "form": {
-      "name": "Name",
-      "namePlaceholder": "Enter your name",
-      "email": "Email",
-      "emailPlaceholder": "Enter your email",
-      "subject": "Subject",
-      "subjectPlaceholder": "Enter subject",
-      "message": "Message",
-      "messagePlaceholder": "Enter your message",
-      "sendButton": "Send Message",
-      "sending": "Sending..."
+      "name": "お名前",
+      "namePlaceholder": "お名前を入力してください",
+      "email": "メールアドレス",
+      "emailPlaceholder": "メールアドレスを入力してください",
+      "subject": "件名",
+      "subjectPlaceholder": "件名を入力してください",
+      "message": "メッセージ",
+      "messagePlaceholder": "メッセージを入力してください",
+      "sendButton": "メッセージを送信",
+      "sending": "送信中..."
     },
     "info": {
-      "email": "Email",
-      "support": "Support",
-      "website": "Website"
+      "email": "メールアドレス",
+      "support": "サポート",
+      "website": "ウェブサイト"
     }
   },
   "rate": {
-    "title": "Rate Your Experience",
-    "description": "Help us improve by rating your experience with Wata-Board.",
+    "title": "ご体験をレートする",
+    "description": "Wata-Boardでのご体験をレートすることで、私たちの改善にお力をお貸しください。",
     "rating": {
-      "excellent": "Excellent",
-      "good": "Good",
-      "average": "Average",
-      "poor": "Poor",
-      "terrible": "Terrible"
+      "excellent": "とても良い",
+      "good": "良い",
+      "average": "普通",
+      "poor": "悪い",
+      "terrible": "非常に悪い"
     },
     "review": {
-      "title": "Write a Review",
-      "placeholder": "Share your experience with Wata-Board...",
-      "submit": "Submit Review",
-      "thankYou": "Thank you for your feedback!"
+      "title": "レビューを書く",
+      "placeholder": "Wata-Boardでのご体験をお聞かせください...",
+      "submit": "レビューを送信",
+      "thankYou": "ご意見ありがとうございました！"
     }
   },
   "errors": {
     "general": {
-      "title": "Error",
-      "unknown": "An unknown error occurred",
-      "tryAgain": "Please try again",
-      "contactSupport": "Contact support if the problem persists"
+      "title": "エラー",
+      "unknown": "不明なエラーが発生しました",
+      "tryAgain": "もう一度お試しください",
+      "contactSupport": "問題が解決しない場合は、サポートにお問い合わせください"
     },
     "network": {
-      "title": "Network Error",
-      "description": "Unable to connect to the network",
-      "checkConnection": "Please check your internet connection"
+      "title": "ネットワークエラー",
+      "description": "ネットワークに接続できません",
+      "checkConnection": "インターネット接続を確認してください"
     },
     "wallet": {
-      "title": "Wallet Error",
-      "notConnected": "Wallet not connected",
-      "notInstalled": "Freighter wallet not installed",
-      "installFreighter": "Please install Freighter wallet extension"
+      "title": "ウォレットエラー",
+      "notConnected": "ウォレットが接続されていません",
+      "notInstalled": "Freighterウォレットがインストールされていません",
+      "installFreighter": "Freighterウォレット拡張機能をインストールしてください"
     }
   },
   "accessibility": {
-    "skipToMain": "Skip to main content",
-    "skipToNavigation": "Skip to navigation",
-    "menuToggle": "Toggle navigation menu",
-    "closeMenu": "Close menu",
-    "openMenu": "Open menu",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "warning": "Warning",
-    "info": "Information"
+    "skipToMain": "メインコンテンツにスキップ",
+    "skipToNavigation": "ナビゲーションにスキップ",
+    "menuToggle": "ナビゲーションメニューを切り替え",
+    "closeMenu": "メニューを閉じる",
+    "openMenu": "メニューを開く",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報"
   },
   "common": {
-    "cancel": "Cancel",
-    "confirm": "Confirm",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "close": "Close",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "submit": "Submit",
-    "reset": "Reset",
-    "clear": "Clear",
-    "search": "Search",
-    "filter": "Filter",
-    "sort": "Sort",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "retry": "Retry",
-    "refresh": "Refresh",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "learnMore": "Learn More",
-    "viewDetails": "View Details",
-    "hideDetails": "Hide Details"
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "submit": "送信",
+    "reset": "リセット",
+    "clear": "クリア",
+    "search": "検索",
+    "filter": "フィルター",
+    "sort": "ソート",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "retry": "再試行",
+    "refresh": "更新",
+    "copy": "コピー",
+    "copied": "コピーしました！",
+    "learnMore": "詳しく知る",
+    "viewDetails": "詳細を表示",
+    "hideDetails": "詳細を非表示"
   },
   "time": {
-    "seconds": "second",
-    "seconds_plural": "seconds",
-    "minutes": "minute",
-    "minutes_plural": "minutes",
-    "hours": "hour",
-    "hours_plural": "hours",
-    "days": "day",
-    "days_plural": "days",
-    "weeks": "week",
-    "weeks_plural": "weeks",
-    "months": "month",
-    "months_plural": "months",
-    "years": "year",
-    "years_plural": "years",
-    "ago": "{{time}} ago",
-    "in": "in {{time}}"
+    "seconds": "秒",
+    "seconds_plural": "秒",
+    "minutes": "分",
+    "minutes_plural": "分",
+    "hours": "時間",
+    "hours_plural": "時間",
+    "days": "日",
+    "days_plural": "日",
+    "weeks": "週",
+    "weeks_plural": "週",
+    "months": "ヶ月",
+    "months_plural": "ヶ月",
+    "years": "年",
+    "years_plural": "年",
+    "ago": "{{time}}前",
+    "in": "{{time}}後"
   },
   "currency": {
     "xlm": "XLM",
@@ -245,13 +248,13 @@
     "eur": "EUR"
   },
   "validation": {
-    "required": "This field is required",
-    "invalid": "Invalid format",
-    "tooShort": "Must be at least {{min}} characters",
-    "tooLong": "Must be no more than {{max}} characters",
-    "invalidEmail": "Please enter a valid email address",
-    "invalidNumber": "Please enter a valid number",
-    "minValue": "Must be at least {{min}}",
-    "maxValue": "Must be no more than {{max}}"
+    "required": "このフィールドは必須です",
+    "invalid": "無効な形式です",
+    "tooShort": "最低{{min}}文字である必要があります",
+    "tooLong": "最大{{max}}文字以下である必要があります",
+    "invalidEmail": "有効なメールアドレスを入力してください",
+    "invalidNumber": "有効な数値を入力してください",
+    "minValue": "最低{{min}}である必要があります",
+    "maxValue": "最大{{max}}以下である必要があります"
   }
 }
