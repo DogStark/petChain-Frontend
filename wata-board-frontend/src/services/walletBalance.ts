@@ -1,4 +1,4 @@
-import { Horizon, Asset, Networks, StrKey } from '@stellar/stellar-sdk';
+import { Horizon, Networks, StrKey } from '@stellar/stellar-sdk';
 import { requestAccess, isConnected } from '../utils/wallet-bridge';
 import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
@@ -14,6 +14,7 @@ export interface WalletBalance {
   publicKey: string;
   balances: BalanceInfo[];
   nativeBalance: number;
+  xlmPriceUSD?: number;
   totalBalanceUSD?: number;
   lastUpdated: Date;
   network: string;
@@ -61,7 +62,9 @@ export class WalletBalanceService {
   private balanceCache: Map<string, { balance: WalletBalance; timestamp: number }> = new Map();
   private updateCallbacks: Set<BalanceUpdateCallback> = new Set();
   private refreshInterval: NodeJS.Timeout | null = null;
+  private priceCache: { price: number; timestamp: number } | null = null;
   private readonly CACHE_DURATION = 30000;
+  private readonly PRICE_CACHE_DURATION = 60000;
   private networkChangeHandler: (() => void) | null = null;
 
   constructor() {
@@ -95,6 +98,26 @@ export class WalletBalanceService {
 
   async refreshBalance(): Promise<WalletBalance | null> {
     return this.getWalletBalance();
+  }
+
+  private async getXlmPriceUSD(): Promise<number | undefined> {
+    if (this.priceCache && Date.now() - this.priceCache.timestamp < this.PRICE_CACHE_DURATION) {
+      return this.priceCache.price;
+    }
+
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd');
+      if (!response.ok) return undefined;
+
+      const data = (await response.json()) as { stellar?: { usd?: number } };
+      const price = data.stellar?.usd;
+      if (typeof price !== 'number' || !Number.isFinite(price)) return undefined;
+
+      this.priceCache = { price, timestamp: Date.now() };
+      return price;
+    } catch {
+      return undefined;
+    }
   }
 
   async getWalletBalance(): Promise<WalletBalance | null> {
@@ -138,11 +161,14 @@ export class WalletBalanceService {
       
       const balances = this.parseBalances(account.balances);
       const nativeBalance = this.getNativeBalance(balances);
+      const xlmPriceUSD = await this.getXlmPriceUSD();
 
       const walletBalance: WalletBalance = {
         publicKey: pubKeyString,
         balances,
         nativeBalance,
+        xlmPriceUSD,
+        totalBalanceUSD: xlmPriceUSD ? nativeBalance * xlmPriceUSD : undefined,
         lastUpdated: new Date(),
         network: this.networkConfig.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       };
