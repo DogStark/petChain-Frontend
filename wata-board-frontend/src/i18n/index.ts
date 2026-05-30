@@ -46,7 +46,7 @@ const resources = {
 const defaultLanguage = 'en';
 
 // Initialize i18n
-i18n
+(i18n as any)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -66,7 +66,7 @@ i18n
     interpolation: {
       escapeValue: false,
       formatSeparator: ',',
-      format: function(value, format, lng) {
+      format: function(value: any, format: any, lng: any) {
         if (format === 'uppercase') return value.toUpperCase();
         if (format === 'lowercase') return value.toLowerCase();
         if (format === 'capitalize') return value.charAt(0).toUpperCase() + value.slice(1);

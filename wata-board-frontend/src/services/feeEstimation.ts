@@ -3,7 +3,7 @@
  * Queries Horizon fee_stats for current fee tiers and payment estimates.
  */
 
-import { BASE_FEE, Horizon } from '@stellar/stellar-sdk';
+import { Horizon, BASE_FEE } from '@stellar/stellar-sdk';
 import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT } from '../utils/network-config';
 
 const STROOPS_PER_XLM = 10_000_000;
@@ -41,8 +41,9 @@ export const xlmToStroops = (xlm: number): number => Math.floor(xlm * STROOPS_PE
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 export class FeeEstimationService {
-  private server: Horizon.Server;
+  private server!: Horizon.Server;
   private cache: FeeCache | null = null;
+  private networkConfig: any;
   private networkChangeHandler: (() => void) | null = null;
 
   constructor() {

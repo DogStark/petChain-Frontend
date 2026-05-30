@@ -1,10 +1,7 @@
 import { useState, useCallback } from 'react';
-
-export interface RatingStats {
-  total_reviews: number;
-  average_rating: number;
-  rating_counts: number[];
-}
+import Server, { Networks, TransactionBuilder, Operation, BASE_FEE, Contract, Account, Address, Asset, nativeToScVal } from '@stellar/stellar-sdk';
+import { isConnected, requestAccess, signTransaction } from "@stellar/freighter-api";
+import { getCurrentNetworkConfig } from '../utils/network-config';
 
 export interface Review {
   reviewer: string;
@@ -68,16 +65,68 @@ export const useRating = (): RatingHookReturn => {
         const { address, error: accessError } = await requestAccess();
         if (accessError || !address) throw new Error(accessError || 'Could not get wallet access');
 
-        // Generate a deterministic mock tx hash for the review
-        const txHash = `review-${address.slice(0, 8)}-${Date.now().toString(36)}`;
+      if (comment.trim().length === 0) {
+        throw new Error('Review comment cannot be empty');
+      }
 
-        const review: Review = {
-          reviewer: address,
-          rating,
-          comment: comment.trim(),
-          timestamp: Date.now(),
-          transaction_hash: txHash,
-        };
+      // Get user's public key
+      const keyResult = await requestAccess();
+      if (!keyResult || !keyResult.address) {
+        throw new Error('Could not get wallet access');
+      }
+      const publicKey = keyResult.address;
+
+      // Load user account
+      const account = await server.loadAccount(publicKey);
+
+      // Create a dummy transaction to get a transaction hash
+      // In a real implementation, you might want to use a small XLM transfer
+      // or create a custom transaction type for reviews
+      const transaction = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: networkConfig.networkPassphrase,
+      })
+        .addOperation(Operation.payment({
+          destination: publicKey, // Self-transfer for minimal cost
+          asset: Asset.native(),
+          amount: '0.0000001',
+        }))
+        .setTimeout(30)
+        .build();
+
+      // Sign the transaction
+      const signedTransaction = await signTransaction(transaction.toXDR());
+
+      // Submit the transaction
+      const result = await server.submitTransaction(signedTransaction);
+
+      // Now call the smart contract to submit the review
+      const contract = new Contract(networkConfig.contractId);
+      
+      const reviewTx = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: networkConfig.networkPassphrase,
+      })
+        .addOperation(Operation.invokeContractFunction({
+          contract: contract.contractId(),
+          function: 'submit_review',
+          args: [
+            // reviewer: Address
+            new Address(publicKey).toScVal(),
+            // rating: i64
+            nativeToScVal(BigInt(rating), { type: 'i64' }),
+            // comment: String
+            nativeToScVal(comment),
+            // transaction_hash: String
+            nativeToScVal(result.hash),
+          ],
+        }))
+        .setTimeout(30)
+        .build();
+
+      // Sign and submit the review transaction
+      const signedReviewTx = await signTransaction(reviewTx.toXDR());
+      const reviewResult = await server.submitTransaction(signedReviewTx);
 
         reviewStore.set(address, review);
 
@@ -122,9 +171,28 @@ export const useRating = (): RatingHookReturn => {
 
   const verifyReview = useCallback(async (userAddress: string, txHash: string): Promise<boolean> => {
     try {
-      const review = reviewStore.get(userAddress);
-      return review?.transaction_hash === txHash;
-    } catch (err) {
+      const contract = new Contract(networkConfig.contractId);
+      
+      const tx = new TransactionBuilder(new Account(networkConfig.contractId, '1'), {
+        fee: BASE_FEE,
+        networkPassphrase: networkConfig.networkPassphrase,
+      })
+        .addOperation(Operation.invokeContractFunction({
+          contract: contract.contractId(),
+          function: 'verify_review',
+          args: [
+            new Address(userAddress).toScVal(),
+            nativeToScVal(txHash),
+          ],
+        }))
+        .setTimeout(30)
+        .build();
+
+      // Simulate the transaction to get the result
+      const result = await server.simulateTransaction(tx);
+      
+      return result.result === 'true';
+    } catch (err: any) {
       console.error('Error verifying review:', err);
       return false;
     }

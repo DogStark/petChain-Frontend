@@ -32,7 +32,7 @@ export function useFeeEstimation(): UseFeeEstimationReturn {
     setError(null);
 
     try {
-      const feeEstimate = await feeEstimationService.estimatePaymentFee(amount, destination);
+      const feeEstimate = await feeEstimationService.estimateFee(1);
       setEstimate(feeEstimate);
       return feeEstimate;
     } catch (err) {
@@ -53,7 +53,7 @@ export function useFeeEstimation(): UseFeeEstimationReturn {
 
   const getFeeRecommendations = useCallback(async () => {
     try {
-      return await feeEstimationService.getFeeRecommendations();
+      return await feeEstimationService.getFeeTiers();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get fee recommendations';
       setError(errorMessage);
