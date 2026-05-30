@@ -1,243 +1,257 @@
 {
   "app": {
     "title": "Wata-Board",
-    "tagline": "Decentralized utility payments on Stellar blockchain",
-    "description": "Pay your utility bills using cryptocurrency on the Stellar network"
+    "tagline": "Децентрализованные платежи за коммунальные услуги на блокчейне Stellar",
+    "description": "Оплачивайте счета за коммунальные услуги с помощью криптовалюты в сети Stellar",
+    "footer": {
+      "tagline": "Современные платёжные решения для децентрализованного интернета"
+    }
   },
   "navigation": {
-    "home": "Pay Bill",
-    "about": "About",
-    "contact": "Contact",
-    "rate": "Rate Us",
-    "language": "Language"
+    "home": "Оплатить",
+    "about": "О проекте",
+    "contact": "Контакты",
+    "rate": "Оценить",
+    "language": "Язык"
   },
   "payment": {
     "form": {
-      "title": "Payment Information",
-      "meterNumber": "Meter number",
-      "meterPlaceholder": "e.g. METER-123",
-      "meterDescription": "Enter your utility meter number as shown on your bill",
-      "amount": "Amount",
-      "amountPlaceholder": "Whole number",
-      "amountDescription": "Enter the payment amount in whole XLM",
-      "payButton": "Pay bill",
-      "processing": "Processing...",
-      "rateLimited": "Rate Limited",
-      "requiresExtension": "Requires Freighter extension. 5 transactions per minute limit."
+      "title": "Платёжная информация",
+      "meterNumber": "Номер счётчика",
+      "meterPlaceholder": "например, METER-123",
+      "meterDescription": "Введите номер вашего счётчика, указанный в квитанции",
+      "amount": "Сумма",
+      "amountPlaceholder": "Целое число",
+      "amountDescription": "Введите сумму платежа в целых XLM",
+      "payButton": "Оплатить",
+      "processing": "Обработка...",
+      "rateLimited": "Лимит превышен",
+      "requiresExtension": "Требуется расширение Freighter. Лимит: 5 транзакций в минуту."
     },
     "status": {
-      "title": "Status",
-      "ready": "Ready.",
-      "installWallet": "Please install Freighter Wallet extension!",
-      "enterMeter": "Please enter a meter number.",
-      "enterValidAmount": "Please enter a valid amount greater than 0.",
-      "wholeNumber": "Amount must be a whole number.",
-      "amountTooLarge": "Amount is too large.",
-      "insufficientBalance": "Insufficient balance. Please add more XLM to your wallet.",
-      "estimatingFees": "Estimating transaction fees... Please wait.",
-      "paymentSuccess": "Payment successful! Transaction ID: {{id}}...",
-      "paymentFailed": "Payment failed: {{error}}"
+      "title": "Статус",
+      "ready": "Готово.",
+      "installWallet": "Пожалуйста, установите расширение Freighter Wallet!",
+      "enterMeter": "Пожалуйста, введите номер счётчика.",
+      "enterValidAmount": "Пожалуйста, введите сумму больше 0.",
+      "wholeNumber": "Сумма должна быть целым числом.",
+      "amountTooLarge": "Сумма слишком велика.",
+      "insufficientBalance": "Недостаточно средств. Пополните баланс XLM.",
+      "estimatingFees": "Расчёт комиссии... Пожалуйста, подождите.",
+      "paymentSuccess": "Платёж выполнен! ID транзакции: {{id}}...",
+      "paymentFailed": "Платёж не удался: {{error}}"
     },
     "feeEstimation": {
-      "title": "Transaction Fee Estimation",
-      "calculating": "(Calculating...)",
-      "calculatingFees": "Calculating estimated fees...",
-      "paymentAmount": "Payment Amount",
-      "estimatedNetworkFee": "Estimated Network Fee",
-      "totalCost": "Total Cost",
-      "unableToEstimate": "Unable to estimate fees at this time"
+      "title": "Оценка комиссии за транзакцию",
+      "calculating": "(Расчёт...)",
+      "calculatingFees": "Расчёт ориентировочной комиссии...",
+      "paymentAmount": "Сумма платежа",
+      "estimatedNetworkFee": "Ориентировочная комиссия сети",
+      "totalCost": "Общая стоимость",
+      "unableToEstimate": "Не удалось оценить комиссию"
     },
     "rateLimit": {
-      "title": "Rate Limit Status",
-      "requestsAvailable": "{{count}}/5 requests available",
-      "rateLimited": "Rate limited. Reset in {{time}}",
-      "queue": "Queue: {{count}}"
+      "title": "Статус лимита запросов",
+      "requestsAvailable_one": "{{count}}/5 запрос доступен",
+      "requestsAvailable_few": "{{count}}/5 запроса доступно",
+      "requestsAvailable_many": "{{count}}/5 запросов доступно",
+      "rateLimited": "Лимит превышен. Сброс через {{time}}",
+      "queue": "Очередь: {{count}}"
     }
   },
   "wallet": {
     "balance": {
-      "title": "Wallet Balance",
-      "available": "Available Balance",
-      "total": "Total Balance",
-      "loading": "Loading balance...",
-      "error": "Failed to load balance",
-      "reconnect": "Please reconnect your wallet",
-      "insufficient": "Insufficient balance for this transaction",
-      "lowBalance": "Low balance warning"
+      "title": "Баланс кошелька",
+      "available": "Доступный баланс",
+      "total": "Общий баланс",
+      "loading": "Загрузка баланса...",
+      "error": "Не удалось загрузить баланс",
+      "reconnect": "Пожалуйста, переподключите кошелёк",
+      "insufficient": "Недостаточно средств для этой транзакции",
+      "lowBalance": "Предупреждение о низком балансе"
     },
     "connection": {
-      "connected": "Connected",
-      "disconnected": "Disconnected",
-      "connecting": "Connecting...",
-      "connectWallet": "Connect Wallet",
-      "switchWallet": "Switch Wallet"
+      "connected": "Подключено",
+      "disconnected": "Отключено",
+      "connecting": "Подключение...",
+      "connectWallet": "Подключить кошелёк",
+      "switchWallet": "Сменить кошелёк"
     }
   },
   "network": {
-    "mainnet": "MAINNET",
-    "testnet": "TESTNET",
-    "switchNetwork": "Switch Network",
-    "currentNetwork": "Current Network"
+    "mainnet": "ОСНОВНАЯ СЕТЬ",
+    "testnet": "ТЕСТОВАЯ СЕТЬ",
+    "switchNetwork": "Переключить сеть",
+    "currentNetwork": "Текущая сеть"
   },
   "offline": {
     "banner": {
-      "title": "You're offline",
-      "description": "Some features may be unavailable. Actions will be queued and processed when you're back online.",
-      "retry": "Retry Connection",
-      "details": "Connection Details"
+      "title": "Вы офлайн",
+      "description": "Некоторые функции могут быть недоступны. Действия будут поставлены в очередь и выполнены после восстановления соединения.",
+      "retry": "Повторить подключение",
+      "details": "Подробнее"
     },
     "status": {
-      "online": "Online",
-      "offline": "Offline",
-      "connecting": "Connecting...",
-      "queueStatus": "{{count}} queued action",
-      "queueStatus_plural": "{{count}} queued actions"
+      "online": "Онлайн",
+      "offline": "Офлайн",
+      "connecting": "Подключение...",
+      "queueStatus_one": "{{count}} действие в очереди",
+      "queueStatus_few": "{{count}} действия в очереди",
+      "queueStatus_many": "{{count}} действий в очереди"
     },
     "queue": {
-      "title": "Offline Queue",
-      "description": "{{count}} action will be processed when you're back online",
-      "description_plural": "{{count}} actions will be processed when you're back online"
+      "title": "Офлайн-очередь",
+      "description_one": "{{count}} действие будет обработано после восстановления соединения",
+      "description_few": "{{count}} действия будут обработаны после восстановления соединения",
+      "description_many": "{{count}} действий будут обработаны после восстановления соединения"
     },
     "error": {
-      "paymentOffline": "Payment queued for when you're back online",
-      "generalOffline": "Action queued for when you're back online"
+      "paymentOffline": "Платёж поставлен в очередь для обработки после восстановления соединения",
+      "generalOffline": "Действие поставлено в очередь для обработки после восстановления соединения"
     }
   },
   "about": {
-    "title": "About Wata-Board",
-    "description": "Wata-Board is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
+    "title": "О проекте Wata-Board",
+    "description": "Wata-Board — это децентрализованная платформа для оплаты коммунальных услуг на блокчейне Stellar. Мы обеспечиваем безопасные, прозрачные и эффективные платежи за коммунальные услуги с помощью криптовалюты.",
     "features": {
-      "title": "Key Features",
-      "secure": "Secure Transactions",
-      "secureDescription": "Built on Stellar blockchain with enterprise-grade security",
-      "fast": "Fast Payments",
-      "fastDescription": "Near-instant settlement with low transaction fees",
-      "transparent": "Transparent Records",
-      "transparentDescription": "All transactions are recorded on the public blockchain",
-      "decentralized": "Decentralized",
-      "decentralizedDescription": "No single point of failure or control"
+      "title": "Ключевые возможности",
+      "secure": "Безопасные транзакции",
+      "secureDescription": "Построено на блокчейне Stellar с защитой корпоративного уровня",
+      "fast": "Быстрые платежи",
+      "fastDescription": "Мгновенное проведение с низкой комиссией",
+      "transparent": "Прозрачные записи",
+      "transparentDescription": "Все транзакции записываются в публичный блокчейн",
+      "decentralized": "Децентрализация",
+      "decentralizedDescription": "Нет единой точки отказа или контроля"
     },
     "howItWorks": {
-      "title": "How It Works",
-      "step1": "Connect your wallet",
-      "step2": "Enter meter details",
-      "step3": "Confirm payment",
-      "step4": "Payment processed"
+      "title": "Как это работает",
+      "step1": "Подключите кошелёк",
+      "step2": "Введите данные счётчика",
+      "step3": "Подтвердите платёж",
+      "step4": "Платёж обработан"
     }
   },
   "contact": {
-    "title": "Contact Us",
-    "description": "Get in touch with our team for support, questions, or feedback.",
+    "title": "Свяжитесь с нами",
+    "description": "Свяжитесь с нашей командой для поддержки, вопросов или отзывов.",
     "form": {
-      "name": "Name",
-      "namePlaceholder": "Enter your name",
+      "name": "Имя",
+      "namePlaceholder": "Введите ваше имя",
       "email": "Email",
-      "emailPlaceholder": "Enter your email",
-      "subject": "Subject",
-      "subjectPlaceholder": "Enter subject",
-      "message": "Message",
-      "messagePlaceholder": "Enter your message",
-      "sendButton": "Send Message",
-      "sending": "Sending..."
+      "emailPlaceholder": "Введите ваш email",
+      "subject": "Тема",
+      "subjectPlaceholder": "Введите тему",
+      "message": "Сообщение",
+      "messagePlaceholder": "Введите ваше сообщение",
+      "sendButton": "Отправить",
+      "sending": "Отправка..."
     },
     "info": {
       "email": "Email",
-      "support": "Support",
-      "website": "Website"
+      "support": "Поддержка",
+      "website": "Веб-сайт"
     }
   },
   "rate": {
-    "title": "Rate Your Experience",
-    "description": "Help us improve by rating your experience with Wata-Board.",
+    "title": "Оцените свой опыт",
+    "description": "Помогите нам стать лучше — оцените работу Wata-Board.",
     "rating": {
-      "excellent": "Excellent",
-      "good": "Good",
-      "average": "Average",
-      "poor": "Poor",
-      "terrible": "Terrible"
+      "excellent": "Отлично",
+      "good": "Хорошо",
+      "average": "Неплохо",
+      "poor": "Плохо",
+      "terrible": "Ужасно"
     },
     "review": {
-      "title": "Write a Review",
-      "placeholder": "Share your experience with Wata-Board...",
-      "submit": "Submit Review",
-      "thankYou": "Thank you for your feedback!"
+      "title": "Написать отзыв",
+      "placeholder": "Поделитесь своим опытом использования Wata-Board...",
+      "submit": "Отправить отзыв",
+      "thankYou": "Спасибо за ваш отзыв!"
     }
   },
   "errors": {
     "general": {
-      "title": "Error",
-      "unknown": "An unknown error occurred",
-      "tryAgain": "Please try again",
-      "contactSupport": "Contact support if the problem persists"
+      "title": "Ошибка",
+      "unknown": "Произошла неизвестная ошибка",
+      "tryAgain": "Пожалуйста, попробуйте снова",
+      "contactSupport": "Обратитесь в поддержку, если проблема не исчезнет"
     },
     "network": {
-      "title": "Network Error",
-      "description": "Unable to connect to the network",
-      "checkConnection": "Please check your internet connection"
+      "title": "Сетевая ошибка",
+      "description": "Не удаётся подключиться к сети",
+      "checkConnection": "Пожалуйста, проверьте подключение к интернету"
     },
     "wallet": {
-      "title": "Wallet Error",
-      "notConnected": "Wallet not connected",
-      "notInstalled": "Freighter wallet not installed",
-      "installFreighter": "Please install Freighter wallet extension"
+      "title": "Ошибка кошелька",
+      "notConnected": "Кошелёк не подключён",
+      "notInstalled": "Кошелёк Freighter не установлен",
+      "installFreighter": "Пожалуйста, установите расширение Freighter"
     }
   },
   "accessibility": {
-    "skipToMain": "Skip to main content",
-    "skipToNavigation": "Skip to navigation",
-    "menuToggle": "Toggle navigation menu",
-    "closeMenu": "Close menu",
-    "openMenu": "Open menu",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "warning": "Warning",
-    "info": "Information"
+    "skipToMain": "Перейти к основному содержанию",
+    "skipToNavigation": "Перейти к навигации",
+    "menuToggle": "Переключить меню навигации",
+    "closeMenu": "Закрыть меню",
+    "openMenu": "Открыть меню",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "warning": "Предупреждение",
+    "info": "Информация"
   },
   "common": {
-    "cancel": "Cancel",
-    "confirm": "Confirm",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "close": "Close",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "submit": "Submit",
-    "reset": "Reset",
-    "clear": "Clear",
-    "search": "Search",
-    "filter": "Filter",
-    "sort": "Sort",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "retry": "Retry",
-    "refresh": "Refresh",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "learnMore": "Learn More",
-    "viewDetails": "View Details",
-    "hideDetails": "Hide Details"
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "close": "Закрыть",
+    "back": "Назад",
+    "next": "Далее",
+    "previous": "Назад",
+    "submit": "Отправить",
+    "reset": "Сбросить",
+    "clear": "Очистить",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "sort": "Сортировка",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "retry": "Повторить",
+    "refresh": "Обновить",
+    "copy": "Копировать",
+    "copied": "Скопировано!",
+    "learnMore": "Узнать больше",
+    "viewDetails": "Подробнее",
+    "hideDetails": "Скрыть"
   },
   "time": {
-    "seconds": "second",
-    "seconds_plural": "seconds",
-    "minutes": "minute",
-    "minutes_plural": "minutes",
-    "hours": "hour",
-    "hours_plural": "hours",
-    "days": "day",
-    "days_plural": "days",
-    "weeks": "week",
-    "weeks_plural": "weeks",
-    "months": "month",
-    "months_plural": "months",
-    "years": "year",
-    "years_plural": "years",
-    "ago": "{{time}} ago",
-    "in": "in {{time}}"
+    "seconds_one": "секунда",
+    "seconds_few": "секунды",
+    "seconds_many": "секунд",
+    "minutes_one": "минута",
+    "minutes_few": "минуты",
+    "minutes_many": "минут",
+    "hours_one": "час",
+    "hours_few": "часа",
+    "hours_many": "часов",
+    "days_one": "день",
+    "days_few": "дня",
+    "days_many": "дней",
+    "weeks_one": "неделя",
+    "weeks_few": "недели",
+    "weeks_many": "недель",
+    "months_one": "месяц",
+    "months_few": "месяца",
+    "months_many": "месяцев",
+    "years_one": "год",
+    "years_few": "года",
+    "years_many": "лет",
+    "ago": "{{time}} назад",
+    "in": "через {{time}}"
   },
   "currency": {
     "xlm": "XLM",
@@ -245,13 +259,17 @@
     "eur": "EUR"
   },
   "validation": {
-    "required": "This field is required",
-    "invalid": "Invalid format",
-    "tooShort": "Must be at least {{min}} characters",
-    "tooLong": "Must be no more than {{max}} characters",
-    "invalidEmail": "Please enter a valid email address",
-    "invalidNumber": "Please enter a valid number",
-    "minValue": "Must be at least {{min}}",
-    "maxValue": "Must be no more than {{max}}"
+    "required": "Это поле обязательно",
+    "invalid": "Неверный формат",
+    "tooShort": "Минимум {{min}} символа",
+    "tooShort_few": "Минимум {{min}} символа",
+    "tooShort_many": "Минимум {{min}} символов",
+    "tooLong": "Максимум {{max}} символа",
+    "tooLong_few": "Максимум {{max}} символа",
+    "tooLong_many": "Максимум {{max}} символов",
+    "invalidEmail": "Пожалуйста, введите корректный email",
+    "invalidNumber": "Пожалуйста, введите корректное число",
+    "minValue": "Минимальное значение: {{min}}",
+    "maxValue": "Максимальное значение: {{max}}"
   }
 }
