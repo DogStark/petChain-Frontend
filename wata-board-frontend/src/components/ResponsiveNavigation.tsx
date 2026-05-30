@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NetworkSwitcher } from './NetworkSwitcher';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import MobileNavigation from './MobileNavigation';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { announceToScreenReader, trapFocus, generateId, getAriaLabel } from '../utils/accessibility';

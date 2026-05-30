@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useConnectivity } from '../hooks/useConnectivity';
 
 interface OfflineBannerProps {
@@ -8,21 +8,25 @@ interface OfflineBannerProps {
 
 export function OfflineBanner({ className = '', showDetails = false }: OfflineBannerProps) {
   const { connectivity, offlineActions, checkConnectivity } = useConnectivity();
-  const [isVisible, setIsVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Show banner when offline or when there are queued actions
-  useEffect(() => {
-    setIsVisible(connectivity.isOffline || offlineActions.length > 0);
-  }, [connectivity.isOffline, offlineActions.length]);
+  const queuedCount = offlineActions.length;
+  const shouldShow = !dismissed && (connectivity.isOffline || queuedCount > 0);
 
-  // Auto-hide when coming back online and no queued actions
   useEffect(() => {
-    if (connectivity.isOnline && offlineActions.length === 0) {
-      const timer = setTimeout(() => setIsVisible(false), 3000);
-      return () => clearTimeout(timer);
+    if (connectivity.isOffline || queuedCount > 0) {
+      setDismissed(false);
     }
-  }, [connectivity.isOnline, offlineActions.length]);
+  }, [connectivity.isOffline, queuedCount]);
+
+  useEffect(() => {
+    if (connectivity.isOnline && queuedCount === 0) {
+      const timer = window.setTimeout(() => setDismissed(true), 3000);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [connectivity.isOnline, queuedCount]);
 
   const handleRetryConnection = async () => {
     setIsRetrying(true);
@@ -33,99 +37,62 @@ export function OfflineBanner({ className = '', showDetails = false }: OfflineBa
     }
   };
 
-  const getConnectionIcon = () => {
-    if (connectivity.isOffline) {
-      return '📱';
-    }
-    if (offlineActions.length > 0) {
-      return '⏳';
-    }
-    return '🌐';
-  };
+  const stateStyles = connectivity.isOffline
+    ? 'bg-amber-500 border-amber-600 text-amber-950'
+    : 'bg-sky-500 border-sky-600 text-sky-950';
 
-  const getConnectionMessage = () => {
-    if (connectivity.isOffline) {
-      return 'You are offline. Some features may not be available.';
-    }
-    if (offlineActions.length > 0) {
-      return `Back online! Processing ${offlineActions.length} queued action${offlineActions.length === 1 ? '' : 's'}...`;
-    }
-    return 'Connection restored';
-  };
+  const message = connectivity.isOffline
+    ? 'You are offline. Some actions will sync when your connection returns.'
+    : `Back online. Syncing ${queuedCount} queued action${queuedCount === 1 ? '' : 's'}.`;
 
-  const getConnectionColor = () => {
-    if (connectivity.isOffline) {
-      return 'bg-amber-500 border-amber-600 text-amber-50';
-    }
-    if (offlineActions.length > 0) {
-      return 'bg-sky-500 border-sky-600 text-sky-50';
-    }
-    return 'bg-green-500 border-green-600 text-green-50';
-  };
-
-  if (!isVisible) return null;
+  if (!shouldShow) return null;
 
   return (
     <div
-      className={`
-        fixed top-0 left-0 right-0 z-50
-        ${getConnectionColor()}
-        border-b px-4 py-3 text-sm
-        transition-all duration-300 ease-in-out
-        ${className}
-      `}
-      role="alert"
+      className={`fixed top-3 left-3 right-3 z-50 pointer-events-none transition-all duration-300 ease-out ${className}`}
+      role="status"
       aria-live="polite"
+      aria-atomic="true"
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <span className="text-lg" aria-hidden="true">
-            {getConnectionIcon()}
+      <div
+        className={`mx-auto flex max-w-3xl items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm shadow-lg shadow-black/20 pointer-events-auto ${stateStyles}`}
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/30 text-xs font-bold">
+            {connectivity.isOffline ? '!' : '~'}
           </span>
-          <div>
-            <p className="font-medium">{getConnectionMessage()}</p>
+
+          <div className="min-w-0">
+            <p className="font-semibold leading-5">{message}</p>
             {showDetails && (
-              <div className="mt-1 text-xs opacity-75">
-                {connectivity.connectionType && (
-                  <span>Connection: {connectivity.connectionType}</span>
-                )}
-                {connectivity.effectiveType && (
-                  <span className="ml-2">Speed: {connectivity.effectiveType}</span>
-                )}
-                {connectivity.saveData && (
-                  <span className="ml-2">Data saver: ON</span>
-                )}
-              </div>
+              <p className="mt-1 text-xs opacity-80">
+                {connectivity.connectionType ? `Connection: ${connectivity.connectionType}. ` : ''}
+                {connectivity.effectiveType ? `Speed: ${connectivity.effectiveType}. ` : ''}
+                {connectivity.saveData ? 'Data saver is on.' : ''}
+              </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex shrink-0 items-center gap-2">
           {connectivity.isOffline && (
             <button
+              type="button"
               onClick={handleRetryConnection}
               disabled={isRetrying}
-              className="
-                px-3 py-1 text-xs font-medium
-                bg-white/20 hover:bg-white/30
-                rounded transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-              aria-label="Retry connection"
+              className="rounded-lg bg-white/25 px-3 py-1 text-xs font-semibold transition hover:bg-white/40 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isRetrying ? 'Checking...' : 'Retry'}
+              {isRetrying ? 'Checking' : 'Retry'}
             </button>
           )}
 
           <button
-            onClick={() => setIsVisible(false)}
-            className="
-              p-1 text-xs hover:bg-white/10 rounded
-              transition-colors
-            "
-            aria-label="Dismiss notification"
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="rounded-lg px-2 py-1 text-sm font-bold transition hover:bg-white/25"
+            aria-label="Dismiss offline status notification"
           >
-            ×
+            x
           </button>
         </div>
       </div>

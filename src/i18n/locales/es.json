@@ -2,7 +2,10 @@
   "app": {
     "title": "Wata-Board",
     "tagline": "Pagos de servicios públicos descentralizados en la blockchain Stellar",
-    "description": "Paga tus facturas de servicios públicos usando criptomoneda en la red Stellar"
+    "description": "Paga tus facturas de servicios públicos usando criptomoneda en la red Stellar",
+    "footer": {
+      "tagline": "Soluciones de pago modernas para la web descentralizada"
+    }
   },
   "navigation": {
     "home": "Pagar Factura",

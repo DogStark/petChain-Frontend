@@ -332,7 +332,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col gap-2 lg:ml-4">
+                <div className="flex flex-col gap-2 lg:ms-4">
                   <button
                     onClick={() => setSelectedSchedule(schedule)}
                     className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors text-sm"
@@ -457,7 +457,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-end">
                         <p className="text-slate-200 font-medium">{formatCurrency(payment.amount)}</p>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs mt-1 ${getStatusColor(payment.status)}`}>
                           {payment.status.replace('_', ' ')}
