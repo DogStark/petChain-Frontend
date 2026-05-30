@@ -39,6 +39,7 @@ interface FeeCache {
 export const stroopsToXLM = (stroops: number): number => stroops / STROOPS_PER_XLM;
 export const xlmToStroops = (xlm: number): number => Math.floor(xlm * STROOPS_PER_XLM);
 
+// ─── Service ──────────────────────────────────────────────────────────────────
 export class FeeEstimationService {
   private server: Horizon.Server;
   private cache: FeeCache | null = null;

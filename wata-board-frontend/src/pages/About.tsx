@@ -23,7 +23,7 @@ function About() {
 
             <div className="border-t border-slate-800 pt-6">
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-100 mb-4">How It Works</h2>
-              <ul className="list-disc list-inside space-y-2 text-sm sm:text-base">
+              <ul className="list-disc list-outside ps-5 space-y-2 text-sm sm:text-base">
                 <li className="leading-relaxed">Connect your Freighter wallet</li>
                 <li className="leading-relaxed">Enter your meter number</li>
                 <li className="leading-relaxed">Input the amount you want to pay</li>
