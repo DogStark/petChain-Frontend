@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NetworkSwitcher } from './NetworkSwitcher';
-import { announceToScreenReader, trapFocus, removeFocusTrap, generateId, getAriaLabel } from '../utils/accessibility';
+import { announceToScreenReader, trapFocus, generateId, getAriaLabel } from '../utils/accessibility';
 
 interface MobileNavigationProps {
   isOpen: boolean;
