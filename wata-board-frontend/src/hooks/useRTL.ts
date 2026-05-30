@@ -8,14 +8,18 @@ export const useRTL = () => {
   const [textDirection, setTextDirection] = useState(getTextDirection(i18n.language));
 
   useEffect(() => {
-    // Update RTL state when language changes
-    setIsRTLDirection(isRTL(i18n.language));
-    setTextDirection(getTextDirection(i18n.language));
+    // Compute new direction from the current language first
+    const newDir = getTextDirection(i18n.language);
 
-    // Update document direction
-    document.documentElement.dir = textDirection;
+    // Update RTL state
+    setIsRTLDirection(newDir === 'rtl');
+    setTextDirection(newDir);
+
+    // Update document direction using the freshly computed value,
+    // not the stale state variable from the previous render
+    document.documentElement.dir = newDir;
     document.documentElement.lang = i18n.language;
-  }, [i18n.language, textDirection]);
+  }, [i18n.language]);
 
   // Helper function to get appropriate margin/padding classes for RTL
   const getDirectionalClass = (left: string, right: string) => {

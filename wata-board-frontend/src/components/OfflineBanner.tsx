@@ -68,7 +68,7 @@ export function OfflineBanner({ className = '', showDetails = false }: OfflineBa
   return (
     <div
       className={`
-        fixed top-0 left-0 right-0 z-50
+        fixed top-0 inset-x-0 z-50
         ${getConnectionColor()}
         border-b px-4 py-3 text-sm
         transition-all duration-300 ease-in-out
@@ -78,7 +78,7 @@ export function OfflineBanner({ className = '', showDetails = false }: OfflineBa
       aria-live="polite"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           <span className="text-lg" aria-hidden="true">
             {getConnectionIcon()}
           </span>
@@ -90,17 +90,17 @@ export function OfflineBanner({ className = '', showDetails = false }: OfflineBa
                   <span>Connection: {connectivity.connectionType}</span>
                 )}
                 {connectivity.effectiveType && (
-                  <span className="ml-2">Speed: {connectivity.effectiveType}</span>
+                  <span className="ms-2">Speed: {connectivity.effectiveType}</span>
                 )}
                 {connectivity.saveData && (
-                  <span className="ml-2">Data saver: ON</span>
+                  <span className="ms-2">Data saver: ON</span>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           {connectivity.isOffline && (
             <button
               onClick={handleRetryConnection}

@@ -80,10 +80,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
         data-testid="mobile-menu-backdrop"
       />
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — slides in from the inline-start edge (left in LTR, right in RTL) */}
       <div
         ref={menuRef}
-        className="fixed inset-y-0 left-0 w-full max-w-sm bg-slate-900 border-r border-slate-800 z-50 lg:hidden animate-slide-down"
+        className="fixed inset-y-0 start-0 w-full max-w-sm bg-slate-900 border-e border-slate-800 z-50 lg:hidden animate-slide-down"
         role="dialog"
         aria-modal="true"
         aria-labelledby={menuId.current}
@@ -113,7 +113,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
               </svg>
             </button>
           </div>
-
           {/* Navigation Links */}
           <nav className="flex-1 p-4" role="navigation" aria-label="Main navigation">
             <div className="space-y-2" role="menu">

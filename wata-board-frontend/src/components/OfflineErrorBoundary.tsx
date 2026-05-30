@@ -92,7 +92,7 @@ export class OfflineErrorBoundary extends Component<OfflineErrorBoundaryProps, O
               </div>
 
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="mt-6 text-left">
+                <details className="mt-6 text-start">
                   <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300">
                     Error Details (Development)
                   </summary>

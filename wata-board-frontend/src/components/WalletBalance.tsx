@@ -67,7 +67,7 @@ export const WalletBalance: React.FC<WalletBalanceProps> = (props) => {
   if (isLoading || !balance) {
     return (
       <div className={`rounded-xl border border-slate-800 bg-slate-950/40 p-4 ${className}`}>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-600 border-t-sky-500"></div>
           <div className="text-sm text-slate-400">Loading balance...</div>
         </div>
@@ -93,7 +93,7 @@ export const WalletBalance: React.FC<WalletBalanceProps> = (props) => {
           <div className={`text-xs ${balanceStatusColor} mt-1`}>
             {balanceStatusText}
             {isLowBalance && (
-              <span className="ml-2 text-amber-400">⚠️ Low Balance</span>
+              <span className="ms-2 text-amber-400">⚠️ Low Balance</span>
             )}
           </div>
         </div>
@@ -136,7 +136,7 @@ export const WalletBalance: React.FC<WalletBalanceProps> = (props) => {
           </div>
           {balance.balances.map((assetBalance, index) => (
             <div key={index} className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${
                   assetBalance.isNative ? 'bg-sky-500' : 'bg-purple-500'
                 }`}></div>
