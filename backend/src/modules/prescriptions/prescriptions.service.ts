@@ -10,6 +10,7 @@ import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { DosageCalculationService } from './services/dosage-calculation.service';
 import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface RefillReminder {
   prescriptionId: string;
@@ -44,6 +45,7 @@ export class PrescriptionsService {
     private readonly refillRepository: Repository<PrescriptionRefill>,
     private readonly dosageCalculationService: DosageCalculationService,
     private readonly drugInteractionService: DrugInteractionService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -404,5 +406,76 @@ export class PrescriptionsService {
     const days = durationDays || 30; // Default 30-day supply
     expiration.setDate(expiration.getDate() + days);
     return expiration;
+  }
+}
+
+  async getRefillReminders(daysWindow: number = 7): Promise<RefillReminder[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() + daysWindow);
+
+    const prescriptions = await this.prescriptionRepository.find({
+      where: {
+        status: PrescriptionStatus.ACTIVE,
+        refillsRemaining: MoreThanOrEqual(1),
+      },
+      relations: ['pet'],
+    });
+
+    const reminders: RefillReminder[] = [];
+
+    for (const prescription of prescriptions) {
+      // Calculate days until next refill based on frequency
+      const frequencyDays = this.parseFrequencyToDays(prescription.frequency);
+      if (!frequencyDays) continue;
+
+      const lastRefill = await this.refillRepository.findOne({
+        where: { prescriptionId: prescription.id },
+        order: { refillDate: 'DESC' },
+      });
+
+      const lastRefillDate = lastRefill?.refillDate || prescription.startDate;
+      const nextRefillDate = new Date(lastRefillDate);
+      nextRefillDate.setDate(nextRefillDate.getDate() + frequencyDays);
+
+      const daysUntilRefill = Math.ceil(
+        (nextRefillDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysUntilRefill <= daysWindow && daysUntilRefill >= 0) {
+        reminders.push({
+          prescriptionId: prescription.id,
+          medication: prescription.medication,
+          frequency: prescription.frequency,
+          refillsRemaining: prescription.refillsRemaining,
+          daysUntilRefill,
+          estimatedRefillDate: nextRefillDate,
+          petName: prescription.pet.name,
+          petId: prescription.pet.id,
+        });
+      }
+    }
+
+    return reminders;
+  }
+
+  private parseFrequencyToDays(frequency: string): number | null {
+    const freq = frequency.toLowerCase();
+    if (freq.includes('daily') || freq.includes('once a day')) return 1;
+    if (freq.includes('twice a day') || freq.includes('bid')) return 0.5;
+    if (freq.includes('three times') || freq.includes('tid')) return 0.33;
+    if (freq.includes('weekly') || freq.includes('once a week')) return 7;
+    if (freq.includes('monthly') || freq.includes('once a month')) return 30;
+    
+    // Try to extract number from frequency string
+    const match = freq.match(/(\d+)\s*(day|week|month)/);
+    if (match) {
+      const num = parseInt(match[1]);
+      const unit = match[2];
+      if (unit === 'day') return num;
+      if (unit === 'week') return num * 7;
+      if (unit === 'month') return num * 30;
+    }
+    
+    return null;
   }
 }

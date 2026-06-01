@@ -35,6 +35,7 @@ import { LostPetsModule } from './modules/lost-pets/lost-pets.module';
 import { BehaviorModule } from './behavior/behavior.module';
 import { AllergiesModule } from './modules/allergies/allergies.module';
 import { ConditionsModule } from './modules/conditions/conditions.module';
+import { BlockingReportingModule } from './modules/blocking-reporting/blocking-reporting.module';
 
 import { VerificationModule } from './modules/verification/verification.module';
 import { GdprModule } from './modules/gdpr/gdpr.module';
@@ -120,6 +121,7 @@ import { MfaModule } from './modules/mfa/mfa.module';
     BehaviorModule,
     AllergiesModule,
     ConditionsModule,
+    BlockingReportingModule,
     AuditModule,
 
     VerificationModule,
