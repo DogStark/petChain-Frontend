@@ -1,17 +1,32 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
-  ConflictException,
+  TooManyRequestsException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, MoreThan } from 'typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { UserConsent, ConsentType } from './entities/user-consent.entity';
 import {
   DataDeletionRequest,
   DeletionStatus,
 } from './entities/data-deletion-request.entity';
+import {
+  GdprRequest,
+  GdprRequestStatus,
+  GdprRequestType,
+} from './entities/gdpr-request.entity';
 import { UpdateConsentDto, RequestDeletionDto } from './dto/gdpr.dto';
+import { StorageService } from '../storage/storage.service';
+import { PasswordUtil } from '../../auth/utils/password.util';
+import { GdprJobData } from './gdpr.processor';
+
+const RATE_LIMIT_HOURS = 24;
 
 @Injectable()
 export class GdprService {
@@ -22,7 +37,11 @@ export class GdprService {
     private readonly consentRepo: Repository<UserConsent>,
     @InjectRepository(DataDeletionRequest)
     private readonly deletionRepo: Repository<DataDeletionRequest>,
+    @InjectRepository(GdprRequest)
+    private readonly gdprRequestRepo: Repository<GdprRequest>,
     private readonly dataSource: DataSource,
+    private readonly storageService: StorageService,
+    @InjectQueue('gdpr') private readonly gdprQueue: Queue<GdprJobData>,
   ) {}
 
   // ── Consent Management ────────────────────────────────────────────────────
@@ -228,6 +247,112 @@ export class GdprService {
       prescriptions,
       consents,
     };
+  }
+
+  // ── GDPR Request: Export ──────────────────────────────────────────────────
+
+  async requestExport(userId: string): Promise<GdprRequest> {
+    await this.enforceRateLimit(userId, GdprRequestType.EXPORT);
+
+    const request = this.gdprRequestRepo.create({
+      userId,
+      type: GdprRequestType.EXPORT,
+      status: GdprRequestStatus.PENDING,
+    });
+    const saved = await this.gdprRequestRepo.save(request);
+
+    await this.gdprQueue.add('gdpr-job', {
+      requestId: saved.id,
+      userId,
+      type: GdprRequestType.EXPORT,
+    });
+
+    return saved;
+  }
+
+  async processExportJob(userId: string, requestId: string): Promise<string> {
+    const data = await this.exportUserData(userId);
+    const json = JSON.stringify(data, null, 2);
+    const key = `gdpr-exports/${userId}/${requestId}.json`;
+
+    const result = await this.storageService.upload({
+      key,
+      body: Buffer.from(json),
+      contentType: 'application/json',
+    });
+
+    return result.url;
+  }
+
+  // ── GDPR Request: Erasure ─────────────────────────────────────────────────
+
+  async requestErasure(userId: string, password: string): Promise<GdprRequest> {
+    await this.enforceRateLimit(userId, GdprRequestType.ERASURE);
+
+    const [userRow] = await this.dataSource.query(
+      `SELECT password FROM users WHERE id = $1`,
+      [userId],
+    );
+    if (!userRow) throw new NotFoundException('User not found');
+
+    const valid = await PasswordUtil.comparePassword(password, userRow.password);
+    if (!valid) throw new UnauthorizedException('Invalid password');
+
+    const request = this.gdprRequestRepo.create({
+      userId,
+      type: GdprRequestType.ERASURE,
+      status: GdprRequestStatus.PENDING,
+    });
+    const saved = await this.gdprRequestRepo.save(request);
+
+    await this.gdprQueue.add(
+      'gdpr-job',
+      { requestId: saved.id, userId, type: GdprRequestType.ERASURE },
+      { delay: 0 },
+    );
+
+    return saved;
+  }
+
+  async processErasureJob(userId: string, _requestId: string): Promise<void> {
+    const pending = await this.deletionRepo.findOne({
+      where: { userId, status: DeletionStatus.PENDING },
+    });
+    const deletionReq =
+      pending ??
+      (await this.requestDeletion(userId, { reason: 'gdpr-erasure' }));
+    await this.processDeletion(deletionReq.id);
+
+    await this.dataSource.query(
+      `DELETE FROM user_sessions WHERE user_id = $1`,
+      [userId],
+    );
+
+    this.logger.log(`GDPR erasure complete for user ${userId}`);
+    this.dataSource.query(
+      `INSERT INTO user_activity_logs(user_id, action, created_at) VALUES ($1, $2, NOW()) ON CONFLICT DO NOTHING`,
+      [userId, 'user.erased'],
+    ).catch(() => {});
+  }
+
+  async getGdprRequest(requestId: string, userId: string): Promise<GdprRequest> {
+    const req = await this.gdprRequestRepo.findOne({
+      where: { id: requestId, userId },
+    });
+    if (!req) throw new NotFoundException('GDPR request not found');
+    return req;
+  }
+
+  private async enforceRateLimit(userId: string, type: GdprRequestType): Promise<void> {
+    const since = new Date(Date.now() - RATE_LIMIT_HOURS * 60 * 60 * 1000);
+    const recent = await this.gdprRequestRepo.findOne({
+      where: { userId, type, requestedAt: MoreThan(since) },
+    });
+    if (recent) {
+      throw new TooManyRequestsException(
+        `Only one ${type} request is allowed per ${RATE_LIMIT_HOURS} hours`,
+      );
+    }
   }
 
   // ── Retention Policy ──────────────────────────────────────────────────────

@@ -1,22 +1,54 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Patch,
-  Body,
-  Param,
-  Req,
+  Headers,
   HttpCode,
   HttpStatus,
-  Headers,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { GdprService } from './gdpr.service';
 import { UpdateConsentDto, RequestDeletionDto } from './dto/gdpr.dto';
+import { DataExportRequestDto } from './dto/data-export-request.dto';
+import { ErasureRequestDto } from './dto/erasure-request.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('gdpr')
 export class GdprController {
   constructor(private readonly gdprService: GdprService) {}
+
+  /**
+   * POST /gdpr/export — request a data export (own data, rate-limited 1/24h)
+   */
+  @Post('export')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(JwtAuthGuard)
+  requestExport(
+    @CurrentUser() user: User,
+    @Body() _dto: DataExportRequestDto,
+  ) {
+    return this.gdprService.requestExport(user.id);
+  }
+
+  /**
+   * POST /gdpr/erase — request account erasure with password confirmation (rate-limited 1/24h)
+   */
+  @Post('erase')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(JwtAuthGuard)
+  requestErasure(
+    @CurrentUser() user: User,
+    @Body() dto: ErasureRequestDto,
+  ) {
+    return this.gdprService.requestErasure(user.id, dto.password);
+  }
 
   /** GET /gdpr/users/:userId/consents */
   @Get('users/:userId/consents')
