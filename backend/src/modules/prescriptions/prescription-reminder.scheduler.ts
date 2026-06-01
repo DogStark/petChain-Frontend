@@ -3,8 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrescriptionsService } from './prescriptions.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationCategory } from '../notifications/entities/notification.entity';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
 
 @Injectable()
 export class PrescriptionReminderScheduler {
@@ -13,7 +11,6 @@ export class PrescriptionReminderScheduler {
   constructor(
     private readonly prescriptionsService: PrescriptionsService,
     private readonly notificationsService: NotificationsService,
-    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   @Cron('0 9 * * *') // Daily at 9am
