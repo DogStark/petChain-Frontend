@@ -28,6 +28,7 @@ export enum ReminderStatus {
   OVERDUE = 'OVERDUE',
   SNOOZED = 'SNOOZED',
   CANCELLED = 'CANCELLED',
+  FAILED = 'FAILED',
 }
 
 @Entity('reminders')
