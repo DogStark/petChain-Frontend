@@ -9,10 +9,12 @@ import {
   LostPetReport,
   LostPetStatus,
 } from './entities/lost-pet-report.entity';
+import { PetSighting } from './entities/pet-sighting.entity';
 import { ReportLostPetDto } from './dto/report-lost-pet.dto';
 import { ReportFoundPetDto } from './dto/report-found-pet.dto';
 import { UpdateLostMessageDto } from './dto/update-lost-message.dto';
 import { UpdateUserLocationDto } from './dto/update-user-location.dto';
+import { CreateSightingDto } from './dto/create-sighting.dto';
 import { PetsService } from '../pets/pets.service';
 import { QRCodesService } from '../qrcodes/qrcodes.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -28,6 +30,8 @@ export class LostPetsService {
     private readonly lostPetReportRepository: Repository<LostPetReport>,
     @InjectRepository(UserLocation)
     private readonly userLocationRepository: Repository<UserLocation>,
+    @InjectRepository(PetSighting)
+    private readonly sightingRepository: Repository<PetSighting>,
     private readonly petsService: PetsService,
     private readonly qrcodesService: QRCodesService,
     private readonly notificationsService: NotificationsService,
@@ -123,6 +127,45 @@ export class LostPetsService {
     );
 
     return this.findOneWithRelations(report.id);
+  }
+
+  async createSighting(
+    reportId: string,
+    reportedByUserId: string,
+    dto: CreateSightingDto,
+  ): Promise<PetSighting> {
+    const report = await this.lostPetReportRepository.findOne({
+      where: { id: reportId },
+      relations: ['pet'],
+    });
+    if (!report) throw new NotFoundException('Lost pet report not found');
+
+    const sighting = this.sightingRepository.create({
+      lostPetReportId: reportId,
+      reportedByUserId,
+      lat: dto.lat,
+      lng: dto.lng,
+      description: dto.description ?? null,
+      photoUrl: dto.photoUrl ?? null,
+    });
+    const saved = await this.sightingRepository.save(sighting);
+
+    const ownerId = report.pet?.ownerId;
+    if (ownerId) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      await this.notificationsService
+        .create({
+          userId: ownerId,
+          title: `Sighting reported for ${report.pet.name}`,
+          message: `Someone spotted ${report.pet.name} near (${dto.lat.toFixed(4)}, ${dto.lng.toFixed(4)}).${dto.description ? ' ' + dto.description : ''}`,
+          category: NotificationCategory.LOST_PET,
+          actionUrl: `${frontendUrl}/lost-pets/${reportId}`,
+          metadata: { reportId, sightingId: saved.id, lat: dto.lat, lng: dto.lng },
+        })
+        .catch(() => {});
+    }
+
+    return saved;
   }
 
   async findAllLost(): Promise<LostPetReport[]> {
