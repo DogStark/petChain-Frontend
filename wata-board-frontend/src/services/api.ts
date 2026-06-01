@@ -159,7 +159,6 @@ class ApiService {
 export const apiService = new ApiService();
 
 // Export types for convenience
-export type { PaymentRequest, PaymentResponse, RateLimitStatus, PaymentInfo, HealthStatus };
 
 // Utility functions for common operations
 export const paymentUtils = {
@@ -228,7 +227,7 @@ export const paymentUtils = {
    * Check if rate limited
    */
   isRateLimited: (response: PaymentResponse): boolean => {
-    return !response.success && response.error?.includes('Rate limit exceeded');
+    return !response.success && !!response.error?.includes('Rate limit exceeded');
   },
 };
 

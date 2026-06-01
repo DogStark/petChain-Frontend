@@ -6,8 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "npm run test:password && npm run test:debug",
+    "test:password": "npx ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "test:debug": "npx ts-node --project tsconfig.test.json tests/debug.test.ts",
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
     "analyze": "ANALYZE=true next build",
@@ -47,6 +49,7 @@
     "eslint-config-next": "15.2.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

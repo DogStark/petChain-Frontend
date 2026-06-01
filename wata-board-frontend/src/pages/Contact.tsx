@@ -132,9 +132,9 @@ function Contact() {
                     <div key={idx} className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
                       <button
                         onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-left text-slate-200 hover:bg-slate-800/50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 text-sm text-start text-slate-200 hover:bg-slate-800/50 transition-colors"
                       >
-                        <span className="font-medium pr-4">{item.q}</span>
+                        <span className="font-medium pe-4">{item.q}</span>
                         <svg className={"w-4 h-4 shrink-0 text-slate-400 transition-transform duration-200 " + (openFaq === idx ? 'rotate-180' : '')}
                           fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

@@ -107,7 +107,7 @@ body {
 .skip-link {
   position: absolute !important;
   top: -40px !important;
-  left: 6px !important;
+  inset-inline-start: 6px !important;
   background: #0ea5e9 !important;
   color: white !important;
   padding: 8px !important;
@@ -262,7 +262,7 @@ table {
 th,
 td {
   padding: 0.75rem;
-  text-align: left;
+  text-align: start;
   border-bottom: 1px solid #475569;
 }
 

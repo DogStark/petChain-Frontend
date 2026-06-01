@@ -1,35 +1,47 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 interface SkipLinkProps {
   href: string;
   children: React.ReactNode;
-  className?: string;
 }
 
-export const SkipLink: React.FC<SkipLinkProps> = ({ href, children, className = '' }) => {
-  return (
-    <Link
-      to={href}
-      className={`skip-link ${className}`}
-      onClick={(e) => {
-        e.preventDefault();
-        const target = document.querySelector(href) as HTMLElement;
-        target?.focus();
-        target?.scrollIntoView({ behavior: 'smooth' });
-      }}
-    >
-      {children}
-    </Link>
-  );
+const skipLinkClasses =
+  'absolute start-4 top-4 z-50 -translate-y-4 opacity-0 transition-all duration-200 ease-out focus:translate-y-0 focus:opacity-100 focus:z-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-950 bg-slate-900 text-slate-100 px-3 py-2 rounded-md shadow-lg';
+
+const handleSkipClick = (href: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+  event.preventDefault();
+  const target = document.querySelector(href) as HTMLElement | null;
+  if (target) {
+    target.tabIndex = -1;
+    target.focus();
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 };
 
 export const SkipLinks: React.FC = () => {
   return (
-    <div className="sr-only">
-      <SkipLink href="#main-content">Skip to main content</SkipLink>
-      <SkipLink href="#navigation">Skip to navigation</SkipLink>
-      <SkipLink href="#payment-form">Skip to payment form</SkipLink>
-    </div>
+    <nav aria-label="Skip links">
+      <a
+        href="#main-content"
+        className={skipLinkClasses}
+        onClick={handleSkipClick('#main-content')}
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#navigation"
+        className={skipLinkClasses}
+        onClick={handleSkipClick('#navigation')}
+      >
+        Skip to navigation
+      </a>
+      <a
+        href="#footer"
+        className={skipLinkClasses}
+        onClick={handleSkipClick('#footer')}
+      >
+        Skip to footer
+      </a>
+    </nav>
   );
 };
