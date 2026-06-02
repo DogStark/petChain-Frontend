@@ -2,54 +2,71 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinColumn,
   CreateDateColumn,
+  UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { ReportCategory } from '../enums/report-category.enum';
-import { ReportStatus } from '../enums/report-status.enum';
+
+export enum ReportTargetType {
+  USER = 'USER',
+  PET = 'PET',
+  RECORD = 'RECORD',
+  COMMENT = 'COMMENT',
+}
+
+export enum ReportReason {
+  SPAM = 'SPAM',
+  ABUSE = 'ABUSE',
+  MISINFORMATION = 'MISINFORMATION',
+  OTHER = 'OTHER',
+}
+
+export enum ReportStatus {
+  PENDING = 'PENDING',
+  REVIEWED = 'REVIEWED',
+  RESOLVED = 'RESOLVED',
+  DISMISSED = 'DISMISSED',
+}
 
 @Entity('reports')
-@Index(['reporter'])
-@Index(['reportedUser'])
+@Index(['reporterId'])
+@Index(['targetId', 'targetType'])
 @Index(['status'])
-@Index(['category'])
 export class Report {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, { nullable: false })
-  @JoinColumn({ name: 'reporter_id' })
-  reporter: User;
+  @Column({ type: 'uuid' })
+  reporterId: string;
 
-  @ManyToOne(() => User, { nullable: false })
-  @JoinColumn({ name: 'reported_user_id' })
-  reportedUser: User;
+  @Column({ type: 'uuid' })
+  targetId: string;
 
   @Column({
     type: 'enum',
-    enum: ReportCategory,
-    nullable: false,
+    enum: ReportTargetType,
   })
-  category: ReportCategory;
+  targetType: ReportTargetType;
+
+  @Column({
+    type: 'enum',
+    enum: ReportReason,
+  })
+  reason: ReportReason;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
 
   @Column({
     type: 'enum',
     enum: ReportStatus,
     default: ReportStatus.PENDING,
-    nullable: false,
   })
   status: ReportStatus;
 
-  @Column({
-    type: 'varchar',
-    length: 1000,
-    nullable: true,
-  })
-  description: string | null;
-
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
