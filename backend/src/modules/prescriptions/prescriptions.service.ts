@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
 import {
@@ -9,6 +9,10 @@ import { PrescriptionRefill } from './entities/prescription-refill.entity';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { DosageCalculationService } from './services/dosage-calculation.service';
+import {
+  DrugInteractionService,
+  InteractionResult,
+} from '../prescriptions/services/drug-interaction.service';
 import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -36,8 +40,14 @@ export interface PrescriptionHistory {
   createdAt: Date;
 }
 
+export interface PrescriptionCreateResult {
+  prescription: Prescription;
+  warnings?: InteractionResult[];
+}
+
 @Injectable()
 export class PrescriptionsService {
+  private readonly logger = new Logger(PrescriptionsService.name);
   constructor(
     @InjectRepository(Prescription)
     private readonly prescriptionRepository: Repository<Prescription>,
@@ -50,7 +60,47 @@ export class PrescriptionsService {
 
   async create(
     createPrescriptionDto: CreatePrescriptionDto,
-  ): Promise<Prescription> {
+  ): Promise<Prescription | PrescriptionCreateResult> {
+    const activePrescriptions = await this.getActivePrescriptions(
+      createPrescriptionDto.petId,
+    );
+    const activeMedicationNames = activePrescriptions
+      .map((prescription) => prescription.medication)
+      .filter(Boolean);
+
+    const interactionResults = await this.drugInteractionService.check(
+      createPrescriptionDto.medication,
+      activeMedicationNames,
+    );
+
+    const severeInteractions = interactionResults.filter(
+      (interaction) =>
+        interaction.severity === 'CONTRAINDICATED' ||
+        interaction.severity === 'SEVERE',
+    );
+
+    if (severeInteractions.length > 0) {
+      throw new BadRequestException({
+        message:
+          'Prescription cannot be created because the new medication has a high-risk interaction with existing therapy.',
+        interactions: severeInteractions,
+      });
+    }
+
+    const moderateInteractions = interactionResults.filter(
+      (interaction) => interaction.severity === 'MODERATE',
+    );
+    const mildInteractions = interactionResults.filter(
+      (interaction) => interaction.severity === 'MILD',
+    );
+
+    if (mildInteractions.length > 0) {
+      this.logger.warn(
+        `MILD interaction detected while creating prescription for pet ${createPrescriptionDto.petId}: ${mildInteractions
+          .map((r) => `${r.drug1}/${r.drug2}`)
+          .join(', ')}`,
+      );
+    }
     // Auto-calculate endDate if duration is provided
     let prescription = this.prescriptionRepository.create(
       createPrescriptionDto,
@@ -65,7 +115,16 @@ export class PrescriptionsService {
     // Set status based on dates
     prescription = this.updatePrescriptionStatus(prescription);
 
-    return await this.prescriptionRepository.save(prescription);
+    const savedPrescription = await this.prescriptionRepository.save(prescription);
+
+    if (moderateInteractions.length > 0) {
+      return {
+        prescription: savedPrescription,
+        warnings: moderateInteractions,
+      };
+    }
+
+    return savedPrescription;
   }
 
   async findAll(petId?: string): Promise<Prescription[]> {
@@ -79,6 +138,18 @@ export class PrescriptionsService {
       relations: ['pet', 'vet', 'refills'],
       order: { startDate: 'DESC' },
     });
+  }
+
+  async checkDrugInteractions(
+    petId: string,
+    medication: string,
+  ): Promise<InteractionResult[]> {
+    const activePrescriptions = await this.getActivePrescriptions(petId);
+    const activeMedicationNames = activePrescriptions
+      .map((prescription) => prescription.medication)
+      .filter(Boolean);
+
+    return this.drugInteractionService.check(medication, activeMedicationNames);
   }
 
   async findOne(id: string): Promise<Prescription> {
