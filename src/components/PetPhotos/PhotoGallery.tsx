@@ -37,7 +37,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -61,24 +61,15 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       <div className={styles.emptyState}>
         <ImageIcon className={styles.emptyIcon} />
         <p className={styles.emptyText}>No photos yet</p>
-        <p className={styles.emptySubtext}>
-          Upload photos to create a gallery for your pet
-        </p>
+        <p className={styles.emptySubtext}>Upload photos to create a gallery for your pet</p>
       </div>
     );
   }
 
   return (
     <div className={styles.gallerySection}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={photos.map((p) => p.id)}
-          strategy={rectSortingStrategy}
-        >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className={styles.galleryGrid}>
             {photos.map((photo) => (
               <PhotoCard

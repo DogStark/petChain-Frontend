@@ -46,11 +46,11 @@
   cursor: pointer;
 }
 
-.actions button[type="submit"] {
+.actions button[type='submit'] {
   background: #0070f3;
   color: white;
 }
 
-.actions button[type="button"] {
+.actions button[type='button'] {
   background: #eee;
 }

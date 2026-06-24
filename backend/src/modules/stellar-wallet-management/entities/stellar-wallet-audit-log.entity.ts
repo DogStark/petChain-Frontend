@@ -24,7 +24,9 @@ export class StellarWalletAuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => StellarWallet, (wallet) => wallet.auditLogs, { nullable: false })
+  @ManyToOne(() => StellarWallet, (wallet) => wallet.auditLogs, {
+    nullable: false,
+  })
   wallet: StellarWallet;
 
   @Column()

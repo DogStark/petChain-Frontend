@@ -1,5 +1,10 @@
 import { useState, useCallback } from 'react';
-import { transactionAPI, Transaction, TransactionType, TransactionFilters } from '@/lib/api/transactionAPI';
+import {
+  transactionAPI,
+  Transaction,
+  TransactionType,
+  TransactionFilters,
+} from '@/lib/api/transactionAPI';
 
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -39,7 +44,7 @@ export function useTransactions() {
     setError(null);
     try {
       const result = await transactionAPI.retryFailedTransaction(id);
-      setTransactions(prev => prev.map(tx => tx.id === id ? result : tx));
+      setTransactions((prev) => prev.map((tx) => (tx.id === id ? result : tx)));
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to retry transaction');
@@ -54,7 +59,7 @@ export function useTransactions() {
     setError(null);
     try {
       await transactionAPI.cancelPendingTransaction(id);
-      setTransactions(prev => prev.filter(tx => tx.id !== id));
+      setTransactions((prev) => prev.filter((tx) => tx.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel transaction');
       throw err;

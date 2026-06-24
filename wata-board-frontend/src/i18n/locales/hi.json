@@ -1,0 +1,267 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Stellar ब्लॉकचेन पर विकेंद्रीकृत उपयोगिता भुगतान",
+    "description": "Stellar नेटवर्क पर क्रिप्टोकरेंसी का उपयोग करके अपने उपयोगिता बिल का भुगतान करें",
+    "footer": {
+      "tagline": "विकेंद्रीकृत वेब के लिए आधुनिक भुगतान समाधान"
+    }
+  },
+  "navigation": {
+    "home": "बिल चुकाएं",
+    "about": "हमारे बारे में",
+    "contact": "संपर्क",
+    "rate": "रेटिंग दें",
+    "language": "भाषा"
+  },
+  "payment": {
+    "form": {
+      "title": "भुगतान जानकारी",
+      "meterNumber": "मीटर नंबर",
+      "meterPlaceholder": "उदा. METER-123",
+      "meterDescription": "अपने बिल पर दिखाया गया उपयोगिता मीटर नंबर दर्ज करें",
+      "amount": "राशि",
+      "amountPlaceholder": "पूर्ण संख्या",
+      "amountDescription": "पूर्ण XLM में भुगतान राशि दर्ज करें",
+      "payButton": "बिल चुकाएं",
+      "processing": "प्रक्रिया हो रही है...",
+      "rateLimited": "सीमा पार हो गई",
+      "requiresExtension": "Freighter एक्सटेंशन आवश्यक है। प्रति मिनट 5 लेनदेन की सीमा।"
+    },
+    "status": {
+      "title": "स्थिति",
+      "ready": "तैयार।",
+      "installWallet": "कृपया Freighter Wallet एक्सटेंशन इंस्टॉल करें!",
+      "enterMeter": "कृपया एक मीटर नंबर दर्ज करें।",
+      "enterValidAmount": "कृपया 0 से अधिक एक वैध राशि दर्ज करें।",
+      "wholeNumber": "राशि एक पूर्ण संख्या होनी चाहिए।",
+      "amountTooLarge": "राशि बहुत अधिक है।",
+      "insufficientBalance": "अपर्याप्त शेष। कृपया अपने वॉलेट में अधिक XLM जोड़ें।",
+      "estimatingFees": "लेनदेन शुल्क का अनुमान लगाया जा रहा है... कृपया प्रतीक्षा करें।",
+      "estimationFailed": "लेनदेन शुल्क का अनुमान लगाने में असमर्थ। कृपया पुनः प्रयास करें।",
+      "paymentSuccess": "भुगतान सफल! लेनदेन आईडी: {{id}}...",
+      "paymentFailed": "भुगतान विफल: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "लेनदेन शुल्क अनुमान",
+      "calculating": "(गणना हो रही है...)",
+      "calculatingFees": "अनुमानित शुल्क की गणना की जा रही है...",
+      "paymentAmount": "भुगतान राशि",
+      "estimatedNetworkFee": "अनुमानित नेटवर्क शुल्क",
+      "totalCost": "कुल लागत",
+      "unableToEstimate": "इस समय शुल्क का अनुमान लगाने में असमर्थ"
+    },
+    "rateLimit": {
+      "title": "अनुरोध सीमा स्थिति",
+      "requestsAvailable": "{{count}}/5 अनुरोध उपलब्ध",
+      "rateLimited": "सीमा पार हो गई। {{time}} में रीसेट होगी",
+      "queue": "प्रतीक्षा सूची: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "वॉलेट शेष",
+      "available": "उपलब्ध शेष",
+      "total": "कुल शेष",
+      "loading": "शेष लोड हो रहा है...",
+      "error": "शेष लोड करने में विफल",
+      "reconnect": "कृपया अपना वॉलेट पुनः कनेक्ट करें",
+      "insufficient": "इस लेनदेन के लिए अपर्याप्त शेष",
+      "lowBalance": "कम शेष की चेतावनी"
+    },
+    "connection": {
+      "connected": "जुड़ा हुआ",
+      "disconnected": "डिस्कनेक्ट",
+      "connecting": "जोड़ रहा है...",
+      "connectWallet": "वॉलेट कनेक्ट करें",
+      "switchWallet": "वॉलेट बदलें"
+    }
+  },
+  "network": {
+    "mainnet": "मुख्य नेटवर्क",
+    "testnet": "परीक्षण नेटवर्क",
+    "switchNetwork": "नेटवर्क बदलें",
+    "currentNetwork": "वर्तमान नेटवर्क",
+    "switchTo": "{{network}} पर स्विच करें?",
+    "mainnetWarning": "चेतावनी: यह एक उत्पादन नेटवर्क है। वास्तविक धनराशि का उपयोग किया जाएगा।",
+    "testnetInfo": "आप Stellar परीक्षण नेटवर्क पर स्विच कर रहे हैं। लेनदेन परीक्षण XLM का उपयोग करेंगे।",
+    "mainnetConfirm": "आप लाइव Stellar मुख्य नेटवर्क पर स्विच करने वाले हैं। लेनदेन वास्तविक XLM का उपयोग करेंगे।",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें"
+  },
+  "offline": {
+    "banner": {
+      "title": "आप ऑफलाइन हैं",
+      "description": "कुछ सुविधाएं उपलब्ध नहीं हो सकती हैं। कार्य प्रतीक्षा सूची में डाले जाएंगे और जब आप वापस ऑनलाइन होंगे तब संसाधित किए जाएंगे।",
+      "retry": "पुनः प्रयास करें",
+      "details": "कनेक्शन विवरण"
+    },
+    "status": {
+      "online": "ऑनलाइन",
+      "offline": "ऑफलाइन",
+      "connecting": "जोड़ रहा है...",
+      "queueStatus": "{{count}} कार्य प्रतीक्षा में",
+      "queueStatus_plural": "{{count}} कार्य प्रतीक्षा में"
+    },
+    "queue": {
+      "title": "ऑफलाइन प्रतीक्षा सूची",
+      "description": "जब आप वापस ऑनलाइन होंगे तब {{count}} कार्य संसाधित किया जाएगा",
+      "description_plural": "जब आप वापस ऑनलाइन होंगे तब {{count}} कार्य संसाधित किए जाएंगे"
+    },
+    "error": {
+      "paymentOffline": "भुगतान प्रतीक्षा सूची में है, ऑनलाइन होने पर संसाधित होगा",
+      "generalOffline": "कार्य प्रतीक्षा सूची में है, ऑनलाइन होने पर संसाधित होगा"
+    }
+  },
+  "about": {
+    "title": "Wata-Board के बारे में",
+    "description": "Wata-Board Stellar ब्लॉकचेन पर बनी एक विकेंद्रीकृत उपयोगिता भुगतान प्लेटफॉर्म है। हम क्रिप्टोकरेंसी का उपयोग करके सुरक्षित, पारदर्शी और कुशल उपयोगिता बिल भुगतान सक्षम करते हैं।",
+    "features": {
+      "title": "मुख्य विशेषताएं",
+      "secure": "सुरक्षित लेनदेन",
+      "secureDescription": "एंटरप्राइज-ग्रेड सुरक्षा के साथ Stellar ब्लॉकचेन पर निर्मित",
+      "fast": "त्वरित भुगतान",
+      "fastDescription": "कम लेनदेन शुल्क के साथ लगभग तत्काल निपटान",
+      "transparent": "पारदर्शी रिकॉर्ड",
+      "transparentDescription": "सभी लेनदेन सार्वजनिक ब्लॉकचेन पर दर्ज किए जाते हैं",
+      "decentralized": "विकेंद्रीकृत",
+      "decentralizedDescription": "विफलता या नियंत्रण का कोई एकल बिंदु नहीं"
+    },
+    "howItWorks": {
+      "title": "यह कैसे काम करता है",
+      "step1": "अपना वॉलेट कनेक्ट करें",
+      "step2": "मीटर विवरण दर्ज करें",
+      "step3": "भुगतान की पुष्टि करें",
+      "step4": "भुगतान संसाधित हुआ"
+    }
+  },
+  "contact": {
+    "title": "संपर्क करें",
+    "description": "समर्थन, प्रश्नों या प्रतिक्रिया के लिए हमारी टीम से संपर्क करें।",
+    "form": {
+      "name": "नाम",
+      "namePlaceholder": "अपना नाम दर्ज करें",
+      "email": "ईमेल",
+      "emailPlaceholder": "अपना ईमेल दर्ज करें",
+      "subject": "विषय",
+      "subjectPlaceholder": "विषय दर्ज करें",
+      "message": "संदेश",
+      "messagePlaceholder": "अपना संदेश दर्ज करें",
+      "sendButton": "संदेश भेजें",
+      "sending": "भेज रहा है..."
+    },
+    "info": {
+      "email": "ईमेल",
+      "support": "सहायता",
+      "website": "वेबसाइट"
+    }
+  },
+  "rate": {
+    "title": "अपना अनुभव रेट करें",
+    "description": "Wata-Board के साथ अपने अनुभव को रेट करके हमें बेहतर बनाने में मदद करें।",
+    "rating": {
+      "excellent": "उत्कृष्ट",
+      "good": "अच्छा",
+      "average": "औसत",
+      "poor": "खराब",
+      "terrible": "बहुत खराब"
+    },
+    "review": {
+      "title": "समीक्षा लिखें",
+      "placeholder": "Wata-Board के साथ अपना अनुभव साझा करें...",
+      "submit": "समीक्षा जमा करें",
+      "thankYou": "आपकी प्रतिक्रिया के लिए धन्यवाद!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "त्रुटि",
+      "unknown": "एक अज्ञात त्रुटि हुई",
+      "tryAgain": "कृपया पुनः प्रयास करें",
+      "contactSupport": "यदि समस्या बनी रहती है तो सहायता से संपर्क करें"
+    },
+    "network": {
+      "title": "नेटवर्क त्रुटि",
+      "description": "नेटवर्क से कनेक्ट होने में असमर्थ",
+      "checkConnection": "कृपया अपना इंटरनेट कनेक्शन जांचें"
+    },
+    "wallet": {
+      "title": "वॉलेट त्रुटि",
+      "notConnected": "वॉलेट कनेक्ट नहीं है",
+      "notInstalled": "Freighter वॉलेट इंस्टॉल नहीं है",
+      "installFreighter": "कृपया Freighter वॉलेट एक्सटेंशन इंस्टॉल करें"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "मुख्य सामग्री पर जाएं",
+    "skipToNavigation": "नेविगेशन पर जाएं",
+    "menuToggle": "नेविगेशन मेनू टॉगल करें",
+    "closeMenu": "मेनू बंद करें",
+    "openMenu": "मेनू खोलें",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफलता",
+    "warning": "चेतावनी",
+    "info": "जानकारी"
+  },
+  "common": {
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "save": "सहेजें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "close": "बंद करें",
+    "back": "वापस",
+    "next": "अगला",
+    "previous": "पिछला",
+    "submit": "जमा करें",
+    "reset": "रीसेट करें",
+    "clear": "साफ करें",
+    "search": "खोजें",
+    "filter": "फ़िल्टर करें",
+    "sort": "क्रमबद्ध करें",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफलता",
+    "retry": "पुनः प्रयास करें",
+    "refresh": "ताज़ा करें",
+    "copy": "कॉपी करें",
+    "copied": "कॉपी हो गया!",
+    "learnMore": "अधिक जानें",
+    "viewDetails": "विवरण देखें",
+    "hideDetails": "विवरण छिपाएं"
+  },
+  "time": {
+    "seconds": "सेकंड",
+    "seconds_plural": "सेकंड",
+    "minutes": "मिनट",
+    "minutes_plural": "मिनट",
+    "hours": "घंटा",
+    "hours_plural": "घंटे",
+    "days": "दिन",
+    "days_plural": "दिन",
+    "weeks": "सप्ताह",
+    "weeks_plural": "सप्ताह",
+    "months": "महीना",
+    "months_plural": "महीने",
+    "years": "साल",
+    "years_plural": "साल",
+    "ago": "{{time}} पहले",
+    "in": "{{time}} में"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "यह फ़ील्ड आवश्यक है",
+    "invalid": "अमान्य प्रारूप",
+    "tooShort": "कम से कम {{min}} अक्षर होने चाहिए",
+    "tooLong": "अधिकतम {{max}} अक्षर होने चाहिए",
+    "invalidEmail": "कृपया एक वैध ईमेल पता दर्ज करें",
+    "invalidNumber": "कृपया एक वैध संख्या दर्ज करें",
+    "minValue": "कम से कम {{min}} होना चाहिए",
+    "maxValue": "अधिकतम {{max}} होना चाहिए"
+  }
+}

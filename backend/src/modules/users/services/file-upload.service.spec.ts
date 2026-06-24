@@ -32,16 +32,25 @@ describe('FileUploadService', () => {
   });
 
   it('should throw if no file', async () => {
-    await expect(service.uploadAvatar(null as any, 'u1')).rejects.toThrow(BadRequestException);
+    await expect(service.uploadAvatar(null as any, 'u1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should reject unsupported mime types', async () => {
     const file = { size: 100, mimetype: 'text/plain' } as any;
-    await expect(service.uploadAvatar(file, 'u1')).rejects.toThrow(BadRequestException);
+    await expect(service.uploadAvatar(file, 'u1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should upload to storage when provider is s3', async () => {
-    const file = { size: 100, mimetype: 'image/png', originalname: 'a.png', buffer: Buffer.from('') } as any;
+    const file = {
+      size: 100,
+      mimetype: 'image/png',
+      originalname: 'a.png',
+      buffer: Buffer.from(''),
+    } as any;
     mockStorage.upload.mockResolvedValue({ url: 'http://url' });
     const url = await service.uploadAvatar(file, 'u1');
     expect(mockStorage.generateKey).toHaveBeenCalled();

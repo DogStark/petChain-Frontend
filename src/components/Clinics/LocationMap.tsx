@@ -15,7 +15,7 @@ export default function LocationMap({ locations }: LocationMapProps) {
         <div className="absolute inset-0 bg-blue-900/10 group-hover:bg-blue-900/0 transition-colors"></div>
 
         {/* Mock Markers */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-2xl animate-bounce" aria-hidden="true">
+        <div className="absolute top-1/2 left-1/2 -translate--1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-2xl animate-bounce">
           <MapPin className="w-8 h-8 text-pink-500 fill-pink-500" />
         </div>
 

@@ -66,10 +66,16 @@ export class SmsTemplateService implements OnModuleInit {
     return template;
   }
 
-  render(template: SmsTemplate, variables: Record<string, string | number>): string {
+  render(
+    template: SmsTemplate,
+    variables: Record<string, string | number>,
+  ): string {
     let content = template.content;
     for (const [key, value] of Object.entries(variables)) {
-      content = content.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
+      content = content.replace(
+        new RegExp(`\\{${key}\\}`, 'g'),
+        String(value ?? ''),
+      );
     }
     return content;
   }

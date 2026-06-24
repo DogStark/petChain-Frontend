@@ -23,7 +23,7 @@ async function verifyIntegration() {
     const details = await stellarService.getAccount(publicKey);
     console.log(`   Sequence: ${details.sequence}`);
     console.log('   Balances:');
-    details.balances.forEach(b => {
+    details.balances.forEach((b) => {
       if ('balance' in b) {
         console.log(`     - ${b.asset_type}: ${b.balance}`);
       }
@@ -34,7 +34,7 @@ async function verifyIntegration() {
     const operation = StellarSdk.Operation.manageData({
       name: 'IntegrationTest',
       value: 'Success_' + Date.now(),
-    });
+    }) as unknown as StellarSdk.xdr.Operation<StellarSdk.Operation>;
 
     const transaction = await stellarService.buildTransaction(publicKey, [operation]);
     transaction.sign(keypair);
@@ -50,7 +50,6 @@ async function verifyIntegration() {
     } else {
       console.error(`   Transaction failed: ${result.error}`);
     }
-
   } catch (error) {
     console.error('--- Verification Failed ---');
     console.error(error instanceof Error ? error.message : error);

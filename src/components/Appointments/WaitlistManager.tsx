@@ -1,10 +1,10 @@
-import React from "react";
-import { CheckCircle2 } from "lucide-react";
+import React from 'react';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function WaitlistManager() {
   const waitlist = [
-    { id: "1", pet: "Charlie", type: "Surgery", joined: "2h ago" },
-    { id: "2", pet: "Luna", type: "Checkup", joined: "5h ago" },
+    { id: '1', pet: 'Charlie', type: 'Surgery', joined: '2h ago' },
+    { id: '2', pet: 'Luna', type: 'Checkup', joined: '5h ago' },
   ];
 
   return (
@@ -34,7 +34,10 @@ export default function WaitlistManager() {
           </button>
         </div>
       ))}
-      <button type="button" className="w-full py-2 text-xs font-bold text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition-colors">
+      <button
+        type="button"
+        className="w-full py-2 text-xs font-bold text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
+      >
         + Add to Waitlist
       </button>
     </div>

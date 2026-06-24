@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import styles from './PrivacySettings.module.css';
 
+interface SharingLink {
+  id: string;
+  label: string;
+  createdAt: string;
+  expiresAt?: string;
+}
+
 interface PrivacySettingsProps {
   settings?: {
     showEmail?: boolean;
@@ -13,6 +20,7 @@ interface PrivacySettingsProps {
     preferredLanguage?: string | null;
     timezone?: string | null;
   };
+  sharingLinks?: SharingLink[];
   onSubmit: (data: {
     privacy: {
       showEmail: boolean;
@@ -25,14 +33,29 @@ interface PrivacySettingsProps {
       preferredLanguage: string;
       timezone: string;
     };
+    recordAccess: Record<string, boolean>;
+    zkpPreferences: {
+      allowVaccinationProof: boolean;
+      allowDentalProof: boolean;
+      allowLabProof: boolean;
+    };
+    emergencyAccess: {
+      enabled: boolean;
+      showVaccinations: boolean;
+      showAllergies: boolean;
+      showMedications: boolean;
+    };
   }) => Promise<void>;
+  onRevokeLink?: (id: string) => Promise<void>;
   isLoading?: boolean;
 }
 
 export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   settings,
   preferences,
+  sharingLinks = [],
   onSubmit,
+  onRevokeLink,
   isLoading = false,
 }) => {
   const [privacySettings, setPrivacySettings] = useState({
@@ -48,15 +71,40 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
     timezone: 'UTC',
   });
 
+  // Per-record access control
+  const [recordAccess, setRecordAccess] = useState({
+    vaccinations: true,
+    dental: true,
+    labResults: true,
+    surgeries: true,
+    medications: true,
+  });
+
+  // ZKP proof preferences
+  const [zkpPreferences, setZkpPreferences] = useState({
+    allowVaccinationProof: true,
+    allowDentalProof: false,
+    allowLabProof: false,
+  });
+
+  // Emergency access settings
+  const [emergencyAccess, setEmergencyAccess] = useState({
+    enabled: true,
+    showVaccinations: true,
+    showAllergies: true,
+    showMedications: true,
+  });
+
+  const [links, setLinks] = useState<SharingLink[]>(sharingLinks);
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const [policyAcceptedAt, setPolicyAcceptedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const localAccepted = localStorage.getItem('petchainPolicyAcceptedAt');
-    if (localAccepted) {
-      setPolicyAcceptedAt(localAccepted);
-    }
+    if (localAccepted) setPolicyAcceptedAt(localAccepted);
+
     if (settings) {
       setPrivacySettings({
         showEmail: settings.showEmail ?? false,
@@ -74,38 +122,27 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
     }
   }, [settings, preferences]);
 
-  const handlePrivacyToggle = (key: keyof typeof privacySettings) => {
-    setPrivacySettings((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  useEffect(() => {
+    setLinks(sharingLinks);
+  }, [sharingLinks]);
 
-  const handleProfileToggle = (key: keyof typeof profileSettings) => {
-    setProfileSettings((prev) => ({
-      ...prev,
-      [key]: typeof prev[key] === 'boolean' ? !prev[key] : prev[key],
-    }));
-  };
-
-  const handleProfileSelectChange = (
-    key: 'preferredLanguage' | 'timezone',
-    value: string,
+  const toggle = <T extends Record<string, boolean>>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    key: keyof T,
   ) => {
-    setProfileSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setter((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       await onSubmit({
         privacy: privacySettings,
         profile: profileSettings,
+        recordAccess,
+        zkpPreferences,
+        emergencyAccess,
       });
       if (profileSettings.dataShareConsent) {
         const acceptedAt = new Date().toISOString();
@@ -121,154 +158,305 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
     }
   };
 
+  const handleRevoke = async (id: string) => {
+    if (!onRevokeLink) return;
+    setRevokingId(id);
+    try {
+      await onRevokeLink(id);
+      setLinks((prev) => prev.filter((l) => l.id !== id));
+    } catch (error) {
+      console.error('Failed to revoke link', error);
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const disabled = isSubmitting || isLoading;
+
   return (
     <div className={styles.container}>
       <form onSubmit={handleSubmit} className={styles.form}>
-        <h2 className={styles.title}>Privacy & Data Settings</h2>
+        <h2 className={styles.title}>Privacy &amp; Data Settings</h2>
         <p className={styles.description}>
           Control what information is visible to others and how your data is used.
         </p>
 
+        {/* ── Profile Visibility ── */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Profile Visibility</h3>
           <p className={styles.sectionDescription}>
             Manage what information other users can see on your profile.
           </p>
 
-          <div className={styles.setting}>
-            <div className={styles.settingContent}>
-              <div className={styles.settingName}>Show Email Address</div>
-              <p className={styles.settingDescription}>
-                Allow other users to see your email address on your profile.
-              </p>
+          {(
+            [
+              { key: 'showEmail', label: 'Show Email Address', desc: 'Allow other users to see your email address.' },
+              { key: 'showPhone', label: 'Show Phone Number', desc: 'Allow other users to see your phone number.' },
+              { key: 'showActivity', label: 'Show Activity Status', desc: 'Display your online status and last activity time.' },
+            ] as const
+          ).map(({ key, label, desc }) => (
+            <div key={key} className={styles.setting}>
+              <div className={styles.settingContent}>
+                <div className={styles.settingName}>{label}</div>
+                <p className={styles.settingDescription}>{desc}</p>
+              </div>
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={privacySettings[key]}
+                  onChange={() => toggle(setPrivacySettings, key)}
+                  disabled={disabled}
+                />
+                <span className={styles.toggleSlider} />
+              </label>
             </div>
-            <label className={styles.toggle}>
-              <input
-                type="checkbox"
-                checked={privacySettings.showEmail}
-                onChange={() => handlePrivacyToggle('showEmail')}
-                disabled={isSubmitting || isLoading}
-              />
-              <span className={styles.toggleSlider} />
-            </label>
-          </div>
-
-          <div className={styles.setting}>
-            <div className={styles.settingContent}>
-              <div className={styles.settingName}>Show Phone Number</div>
-              <p className={styles.settingDescription}>
-                Allow other users to see your phone number on your profile.
-              </p>
-            </div>
-            <label className={styles.toggle}>
-              <input
-                type="checkbox"
-                checked={privacySettings.showPhone}
-                onChange={() => handlePrivacyToggle('showPhone')}
-                disabled={isSubmitting || isLoading}
-              />
-              <span className={styles.toggleSlider} />
-            </label>
-          </div>
-
-          <div className={styles.setting}>
-            <div className={styles.settingContent}>
-              <div className={styles.settingName}>Show Activity Status</div>
-              <p className={styles.settingDescription}>
-                Display your online status and last activity time to other users.
-              </p>
-            </div>
-            <label className={styles.toggle}>
-              <input
-                type="checkbox"
-                checked={privacySettings.showActivity}
-                onChange={() => handlePrivacyToggle('showActivity')}
-                disabled={isSubmitting || isLoading}
-              />
-              <span className={styles.toggleSlider} />
-            </label>
-          </div>
+          ))}
         </div>
 
+        {/* ── Account Privacy ── */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Account Privacy</h3>
-
           <div className={styles.setting}>
             <div className={styles.settingContent}>
               <div className={styles.settingName}>Public Profile</div>
               <p className={styles.settingDescription}>
-                Make your profile publicly visible to anyone. When disabled, only
-                authenticated users can view your profile.
+                Make your profile publicly visible to anyone.
               </p>
             </div>
             <label className={styles.toggle}>
               <input
                 type="checkbox"
                 checked={profileSettings.profilePublic}
-                onChange={() => handleProfileToggle('profilePublic')}
-                disabled={isSubmitting || isLoading}
+                onChange={() => toggle(setProfileSettings, 'profilePublic')}
+                disabled={disabled}
               />
               <span className={styles.toggleSlider} />
             </label>
           </div>
         </div>
 
+        {/* ── Per-Record Access Control ── */}
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Data Sharing</h3>
+          <h3 className={styles.sectionTitle}>Per-Record Access Control</h3>
+          <p className={styles.sectionDescription}>
+            Choose which medical record types are accessible to vets and shared contacts.
+          </p>
+          {(
+            [
+              { key: 'vaccinations', label: 'Vaccination Records' },
+              { key: 'dental', label: 'Dental Records' },
+              { key: 'labResults', label: 'Lab Results' },
+              { key: 'surgeries', label: 'Surgery Records' },
+              { key: 'medications', label: 'Medications' },
+            ] as const
+          ).map(({ key, label }) => (
+            <div key={key} className={styles.setting}>
+              <div className={styles.settingContent}>
+                <div className={styles.settingName}>{label}</div>
+              </div>
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={recordAccess[key]}
+                  onChange={() => toggle(setRecordAccess, key)}
+                  disabled={disabled}
+                />
+                <span className={styles.toggleSlider} />
+              </label>
+            </div>
+          ))}
+        </div>
 
+        {/* ── ZKP Proof Preferences ── */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>ZKP Proof Preferences</h3>
           <div className={styles.infoBox}>
             <svg className={styles.infoIcon} fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className={styles.infoTitle}>Zero-Knowledge Proofs</p>
+              <p className={styles.infoText}>
+                ZKPs let you prove facts about your pet&apos;s records without revealing the full data.
+                Enable only the proofs you want to share.
+              </p>
+            </div>
+          </div>
+          {(
+            [
+              { key: 'allowVaccinationProof', label: 'Allow Vaccination Status Proof' },
+              { key: 'allowDentalProof', label: 'Allow Dental Health Proof' },
+              { key: 'allowLabProof', label: 'Allow Lab Results Proof' },
+            ] as const
+          ).map(({ key, label }) => (
+            <div key={key} className={styles.setting}>
+              <div className={styles.settingContent}>
+                <div className={styles.settingName}>{label}</div>
+              </div>
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={zkpPreferences[key]}
+                  onChange={() => toggle(setZkpPreferences, key)}
+                  disabled={disabled}
+                />
+                <span className={styles.toggleSlider} />
+              </label>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Emergency Access ── */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Emergency Access</h3>
+          <p className={styles.sectionDescription}>
+            Control what first responders can see when scanning your pet&apos;s emergency QR code.
+          </p>
+          <div className={styles.setting}>
+            <div className={styles.settingContent}>
+              <div className={styles.settingName}>Enable Emergency Access</div>
+              <p className={styles.settingDescription}>
+                Allow first responders to view critical pet info without authentication.
+              </p>
+            </div>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={emergencyAccess.enabled}
+                onChange={() => toggle(setEmergencyAccess, 'enabled')}
+                disabled={disabled}
+              />
+              <span className={styles.toggleSlider} />
+            </label>
+          </div>
+          {emergencyAccess.enabled && (
+            <>
+              {(
+                [
+                  { key: 'showVaccinations', label: 'Show Vaccination Status' },
+                  { key: 'showAllergies', label: 'Show Allergies' },
+                  { key: 'showMedications', label: 'Show Current Medications' },
+                ] as const
+              ).map(({ key, label }) => (
+                <div key={key} className={styles.setting}>
+                  <div className={styles.settingContent}>
+                    <div className={styles.settingName}>{label}</div>
+                  </div>
+                  <label className={styles.toggle}>
+                    <input
+                      type="checkbox"
+                      checked={emergencyAccess[key]}
+                      onChange={() => toggle(setEmergencyAccess, key)}
+                      disabled={disabled}
+                    />
+                    <span className={styles.toggleSlider} />
+                  </label>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* ── Active Sharing Links ── */}
+        {(links.length > 0 || onRevokeLink) && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>Active Sharing Links</h3>
+            <p className={styles.sectionDescription}>
+              Manage links you&apos;ve shared with vets or other contacts. Revoke access at any time.
+            </p>
+            {links.length === 0 ? (
+              <p className={styles.settingDescription}>No active sharing links.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {links.map((link) => (
+                  <li key={link.id} className={styles.setting} style={{ flexWrap: 'wrap', gap: 8 }}>
+                    <div className={styles.settingContent}>
+                      <div className={styles.settingName}>{link.label}</div>
+                      <p className={styles.settingDescription}>
+                        Created: {new Date(link.createdAt).toLocaleDateString()}
+                        {link.expiresAt && ` · Expires: ${new Date(link.expiresAt).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                    {onRevokeLink && (
+                      <button
+                        type="button"
+                        onClick={() => handleRevoke(link.id)}
+                        disabled={revokingId === link.id || disabled}
+                        style={{
+                          padding: '6px 14px',
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: '1px solid #fca5a5',
+                          borderRadius: 6,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {revokingId === link.id ? 'Revoking…' : 'Revoke'}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── Data Sharing ── */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Data Sharing</h3>
+          <div className={styles.infoBox}>
+            <svg className={styles.infoIcon} fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
             </svg>
             <div>
               <p className={styles.infoTitle}>Data Usage</p>
               <p className={styles.infoText}>
-                Your data is used to improve our service and personalize your
-                experience. We never sell your data to third parties.
+                Your data is used to improve our service. We never sell your data to third parties.
               </p>
             </div>
           </div>
-
           <div className={styles.setting}>
             <div className={styles.settingContent}>
               <div className={styles.settingName}>Share Data for Analytics</div>
               <p className={styles.settingDescription}>
-                Help us improve our service by sharing anonymized usage data and
-                analytics.
+                Help us improve by sharing anonymized usage data.
               </p>
             </div>
             <label className={styles.toggle}>
               <input
                 type="checkbox"
                 checked={profileSettings.dataShareConsent}
-                onChange={() => handleProfileToggle('dataShareConsent')}
-                disabled={isSubmitting || isLoading}
+                onChange={() => toggle(setProfileSettings, 'dataShareConsent')}
+                disabled={disabled}
               />
               <span className={styles.toggleSlider} />
             </label>
           </div>
-
           <div className={styles.sectionSummary}>
             <p>
-              GDPR / CCPA consent status:
-              <strong>
-                {profileSettings.dataShareConsent ? ' Granted' : ' Not granted'}
-              </strong>
+              GDPR / CCPA consent:
+              <strong>{profileSettings.dataShareConsent ? ' Granted' : ' Not granted'}</strong>
             </p>
             {policyAcceptedAt && (
-              <p>
-                Last policy acceptance: {new Date(policyAcceptedAt).toLocaleString()}
-              </p>
+              <p>Last policy acceptance: {new Date(policyAcceptedAt).toLocaleString()}</p>
             )}
           </div>
         </div>
 
+        {/* ── Regional Settings ── */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Regional Settings</h3>
-          <p className={styles.sectionDescription}>
-            Choose how PetChain personalizes language and time-based reminders for your account.
-          </p>
-
           <div className={styles.fieldGroup}>
             <label htmlFor="preferredLanguage" className={styles.fieldLabel}>
               Language Preference
@@ -277,10 +465,10 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               id="preferredLanguage"
               className={styles.select}
               value={profileSettings.preferredLanguage}
-              onChange={(event) =>
-                handleProfileSelectChange('preferredLanguage', event.target.value)
+              onChange={(e) =>
+                setProfileSettings((prev) => ({ ...prev, preferredLanguage: e.target.value }))
               }
-              disabled={isSubmitting || isLoading}
+              disabled={disabled}
             >
               <option value="en">English</option>
               <option value="es">Spanish</option>
@@ -289,7 +477,6 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               <option value="pt">Portuguese</option>
             </select>
           </div>
-
           <div className={styles.fieldGroup}>
             <label htmlFor="timezone" className={styles.fieldLabel}>
               Timezone
@@ -298,10 +485,10 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
               id="timezone"
               className={styles.select}
               value={profileSettings.timezone}
-              onChange={(event) =>
-                handleProfileSelectChange('timezone', event.target.value)
+              onChange={(e) =>
+                setProfileSettings((prev) => ({ ...prev, timezone: e.target.value }))
               }
-              disabled={isSubmitting || isLoading}
+              disabled={disabled}
             >
               <option value="UTC">UTC</option>
               <option value="Africa/Lagos">Africa/Lagos</option>
@@ -313,17 +500,11 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
           </div>
         </div>
 
-        {successMessage && (
-          <div className={styles.success}>{successMessage}</div>
-        )}
+        {successMessage && <div className={styles.success}>{successMessage}</div>}
 
         <div className={styles.actions}>
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={isSubmitting || isLoading}
-          >
-            {isSubmitting ? 'Saving...' : 'Save Settings'}
+          <button type="submit" className={styles.submitBtn} disabled={disabled}>
+            {isSubmitting ? 'Saving…' : 'Save Settings'}
           </button>
         </div>
       </form>

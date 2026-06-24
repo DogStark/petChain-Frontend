@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import { transactionAPI, Transaction, TransactionReceipt, TransactionCost } from '@/lib/api/transactionAPI';
+import {
+  transactionAPI,
+  Transaction,
+  TransactionReceipt,
+  TransactionCost,
+} from '@/lib/api/transactionAPI';
 
 interface TransactionDetailsProps {
   transactionId: string;
@@ -43,7 +48,9 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Transaction Details</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              ✕
+            </button>
           </div>
 
           <div className="space-y-4">

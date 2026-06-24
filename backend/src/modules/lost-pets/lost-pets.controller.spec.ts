@@ -96,7 +96,10 @@ describe('LostPetsController', () => {
 
       const result = await controller.updateMyLocation(dto, user);
 
-      expect(mockLostPetsService.updateUserLocation).toHaveBeenCalledWith('u1', dto);
+      expect(mockLostPetsService.updateUserLocation).toHaveBeenCalledWith(
+        'u1',
+        dto,
+      );
       expect(result).toEqual(saved);
     });
   });

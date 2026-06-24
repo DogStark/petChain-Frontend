@@ -61,7 +61,7 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         prev.map((p) => ({
           ...p,
           isPrimary: p.id === photoId,
-        })),
+        }))
       );
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to set primary photo');

@@ -98,9 +98,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     setIsSubmitting(true);
     try {
       await onDeleteAccount();
-      setSuccessMessage(
-        'Account deleted. Redirecting to home page...',
-      );
+      setSuccessMessage('Account deleted. Redirecting to home page...');
       setTimeout(() => {
         window.location.href = '/';
       }, 2000);
@@ -130,7 +128,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     setIsSubmitting(true);
     try {
       await onRequestErasure();
-      setSuccessMessage('Data erasure request processed. Your data will be removed following retention policy.');
+      setSuccessMessage(
+        'Data erasure request processed. Your data will be removed following retention policy.'
+      );
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Failed to request data erasure', error);
@@ -181,24 +181,16 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                 {sessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`${styles.sessionItem} ${
-                      session.isActive ? styles.active : ''
-                    }`}
+                    className={`${styles.sessionItem} ${session.isActive ? styles.active : ''}`}
                   >
                     <div className={styles.sessionInfo}>
                       <div className={styles.deviceName}>
                         {getDeviceName(session)}
-                        {!session.isActive && (
-                          <span className={styles.badge}>Revoked</span>
-                        )}
+                        {!session.isActive && <span className={styles.badge}>Revoked</span>}
                       </div>
                       <div className={styles.sessionDetails}>
                         <span>{session.ipAddress}</span>
-                        <span>
-                          {' '}
-                          • Created{' '}
-                          {new Date(session.createdAt).toLocaleDateString()}
-                        </span>
+                        <span> • Created {new Date(session.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     {session.isActive && (
@@ -270,7 +262,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <ul>
                 {complianceActivities.slice(0, 6).map((activity) => (
                   <li key={activity.id}>
-                    <strong>{activity.activityType}</strong> - {new Date(activity.createdAt).toLocaleString()} - {activity.description}
+                    <strong>{activity.activityType}</strong> -{' '}
+                    {new Date(activity.createdAt).toLocaleString()} - {activity.description}
                   </li>
                 ))}
               </ul>
@@ -282,8 +275,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
         <section className={`${styles.section} ${styles.dangerSection}`}>
           <h2 className={styles.sectionTitle}>Right to be Forgotten</h2>
           <p className={styles.sectionDescription}>
-            Request that your personal and pet data be erased in accordance with GDPR/CCPA.
-            Data is retained for 30 days before permanent removal to support recovery requests.
+            Request that your personal and pet data be erased in accordance with GDPR/CCPA. Data is
+            retained for 30 days before permanent removal to support recovery requests.
           </p>
 
           <button
@@ -299,8 +292,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
         <section className={`${styles.section} ${styles.dangerSection}`}>
           <h2 className={styles.sectionTitle}>Deactivate Account</h2>
           <p className={styles.sectionDescription}>
-            Temporarily disable your account. Your data will be preserved and you can
-            reactivate anytime.
+            Temporarily disable your account. Your data will be preserved and you can reactivate
+            anytime.
           </p>
 
           <button
@@ -316,8 +309,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
         <section className={`${styles.section} ${styles.dangerSection}`}>
           <h2 className={styles.sectionTitle}>Delete Account</h2>
           <p className={styles.sectionDescription}>
-            Permanently delete your account and all associated data. This action cannot be
-            undone. Your data will be retained for 30 days as per our privacy policy.
+            Permanently delete your account and all associated data. This action cannot be undone.
+            Your data will be retained for 30 days as per our privacy policy.
           </p>
 
           <button
@@ -329,9 +322,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           </button>
         </section>
 
-        {successMessage && (
-          <div className={styles.success}>{successMessage}</div>
-        )}
+        {successMessage && <div className={styles.success}>{successMessage}</div>}
       </div>
 
       {/* Deactivate Modal */}
@@ -340,8 +331,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           <div className={styles.modalContent}>
             <h3>Deactivate Account?</h3>
             <p>
-              Your account will be temporarily disabled. You can reactivate it anytime by
-              logging in again.
+              Your account will be temporarily disabled. You can reactivate it anytime by logging in
+              again.
             </p>
             <div className={styles.modalActions}>
               <button
@@ -369,12 +360,10 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           <div className={styles.modalContent}>
             <h3>Delete Account Permanently?</h3>
             <p>
-              This action cannot be undone. All your data will be permanently deleted
-              after 30 days. You will not be able to log in anymore.
+              This action cannot be undone. All your data will be permanently deleted after 30 days.
+              You will not be able to log in anymore.
             </p>
-            <p className={styles.warning}>
-              Type "delete my account" below to confirm:
-            </p>
+            <p className={styles.warning}>Type "delete my account" below to confirm:</p>
             <input
               type="text"
               className={styles.confirmInput}
@@ -397,10 +386,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <button
                 className={styles.deleteConfirmBtn}
                 onClick={handleDelete}
-                disabled={
-                  isSubmitting ||
-                  deleteConfirmation.toLowerCase() !== 'delete my account'
-                }
+                disabled={isSubmitting || deleteConfirmation.toLowerCase() !== 'delete my account'}
               >
                 {isSubmitting ? 'Deleting...' : 'Delete Permanently'}
               </button>

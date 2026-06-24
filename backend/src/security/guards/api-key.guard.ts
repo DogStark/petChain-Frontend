@@ -20,9 +20,7 @@ export class ApiKeyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     // Accept key from header or query param
-    const rawKey =
-      request.headers['x-api-key'] ||
-      request.query['api_key'];
+    const rawKey = request.headers['x-api-key'] || request.query['api_key'];
 
     if (!rawKey) {
       throw new UnauthorizedException('API key is required');
@@ -41,7 +39,7 @@ export class ApiKeyGuard implements CanActivate {
     );
 
     if (requiredScopes?.length) {
-      const keyScopes = result.apiKey!.scopes ?? [];
+      const keyScopes = result.apiKey.scopes ?? [];
       const hasScopes = requiredScopes.every((s) => keyScopes.includes(s));
       if (!hasScopes) {
         throw new UnauthorizedException('Insufficient API key scopes');

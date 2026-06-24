@@ -2,9 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/ActivityLogPage.module.css';
+
+export const dynamic = 'force-dynamic';
 
 const ACTION_TYPES = [
   'all',
@@ -84,7 +87,7 @@ export default function ActivityLogPage() {
         const data = await userAPI.getActivity(
           LIMIT,
           currentOffset,
-          filter === 'all' ? undefined : filter,
+          filter === 'all' ? undefined : filter
         );
         const retained = data.filter((l) => isWithinRetention(l.createdAt));
         if (reset) {
@@ -105,7 +108,7 @@ export default function ActivityLogPage() {
         setLoading(false);
       }
     },
-    [filter, offset, router],
+    [filter, offset, router]
   );
 
   useEffect(() => {
@@ -185,26 +188,18 @@ export default function ActivityLogPage() {
             {logs.map((log, i) => (
               <div key={log.id} className={styles.entry}>
                 <div className={styles.iconCol}>
-                  <span className={styles.icon}>
-                    {ACTION_ICONS[log.activityType] ?? '📌'}
-                  </span>
+                  <span className={styles.icon}>{ACTION_ICONS[log.activityType] ?? '📌'}</span>
                   {i < logs.length - 1 && <div className={styles.line} />}
                 </div>
                 <div className={styles.body}>
                   <div className={styles.entryHeader}>
-                    <span className={styles.actionType}>
-                      {log.activityType.replace(/_/g, ' ')}
-                    </span>
+                    <span className={styles.actionType}>{log.activityType.replace(/_/g, ' ')}</span>
                     {log.isSuspicious && (
                       <span className={styles.suspiciousBadge}>⚠ Suspicious</span>
                     )}
-                    <span className={styles.time}>
-                      {formatRelativeTime(log.createdAt)}
-                    </span>
+                    <span className={styles.time}>{formatRelativeTime(log.createdAt)}</span>
                   </div>
-                  {log.description && (
-                    <p className={styles.description}>{log.description}</p>
-                  )}
+                  {log.description && <p className={styles.description}>{log.description}</p>}
                   <div className={styles.meta}>
                     {log.ipAddress && <span>IP: {log.ipAddress}</span>}
                     {log.deviceId && <span>Device: {log.deviceId}</span>}
@@ -216,15 +211,10 @@ export default function ActivityLogPage() {
               </div>
             ))}
 
-            {loading && (
-              <div className={styles.loadingRow}>Loading…</div>
-            )}
+            {loading && <div className={styles.loadingRow}>Loading…</div>}
 
             {!loading && hasMore && logs.length > 0 && (
-              <button
-                className={styles.loadMoreBtn}
-                onClick={() => loadLogs(false)}
-              >
+              <button className={styles.loadMoreBtn} onClick={() => loadLogs(false)}>
                 Load more
               </button>
             )}
@@ -242,3 +232,9 @@ export default function ActivityLogPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

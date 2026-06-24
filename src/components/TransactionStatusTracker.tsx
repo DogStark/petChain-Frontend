@@ -48,12 +48,15 @@ export default function TransactionStatusTracker() {
     <div className="fixed bottom-4 right-4 w-80 bg-white shadow-lg rounded-lg border">
       <div className="p-4">
         <h3 className="font-semibold mb-3">Transaction Status</h3>
-        
+
         {pending.length > 0 && (
           <div className="mb-3">
             <p className="text-sm text-gray-600 mb-2">Pending ({pending.length})</p>
             {pending.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-2 bg-yellow-50 rounded mb-2">
+              <div
+                key={tx.id}
+                className="flex items-center justify-between p-2 bg-yellow-50 rounded mb-2"
+              >
                 <div className="flex-1">
                   <p className="text-sm font-medium">{tx.type}</p>
                   <p className="text-xs text-gray-500">{tx.hash.substring(0, 10)}...</p>
@@ -73,7 +76,10 @@ export default function TransactionStatusTracker() {
           <div>
             <p className="text-sm text-gray-600 mb-2">Failed ({failed.length})</p>
             {failed.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-2 bg-red-50 rounded mb-2">
+              <div
+                key={tx.id}
+                className="flex items-center justify-between p-2 bg-red-50 rounded mb-2"
+              >
                 <div className="flex-1">
                   <p className="text-sm font-medium">{tx.type}</p>
                   <p className="text-xs text-gray-500">{tx.errorMessage || 'Unknown error'}</p>

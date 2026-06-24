@@ -1,15 +1,11 @@
 export type AppointmentType =
-  | "Checkup"
-  | "Emergency"
-  | "Surgery"
-  | "Vaccination"
-  | "Dental"
-  | "Consultation";
-export type AppointmentStatus =
-  | "Scheduled"
-  | "Completed"
-  | "Cancelled"
-  | "No-Show";
+  | 'Checkup'
+  | 'Emergency'
+  | 'Surgery'
+  | 'Vaccination'
+  | 'Dental'
+  | 'Consultation';
+export type AppointmentStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'No-Show';
 
 export interface Appointment {
   id: string;

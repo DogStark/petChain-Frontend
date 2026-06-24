@@ -43,9 +43,7 @@ export const ProfileCompletion: React.FC<ProfileCompletionProps> = ({
         />
       </div>
 
-      <p className={styles.message}>
-        {getCompletionMessage(completionScore)}
-      </p>
+      <p className={styles.message}>{getCompletionMessage(completionScore)}</p>
 
       {!isComplete && missingFields.length > 0 && (
         <div className={styles.missingFields}>

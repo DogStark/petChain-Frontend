@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
+import { GetServerSideProps } from 'next';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -195,3 +196,9 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

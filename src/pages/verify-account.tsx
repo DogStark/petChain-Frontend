@@ -2,6 +2,9 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export default function VerifyAccountPage() {
   const router = useRouter();
@@ -18,11 +21,7 @@ export default function VerifyAccountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [isResendingPhone, setIsResendingPhone] = useState(false);
-  const {
-    verifyPhone,
-    resendEmailVerification,
-    resendPhoneVerification,
-  } = useAuth();
+  const { verifyPhone, resendEmailVerification, resendPhoneVerification } = useAuth();
 
   useEffect(() => {
     setEmail(initialEmail);
@@ -125,7 +124,9 @@ export default function VerifyAccountPage() {
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Email verification</span>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${emailVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${emailVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}
+            >
               {emailVerified ? 'Verified' : 'Pending'}
             </span>
           </div>
@@ -142,10 +143,15 @@ export default function VerifyAccountPage() {
           </button>
         </div>
 
-        <form onSubmit={handleVerifyPhone} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+        <form
+          onSubmit={handleVerifyPhone}
+          className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-4"
+        >
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Phone verification</span>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${phoneVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${phoneVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}
+            >
               {phoneVerified ? 'Verified' : 'Pending'}
             </span>
           </div>
@@ -207,3 +213,9 @@ export default function VerifyAccountPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

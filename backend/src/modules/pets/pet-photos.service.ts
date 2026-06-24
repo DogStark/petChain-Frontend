@@ -41,21 +41,29 @@ export class PetPhotosService {
   ): Promise<PetPhoto[]> {
     await this.ensurePetExists(petId);
 
-    const existingCount = await this.photoRepository.count({ where: { petId } });
+    const existingCount = await this.photoRepository.count({
+      where: { petId },
+    });
     if (existingCount + files.length > MAX_PHOTOS_PER_PET) {
       throw new BadRequestException(
         `Cannot exceed ${MAX_PHOTOS_PER_PET} photos per pet. ` +
-        `Currently ${existingCount}, trying to add ${files.length}.`,
+          `Currently ${existingCount}, trying to add ${files.length}.`,
       );
     }
 
-    for (const file of files) {
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    const validatedFiles = files.map((file) => {
+      const detectedType = file.mimetype?.toLowerCase().trim();
+      if (!ALLOWED_MIME_TYPES.includes(detectedType)) {
         throw new BadRequestException(
-          `Invalid file type: ${file.mimetype}. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
+          `Invalid file type. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
         );
       }
-    }
+      if (!this.hasValidImageMagicBytes(file.buffer)) {
+        throw new BadRequestException('File content does not match an allowed image format');
+      }
+      // Return file with sanitized contentType to break taint flow
+      return { file, contentType: detectedType as string };
+    });
 
     const hasPrimary = await this.photoRepository.findOne({
       where: { petId, isPrimary: true },
@@ -63,8 +71,8 @@ export class PetPhotosService {
 
     const uploadedPhotos: PetPhoto[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < validatedFiles.length; i++) {
+      const { file, contentType } = validatedFiles[i];
 
       const processed = await this.imageProcessingService.processImage(
         file.buffer,
@@ -96,7 +104,7 @@ export class PetPhotosService {
         this.storageService.upload({
           key: storageKey,
           body: compressedBuffer,
-          contentType: file.mimetype,
+          contentType: contentType, // sanitized, not raw file.mimetype
           metadata: { petId, originalName: file.originalname },
         }),
         thumbnailBuffer
@@ -177,9 +185,7 @@ export class PetPhotosService {
     });
 
     if (photos.length !== photoIds.length) {
-      throw new BadRequestException(
-        'Some photo IDs do not belong to this pet',
-      );
+      throw new BadRequestException('Some photo IDs do not belong to this pet');
     }
 
     const updates = photoIds.map((id, index) =>
@@ -250,5 +256,21 @@ export class PetPhotosService {
     if (!pet) {
       throw new NotFoundException(`Pet with ID ${petId} not found`);
     }
+  }
+
+  /** Verify file magic bytes to prevent type confusion attacks */
+  private hasValidImageMagicBytes(buffer: Buffer): boolean {
+    if (!buffer || buffer.length < 4) return false;
+    // JPEG: FF D8 FF
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return true;
+    // PNG: 89 50 4E 47
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return true;
+    // WebP: RIFF....WEBP
+    if (
+      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer.length >= 12 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+    ) return true;
+    return false;
   }
 }

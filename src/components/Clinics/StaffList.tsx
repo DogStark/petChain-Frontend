@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { StaffMember } from "@/types/clinic";
 
 interface StaffListProps {
@@ -13,12 +14,14 @@ export default function StaffList({ staff }: StaffListProps) {
           key={member.id}
           className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4"
         >
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-50 shrink-0 border-2 border-white shadow-sm">
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-50 shrink-0 border-2 border-white shadow-sm relative">
             {member.avatar ? (
-              <img
+              <Image
                 src={member.avatar}
                 alt={member.name}
-                className="w-full h-full object-cover"
+                fill
+                sizes="64px"
+                className="object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-blue-300 font-bold text-xl uppercase">

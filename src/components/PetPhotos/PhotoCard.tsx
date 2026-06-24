@@ -11,19 +11,10 @@ interface PhotoCardProps {
   onDelete: (photoId: string) => void;
 }
 
-export const PhotoCard: React.FC<PhotoCardProps> = ({
-  photo,
-  onSetPrimary,
-  onDelete,
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: photo.id });
+export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onSetPrimary, onDelete }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: photo.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -43,14 +34,8 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
           className={styles.cardImage}
           loading="lazy"
         />
-        {photo.isPrimary && (
-          <span className={styles.primaryBadge}>Primary</span>
-        )}
-        <div
-          className={styles.dragHandle}
-          {...attributes}
-          {...listeners}
-        >
+        {photo.isPrimary && <span className={styles.primaryBadge}>Primary</span>}
+        <div className={styles.dragHandle} {...attributes} {...listeners}>
           <GripVertical size={16} />
         </div>
       </div>

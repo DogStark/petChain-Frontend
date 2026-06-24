@@ -1,19 +1,28 @@
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { 
-  Bell, 
-  Calendar, 
-  AlertTriangle, 
-  MessageSquare, 
-  Syringe, 
-  Search, 
-  FileText, 
+import {
+  Bell,
+  Calendar,
+  AlertTriangle,
+  MessageSquare,
+  Syringe,
+  Search,
+  FileText,
   Info,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
 
+const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return date.toLocaleDateString();
+};
 export interface NotificationItemProps {
   notification: {
     id: string;
@@ -31,15 +40,24 @@ export interface NotificationItemProps {
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
-    case 'APPOINTMENT': return <Calendar size={20} />;
-    case 'MEDICATION': return <Syringe size={20} />;
-    case 'CONSULTATION': return <Info size={20} />;
-    case 'ALERT': return <AlertTriangle size={20} />;
-    case 'MESSAGE': return <MessageSquare size={20} />;
-    case 'VACCINATION': return <Syringe size={20} />;
-    case 'LOST_PET': return <Search size={20} />;
-    case 'MEDICAL_RECORD': return <FileText size={20} />;
-    default: return <Bell size={20} />;
+    case 'APPOINTMENT':
+      return <Calendar size={20} />;
+    case 'MEDICATION':
+      return <Syringe size={20} />;
+    case 'CONSULTATION':
+      return <Info size={20} />;
+    case 'ALERT':
+      return <AlertTriangle size={20} />;
+    case 'MESSAGE':
+      return <MessageSquare size={20} />;
+    case 'VACCINATION':
+      return <Syringe size={20} />;
+    case 'LOST_PET':
+      return <Search size={20} />;
+    case 'MEDICAL_RECORD':
+      return <FileText size={20} />;
+    default:
+      return <Bell size={20} />;
   }
 };
 
@@ -48,19 +66,10 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onMarkAsRead,
   onActionClick,
 }) => {
-  const { 
-    id, 
-    title, 
-    message, 
-    category, 
-    isRead, 
-    createdAt, 
-    actionUrl, 
-    metadata 
-  } = notification;
+  const { id, title, message, category, isRead, createdAt, actionUrl, metadata } = notification;
 
   const date = new Date(createdAt);
-  const timeAgo = formatDistanceToNow(date, { addSuffix: true });
+  const timeAgo = formatTimeAgo(date);
 
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,11 +79,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`${styles.container} ${!isRead ? styles.unread : ''}`}
       onClick={() => !isRead && onMarkAsRead(id)}
     >
-      <div className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}>
+      <div
+        className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}
+      >
         {getCategoryIcon(category)}
       </div>
 
@@ -88,25 +99,22 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         {/* Rich Notification: Image Display */}
         {metadata?.imageUrl && (
           <div className={styles.imageContainer}>
-            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} />
+            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
           </div>
         )}
 
         {/* Action Buttons */}
         <div className={styles.actions}>
           {actionUrl && (
-            <button 
-              className={styles.actionBtn} 
-              onClick={handleAction}
-            >
+            <button className={styles.actionBtn} onClick={handleAction}>
               <ExternalLink size={14} className={styles.btnIcon} />
               View Details
             </button>
           )}
-          
+
           {!isRead && (
-            <button 
-              className={styles.markReadBtn} 
+            <button
+              className={styles.markReadBtn}
               onClick={(e) => {
                 e.stopPropagation();
                 onMarkAsRead(id);

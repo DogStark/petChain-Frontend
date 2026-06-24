@@ -91,7 +91,7 @@ export class OnboardingService {
 
     // Advance currentStep to the next uncompleted step
     const nextStep = ONBOARDING_STEPS.find(
-      (s) => !record!.completedSteps.includes(s),
+      (s) => !record.completedSteps.includes(s),
     );
 
     if (!nextStep) {
@@ -152,9 +152,7 @@ export class OnboardingService {
       .where('o.isCompleted = true AND o.completedAt IS NOT NULL')
       .getRawOne<{ avgMs: string | null }>();
 
-    const averageTimeToCompleteMs = Math.round(
-      Number(avgResult?.avgMs) || 0,
-    );
+    const averageTimeToCompleteMs = Math.round(Number(avgResult?.avgMs) || 0);
 
     // Step dropoff rates: proportion of users who never completed each step
     const allRecords = await this.repo.find({
@@ -168,7 +166,8 @@ export class OnboardingService {
       ).length;
       stepDropoffRates[step] =
         totalStarted > 0
-          ? Math.round(((totalStarted - completedCount) / totalStarted) * 100) / 100
+          ? Math.round(((totalStarted - completedCount) / totalStarted) * 100) /
+            100
           : 0;
     }
 

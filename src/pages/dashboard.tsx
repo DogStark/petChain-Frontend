@@ -1,3 +1,4 @@
+import { GetServerSideProps } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">PetChain Dashboard</h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space--4">
                 <Link href="/sessions" className="text-blue-600 hover:text-blue-500 font-medium">
                   Sessions
                 </Link>
@@ -165,4 +166,10 @@ export default function DashboardPage() {
       </div>
     </ProtectedRoute>
   );
-}
+  }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

@@ -1,3 +1,24 @@
+// Safe HTML-to-text: removes all tags by iterating characters, no regex on HTML structure
+function stripHtml(html: string): string {
+  let result = '';
+  let inTag = false;
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i];
+    if (ch === '<') { inTag = true; continue; }
+    if (ch === '>') { inTag = false; result += ' '; continue; }
+    if (!inTag) result += ch;
+  }
+  return result
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 import { baseTemplate, emailButton, emailInfoBox } from './base.template';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -7,13 +28,17 @@ export interface VaccinationReminderData {
   ownerName: string;
   petName: string;
   vaccineName: string;
-  dueDate: string;       // formatted date string
+  dueDate: string; // formatted date string
   vetClinicName?: string;
   bookingUrl?: string;
   unsubscribeUrl?: string;
 }
 
-export function vaccinationReminderTemplate(data: VaccinationReminderData): { subject: string; html: string; text: string } {
+export function vaccinationReminderTemplate(data: VaccinationReminderData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const subject = `Vaccination reminder: ${data.petName} is due for ${data.vaccineName}`;
 
   const body = `
@@ -77,7 +102,9 @@ export interface AppointmentConfirmationData {
   unsubscribeUrl?: string;
 }
 
-export function appointmentConfirmationTemplate(data: AppointmentConfirmationData): { subject: string; html: string; text: string } {
+export function appointmentConfirmationTemplate(
+  data: AppointmentConfirmationData,
+): { subject: string; html: string; text: string } {
   const subject = `Appointment confirmed: ${data.petName} on ${data.appointmentDate}`;
 
   const body = `
@@ -138,15 +165,19 @@ ${data.cancelUrl ? `Cancel/Reschedule: ${data.cancelUrl}` : ''}
 export interface MedicalRecordUpdateData {
   ownerName: string;
   petName: string;
-  recordType: string;   // e.g. "Lab Results", "Treatment Plan", "Diagnosis"
-  updatedBy: string;    // vet name
+  recordType: string; // e.g. "Lab Results", "Treatment Plan", "Diagnosis"
+  updatedBy: string; // vet name
   updatedAt: string;
   summary?: string;
   viewRecordUrl?: string;
   unsubscribeUrl?: string;
 }
 
-export function medicalRecordUpdateTemplate(data: MedicalRecordUpdateData): { subject: string; html: string; text: string } {
+export function medicalRecordUpdateTemplate(data: MedicalRecordUpdateData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const subject = `Medical record updated for ${data.petName}`;
 
   const body = `
@@ -208,7 +239,11 @@ export interface LostPetAlertData {
   unsubscribeUrl?: string;
 }
 
-export function lostPetAlertTemplate(data: LostPetAlertData): { subject: string; html: string; text: string } {
+export function lostPetAlertTemplate(data: LostPetAlertData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const subject = `🚨 Lost pet alert: ${data.petName} (${data.petSpecies}) near ${data.lastSeenLocation}`;
 
   const body = `
@@ -217,28 +252,40 @@ export function lostPetAlertTemplate(data: LostPetAlertData): { subject: string;
     </h1>
     <p style="margin:0 0 20px; color:#6b7280; font-size:14px;">Please help bring ${data.petName} home</p>
 
-    ${data.petImageUrl ? `
+    ${
+      data.petImageUrl
+        ? `
     <div style="text-align:center; margin-bottom:24px;">
       <img src="${data.petImageUrl}" alt="${data.petName}" width="200" style="border-radius:12px; max-width:200px; object-fit:cover;" />
-    </div>` : ''}
+    </div>`
+        : ''
+    }
 
     <p>Hi ${data.ownerName},</p>
     <p>A lost pet has been reported in your area. If you have any information, please contact the owner immediately.</p>
 
-    ${emailInfoBox(`
+    ${emailInfoBox(
+      `
       <strong>🐾 Pet name:</strong> ${data.petName}<br/>
       <strong>🦮 Species:</strong> ${data.petSpecies}<br/>
       ${data.petBreed ? `<strong>🏷️ Breed:</strong> ${data.petBreed}<br/>` : ''}
       ${data.petColor ? `<strong>🎨 Color:</strong> ${data.petColor}<br/>` : ''}
       <strong>📍 Last seen:</strong> ${data.lastSeenLocation}<br/>
       <strong>📅 Date:</strong> ${data.lastSeenDate}
-    `, '#fff7ed', '#fed7aa')}
+    `,
+      '#fff7ed',
+      '#fed7aa',
+    )}
 
-    ${emailInfoBox(`
+    ${emailInfoBox(
+      `
       <strong>Contact the owner:</strong><br/>
       📧 ${data.contactEmail}
       ${data.contactPhone ? `<br/>📞 ${data.contactPhone}` : ''}
-    `, '#f0fdf4', '#bbf7d0')}
+    `,
+      '#f0fdf4',
+      '#bbf7d0',
+    )}
 
     ${data.reportUrl ? emailButton('I Found This Pet', data.reportUrl, '#16a34a') : ''}
 
@@ -283,13 +330,17 @@ export interface SystemNotificationData {
 }
 
 const SEVERITY_STYLES = {
-  info:    { bg: '#eff6ff', border: '#bfdbfe', icon: 'ℹ️' },
+  info: { bg: '#eff6ff', border: '#bfdbfe', icon: 'ℹ️' },
   warning: { bg: '#fffbeb', border: '#fde68a', icon: '⚠️' },
   success: { bg: '#f0fdf4', border: '#bbf7d0', icon: '✅' },
-  error:   { bg: '#fef2f2', border: '#fecaca', icon: '🚨' },
+  error: { bg: '#fef2f2', border: '#fecaca', icon: '🚨' },
 };
 
-export function systemNotificationTemplate(data: SystemNotificationData): { subject: string; html: string; text: string } {
+export function systemNotificationTemplate(data: SystemNotificationData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const severity = data.severity ?? 'info';
   const style = SEVERITY_STYLES[severity];
   const subject = data.title;
@@ -308,7 +359,7 @@ export function systemNotificationTemplate(data: SystemNotificationData): { subj
   `;
 
   const html = baseTemplate(body, {
-    previewText: data.message.replace(/<[^>]+>/g, '').slice(0, 100),
+    previewText: stripHtml(data.message).slice(0, 100),
     unsubscribeUrl: data.unsubscribeUrl,
     emailTypeLabel: 'system notification',
   });
@@ -318,7 +369,7 @@ ${data.title}
 
 Hi ${data.recipientName},
 
-${data.message.replace(/<[^>]+>/g, '')}
+${data.message.replace ? stripHtml(data.message) : data.message}
 
 ${data.actionLabel && data.actionUrl ? `${data.actionLabel}: ${data.actionUrl}` : ''}
   `.trim();
@@ -342,15 +393,21 @@ export interface MedicalRecordShareData {
   unsubscribeUrl?: string;
 }
 
-export function medicalRecordShareTemplate(data: MedicalRecordShareData): { subject: string; html: string; text: string } {
+export function medicalRecordShareTemplate(data: MedicalRecordShareData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const subject = `${data.senderName} shared a medical record with you`;
-  const recipientGreeting = data.recipientName ? `Hi ${data.recipientName},` : 'Hello,';
+  const recipientGreeting = data.recipientName
+    ? `Hi ${data.recipientName},`
+    : 'Hello,';
   const permissionLabel = data.permission === 'edit' ? 'view and edit' : 'view';
-  const expiryNote = data.expiresAt 
-    ? `<p style="color:#6b7280; font-size:13px;">⏰ This link expires on ${data.expiresAt}.</p>` 
+  const expiryNote = data.expiresAt
+    ? `<p style="color:#6b7280; font-size:13px;">⏰ This link expires on ${data.expiresAt}.</p>`
     : '';
 
-  const messageBox = data.message 
+  const messageBox = data.message
     ? `<div style="margin:16px 0; padding:12px 16px; background:#f9fafb; border-left:4px solid #3b82f6; border-radius:4px; font-style:italic;">
         "${data.message}"
        </div>`

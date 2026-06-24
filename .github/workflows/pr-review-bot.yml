@@ -1,0 +1,225 @@
+name: PR Review Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  automated-review:
+    name: Automated Code Review
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Determine changed area
+      id: changes
+      run: |
+        if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^backend/'; then
+          echo "area=backend" >> $GITHUB_OUTPUT
+        elif git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^src/'; then
+          echo "area=frontend" >> $GITHUB_OUTPUT
+        else
+          echo "area=other" >> $GITHUB_OUTPUT
+        fi
+    
+    # Frontend Review
+    - name: Frontend - Install dependencies
+      if: steps.changes.outputs.area == 'frontend'
+      run: npm ci
+    
+    - name: Frontend - Run linter
+      if: steps.changes.outputs.area == 'frontend'
+      id: frontend-lint
+      continue-on-error: true
+      run: npm run lint
+    
+    - name: Frontend - Type check
+      if: steps.changes.outputs.area == 'frontend'
+      id: frontend-typecheck
+      continue-on-error: true
+      run: npx tsc --noEmit
+    
+    - name: Frontend - Build
+      if: steps.changes.outputs.area == 'frontend'
+      id: frontend-build
+      continue-on-error: true
+      run: npm run build
+    
+    # Backend Review
+    - name: Backend - Install dependencies
+      if: steps.changes.outputs.area == 'backend'
+      working-directory: ./backend
+      run: npm ci
+    
+    - name: Backend - Run linter
+      if: steps.changes.outputs.area == 'backend'
+      id: backend-lint
+      continue-on-error: true
+      working-directory: ./backend
+      run: npm run lint
+    
+    - name: Backend - Run tests
+      if: steps.changes.outputs.area == 'backend'
+      id: backend-test
+      continue-on-error: true
+      working-directory: ./backend
+      run: npm run test
+    
+    - name: Backend - Build
+      if: steps.changes.outputs.area == 'backend'
+      id: backend-build
+      continue-on-error: true
+      working-directory: ./backend
+      run: npm run build
+    
+    # Code Quality Analysis
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      continue-on-error: true
+    
+    # Generate Review Comment
+    - name: Generate Review Comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const area = '${{ steps.changes.outputs.area }}';
+          const prNumber = context.issue.number;
+          
+          let reviewComment = '## 🤖 Automated PR Review\n\n';
+          let approvalStatus = true;
+          let issues = [];
+          
+          // Frontend checks
+          if (area === 'frontend') {
+            reviewComment += '### Frontend Review\n\n';
+            
+            if ('${{ steps.frontend-lint.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Linting failed** - Please fix ESLint errors');
+            } else {
+              reviewComment += '✅ Linting passed\n';
+            }
+            
+            if ('${{ steps.frontend-typecheck.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Type checking failed** - Please fix TypeScript errors');
+            } else {
+              reviewComment += '✅ Type checking passed\n';
+            }
+            
+            if ('${{ steps.frontend-build.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Build failed** - Please fix build errors');
+            } else {
+              reviewComment += '✅ Build successful\n';
+            }
+          }
+          
+          // Backend checks
+          if (area === 'backend') {
+            reviewComment += '### Backend Review\n\n';
+            
+            if ('${{ steps.backend-lint.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Linting failed** - Please fix ESLint errors');
+            } else {
+              reviewComment += '✅ Linting passed\n';
+            }
+            
+            if ('${{ steps.backend-test.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Tests failed** - Please ensure all tests pass');
+            } else {
+              reviewComment += '✅ All tests passed\n';
+            }
+            
+            if ('${{ steps.backend-build.outcome }}' === 'failure') {
+              approvalStatus = false;
+              issues.push('❌ **Build failed** - Please fix build errors');
+            } else {
+              reviewComment += '✅ Build successful\n';
+            }
+          }
+          
+          // Add issues section
+          if (issues.length > 0) {
+            reviewComment += '\n### ⚠️ Issues Found\n\n';
+            issues.forEach(issue => {
+              reviewComment += `${issue}\n`;
+            });
+            reviewComment += '\n**Action Required:** Please address the issues above and push your changes.\n';
+          }
+          
+          // Add checklist
+          reviewComment += '\n### 📋 Review Checklist\n\n';
+          reviewComment += '- [ ] Code follows project style guidelines\n';
+          reviewComment += '- [ ] Tests added/updated for new features\n';
+          reviewComment += '- [ ] Documentation updated if needed\n';
+          reviewComment += '- [ ] No console.log or debugging code\n';
+          reviewComment += '- [ ] Commit messages are clear and descriptive\n';
+          
+          // Approval or request changes
+          if (approvalStatus) {
+            reviewComment += '\n### ✅ Automated Review: APPROVED\n\n';
+            reviewComment += 'All automated checks passed! A maintainer will review your PR shortly.\n';
+            reviewComment += '\n**Next Steps:**\n';
+            reviewComment += '1. Wait for maintainer review\n';
+            reviewComment += '2. Address any feedback\n';
+            reviewComment += '3. Your PR will be merged once approved\n';
+          } else {
+            reviewComment += '\n### ❌ Automated Review: CHANGES REQUESTED\n\n';
+            reviewComment += 'Please fix the issues above and push your changes. The bot will re-review automatically.\n';
+          }
+          
+          // Post comment
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: reviewComment
+          });
+          
+          // Add labels
+          const labels = [area];
+          if (approvalStatus) {
+            labels.push('ready-for-review');
+          } else {
+            labels.push('needs-work');
+          }
+          
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            labels: labels
+          });
+          
+          // Set exit code
+          if (!approvalStatus) {
+            core.setFailed('Automated review found issues that need to be addressed');
+          }
+    
+    # Security scan
+    - name: Run security audit
+      continue-on-error: true
+      run: |
+        if [ "${{ steps.changes.outputs.area }}" == "backend" ]; then
+          cd backend && npm audit --audit-level=moderate
+        else
+          npm audit --audit-level=moderate
+        fi

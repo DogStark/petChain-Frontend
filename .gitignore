@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+.claude/
 
 # production
 /build
@@ -30,6 +31,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# performance outputs
+performance/results/*.json
+performance/results/*.md
+
 # env files (can opt-in for committing if needed)
 .env
 
@@ -42,3 +47,6 @@ next-env.d.ts
 
 
 bun.lock
+
+# Project issues file
+vrickish.md
