@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Report } from '../entities/report.entity';
+import { Report, ReportTargetType, ReportReason } from '../entities/report.entity';
 import { ReportNote } from '../entities/report-note.entity';
 import { CreateReportDto } from '../dto/create-report.dto';
 import { ReportFilterDto } from '../dto/report-filter.dto';
@@ -25,13 +25,14 @@ export class ReportService {
     createReportDto: CreateReportDto,
   ): Promise<Report> {
     const report = this.reportRepository.create({
-      reporter: { id: reporterId },
-      reportedUser: { id: createReportDto.reportedUserId },
-      category: createReportDto.category,
+      reporterId,
+      targetId: createReportDto.reportedUserId,
+      targetType: ReportTargetType.USER,
+      reason: createReportDto.category as unknown as ReportReason,
       description: createReportDto.description,
     });
 
-    const savedReport = await this.reportRepository.save(report);
+    const savedReport = await this.reportRepository.save(report) as Report;
 
     await this.auditService.log(
       reporterId,
@@ -49,9 +50,7 @@ export class ReportService {
     page: number = 1,
   ): Promise<{ data: Report[]; total: number; page: number; limit: number }> {
     const query = this.reportRepository
-      .createQueryBuilder('report')
-      .leftJoinAndSelect('report.reporter', 'reporter')
-      .leftJoinAndSelect('report.reportedUser', 'reportedUser');
+      .createQueryBuilder('report');
 
     if (filterDto.status) {
       query.andWhere('report.status = :status', { status: filterDto.status });
@@ -80,20 +79,6 @@ export class ReportService {
 
     const [data, total] = await query.getManyAndCount();
 
-    // Clean sensitive user info
-    data.forEach((report) => {
-      if (report.reporter) {
-        delete report.reporter.password;
-        delete report.reporter.passwordResetToken;
-        delete report.reporter.emailVerificationToken;
-      }
-      if (report.reportedUser) {
-        delete report.reportedUser.password;
-        delete report.reportedUser.passwordResetToken;
-        delete report.reportedUser.emailVerificationToken;
-      }
-    });
-
     return {
       data,
       total,
@@ -105,23 +90,10 @@ export class ReportService {
   async getReportById(reportId: string): Promise<Report> {
     const report = await this.reportRepository.findOne({
       where: { id: reportId },
-      relations: ['reporter', 'reportedUser'],
     });
 
     if (!report) {
       throw new NotFoundException('Report not found');
-    }
-
-    // clean up password
-    if (report.reporter) {
-      delete report.reporter.password;
-      delete report.reporter.passwordResetToken;
-      delete report.reporter.emailVerificationToken;
-    }
-    if (report.reportedUser) {
-      delete report.reportedUser.password;
-      delete report.reportedUser.passwordResetToken;
-      delete report.reportedUser.emailVerificationToken;
     }
 
     return report;
