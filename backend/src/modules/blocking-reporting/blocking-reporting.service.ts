@@ -26,20 +26,20 @@ export class BlockingReportingService {
     }
 
     const existingBlock = await this.blockRepository.findOne({
-      where: { blockerId, blockedId },
+      where: { blocker: blockerId, blockedUser: blockedId },
     });
 
     if (existingBlock) {
       throw new ConflictException('User is already blocked');
     }
 
-    const block = this.blockRepository.create({ blockerId, blockedId });
-    return await this.blockRepository.save(block);
+    const block = this.blockRepository.create({ blocker: blockerId, blockedUser: blockedId });
+    return await this.blockRepository.save(block) as Block;
   }
 
   async unblockUser(blockerId: string, blockedId: string): Promise<void> {
     const block = await this.blockRepository.findOne({
-      where: { blockerId, blockedId },
+      where: { blocker: blockerId, blockedUser: blockedId },
     });
 
     if (!block) {
@@ -51,14 +51,14 @@ export class BlockingReportingService {
 
   async getBlockedUsers(blockerId: string): Promise<Block[]> {
     return await this.blockRepository.find({
-      where: { blockerId },
+      where: { blocker: blockerId },
       order: { createdAt: 'DESC' },
     });
   }
 
   async isUserBlocked(blockerId: string, blockedId: string): Promise<boolean> {
     const block = await this.blockRepository.findOne({
-      where: { blockerId, blockedId },
+      where: { blocker: blockerId, blockedUser: blockedId },
     });
     return !!block;
   }

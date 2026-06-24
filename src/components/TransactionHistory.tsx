@@ -6,6 +6,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from '@/lib/api/transactionAPI';
+import { formatDateTime } from '@/utils/formatDate';
 
 const statusColors: Record<TransactionStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -101,7 +102,7 @@ export default function TransactionHistory() {
                   </span>
                 </td>
                 <td className="px-4 py-2 border">{tx.fee} XLM</td>
-                <td className="px-4 py-2 border">{new Date(tx.timestamp).toLocaleString()}</td>
+                <td className="px-4 py-2 border">{formatDateTime(tx.timestamp)}</td>
                 <td className="px-4 py-2 border">
                   {tx.status === 'failed' && (
                     <button
