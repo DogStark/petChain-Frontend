@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, MessageSquare, ThumbsUp } from 'lucide-react';
 import { ClinicReview } from '@/types/clinic';
+import { formatDate } from '@/utils/formatDate';
 
 interface ReviewSectionProps {
   reviews: ClinicReview[];
@@ -64,7 +65,7 @@ export default function ReviewSection({ reviews, averageRating }: ReviewSectionP
                 <div>
                   <h5 className="font-bold text-gray-900 text-sm">{review.userName}</h5>
                   <p className="text-[10px] text-gray-500">
-                    {new Date(review.date).toLocaleDateString()}
+                    {formatDate(review.date)}
                   </p>
                 </div>
               </div>
