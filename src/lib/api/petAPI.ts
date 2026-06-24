@@ -27,8 +27,8 @@ class PetAPI {
     try {
       const response = await this.api.get(`/${petId}/emergency`);
       return response.data;
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         // Return mock data for demo if not found
         return this.getMockEmergencyInfo(petId);
       }
