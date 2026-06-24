@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useZkp } from '@/hooks/useZkp';
 import { ZkpProof, VerifyResult } from '@/lib/zkp';
+import { formatDate } from '@/utils/formatDate';
 
 interface Props {
   vaccinationId: string;
@@ -67,7 +68,7 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
             <p className="text-gray-500 dark:text-gray-400">
               Expires:{' '}
               <span className="text-gray-800 dark:text-gray-200">
-                {new Date(proof.expiresAt).toLocaleDateString()}
+                {formatDate(proof.expiresAt)}
               </span>
             </p>
           )}
