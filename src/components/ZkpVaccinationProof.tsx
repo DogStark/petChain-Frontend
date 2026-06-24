@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Props) {
-  const { generateProof, verifyProof, loading, error } = useZkp();
+  const { generateProof, verifyProof, isGenerating, isVerifying, error } = useZkp();
   const [proof, setProof] = useState<ZkpProof | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
 
@@ -91,18 +91,24 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
       <div className="flex gap-2">
         <button
           onClick={handleGenerate}
-          disabled={loading}
-          className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
+          disabled={isGenerating || isVerifying}
+          className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
-          {loading ? 'Generating…' : 'Generate Proof'}
+          {isGenerating && (
+            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          )}
+          {isGenerating ? 'Generating…' : 'Generate Proof'}
         </button>
         {proof && (
           <button
             onClick={handleVerify}
-            disabled={loading}
-            className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
+            disabled={isGenerating || isVerifying}
+            className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
-            {loading ? 'Verifying…' : 'Verify Proof'}
+            {isVerifying && (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            )}
+            {isVerifying ? 'Verifying…' : 'Verify Proof'}
           </button>
         )}
       </div>
