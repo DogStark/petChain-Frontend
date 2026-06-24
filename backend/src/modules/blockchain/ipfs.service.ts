@@ -21,13 +21,7 @@ export class IPFSService {
 
   private async createClient(): Promise<KuboRPCClient> {
     const ipfsUrl = this.configService.get<string>('blockchain.ipfs.url');
-    const dynamicImport = new Function(
-      'modulePath',
-      'return import(modulePath)',
-    ) as (
-      modulePath: string,
-    ) => Promise<{ create: (options: { url?: string }) => KuboRPCClient }>;
-    const kubo = await dynamicImport('kubo-rpc-client');
+    const kubo = await import('kubo-rpc-client') as unknown as { create: (options: { url?: string }) => KuboRPCClient };
     return kubo.create({ url: ipfsUrl });
   }
 
