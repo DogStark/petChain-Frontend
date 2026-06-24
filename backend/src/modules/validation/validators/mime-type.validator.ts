@@ -111,7 +111,7 @@ export class MimeTypeValidator {
 
   private getExtension(filename: string): string {
     const parts = filename.split('.');
-    return parts.length > 1 ? parts.pop()!.toLowerCase() : '';
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
   }
 
   private getExpectedExtensions(mimeType: string): string[] {

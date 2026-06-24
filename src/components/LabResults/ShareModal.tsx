@@ -1,28 +1,31 @@
-import React, { useState } from "react";
-import { Share2, Link, Mail, CheckCircle2, X } from "lucide-react";
+import React, { useState } from 'react';
+import { Share2, Link, Mail, CheckCircle2, X } from 'lucide-react';
 
 interface ShareModalProps {
   onClose: () => void;
 }
 
 export default function ShareModal({ onClose }: ShareModalProps) {
-  const [email, setEmail] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   const handleShare = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setSuccess(true);
+
+    // Simulate API call to send email
+    setIsSuccess(true);
     setTimeout(() => {
       onClose();
     }, 2000);
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText("https://petchain.app/share/lr_9x8f7a6d");
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    // Simulate link generation and copying
+    navigator.clipboard.writeText('https://petchain.app/share/lr_9x8f7a6d');
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
   };
 
   return (
@@ -32,7 +35,10 @@ export default function ShareModal({ onClose }: ShareModalProps) {
       aria-modal="true"
       aria-labelledby="share-modal-title"
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in" role="document">
+      <div
+        className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
+        role="document"
+      >
         <button
           onClick={onClose}
           aria-label="Close share dialog"
@@ -46,19 +52,17 @@ export default function ShareModal({ onClose }: ShareModalProps) {
             <Share2 className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-blue-900">Share Results</h2>
-            <p className="text-sm text-gray-500">
-              Securely send these lab results to a vet.
-            </p>
+            <h2 id="share-modal-title" className="text-2xl font-bold text-blue-900">
+              Share Results
+            </h2>
+            <p className="text-sm text-gray-500">Securely send these lab results to a vet.</p>
           </div>
         </div>
 
-        {success ? (
+        {isSuccess ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
-            <p className="text-lg font-semibold text-green-700">
-              Sent Successfully!
-            </p>
+            <p className="text-lg font-semibold text-green-700">Sent Successfully!</p>
             <p className="text-sm text-gray-500 mt-1">
               They will receive an email with secure access.
             </p>
@@ -66,7 +70,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
         ) : (
           <div className="space-y-6">
             <form onSubmit={handleShare} className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email-input" className="block text-sm font-medium text-gray-700">
                 Email Address
               </label>
               <div className="relative">
@@ -74,6 +78,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  id="email-input"
                   type="email"
                   required
                   value={email}
@@ -84,7 +89,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
               </div>
               <button
                 type="submit"
-                className="w-full py-3 bg-pink-600 text-white rounded-xl font-semibold hover:bg-pink-700 transition-colors shadow-md hover:shadow-lg"
+                className="w-full py-3 bg-pink-600 text-white rounded-xl font-semibold hover:bg-pink-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98] transform transition-transform"
               >
                 Send Secure Email
               </button>
@@ -95,22 +100,22 @@ export default function ShareModal({ onClose }: ShareModalProps) {
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or share via link
-                </span>
+                <span className="px-2 bg-white text-gray-500">Or share via link</span>
               </div>
             </div>
 
             <button
               onClick={handleCopyLink}
-              className={`w-full flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-semibold transition-all ${
-                linkCopied
-                  ? "border-green-500 text-green-600 bg-green-50"
-                  : "border-blue-100 text-blue-600 hover:bg-blue-50"
+              className={`w-full flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-semibold transition-all active:scale-[0.98] transform ${
+                isLinkCopied
+                  ? 'border-green-500 text-green-600 bg-green-50'
+                  : 'border-blue-100 text-blue-600 hover:bg-blue-50'
               }`}
             >
-              {linkCopied ? (
-                <>Copied!</>
+              {isLinkCopied ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5" /> Copied!
+                </>
               ) : (
                 <>
                   <Link className="w-5 h-5" /> Copy Secure Link

@@ -22,9 +22,10 @@ export function ThemeToggle() {
           title={label}
           className={`
             px-2 py-1 rounded text-sm transition-all duration-200
-            ${theme === value
-              ? 'bg-[var(--color-accent)] text-white'
-              : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]'
+            ${
+              theme === value
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]'
             }
           `}
         >

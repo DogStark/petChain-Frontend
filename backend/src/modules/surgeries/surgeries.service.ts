@@ -18,7 +18,8 @@ export class SurgeriesService {
   }
 
   async findAll(petId?: string, status?: SurgeryStatus): Promise<Surgery[]> {
-    const query = this.surgeriesRepository.createQueryBuilder('surgery')
+    const query = this.surgeriesRepository
+      .createQueryBuilder('surgery')
       .leftJoinAndSelect('surgery.pet', 'pet')
       .leftJoinAndSelect('surgery.vet', 'vet');
 
@@ -46,7 +47,10 @@ export class SurgeriesService {
     return surgery;
   }
 
-  async update(id: string, updateSurgeryDto: UpdateSurgeryDto): Promise<Surgery> {
+  async update(
+    id: string,
+    updateSurgeryDto: UpdateSurgeryDto,
+  ): Promise<Surgery> {
     await this.findOne(id);
     await this.surgeriesRepository.update(id, updateSurgeryDto);
     return this.findOne(id);

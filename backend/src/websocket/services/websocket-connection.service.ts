@@ -34,7 +34,7 @@ export class WebSocketConnectionService {
     if (!this.connections.has(userId)) {
       this.connections.set(userId, new Set());
     }
-    this.connections.get(userId)!.add(socketId);
+    this.connections.get(userId).add(socketId);
 
     this.logger.log(`User ${userId} connected with socket ${socketId}`);
   }
@@ -69,7 +69,7 @@ export class WebSocketConnectionService {
 
   isUserOnline(userId: string): boolean {
     return (
-      this.connections.has(userId) && this.connections.get(userId)!.size > 0
+      this.connections.has(userId) && this.connections.get(userId).size > 0
     );
   }
 

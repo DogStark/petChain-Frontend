@@ -1,5 +1,5 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { stellarService, StellarService, MedicalRecord, TransactionResult } from './index';
+import { stellarService, StellarService, TransactionResult } from './index';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'retrying';
 

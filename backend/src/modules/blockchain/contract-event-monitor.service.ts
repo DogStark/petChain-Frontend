@@ -15,20 +15,22 @@ export class ContractEventMonitorService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Starting contract event monitor...');
-    this.startMonitoring().catch(err => {
+    this.startMonitoring().catch((err) => {
       this.logger.error(`Event monitoring failed to start: ${err.message}`);
     });
   }
 
   private async startMonitoring() {
     // Monitor AccessControl contract
-    const accessContractId = await this.manageService.getContractId('AccessControl');
+    const accessContractId =
+      await this.manageService.getContractId('AccessControl');
     if (accessContractId) {
       this.monitorContract(accessContractId, 'AccessControl');
     }
 
     // Monitor Registry contract
-    const registryContractId = await this.manageService.getContractId('Registry');
+    const registryContractId =
+      await this.manageService.getContractId('Registry');
     if (registryContractId) {
       this.monitorContract(registryContractId, 'Registry');
     }
@@ -42,7 +44,7 @@ export class ContractEventMonitorService implements OnModuleInit {
 
   private async monitorContract(contractId: string, name: string) {
     this.logger.log(`Monitoring events for ${name} (${contractId})`);
-    
+
     await this.stellarService.listenToEvents(contractId, (event) => {
       this.handleContractEvent(name, event);
     });
@@ -50,7 +52,7 @@ export class ContractEventMonitorService implements OnModuleInit {
 
   private handleContractEvent(contractName: string, event: any) {
     this.logger.log(`Event from ${contractName}: ${JSON.stringify(event)}`);
-    
+
     // Emit internal event for other modules to consume
     this.eventEmitter.emit(`blockchain.event.${contractName}`, {
       contractId: event.contractId,
@@ -69,7 +71,9 @@ export class ContractEventMonitorService implements OnModuleInit {
 
   private processAccessControlEvent(event: any) {
     // Logic to update local cache or trigger notifications
-    this.logger.debug(`Processing AccessControl event: ${JSON.stringify(event.value)}`);
+    this.logger.debug(
+      `Processing AccessControl event: ${JSON.stringify(event.value)}`,
+    );
   }
 
   private processTokenEvent(event: any) {

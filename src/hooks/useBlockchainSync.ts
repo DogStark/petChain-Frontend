@@ -13,11 +13,7 @@ export const useBlockchainSync = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const syncRecord = async (
-    record: MedicalRecord,
-    secretKey: string,
-    encryptionKey: string
-  ) => {
+  const syncRecord = async (record: MedicalRecord, secretKey: string, encryptionKey: string) => {
     setIsLoading(true);
     try {
       const keypair = StellarSdk.Keypair.fromSecret(secretKey);

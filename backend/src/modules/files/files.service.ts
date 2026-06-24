@@ -130,7 +130,10 @@ export class FilesService {
   /**
    * Get files by pet ID
    */
-  async getFilesByPet(petId: string): Promise<FileResponseDto[]> {
+  async getFilesByPet(
+    petId: string,
+    _userId?: string,
+  ): Promise<FileResponseDto[]> {
     const files = await this.fileMetadataRepository.find({
       where: { petId, status: FileStatus.READY },
       relations: ['variants'],
@@ -138,6 +141,147 @@ export class FilesService {
     });
 
     return Promise.all(files.map((file) => this.mapToFileResponse(file)));
+  }
+
+  async getSystemStatistics() {
+    const [totalFiles, deletedFiles] = await Promise.all([
+      this.fileMetadataRepository.count(),
+      this.fileMetadataRepository.count({
+        where: { status: FileStatus.DELETED },
+      }),
+    ]);
+
+    return {
+      totalFiles,
+      activeFiles: totalFiles - deletedFiles,
+      deletedFiles,
+    };
+  }
+
+  async getSystemFiles(filters: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    fileType?: string;
+    userId?: string;
+  }) {
+    const page = Math.max(filters.page || 1, 1);
+    const pageSize = Math.max(filters.pageSize || 50, 1);
+
+    const qb = this.fileMetadataRepository.createQueryBuilder('file');
+    if (filters.status) {
+      qb.andWhere('file.status = :status', { status: filters.status });
+    }
+    if (filters.fileType) {
+      qb.andWhere('file.fileType = :fileType', { fileType: filters.fileType });
+    }
+    if (filters.userId) {
+      qb.andWhere('file.ownerId = :userId', { userId: filters.userId });
+    }
+
+    qb.orderBy('file.createdAt', 'DESC');
+    qb.skip((page - 1) * pageSize).take(pageSize);
+
+    const [items, total] = await qb.getManyAndCount();
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async getStorageUsageByUser() {
+    const rows = await this.fileMetadataRepository
+      .createQueryBuilder('file')
+      .select('file.ownerId', 'ownerId')
+      .addSelect('COUNT(file.id)', 'fileCount')
+      .addSelect('COALESCE(SUM(file.sizeBytes), 0)', 'totalBytes')
+      .groupBy('file.ownerId')
+      .orderBy('totalBytes', 'DESC')
+      .getRawMany();
+    return rows;
+  }
+
+  async getStorageUsageByType() {
+    const rows = await this.fileMetadataRepository
+      .createQueryBuilder('file')
+      .select('file.fileType', 'fileType')
+      .addSelect('COUNT(file.id)', 'fileCount')
+      .addSelect('COALESCE(SUM(file.sizeBytes), 0)', 'totalBytes')
+      .groupBy('file.fileType')
+      .orderBy('totalBytes', 'DESC')
+      .getRawMany();
+    return rows;
+  }
+
+  async getFileAuditLog(fileId: string, page: number, pageSize: number) {
+    const file = await this.fileMetadataRepository.findOne({
+      where: { id: fileId },
+    });
+    if (!file) {
+      throw new NotFoundException(`File not found: ${fileId}`);
+    }
+
+    return {
+      fileId,
+      page,
+      pageSize,
+      total: 1,
+      events: [
+        {
+          type: 'FILE_METADATA',
+          status: file.status,
+          timestamp: file.updatedAt,
+        },
+      ],
+    };
+  }
+
+  async permanentlyDeleteFile(fileId: string): Promise<void> {
+    const file = await this.fileMetadataRepository.findOne({
+      where: { id: fileId },
+    });
+    if (!file) {
+      throw new NotFoundException(`File not found: ${fileId}`);
+    }
+    await this.fileMetadataRepository.remove(file);
+  }
+
+  async getPendingDeletions(page: number, pageSize: number) {
+    const safePage = Math.max(page || 1, 1);
+    const safePageSize = Math.max(pageSize || 50, 1);
+
+    const [items, total] = await this.fileMetadataRepository.findAndCount({
+      where: { status: FileStatus.DELETED },
+      order: { deletedAt: 'DESC' },
+      skip: (safePage - 1) * safePageSize,
+      take: safePageSize,
+    });
+
+    return {
+      items,
+      total,
+      page: safePage,
+      pageSize: safePageSize,
+      totalPages: Math.ceil(total / safePageSize),
+    };
+  }
+
+  async restoreDeletedFile(fileId: string): Promise<FileResponseDto> {
+    const file = await this.fileMetadataRepository.findOne({
+      where: { id: fileId },
+      relations: ['variants'],
+    });
+    if (!file) {
+      throw new NotFoundException(`File not found: ${fileId}`);
+    }
+
+    file.status = FileStatus.READY;
+    file.deletedAt = null;
+    const saved = await this.fileMetadataRepository.save(file);
+    return this.mapToFileResponse(saved);
   }
 
   /**

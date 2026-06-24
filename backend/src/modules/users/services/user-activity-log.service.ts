@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { UserActivityLog, ActivityType } from '../entities/user-activity-log.entity';
+import {
+  UserActivityLog,
+  ActivityType,
+} from '../entities/user-activity-log.entity';
 
 export interface CreateActivityLogDto {
   userId: string;
@@ -24,7 +27,9 @@ export class UserActivityLogService {
   /**
    * Log user activity
    */
-  async logActivity(createActivityDto: CreateActivityLogDto): Promise<UserActivityLog> {
+  async logActivity(
+    createActivityDto: CreateActivityLogDto,
+  ): Promise<UserActivityLog> {
     const log = this.activityLogRepository.create(createActivityDto);
     return await this.activityLogRepository.save(log);
   }
@@ -80,9 +85,7 @@ export class UserActivityLogService {
   /**
    * Get suspicious activities
    */
-  async getSuspiciousActivities(
-    userId: string,
-  ): Promise<UserActivityLog[]> {
+  async getSuspiciousActivities(userId: string): Promise<UserActivityLog[]> {
     return await this.activityLogRepository.find({
       where: { userId, isSuspicious: true },
       order: { createdAt: 'DESC' },

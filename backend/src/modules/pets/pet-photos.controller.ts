@@ -24,9 +24,7 @@ export class PetPhotosController {
   constructor(private readonly petPhotosService: PetPhotosService) {}
 
   @Get()
-  getPhotos(
-    @Param('petId', ParseUUIDPipe) petId: string,
-  ): Promise<PetPhoto[]> {
+  getPhotos(@Param('petId', ParseUUIDPipe) petId: string): Promise<PetPhoto[]> {
     return this.petPhotosService.getPhotos(petId);
   }
 

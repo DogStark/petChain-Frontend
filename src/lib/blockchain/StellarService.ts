@@ -1,10 +1,5 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { 
-  StellarConfig, 
-  TransactionResult, 
-  AccountDetails, 
-  SubmitOptions 
-} from './types';
+import { StellarConfig, TransactionResult, AccountDetails, SubmitOptions } from './types';
 
 export class StellarService {
   private server: StellarSdk.Horizon.Server;
@@ -35,7 +30,9 @@ export class StellarService {
         subentryCount: account.subentry_count,
       };
     } catch (error) {
-      throw new Error(`Failed to load account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -55,7 +52,9 @@ export class StellarService {
       const data = await response.json();
       throw new Error(data.detail || 'Friendbot request failed');
     } catch (error) {
-      throw new Error(`Failed to fund account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to fund account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -63,12 +62,14 @@ export class StellarService {
    * Builds a transaction with optimal fee and timeout
    */
   async buildTransaction(
-    sourcePublicKey: string, 
-    operations: StellarSdk.xdr.Operation<StellarSdk.Operation> | StellarSdk.Operation[],
+    sourcePublicKey: string,
+    operations:
+      | StellarSdk.xdr.Operation<StellarSdk.Operation>
+      | StellarSdk.xdr.Operation<StellarSdk.Operation>[],
     options?: SubmitOptions
   ): Promise<StellarSdk.Transaction> {
     const account = await this.server.loadAccount(sourcePublicKey);
-    const fee = options?.baseFee || await this.getOptimalFee();
+    const fee = options?.baseFee || (await this.getOptimalFee());
 
     const builder = new StellarSdk.TransactionBuilder(account, {
       fee,
@@ -77,9 +78,9 @@ export class StellarService {
     });
 
     if (Array.isArray(operations)) {
-      operations.forEach(op => builder.addOperation(op));
+      operations.forEach((op) => builder.addOperation(op));
     } else {
-      builder.addOperation(operations as any); // Handle single operation
+      builder.addOperation(operations);
     }
 
     return builder.setTimeout(StellarSdk.TimeoutInfinite).build();
@@ -102,7 +103,7 @@ export class StellarService {
           success: true,
           hash: response.hash,
           ledger: response.ledger,
-          feeCharged: response.fee_charged,
+          feeCharged: (response as unknown as { fee_charged?: string }).fee_charged,
         };
       } catch (error: any) {
         attempt++;
@@ -114,12 +115,12 @@ export class StellarService {
 
         if (isRetryable && attempt < maxAttempts) {
           // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-          
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+
           if (resultXdr === 'tx_bad_seq') {
-             // If sequence is bad, we'd ideally rebuild the tx with fresh sequence.
-             // For simplicity here, we notice it and let the caller handle higher-level retries if needed.
-             // Or we could reload the account and rebuild if we had the original builder info.
+            // If sequence is bad, we'd ideally rebuild the tx with fresh sequence.
+            // For simplicity here, we notice it and let the caller handle higher-level retries if needed.
+            // Or we could reload the account and rebuild if we had the original builder info.
           }
           continue;
         }

@@ -2,38 +2,24 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
-  JoinColumn,
+  Unique,
   Index,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
 
 @Entity('blocks')
-@Index(['blocker', 'blockedUser'], { unique: true })
-@Index(['blocker'])
-@Index(['blockedUser'])
+@Unique(['blockerId', 'blockedId'])
+@Index(['blockerId'])
+@Index(['blockedId'])
 export class Block {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  blocker: string;
+  @Column({ type: 'uuid' })
+  blockerId: string;
 
-  @ManyToOne(() => User, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'blocker' })
-  blockerUser: User;
-
-  @Column()
-  blockedUser: string;
-
-  @ManyToOne(() => User, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'blockedUser' })
-  blockedUserEntity: User;
+  @Column({ type: 'uuid' })
+  blockedId: string;
 
   @CreateDateColumn()
   createdAt: Date;

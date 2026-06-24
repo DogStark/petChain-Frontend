@@ -15,6 +15,7 @@ import { PetPhoto } from './pet-photo.entity';
 import { PetShare } from './pet-share.entity';
 import { PetSpecies } from './pet-species.enum';
 import { PetGender } from './pet-gender.enum';
+import { WeightEntry } from '../../../weight-tracking/entities/weight-entry.entity';
 
 @Entity('pets')
 export class Pet {
@@ -82,6 +83,9 @@ export class Pet {
 
   @OneToMany(() => PetShare, (share) => share.pet)
   shares: PetShare[];
+
+  @OneToMany(() => WeightEntry, (weightEntry) => weightEntry.pet)
+  weightEntries: WeightEntry[];
 
   @Column({ default: false })
   neutered: boolean;

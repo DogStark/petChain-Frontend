@@ -8,6 +8,9 @@ import {
   OnboardingStepId,
 } from '../lib/api/userAPI';
 import styles from '../styles/pages/OnboardingPage.module.css';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 const DEFAULT_STATUS: OnboardingStatus = {
   userId: '',
@@ -81,9 +84,7 @@ export default function OnboardingPage() {
         const updated: OnboardingStatus = {
           ...(status ?? DEFAULT_STATUS),
           completedSteps: [...(status?.completedSteps ?? []), stepId],
-          progressPercent: Math.round(
-            (((status?.completedSteps.length ?? 0) + 1) / 5) * 100,
-          ),
+          progressPercent: Math.round((((status?.completedSteps.length ?? 0) + 1) / 5) * 100),
         };
         setStatus(updated);
         return updated;
@@ -145,3 +146,9 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

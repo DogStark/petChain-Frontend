@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 interface Session {
   id: string;
@@ -41,21 +45,21 @@ const mockFetchSessions = async (): Promise<Session[]> => {
   ];
 };
 
-const mockRevokeSession = async (sessionId: string): Promise<void> => {
+const mockRevokeSession = async (_sessionId: string): Promise<void> => {
   // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 const mockRevokeAllSessions = async (): Promise<void> => {
   // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -115,9 +119,9 @@ export default function SessionsPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
           <p className="text-gray-600 mb-4">Please log in to view your active sessions.</p>
-          <a href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+          <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
             Go to Login
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -153,7 +157,7 @@ export default function SessionsPage() {
                       key={session.id}
                       className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
                     >
-                      <div className="flex items-start space-x-4">
+                      <div className="flex items-start space--4">
                         <div className="shrink-0">
                           {session.isCurrent ? (
                             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -177,9 +181,7 @@ export default function SessionsPage() {
                           <p className="text-sm text-gray-600">
                             {session.location} • {session.ip}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Last active: {session.lastActive}
-                          </p>
+                          <p className="text-xs text-gray-500">Last active: {session.lastActive}</p>
                         </div>
                       </div>
 
@@ -196,7 +198,7 @@ export default function SessionsPage() {
                   ))}
                 </div>
 
-                {sessions.filter(s => !s.isCurrent).length > 1 && (
+                {sessions.filter((s) => !s.isCurrent).length > 1 && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <button
                       onClick={handleRevokeAll}
@@ -218,3 +220,9 @@ export default function SessionsPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

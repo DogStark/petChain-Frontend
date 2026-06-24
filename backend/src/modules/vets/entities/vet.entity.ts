@@ -41,6 +41,12 @@ export class Vet {
   @Column({ type: 'simple-array', nullable: true })
   specializations: string[];
 
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: true })
+  latitude: number;
+
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: true })
+  longitude: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

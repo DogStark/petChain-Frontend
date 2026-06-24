@@ -28,7 +28,9 @@ export class RecordShareAccess {
   @Column({ type: 'uuid' })
   shareId: string;
 
-  @ManyToOne(() => RecordShare, (share) => share.accessLogs, { onDelete: 'CASCADE' })
+  @ManyToOne(() => RecordShare, (share) => share.accessLogs, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'shareId' })
   share: RecordShare;
 

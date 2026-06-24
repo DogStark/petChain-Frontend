@@ -1,4 +1,13 @@
-import { IsString, IsEnum, IsDateString, IsOptional, IsUUID, IsArray, IsObject, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsOptional,
+  IsUUID,
+  IsArray,
+  IsObject,
+  IsNumber,
+} from 'class-validator';
 import { SurgeryStatus } from '../entities/surgery.entity';
 
 export class CreateSurgeryDto {
@@ -45,7 +54,11 @@ export class CreateSurgeryDto {
   @IsObject()
   recoveryTimeline?: {
     expectedDays?: number;
-    milestones?: Array<{ date: string; description: string; completed: boolean }>;
+    milestones?: Array<{
+      date: string;
+      description: string;
+      completed: boolean;
+    }>;
   };
 
   @IsOptional()

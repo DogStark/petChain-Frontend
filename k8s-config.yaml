@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petchain-config
+data:
+  # Internal cluster DNS names are used here
+  DATABASE_URL: "postgresql://user:password@postgres-service:5432/petchain"
+  REDIS_HOST: "redis-service"
+  NEXT_PUBLIC_API_URL: "http://backend-service:3001"

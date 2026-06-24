@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
+import { GetStaticProps, GetStaticPaths } from 'next';
 import { ArrowLeft, PawPrint } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
+import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
+
+export const dynamic = 'force-dynamic';
 
 interface Pet {
   id: string;
@@ -23,8 +28,8 @@ interface Pet {
   }>;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PetDetailPage() {
   const router = useRouter();
@@ -36,19 +41,20 @@ export default function PetDetailPage() {
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
+    if (!UUID_RE.test(id)) return;
+    // Use sanitized copy to break taint flow
+    const safeId = id.replace(/[^0-9a-f-]/gi, '');
 
     const fetchPet = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem('authToken');
-        const res = await fetch(`${API_BASE_URL}/pets/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/pets/${safeId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
         if (!res.ok) {
-          throw new Error(
-            res.status === 404 ? 'Pet not found' : 'Failed to load pet',
-          );
+          throw new Error(res.status === 404 ? 'Pet not found' : 'Failed to load pet');
         }
 
         const data = await res.json();
@@ -98,10 +104,13 @@ export default function PetDetailPage() {
 
         <div className={styles.petHeader}>
           {primaryPhoto ? (
-            <img
+            <Image
               src={primaryPhoto.thumbnailUrl || primaryPhoto.photoUrl}
               alt={pet.name}
+              fill
+              sizes="80px"
               className={styles.petAvatar}
+              style={{ objectFit: 'cover' }}
             />
           ) : (
             <div className={styles.petAvatar}>
@@ -111,15 +120,25 @@ export default function PetDetailPage() {
           <div className={styles.petInfo}>
             <h1>{pet.name}</h1>
             <div className={styles.petMeta}>
-              <span className={styles.metaItem}>
-                {capitalize(pet.species)}
-              </span>
-              {pet.breed && (
-                <span className={styles.metaItem}>{pet.breed.name}</span>
-              )}
+              <span className={styles.metaItem}>{capitalize(pet.species)}</span>
+              {pet.breed && <span className={styles.metaItem}>{pet.breed.name}</span>}
               {age && <span className={styles.metaItem}>{age}</span>}
             </div>
           </div>
+        </div>
+
+        {/* QR Code Section */}
+        <div className={styles.section}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={styles.sectionTitle}>QR Tag</h2>
+            <button
+              onClick={() => router.push(`/qrcode?petId=${pet.id}`)}
+              className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-all"
+            >
+              <QrCode size={14} /> Manage QR Codes
+            </button>
+          </div>
+          <EmergencyQR petId={pet.id} petName={pet.name} />
         </div>
 
         {/* Pet Photos Section */}
@@ -133,9 +152,7 @@ export default function PetDetailPage() {
           <div className={styles.detailGrid}>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Species</span>
-              <span className={styles.detailValue}>
-                {capitalize(pet.species)}
-              </span>
+              <span className={styles.detailValue}>{capitalize(pet.species)}</span>
             </div>
             {pet.breed && (
               <div className={styles.detailItem}>
@@ -145,9 +162,7 @@ export default function PetDetailPage() {
             )}
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gender</span>
-              <span className={styles.detailValue}>
-                {capitalize(pet.gender)}
-              </span>
+              <span className={styles.detailValue}>{capitalize(pet.gender)}</span>
             </div>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Date of Birth</span>
@@ -170,9 +185,7 @@ export default function PetDetailPage() {
             {pet.microchipNumber && (
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Microchip</span>
-                <span className={styles.detailValue}>
-                  {pet.microchipNumber}
-                </span>
+                <span className={styles.detailValue}>{pet.microchipNumber}</span>
               </div>
             )}
             {pet.specialNeeds && (
@@ -210,3 +223,17 @@ function getAge(dateOfBirth: string): string | null {
   if (months > 0) return `${months} mo${months !== 1 ? 's' : ''} old`;
   return 'Newborn';
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  return {
+    props: {},
+    revalidate: false,
+  };
+};

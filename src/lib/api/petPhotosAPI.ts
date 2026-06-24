@@ -1,7 +1,6 @@
 import axios, { AxiosInstance, AxiosProgressEvent } from 'axios';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export interface PetPhoto {
   id: string;
@@ -45,7 +44,7 @@ class PetPhotosAPI {
   async uploadPhotos(
     petId: string,
     files: File[],
-    onProgress?: (progress: number) => void,
+    onProgress?: (progress: number) => void
   ): Promise<PetPhoto[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('photos', file));
@@ -62,9 +61,7 @@ class PetPhotosAPI {
   }
 
   async setPrimary(petId: string, photoId: string): Promise<PetPhoto> {
-    const response = await this.api.patch(
-      `/pets/${petId}/photos/${photoId}/primary`,
-    );
+    const response = await this.api.patch(`/pets/${petId}/photos/${photoId}/primary`);
     return response.data;
   }
 

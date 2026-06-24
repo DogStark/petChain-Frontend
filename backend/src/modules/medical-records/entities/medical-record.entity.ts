@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Pet } from '../../pets/entities/pet.entity';
 import { Vet } from '../../vets/entities/vet.entity';
+import { EncryptedTransformer } from '../../../common/transformers/encrypted.transformer';
 
 export enum RecordType {
   CHECKUP = 'checkup',
@@ -60,13 +61,13 @@ export class MedicalRecord {
   @Column({ type: 'date', name: 'visit_date' })
   visitDate: Date;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', transformer: EncryptedTransformer })
   diagnosis: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', transformer: EncryptedTransformer })
   treatment: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: EncryptedTransformer })
   notes: string;
 
   @Column({ type: 'simple-json', nullable: true })

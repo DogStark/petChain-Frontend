@@ -30,17 +30,19 @@ export class CertificatesController {
 
   /**
    * Download certificate as PDF
-   * GET /certificates/:vaccinationId/pdf
+   * GET /certificates/:vaccinationId/download
    */
-  @Get(':vaccinationId/pdf')
+  @Get(':vaccinationId/download')
   async downloadCertificatePdf(
     @Param('vaccinationId') vaccinationId: string,
   ): Promise<StreamableFile> {
     const buffer =
       await this.certificatesService.generateCertificatePdf(vaccinationId);
+    const certificate = await this.certificatesService.getCertificateByVaccination(vaccinationId);
+    
     return new StreamableFile(buffer, {
       type: 'application/pdf',
-      disposition: `attachment; filename="vaccination-certificate-${vaccinationId}.pdf"`,
+      disposition: `attachment; filename="certificate-${certificate.certificateCode}.pdf"`,
     });
   }
 

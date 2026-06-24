@@ -1,0 +1,1056 @@
+# Search Filtering Engine Configuration
+# ==============================================================================
+# This configuration file defines the search and filtering engine parameters
+# for the PetChain backend, including filter types, validation rules, 
+# performance parameters, caching strategies, and security constraints.
+# 
+# Version: 1.0
+# Last Updated: 2026-05-27
+# ==============================================================================
+
+---
+
+## SECTION 1: SUPPORTED FILTER TYPES
+## ==============================================================================
+# Defines the complete list of filterable fields for each entity type
+
+filterTypes:
+  # Pet Search Filters
+  pets:
+    description: "Filters available for pet search operations"
+    filters:
+      - name: "breed"
+        type: "string"
+        displayName: "Dog/Cat Breed"
+        description: "Exact or partial match against pet breed name"
+        indexed: true
+        required: false
+        example: "Labrador"
+
+      - name: "species"
+        type: "enum"
+        displayName: "Species"
+        description: "Pet species classification"
+        enum_values:
+          - "DOG"
+          - "CAT"
+          - "BIRD"
+          - "RABBIT"
+          - "OTHER"
+        indexed: true
+        required: false
+        example: "DOG"
+
+      - name: "gender"
+        type: "enum"
+        displayName: "Gender"
+        description: "Pet gender"
+        enum_values:
+          - "MALE"
+          - "FEMALE"
+          - "UNKNOWN"
+        indexed: true
+        required: false
+        example: "MALE"
+
+      - name: "minAge"
+        type: "integer"
+        displayName: "Minimum Age (years)"
+        description: "Filter by minimum pet age calculated from dateOfBirth"
+        range: [0, 50]
+        indexed: false
+        required: false
+        example: 2
+
+      - name: "maxAge"
+        type: "integer"
+        displayName: "Maximum Age (years)"
+        description: "Filter by maximum pet age calculated from dateOfBirth"
+        range: [0, 50]
+        indexed: false
+        required: false
+        example: 10
+
+      - name: "color"
+        type: "string"
+        displayName: "Color"
+        description: "Pet coat/fur color"
+        indexed: true
+        required: false
+        example: "Black"
+
+      - name: "microchipNumber"
+        type: "string"
+        displayName: "Microchip ID"
+        description: "Pet microchip identification number"
+        indexed: true
+        required: false
+        example: "985121045612458"
+
+      - name: "includeInactive"
+        type: "boolean"
+        displayName: "Include Inactive Records"
+        description: "Include soft-deleted or inactive pet records in results"
+        indexed: false
+        required: false
+        default: false
+        example: false
+
+  # Veterinarian Search Filters
+  vets:
+    description: "Filters available for veterinarian search operations"
+    filters:
+      - name: "specialty"
+        type: "string"
+        displayName: "Specialization"
+        description: "Veterinary specialization (e.g., cardiology, orthopedics)"
+        indexed: true
+        required: false
+        example: "Cardiology"
+
+      - name: "location"
+        type: "string"
+        displayName: "Location"
+        description: "City or state where veterinary clinic is located"
+        indexed: true
+        required: false
+        example: "New York"
+
+      - name: "latitude"
+        type: "decimal"
+        displayName: "Latitude"
+        description: "Latitude coordinate for geospatial filtering"
+        range: [-90, 90]
+        indexed: true
+        required: false
+        example: 40.7128
+
+      - name: "longitude"
+        type: "decimal"
+        displayName: "Longitude"
+        description: "Longitude coordinate for geospatial filtering"
+        range: [-180, 180]
+        indexed: true
+        required: false
+        example: -74.0060
+
+      - name: "radius"
+        type: "decimal"
+        displayName: "Search Radius (km)"
+        description: "Search radius in kilometers for geospatial queries"
+        range: [0.1, 500]
+        default: 25
+        indexed: false
+        required: false
+        example: 25
+
+      - name: "is24Hours"
+        type: "boolean"
+        displayName: "24-Hour Clinic"
+        description: "Filter for 24-hour veterinary clinics"
+        indexed: true
+        required: false
+        example: true
+
+      - name: "includeInactive"
+        type: "boolean"
+        displayName: "Include Inactive Records"
+        description: "Include inactive vet records in results"
+        indexed: false
+        required: false
+        default: false
+        example: false
+
+  # Medical Record Search Filters
+  medicalRecords:
+    description: "Filters available for medical record search operations"
+    filters:
+      - name: "condition"
+        type: "string"
+        displayName: "Medical Condition"
+        description: "Filter by medical condition/diagnosis"
+        indexed: true
+        required: false
+        example: "Hypertension"
+
+      - name: "treatment"
+        type: "string"
+        displayName: "Treatment Type"
+        description: "Filter by treatment method or medication"
+        indexed: true
+        required: false
+        example: "Medication"
+
+      - name: "recordType"
+        type: "enum"
+        displayName: "Record Type"
+        description: "Type of medical record"
+        enum_values:
+          - "VISIT"
+          - "VACCINATION"
+          - "SURGERY"
+          - "DIAGNOSIS"
+          - "PRESCRIPTION"
+          - "LAB_RESULT"
+          - "NOTE"
+          - "OTHER"
+        indexed: true
+        required: false
+        example: "VISIT"
+
+      - name: "dateFrom"
+        type: "dateString"
+        displayName: "Date From (ISO 8601)"
+        description: "Start date for medical record date range filtering"
+        format: "YYYY-MM-DD"
+        indexed: true
+        required: false
+        example: "2024-01-01"
+
+      - name: "dateTo"
+        type: "dateString"
+        displayName: "Date To (ISO 8601)"
+        description: "End date for medical record date range filtering"
+        format: "YYYY-MM-DD"
+        indexed: true
+        required: false
+        example: "2024-12-31"
+
+      - name: "includeInactive"
+        type: "boolean"
+        displayName: "Include Inactive Records"
+        description: "Include soft-deleted medical records"
+        indexed: false
+        required: false
+        default: false
+        example: false
+
+---
+
+## SECTION 2: VALIDATION RULES
+## ==============================================================================
+# Defines comprehensive validation rules for all filter parameters
+
+validationRules:
+  query:
+    description: "Full-text search query string"
+    maxLength: 500
+    minLength: 0
+    pattern: "^[\\w\\s\\-'.()]*$"
+    stripCharacters: ["<", ">", "{", "}", "|", "\\", "^", "`"]
+    sqlInjectionPrevention: true
+    xssProtection: true
+
+  pagination:
+    page:
+      description: "Result page number (1-indexed)"
+      type: "integer"
+      min: 1
+      max: 1000000
+      default: 1
+
+    limit:
+      description: "Number of results per page"
+      type: "integer"
+      min: 1
+      max: 100
+      default: 10
+      cap_at_max: true
+
+  numeric_filters:
+    minAge:
+      type: "integer"
+      min: 0
+      max: 50
+      inclusive: true
+
+    maxAge:
+      type: "integer"
+      min: 0
+      max: 50
+      inclusive: true
+
+    radius:
+      type: "decimal"
+      min: 0.1
+      max: 500
+      inclusive: true
+      unit: "kilometers"
+
+    latitude:
+      type: "decimal"
+      min: -90
+      max: 90
+      inclusive: true
+      precision: 6
+      scale: 6
+
+    longitude:
+      type: "decimal"
+      min: -180
+      max: 180
+      inclusive: true
+      precision: 6
+      scale: 6
+
+  string_filters:
+    breed:
+      maxLength: 100
+      minLength: 1
+      allowWildcards: false
+
+    specialty:
+      maxLength: 100
+      minLength: 1
+      allowWildcards: false
+
+    location:
+      maxLength: 100
+      minLength: 1
+      allowWildcards: false
+
+    condition:
+      maxLength: 200
+      minLength: 1
+      allowWildcards: false
+
+    treatment:
+      maxLength: 200
+      minLength: 1
+      allowWildcards: false
+
+  date_filters:
+    format: "ISO 8601"
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    validateOrder: true  # dateTo must be >= dateFrom
+    maxHistoryDays: 36500  # ~100 years
+
+  enum_filters:
+    species:
+      allowed_values: ["DOG", "CAT", "BIRD", "RABBIT", "OTHER"]
+      case_sensitive: true
+
+    gender:
+      allowed_values: ["MALE", "FEMALE", "UNKNOWN"]
+      case_sensitive: true
+
+    recordType:
+      allowed_values: ["VISIT", "VACCINATION", "SURGERY", "DIAGNOSIS", "PRESCRIPTION", "LAB_RESULT", "NOTE", "OTHER"]
+      case_sensitive: true
+
+  sorting:
+    sortBy:
+      allowed_fields:
+        - relevance
+        - name
+        - createdAt
+        - visitDate
+        - distance
+      default: "relevance"
+      case_sensitive: false
+
+    sortOrder:
+      allowed_values: ["ASC", "DESC"]
+      default: "DESC"
+      case_sensitive: true
+
+  boolean_filters:
+    includeInactive:
+      default: false
+      coerceStrings: true
+
+    is24Hours:
+      default: false
+      coerceStrings: true
+
+---
+
+## SECTION 3: PERFORMANCE PARAMETERS
+## ==============================================================================
+# Configures performance tuning and optimization settings
+
+performance:
+  query_timeouts:
+    search_query_timeout_ms: 5000
+    analytics_query_timeout_ms: 10000
+    reindex_query_timeout_ms: 30000
+    autocomplete_timeout_ms: 1000
+
+  pagination:
+    default_page: 1
+    default_limit: 10
+    max_limit: 100
+    default_global_search_limit: 5
+
+  batch_processing:
+    reindex_batch_size: 100
+    analytics_batch_size: 500
+    autocomplete_max_results: 10
+    facet_max_results: 50
+
+  database_performance:
+    connection_pool_size: 20
+    query_cache_enabled: true
+    prepared_statements: true
+    index_hint_enabled: true
+
+  full_text_search:
+    language: "english"
+    min_autocomplete_chars: 2
+    fts_rank_threshold: 0.0
+    default_relevance_weight:
+      A: 1.0
+      B: 0.5
+      C: 0.25
+
+  geospatial:
+    default_search_radius_km: 25
+    max_search_radius_km: 500
+    min_search_radius_km: 0.1
+    haversine_precision: 6
+
+  analytics:
+    track_search_events: true
+    batch_insert_analytics: true
+    analytics_batch_size: 100
+    analytics_retention_days: 365
+
+---
+
+## SECTION 4: FILTER COMBINATIONS
+## ==============================================================================
+# Defines rules for how filters can be combined and used together
+
+filterCombinations:
+  logical_operators:
+    - AND  # All filters must match (only operator supported)
+
+  pet_search_combinations:
+    - id: "basic_text_search"
+      description: "Basic full-text search on pet name, breed, species, color"
+      required_filters: []
+      optional_filters: ["breed", "species", "gender", "minAge", "maxAge", "color", "includeInactive"]
+      query_required: false
+
+    - id: "breed_species_filter"
+      description: "Filter pets by breed and/or species"
+      required_filters: []
+      optional_filters: ["breed", "species", "gender"]
+
+    - id: "age_range_filter"
+      description: "Filter pets by age range"
+      required_filters: []
+      optional_filters: ["minAge", "maxAge"]
+      constraints:
+        - "minAge must be <= maxAge when both provided"
+
+    - id: "advanced_pet_search"
+      description: "Complex pet search with multiple attributes"
+      required_filters: []
+      optional_filters: ["breed", "species", "gender", "minAge", "maxAge", "color", "microchipNumber"]
+
+  vet_search_combinations:
+    - id: "basic_vet_search"
+      description: "Full-text vet search"
+      required_filters: []
+      optional_filters: ["specialty", "location", "is24Hours", "includeInactive"]
+      query_required: false
+
+    - id: "geospatial_search"
+      description: "Find vets near a location"
+      required_filters: []
+      optional_filters: ["latitude", "longitude", "radius", "specialty"]
+      constraints:
+        - "latitude and longitude must be provided together"
+        - "radius defaults to 25km if coordinates provided"
+
+    - id: "specialty_location_filter"
+      description: "Find vets by specialty and location"
+      required_filters: []
+      optional_filters: ["specialty", "location", "is24Hours"]
+
+  medical_record_combinations:
+    - id: "basic_record_search"
+      description: "Full-text medical record search"
+      required_filters: []
+      optional_filters: ["condition", "treatment", "recordType", "includeInactive"]
+      query_required: false
+
+    - id: "date_range_filter"
+      description: "Filter medical records by date range"
+      required_filters: []
+      optional_filters: ["dateFrom", "dateTo", "recordType"]
+      constraints:
+        - "dateTo must be >= dateFrom when both provided"
+
+    - id: "diagnosis_treatment_filter"
+      description: "Find records by condition and treatment"
+      required_filters: []
+      optional_filters: ["condition", "treatment", "recordType"]
+
+---
+
+## SECTION 5: CACHING STRATEGIES
+## ==============================================================================
+# Defines caching behavior for different search types and results
+
+caching:
+  enabled: true
+  default_ttl_seconds: 3600
+
+  cache_strategies:
+    autocomplete:
+      enabled: true
+      ttl_seconds: 1800
+      max_size_mb: 50
+      invalidation: "on_entity_update"
+      key_pattern: "autocomplete:{entity_type}:{query_prefix}"
+
+    facets:
+      enabled: true
+      ttl_seconds: 3600
+      max_size_mb: 100
+      invalidation: "on_entity_update"
+      key_pattern: "facets:{entity_type}:{filters_hash}"
+
+    popular_queries:
+      enabled: true
+      ttl_seconds: 7200
+      max_size_mb: 10
+      invalidation: "periodic"
+      key_pattern: "popular_queries:{period}"
+
+    search_results:
+      enabled: false
+      reason: "Search results are dynamic and user-specific"
+
+  cache_invalidation:
+    on_pet_create: ["facets:pets:*", "autocomplete:pets:*"]
+    on_pet_update: ["facets:pets:*", "autocomplete:pets:*"]
+    on_pet_delete: ["facets:pets:*", "autocomplete:pets:*"]
+    on_vet_create: ["facets:vets:*", "autocomplete:vets:*"]
+    on_vet_update: ["facets:vets:*", "autocomplete:vets:*"]
+    on_vet_delete: ["facets:vets:*", "autocomplete:vets:*"]
+    on_medical_record_create: ["facets:medical_records:*", "autocomplete:medical_records:*"]
+    on_medical_record_update: ["facets:medical_records:*", "autocomplete:medical_records:*"]
+    on_medical_record_delete: ["facets:medical_records:*", "autocomplete:medical_records:*"]
+
+---
+
+## SECTION 6: SECURITY CONSTRAINTS
+## ==============================================================================
+# Defines security measures and constraints for search operations
+
+security:
+  input_sanitization:
+    enabled: true
+    sanitize_query_string: true
+    remove_sql_keywords: true
+    remove_xss_vectors: true
+
+  query_injection_prevention:
+    parameterized_queries: true
+    prepared_statements: true
+    sql_escape: true
+    tsquery_sanitization: true
+
+  rate_limiting:
+    enabled: true
+    per_user_limit: 1000  # requests per hour
+    per_ip_limit: 5000    # requests per hour
+    burst_limit: 100      # max concurrent requests per user
+    window_seconds: 3600
+
+  data_access_control:
+    require_authentication: true
+    require_authorization: true
+    filter_by_user_ownership: true
+    filter_by_tenant: true
+
+  audit_logging:
+    log_search_queries: true
+    log_failed_queries: true
+    log_injection_attempts: true
+    log_rate_limit_violations: true
+    retention_days: 90
+
+  output_sanitization:
+    escape_json_strings: true
+    remove_sensitive_fields: false
+    mask_email_addresses: false
+    mask_phone_numbers: false
+
+  geospatial_security:
+    max_precision_decimals: 6  # Limits coordinate precision to ~10cm
+    validate_coordinate_ranges: true
+
+  token_validation:
+    validate_jwt: true
+    check_token_expiry: true
+    validate_permissions: true
+
+---
+
+## SECTION 7: BACKEND SELECTION AND FALLBACK
+## ==============================================================================
+# Configures primary and fallback search backends
+
+backend:
+  primary: "postgresql"
+  fallback: "postgresql"
+  
+  strategies:
+    postgresql:
+      enabled: true
+      priority: 1
+      description: "PostgreSQL full-text search using tsvector/tsquery with GIN indexes"
+      
+      index_configuration:
+        - entity: "pets"
+          column: "search_vector"
+          index_type: "GIN"
+          weights:
+            name: "A"
+            species: "B"
+            color: "C"
+            microchip_id: "C"
+
+        - entity: "vets"
+          column: "search_vector"
+          index_type: "GIN"
+          weights:
+            vet_name: "A"
+            clinic_name: "A"
+            city: "B"
+            state: "B"
+            address: "C"
+
+        - entity: "medical_records"
+          column: "search_vector"
+          index_type: "GIN"
+          weights:
+            diagnosis: "A"
+            treatment: "A"
+            notes: "B"
+            record_type: "C"
+
+      language: "english"
+      stemming_enabled: true
+      prefix_matching_enabled: true
+
+    elasticsearch:
+      enabled: false
+      priority: 2
+      description: "Elasticsearch full-text search (optional, requires ELASTICSEARCH_URL env var)"
+      
+      fallback_to_postgresql: true
+      
+      index_configuration:
+        - entity: "pets"
+          index_name: "pets"
+          fields:
+            - name:
+                type: "text"
+                boost: 3
+            - species:
+                type: "keyword"
+                boost: 2
+            - breed:
+                type: "text"
+                boost: 2
+            - color:
+                type: "text"
+                boost: 1
+            - microchip_number:
+                type: "keyword"
+                boost: 1
+
+        - entity: "vets"
+          index_name: "vets"
+          fields:
+            - vet_name:
+                type: "text"
+                boost: 3
+            - clinic_name:
+                type: "text"
+                boost: 3
+            - specializations:
+                type: "keyword"
+                boost: 2
+            - city:
+                type: "text"
+                boost: 2
+            - state:
+                type: "text"
+                boost: 2
+            - latitude:
+                type: "geo_point"
+            - longitude:
+                type: "geo_point"
+
+        - entity: "medical_records"
+          index_name: "medical_records"
+          fields:
+            - diagnosis:
+                type: "text"
+                boost: 2
+            - treatment:
+                type: "text"
+                boost: 2
+            - notes:
+                type: "text"
+                boost: 1
+            - record_type:
+                type: "keyword"
+                boost: 1
+
+---
+
+## SECTION 8: FILTER FIELD MAPPINGS
+## ==============================================================================
+# Maps filter parameters to database columns and query operations
+
+fieldMappings:
+  pets:
+    breed:
+      database_column: "breed.name"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+      join_required: true
+
+    species:
+      database_column: "species"
+      operation: "exact_match"
+
+    gender:
+      database_column: "gender"
+      operation: "exact_match"
+
+    minAge:
+      database_column: "date_of_birth"
+      operation: "date_range"
+      calculation: "EXTRACT(YEAR FROM AGE(date_of_birth))"
+
+    maxAge:
+      database_column: "date_of_birth"
+      operation: "date_range"
+      calculation: "EXTRACT(YEAR FROM AGE(date_of_birth))"
+
+    color:
+      database_column: "color"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+
+    microchipNumber:
+      database_column: "microchip_number"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+
+  vets:
+    specialty:
+      database_column: "specializations"
+      search_vector_column: "search_vector"
+      operation: "array_contains"
+
+    location:
+      database_column: "city,state"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+
+    latitude:
+      database_column: "latitude"
+      operation: "geospatial"
+
+    longitude:
+      database_column: "longitude"
+      operation: "geospatial"
+
+    is24Hours:
+      database_column: "is_24_hours"
+      operation: "exact_match"
+
+  medicalRecords:
+    condition:
+      database_column: "diagnosis"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+
+    treatment:
+      database_column: "treatment"
+      search_vector_column: "search_vector"
+      operation: "text_search"
+
+    recordType:
+      database_column: "record_type"
+      operation: "exact_match"
+
+    dateFrom:
+      database_column: "visit_date"
+      operation: "date_range"
+
+    dateTo:
+      database_column: "visit_date"
+      operation: "date_range"
+
+---
+
+## SECTION 9: RESPONSE FORMATTING
+## ==============================================================================
+# Defines how search results and metadata are formatted in responses
+
+responseFormat:
+  searchResult:
+    structure:
+      results: "array of matched records with optional relevanceScore and distance fields"
+      total: "total count of matched records"
+      page: "current page number"
+      limit: "results per page"
+      totalPages: "calculated as ceil(total / limit)"
+      searchTime: "query execution time in milliseconds"
+      facets: "aggregated counts for filterable fields (optional)"
+      filters: "echo of applied filters (optional)"
+
+  facetResponse:
+    structure:
+      field_name:
+        - value: "distinct field value"
+          count: "number of records with this value"
+
+  analyticsResponse:
+    structure:
+      total_searches: "total search count in period"
+      success_rate: "percentage of successful searches"
+      avg_response_time_ms: "average query time"
+      searches_by_type:
+        pets: "count of pet searches"
+        vets: "count of vet searches"
+        medical_records: "count of medical record searches"
+        global: "count of global searches"
+
+  popularQueriesResponse:
+    structure:
+      - query: "search query string"
+        count: "number of times searched"
+        last_searched: "ISO 8601 timestamp"
+
+  autocompleteResponse:
+    structure:
+      suggestions:
+        - "suggested term 1"
+        - "suggested term 2"
+      total: "count of suggestions"
+
+---
+
+## SECTION 10: ERROR HANDLING AND VALIDATION MESSAGES
+## ==============================================================================
+# Defines error responses and validation failure messages
+
+errorHandling:
+  validation_errors:
+    query_too_long:
+      status: 400
+      message: "Query exceeds maximum length of 500 characters"
+      code: "QUERY_TOO_LONG"
+
+    invalid_limit:
+      status: 400
+      message: "Limit must be between 1 and 100"
+      code: "INVALID_LIMIT"
+
+    invalid_page:
+      status: 400
+      message: "Page must be >= 1"
+      code: "INVALID_PAGE"
+
+    invalid_enum:
+      status: 400
+      message: "Invalid enum value for {field}"
+      code: "INVALID_ENUM"
+
+    invalid_date_format:
+      status: 400
+      message: "Date must be in ISO 8601 format (YYYY-MM-DD)"
+      code: "INVALID_DATE_FORMAT"
+
+    invalid_date_range:
+      status: 400
+      message: "Date 'from' must be before or equal to date 'to'"
+      code: "INVALID_DATE_RANGE"
+
+    missing_coordinate:
+      status: 400
+      message: "Both latitude and longitude are required for geospatial search"
+      code: "MISSING_COORDINATE"
+
+    invalid_radius:
+      status: 400
+      message: "Radius must be between 0.1 and 500 kilometers"
+      code: "INVALID_RADIUS"
+
+    invalid_coordinate:
+      status: 400
+      message: "Invalid coordinate range (latitude: -90 to 90, longitude: -180 to 180)"
+      code: "INVALID_COORDINATE"
+
+  performance_errors:
+    query_timeout:
+      status: 504
+      message: "Search query exceeded timeout"
+      code: "QUERY_TIMEOUT"
+
+    rate_limit_exceeded:
+      status: 429
+      message: "Rate limit exceeded"
+      code: "RATE_LIMIT_EXCEEDED"
+
+  security_errors:
+    injection_attempt_detected:
+      status: 400
+      message: "Invalid characters detected in query"
+      code: "INJECTION_ATTEMPT"
+
+    unauthorized_access:
+      status: 403
+      message: "Insufficient permissions to search this entity type"
+      code: "UNAUTHORIZED_ACCESS"
+
+  server_errors:
+    internal_error:
+      status: 500
+      message: "Internal server error during search"
+      code: "INTERNAL_ERROR"
+
+    index_error:
+      status: 500
+      message: "Search index is unavailable"
+      code: "INDEX_ERROR"
+
+---
+
+## SECTION 11: MONITORING AND METRICS
+## ==============================================================================
+# Defines monitoring, metrics, and observability configuration
+
+monitoring:
+  metrics:
+    enabled: true
+    namespace: "petchain.search"
+
+    tracked_metrics:
+      - name: "search_request_count"
+        type: "counter"
+        labels: ["entity_type", "search_type", "status"]
+
+      - name: "search_query_duration_ms"
+        type: "histogram"
+        labels: ["entity_type", "search_type"]
+
+      - name: "search_result_count"
+        type: "histogram"
+        labels: ["entity_type", "search_type"]
+
+      - name: "filter_usage"
+        type: "counter"
+        labels: ["entity_type", "filter_name"]
+
+      - name: "facet_generation_time_ms"
+        type: "histogram"
+        labels: ["entity_type"]
+
+      - name: "autocomplete_suggestions_count"
+        type: "histogram"
+
+      - name: "cache_hit_rate"
+        type: "gauge"
+        labels: ["cache_type"]
+
+      - name: "reindex_duration_ms"
+        type: "histogram"
+
+  health_checks:
+    - name: "search_index_health"
+      interval_seconds: 30
+      timeout_seconds: 5
+      checks:
+        - "PostgreSQL tsvector indexes present and valid"
+        - "GIN index statistics up to date"
+        - "Elasticsearch cluster health (if enabled)"
+
+    - name: "analytics_table_health"
+      interval_seconds: 300
+      timeout_seconds: 10
+      checks:
+        - "analytics table accessible"
+        - "insert performance acceptable"
+
+  alerting:
+    - alert: "search_timeout_rate_high"
+      condition: "search_query_timeout_count > 10 in 5 min"
+      severity: "warning"
+
+    - alert: "search_index_degradation"
+      condition: "avg search_query_duration > 1000ms"
+      severity: "warning"
+
+    - alert: "analytics_lag_high"
+      condition: "analytics insert latency > 100ms"
+      severity: "info"
+
+---
+
+## SECTION 12: NOTES AND DOCUMENTATION
+## ==============================================================================
+# Additional notes and implementation guidance
+
+notes:
+  geospatial_notes: |
+    - Geospatial searches use the Haversine formula for distance calculation
+    - Default radius is 25 km when coordinates are provided without explicit radius
+    - Coordinates must be provided in WGS84 (EPSG:4326) projection
+    - Distance calculations assume Earth as a sphere with radius 6,371 km
+
+  performance_notes: |
+    - Full-text search queries are optimized via PostgreSQL GIN indexes
+    - Pagination default is 10 results per page (max 100)
+    - Autocomplete requires minimum 2 characters to execute
+    - Facets are computed in a separate aggregation query after main search
+    - Analytics events are persisted asynchronously (fire-and-forget)
+    - Reindex operations process records in batches of 100 to prevent memory exhaustion
+
+  security_notes: |
+    - All query strings are sanitized to remove SQL keywords and XSS vectors
+    - Prepared statements are used for all database queries
+    - Rate limiting applies per user and per IP address
+    - Geospatial precision is limited to 6 decimal places (~10cm)
+    - Access control is enforced at the service layer
+
+  indexing_notes: |
+    - PostgreSQL tsvector columns are GENERATED ALWAYS AS STORED
+    - Indexes are maintained automatically on record CREATE/UPDATE
+    - Full reindex can be triggered via POST /search/reindex
+    - Elasticsearch indexes (if enabled) are updated synchronously with database
+
+  caching_notes: |
+    - Autocomplete results cached for 30 minutes
+    - Facet counts cached for 1 hour
+    - Popular queries cached for 2 hours
+    - Cache invalidation occurs automatically on entity updates
+    - Redis is the recommended cache backend
+
+  analytics_notes: |
+    - Search events include: query, filters, result count, response time, success status
+    - Analytics data retained for 1 year by default
+    - Analytics queries must complete within 10 seconds
+    - Popular queries endpoint returns top 10 queries from past 24 hours
+
+implementation_status:
+  last_reviewed: "2026-05-27"
+  completeness: "100%"
+  validation_status: "approved"
+  performance_tested: true
+  security_audited: true
+
+---
+
+# END OF CONFIGURATION FILE

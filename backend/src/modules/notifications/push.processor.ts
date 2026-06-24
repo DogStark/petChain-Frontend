@@ -22,7 +22,9 @@ export class PushProcessor extends WorkerHost {
 
   async process(job: Job<Notification, any, string>): Promise<any> {
     const notification = job.data;
-    this.logger.log(`Processing push notification job for user: ${notification.userId}`);
+    this.logger.log(
+      `Processing push notification job for user: ${notification.userId}`,
+    );
 
     // Fetch device tokens for this user
     const tokens = await this.deviceTokenRepo.find({
@@ -30,7 +32,9 @@ export class PushProcessor extends WorkerHost {
     });
 
     if (!tokens || tokens.length === 0) {
-      this.logger.log(`No device tokens found for user ${notification.userId}, skipping push.`);
+      this.logger.log(
+        `No device tokens found for user ${notification.userId}, skipping push.`,
+      );
       return;
     }
 
@@ -54,19 +58,30 @@ export class PushProcessor extends WorkerHost {
     }
 
     if (notification.metadata) {
-       for (const [key, value] of Object.entries(notification.metadata)) {
-           // FCM data payload only accepts string values
-           fcmData[key] = typeof value === 'string' ? value : JSON.stringify(value);
-       }
+      for (const [key, value] of Object.entries(notification.metadata)) {
+        // FCM data payload only accepts string values
+        fcmData[key] =
+          typeof value === 'string' ? value : JSON.stringify(value);
+      }
     }
 
     try {
       if (tokenStrings.length === 1) {
-        await this.firebaseService.sendToDevice(tokenStrings[0], fcmNotification, fcmData);
+        await this.firebaseService.sendToDevice(
+          tokenStrings[0],
+          fcmNotification,
+          fcmData,
+        );
       } else {
-        await this.firebaseService.sendToDevices(tokenStrings, fcmNotification, fcmData);
+        await this.firebaseService.sendToDevices(
+          tokenStrings,
+          fcmNotification,
+          fcmData,
+        );
       }
-      this.logger.log(`Successfully sent push notification to ${tokenStrings.length} devices.`);
+      this.logger.log(
+        `Successfully sent push notification to ${tokenStrings.length} devices.`,
+      );
     } catch (error) {
       this.logger.error(`Failed to send push notification`, error.stack);
       throw error; // Let BullMQ handle retries

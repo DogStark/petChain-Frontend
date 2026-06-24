@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersService } from '../../modules/users/users.service';
@@ -85,11 +85,11 @@ describe('JwtStrategy', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('should throw UnauthorizedException if user not found', async () => {
-      mockUsersService.findOne.mockRejectedValue(new Error('User not found'));
+    it('should propagate when user not found', async () => {
+      mockUsersService.findOne.mockRejectedValue(new NotFoundException());
 
       await expect(strategy.validate(mockPayload)).rejects.toThrow(
-        UnauthorizedException,
+        NotFoundException,
       );
     });
 
@@ -103,6 +103,33 @@ describe('JwtStrategy', () => {
       mockUsersService.findOne.mockResolvedValue(inactiveUser);
 
       await expect(strategy.validate(mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should reject JWT issued before passwordChangedAt', async () => {
+      const pwdChanged = new Date('2025-01-15T12:00:00.000Z');
+      const mockUser: User = {
+        id: 'user-id',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        isActive: true,
+        emailVerified: true,
+        failedLoginAttempts: 0,
+        passwordChangedAt: pwdChanged,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as User;
+
+      mockUsersService.findOne.mockResolvedValue(mockUser);
+
+      const oldPayload = {
+        ...mockPayload,
+        iat: Math.floor(pwdChanged.getTime() / 1000) - 3600,
+      };
+
+      await expect(strategy.validate(oldPayload)).rejects.toThrow(
         UnauthorizedException,
       );
     });

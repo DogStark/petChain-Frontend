@@ -73,7 +73,10 @@ describe('PetsController', () => {
 
     const result = await controller.findMyPets(user, query);
 
-    expect(mockPetsService.findAllForOwner).toHaveBeenCalledWith('user-1', query);
+    expect(mockPetsService.findAllForOwner).toHaveBeenCalledWith(
+      'user-1',
+      query,
+    );
     expect(result.limit).toBe(10);
   });
 
@@ -111,21 +114,37 @@ describe('PetsController', () => {
 
   it('handles shared pets endpoints', async () => {
     const user = { id: 'user-1' } as any;
-    mockPetsService.findSharedWithUser.mockResolvedValue({ data: [], total: 0, page: 1, limit: 10, totalPages: 1 });
+    mockPetsService.findSharedWithUser.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    });
     mockPetsService.sharePetWithFamily.mockResolvedValue({ id: 'share-1' });
     mockPetsService.listPetShares.mockResolvedValue([{ id: 'share-1' }]);
     mockPetsService.unsharePetWithFamily.mockResolvedValue(undefined);
 
     await controller.findSharedWithMe(user, { page: 1 } as any);
-    await controller.sharePet('pet-1', { sharedWithUserId: 'u2', canEdit: true }, user);
+    await controller.sharePet(
+      'pet-1',
+      { sharedWithUserId: 'u2', canEdit: true },
+      user,
+    );
     await controller.listPetShares('pet-1', user);
     await controller.unsharePet('pet-1', 'u2', user);
 
-    expect(mockPetsService.findSharedWithUser).toHaveBeenCalledWith('user-1', { page: 1 });
-    expect(mockPetsService.sharePetWithFamily).toHaveBeenCalledWith('pet-1', 'user-1', {
-      sharedWithUserId: 'u2',
-      canEdit: true,
+    expect(mockPetsService.findSharedWithUser).toHaveBeenCalledWith('user-1', {
+      page: 1,
     });
+    expect(mockPetsService.sharePetWithFamily).toHaveBeenCalledWith(
+      'pet-1',
+      'user-1',
+      {
+        sharedWithUserId: 'u2',
+        canEdit: true,
+      },
+    );
   });
 
   it('handles single pet, update, restore and health summary', async () => {
@@ -140,7 +159,10 @@ describe('PetsController', () => {
     };
 
     mockPetsService.findOneForUser.mockResolvedValue(pet);
-    mockPetsService.updateForUser.mockResolvedValue({ ...pet, name: 'Updated' });
+    mockPetsService.updateForUser.mockResolvedValue({
+      ...pet,
+      name: 'Updated',
+    });
     mockPetsService.restoreForUser.mockResolvedValue(pet);
     mockPetsService.calculateAge.mockReturnValue({ years: 5, months: 0 });
     mockPetsService.getLifeStage.mockReturnValue('Adult');
@@ -157,13 +179,35 @@ describe('PetsController', () => {
   it('handles lost pet endpoints', async () => {
     const user = { id: 'owner-1' } as any;
     mockLostPetsService.reportLost.mockResolvedValue({ id: 'r1' });
-    mockLostPetsService.reportFound.mockResolvedValue({ id: 'r1', status: 'FOUND' });
-    mockLostPetsService.updateLostMessage.mockResolvedValue({ id: 'r1', customMessage: 'msg' });
+    mockLostPetsService.reportFound.mockResolvedValue({
+      id: 'r1',
+      status: 'FOUND',
+    });
+    mockLostPetsService.updateLostMessage.mockResolvedValue({
+      id: 'r1',
+      customMessage: 'msg',
+    });
 
-    await controller.reportLost('pet-1', { customMessage: 'help' } as any, user);
-    await controller.reportFound('pet-1', { foundLocation: 'park' } as any, user);
-    await controller.updateLostMessage('pet-1', { customMessage: 'msg' } as any, user);
+    await controller.reportLost(
+      'pet-1',
+      { customMessage: 'help' } as any,
+      user,
+    );
+    await controller.reportFound(
+      'pet-1',
+      { foundLocation: 'park' } as any,
+      user,
+    );
+    await controller.updateLostMessage(
+      'pet-1',
+      { customMessage: 'msg' } as any,
+      user,
+    );
 
-    expect(mockLostPetsService.reportLost).toHaveBeenCalledWith('pet-1', 'owner-1', { customMessage: 'help' });
+    expect(mockLostPetsService.reportLost).toHaveBeenCalledWith(
+      'pet-1',
+      'owner-1',
+      { customMessage: 'help' },
+    );
   });
 });

@@ -13,6 +13,9 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+      - postgres_archive:/var/lib/postgresql/data/archive
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     networks:
       - petchain_network
 
@@ -65,6 +68,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_archive:
   redis_data:
   clamav_data:
 

@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class ReportFoundPetDto {
   @IsOptional()

@@ -42,7 +42,10 @@ class NotificationsAPI {
     });
   }
 
-  async getNotifications(userId: string, query: any = {}): Promise<{ data: Notification[]; total: number; unreadCount: number }> {
+  async getNotifications(
+    userId: string,
+    query: any = {}
+  ): Promise<{ data: Notification[]; total: number; unreadCount: number }> {
     const response = await this.api.get(`/${userId}`, { params: query });
     return response.data;
   }

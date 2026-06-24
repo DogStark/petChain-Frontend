@@ -4,6 +4,9 @@ import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -38,11 +41,7 @@ export default function AccountSettingsPage() {
     try {
       setIsLoading(true);
       await userAPI.revokeSession(sessionId);
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === sessionId ? { ...s, isActive: false } : s,
-        ),
-      );
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, isActive: false } : s)));
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to revoke session');
@@ -57,9 +56,7 @@ export default function AccountSettingsPage() {
       setIsLoading(true);
       await userAPI.revokeOtherSessions(currentSessionId);
       setSessions((prev) =>
-        prev.map((s) =>
-          s.id !== currentSessionId ? { ...s, isActive: false } : s,
-        ),
+        prev.map((s) => (s.id !== currentSessionId ? { ...s, isActive: false } : s))
       );
       setError(null);
     } catch (err: any) {
@@ -190,10 +187,16 @@ export default function AccountSettingsPage() {
         complianceActivities={complianceActivities}
         isLoading={isLoading}
       />
-      
+
       <div className={styles.section}>
         <TwoFactorSettings />
       </div>
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

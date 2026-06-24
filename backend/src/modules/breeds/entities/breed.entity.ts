@@ -14,9 +14,9 @@ export enum SpeciesType {
 
 export enum SizeCategory {
   EXTRA_SMALL = 'extra_small', // <5 lbs
-  SMALL = 'small',             // 5-25 lbs
-  MEDIUM = 'medium',           // 26-60 lbs
-  LARGE = 'large',             // 61-100 lbs
+  SMALL = 'small', // 5-25 lbs
+  MEDIUM = 'medium', // 26-60 lbs
+  LARGE = 'large', // 61-100 lbs
   EXTRA_LARGE = 'extra_large', // >100 lbs
 }
 

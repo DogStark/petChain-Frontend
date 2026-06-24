@@ -1,4 +1,3 @@
-
 export const generateAnalyticsData = () => {
   // Engagement Data (Last 7 Days)
   const engagementData = Array.from({ length: 7 }, (_, i) => {
@@ -7,7 +6,7 @@ export const generateAnalyticsData = () => {
     return {
       date: date.toLocaleDateString('en-US', { weekday: 'short' }),
       activeUsers: Math.floor(Math.random() * 50) + 100, // 100-150
-      newSignups: Math.floor(Math.random() * 20) + 5,   // 5-25
+      newSignups: Math.floor(Math.random() * 20) + 5, // 5-25
     };
   });
 
@@ -15,7 +14,7 @@ export const generateAnalyticsData = () => {
   const healthData = [
     { name: 'Healthy', value: Math.floor(Math.random() * 200) + 300, color: '#10B981' }, // Green
     { name: 'Chronic Condition', value: Math.floor(Math.random() * 50) + 20, color: '#F59E0B' }, // Yellow
-    { name: 'Critical', value: Math.floor(Math.random() * 20) + 5, color: '#EF4444' },   // Red
+    { name: 'Critical', value: Math.floor(Math.random() * 20) + 5, color: '#EF4444' }, // Red
     { name: 'Recovering', value: Math.floor(Math.random() * 40) + 10, color: '#3B82F6' }, // Blue
   ];
 
