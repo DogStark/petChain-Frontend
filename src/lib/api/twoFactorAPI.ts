@@ -1,6 +1,5 @@
+import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
-
-const API_BASE_URL = getApiBaseUrl();
 
 export interface TwoFactorSetupResponse {
   qrCodeUrl: string;
@@ -13,122 +12,57 @@ export interface TwoFactorStatusResponse {
   backupCodesCount: number;
 }
 
-export const twoFactorAPI = {
-  // Get 2FA status
-  getStatus: async (token: string): Promise<TwoFactorStatusResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/status`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+class TwoFactorAPI {
+  private api: AxiosInstance;
+
+  constructor() {
+    this.api = axios.create({
+      baseURL: `${getApiBaseUrl()}/auth/2fa`,
+      withCredentials: true,
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to get 2FA status');
-    }
-
-    return response.json();
-  },
-
-  // Setup 2FA - generates QR code and backup codes
-  setup: async (token: string): Promise<TwoFactorSetupResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    this.api.interceptors.request.use((config) => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
     });
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to setup 2FA');
-    }
+  async getStatus(): Promise<TwoFactorStatusResponse> {
+    const response = await this.api.get('/status');
+    return response.data;
+  }
 
-    return response.json();
-  },
+  async setup(): Promise<TwoFactorSetupResponse> {
+    const response = await this.api.post('/setup');
+    return response.data;
+  }
 
-  // Enable 2FA after verifying TOTP token
-  enable: async (token: string, totpToken: string): Promise<{ backupCodes: string[] }> => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/enable`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: totpToken }),
-    });
+  async enable(totpToken: string): Promise<{ backupCodes: string[] }> {
+    const response = await this.api.post('/enable', { token: totpToken });
+    return response.data;
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to enable 2FA');
-    }
+  async disable(totpToken: string): Promise<void> {
+    await this.api.post('/disable', { token: totpToken });
+  }
 
-    return response.json();
-  },
+  async verify(email: string, password: string, totpToken: string) {
+    const response = await this.api.post('/verify', { email, password, token: totpToken });
+    return response.data;
+  }
 
-  // Disable 2FA
-  disable: async (token: string, totpToken: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: totpToken }),
-    });
+  async generateBackupCodes(): Promise<{ backupCodes: string[] }> {
+    const response = await this.api.post('/backup-codes');
+    return response.data;
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to disable 2FA');
-    }
-  },
+  async recover(email: string, password: string, backupCode: string) {
+    const response = await this.api.post('/recover', { email, password, backupCode });
+    return response.data;
+  }
+}
 
-  // Verify 2FA token during login
-  verify: async (email: string, password: string, totpToken: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, token: totpToken }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Invalid 2FA token');
-    }
-
-    return response.json();
-  },
-
-  // Generate new backup codes
-  generateBackupCodes: async (token: string): Promise<{ backupCodes: string[] }> => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/backup-codes`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate backup codes');
-    }
-
-    return response.json();
-  },
-
-  // Recover account using backup code
-  recover: async (email: string, password: string, backupCode: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/2fa/recover`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, backupCode }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Invalid backup code');
-    }
-
-    return response.json();
-  },
-};
+export const twoFactorAPI = new TwoFactorAPI();

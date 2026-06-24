@@ -1,14 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { transactionAPI, Transaction } from '@/lib/api/transactionAPI';
+
+const BASE_INTERVAL = 10_000;
+const MAX_INTERVAL = 160_000;
 
 export default function TransactionStatusTracker() {
   const [pending, setPending] = useState<Transaction[]>([]);
   const [failed, setFailed] = useState<Transaction[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const delayRef = useRef(BASE_INTERVAL);
+
+  const scheduleNext = (delay: number) => {
+    if (intervalRef.current) clearTimeout(intervalRef.current);
+    intervalRef.current = setTimeout(poll, delay);
+  };
+
+  const poll = async () => {
+    try {
+      const [pendingTxs, failedTxs] = await Promise.all([
+        transactionAPI.getPendingTransactions(),
+        transactionAPI.getFailedTransactions(),
+      ]);
+      setPending(pendingTxs);
+      setFailed(failedTxs);
+      delayRef.current = BASE_INTERVAL; // reset on success
+    } catch (error) {
+      console.error('Failed to load transaction status:', error);
+      delayRef.current = Math.min(delayRef.current * 2, MAX_INTERVAL); // backoff
+    }
+    scheduleNext(delayRef.current);
+  };
 
   useEffect(() => {
-    loadTransactions();
-    const interval = setInterval(loadTransactions, 10000); // Poll every 10s
-    return () => clearInterval(interval);
+    poll();
+    return () => {
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTransactions = async () => {

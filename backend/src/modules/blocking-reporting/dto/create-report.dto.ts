@@ -1,15 +1,12 @@
 import { IsUUID, IsEnum, IsOptional, IsString } from 'class-validator';
-import { ReportTargetType, ReportReason } from '../entities/report.entity';
+import { ReportCategory } from '../enums/report-category.enum';
 
 export class CreateReportDto {
   @IsUUID()
-  targetId: string;
+  reportedUserId: string;
 
-  @IsEnum(ReportTargetType)
-  targetType: ReportTargetType;
-
-  @IsEnum(ReportReason)
-  reason: ReportReason;
+  @IsEnum(ReportCategory)
+  category: ReportCategory;
 
   @IsOptional()
   @IsString()

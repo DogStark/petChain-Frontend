@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type TransactionType =
@@ -10,6 +9,8 @@ export type TransactionType =
   | 'access_revoke'
   | 'vaccination'
   | 'transfer';
+
+export type TransactionEstimateData = Record<string, unknown>;
 
 export interface Transaction {
   id: string;
@@ -23,7 +24,7 @@ export interface Transaction {
   timestamp: string;
   blockNumber?: number;
   confirmations: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   errorMessage?: string;
 }
 
@@ -35,7 +36,7 @@ export interface TransactionReceipt {
   timestamp: string;
   gasUsed: string;
   effectiveFee: string;
-  logs: any[];
+  logs: Record<string, unknown>[];
 }
 
 export interface TransactionCost {
@@ -70,7 +71,7 @@ class TransactionAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/transactions`,
+      baseURL: `${getApiBaseUrl()}/transactions`,
       withCredentials: true,
     });
 
