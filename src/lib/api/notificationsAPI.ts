@@ -1,17 +1,43 @@
 import axios, { AxiosInstance } from 'axios';
+import { getApiBaseUrl } from './apiBaseUrl';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+export type NotificationCategory =
+  | 'APPOINTMENT'
+  | 'MEDICATION'
+  | 'CONSULTATION'
+  | 'ALERT'
+  | 'MESSAGE'
+  | 'VACCINATION'
+  | 'LOST_PET'
+  | 'MEDICAL_RECORD'
+  | 'SYSTEM';
+
+export interface NotificationQuery {
+  category?: NotificationCategory;
+  isRead?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface DeviceToken {
+  id: string;
+  userId: string;
+  token: string;
+  platform?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Notification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  category: string;
+  category: NotificationCategory;
   isRead: boolean;
   readAt: string | null;
   actionUrl: string | null;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,7 +52,7 @@ class NotificationsAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/notifications`,
+      baseURL: `${getApiBaseUrl()}/notifications`,
       withCredentials: true,
     });
 
@@ -44,7 +70,7 @@ class NotificationsAPI {
 
   async getNotifications(
     userId: string,
-    query: any = {}
+    query: NotificationQuery = {}
   ): Promise<{ data: Notification[]; total: number; unreadCount: number }> {
     const response = await this.api.get(`/${userId}`, { params: query });
     return response.data;
@@ -60,7 +86,7 @@ class NotificationsAPI {
     return response.data;
   }
 
-  async registerDeviceToken(userId: string, data: RegisterDeviceTokenDto): Promise<any> {
+  async registerDeviceToken(userId: string, data: RegisterDeviceTokenDto): Promise<DeviceToken> {
     const response = await this.api.post(`/${userId}/device-tokens`, data);
     return response.data;
   }

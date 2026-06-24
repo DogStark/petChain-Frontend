@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './ProfileEditForm.module.css';
 import { AvatarUpload } from './AvatarUpload';
 import { ProfileCompletion } from './ProfileCompletion';
+import { isValidEmail, isValidPhone } from '@/utils/validation';
 
 interface ProfileEditFormProps {
   user?: {
@@ -116,10 +117,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!isValidEmail(formData.email)) {
       newErrors.email = 'Invalid email address';
     }
-    if (formData.phone && !/^[\d\s\-+()]+$/.test(formData.phone)) {
+    if (formData.phone && !isValidPhone(formData.phone)) {
       newErrors.phone = 'Invalid phone number';
     }
     // date of birth validation
