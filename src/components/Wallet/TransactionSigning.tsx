@@ -14,6 +14,7 @@ import type {
   FeeEstimate,
   WalletBalance,
 } from '../../types/wallet';
+import { formatBalance } from '../../utils/formatCurrency';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -97,7 +98,7 @@ export default function TransactionSigning({
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
       return 'Enter a valid positive amount.';
     if (parseFloat(amount) > parseFloat(currentBalance))
-      return `Insufficient balance. Available: ${parseFloat(currentBalance).toLocaleString()} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`;
+      return `Insufficient balance. Available: ${formatBalance(currentBalance)} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`;
     if (memo.length > 28) return 'Memo must be 28 characters or fewer.';
     if (!pin) return 'PIN is required to sign the transaction.';
     return null;
@@ -190,7 +191,7 @@ export default function TransactionSigning({
           </select>
           <p className="text-xs text-gray-400 mt-1">
             Available:{' '}
-            {parseFloat(currentBalance).toLocaleString(undefined, { maximumFractionDigits: 7 })}{' '}
+            {formatBalance(currentBalance)}{' '}
             {selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}
           </p>
         </div>

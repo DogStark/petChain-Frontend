@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type TransactionType =
@@ -10,6 +9,8 @@ export type TransactionType =
   | 'access_revoke'
   | 'vaccination'
   | 'transfer';
+
+export type TransactionEstimateData = Record<string, unknown>;
 
 export interface Transaction {
   id: string;
@@ -23,7 +24,7 @@ export interface Transaction {
   timestamp: string;
   blockNumber?: number;
   confirmations: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   errorMessage?: string;
 }
 
@@ -35,7 +36,7 @@ export interface TransactionReceipt {
   timestamp: string;
   gasUsed: string;
   effectiveFee: string;
-  logs: any[];
+  logs: Record<string, unknown>[];
 }
 
 export interface TransactionCost {
@@ -44,6 +45,17 @@ export interface TransactionCost {
   totalFee: string;
   estimatedUSD?: number;
 }
+
+export interface TransactionDataMap {
+  record_creation: { petId: string; recordType: string; payload: Record<string, unknown> };
+  record_update: { petId: string; recordId: string; changes: Record<string, unknown> };
+  access_grant: { petId: string; granteeAddress: string; permissions: string[] };
+  access_revoke: { petId: string; granteeAddress: string };
+  vaccination: { petId: string; vaccineId: string; administerDate: string };
+  transfer: { petId: string; toAddress: string };
+}
+
+export type EstimateData = TransactionDataMap[TransactionType];
 
 export interface TransactionFilters {
   status?: TransactionStatus;
@@ -59,7 +71,7 @@ class TransactionAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/transactions`,
+      baseURL: `${getApiBaseUrl()}/transactions`,
       withCredentials: true,
     });
 
@@ -97,7 +109,7 @@ class TransactionAPI {
     return response.data;
   }
 
-  async estimateTransactionCost(type: TransactionType, data?: any): Promise<TransactionCost> {
+  async estimateTransactionCost(type: TransactionType, data?: EstimateData): Promise<TransactionCost> {
     const response = await this.api.post('/estimate', { type, data });
     return response.data;
   }

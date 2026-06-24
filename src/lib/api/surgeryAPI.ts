@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export enum SurgeryStatus {
   SCHEDULED = 'scheduled',
@@ -60,7 +59,7 @@ class SurgeryAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/surgeries`,
+      baseURL: `${getApiBaseUrl()}/surgeries`,
       withCredentials: true,
     });
 
