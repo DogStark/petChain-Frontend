@@ -1,5 +1,8 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { stellarService, StellarService, TransactionResult } from './index';
+
+import { stellarService } from './index';
+import type { StellarService, TransactionResult } from './index';
+import type { MedicalRecord } from './types';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'retrying';
 
@@ -141,5 +144,5 @@ class StellarSyncService {
   }
 }
 
-export { MedicalRecord };
+export type { MedicalRecord };
 export const stellarSync = new StellarSyncService();
