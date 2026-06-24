@@ -35,7 +35,5 @@ export function useZkp() {
     }
   }, []);
 
-  const loading = isGenerating || isVerifying;
-
-  return { generateProof, verifyProof, isGenerating, isVerifying, loading, error };
+  return { generateProof, verifyProof, isGenerating, isVerifying, error };
 }
