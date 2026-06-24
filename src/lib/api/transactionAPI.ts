@@ -46,6 +46,17 @@ export interface TransactionCost {
   estimatedUSD?: number;
 }
 
+export interface TransactionDataMap {
+  record_creation: { petId: string; recordType: string; payload: Record<string, unknown> };
+  record_update: { petId: string; recordId: string; changes: Record<string, unknown> };
+  access_grant: { petId: string; granteeAddress: string; permissions: string[] };
+  access_revoke: { petId: string; granteeAddress: string };
+  vaccination: { petId: string; vaccineId: string; administerDate: string };
+  transfer: { petId: string; toAddress: string };
+}
+
+export type EstimateData = TransactionDataMap[TransactionType];
+
 export interface TransactionFilters {
   status?: TransactionStatus;
   type?: TransactionType;
@@ -98,7 +109,7 @@ class TransactionAPI {
     return response.data;
   }
 
-  async estimateTransactionCost(type: TransactionType, data?: TransactionEstimateData): Promise<TransactionCost> {
+  async estimateTransactionCost(type: TransactionType, data?: EstimateData): Promise<TransactionCost> {
     const response = await this.api.post('/estimate', { type, data });
     return response.data;
   }
