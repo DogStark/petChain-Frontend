@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetStaticProps, GetStaticPaths } from "next";
@@ -16,155 +16,52 @@ import {
   Heart,
   Award,
   Share2,
+  Loader2,
 } from "lucide-react";
 import { Clinic } from "@/types/clinic";
-
-// Full Mock Data for the Profile
-const MOCK_CLINIC_DETAILS: Clinic = {
-  id: "1",
-  name: "Pawfect Health Center",
-  description:
-    "Welcome to Pawfect Health Center, where your pet's well-being is our top priority. Established in 2010, our center leverages state-of-the-art diagnostic technology combined with a deep passion for animal healthcare. Our team of board-certified specialists and caring staff are dedicated to providing comprehensive, compassionate care for pets of all kinds.",
-  rating: 4.8,
-  reviewCount: 156,
-  mainImage:
-    "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=1200",
-  locations: [
-    {
-      id: "1-1",
-      name: "Main Branch",
-      city: "London",
-      address: "123 Pet Lane, Camden",
-      phone: "020 1234 5678",
-      email: "main@pawfect.com",
-    },
-    {
-      id: "1-2",
-      name: "West End Annex",
-      city: "London",
-      address: "45 Bark Street, Soho",
-      phone: "020 8765 4321",
-      email: "west@pawfect.com",
-    },
-    {
-      id: "1-3",
-      name: "Greenwich Point",
-      city: "London",
-      address: "88 River Way",
-      phone: "020 9999 8888",
-      email: "green@pawfect.com",
-    },
-  ],
-  services: [
-    {
-      id: "s1",
-      name: "Consultation",
-      description:
-        "Comprehensive physical examination and medical history review.",
-      priceRange: "£55.00",
-    },
-    {
-      id: "s2",
-      name: "Core Vaccinations",
-      description:
-        "Protection against common infectious diseases tailored to your pet.",
-      priceRange: "£45.00",
-    },
-    {
-      id: "s3",
-      name: "Professional Dental",
-      description:
-        "Ultrasonic scaling, polishing, and oral assessment under sedation.",
-      priceRange: "£220.00",
-    },
-    {
-      id: "s4",
-      name: "Wellness Profile",
-      description:
-        "Advanced blood panel, urinalysis, and early detection screening.",
-      priceRange: "£110.00",
-    },
-    {
-      id: "s5",
-      name: "Microchipping",
-      description:
-        "Permanent identification for your pet with international registration.",
-      priceRange: "£25.00",
-    },
-  ],
-  hours: [
-    { day: "Monday", open: "08:30", close: "19:00", isClosed: false },
-    { day: "Tuesday", open: "08:30", close: "19:00", isClosed: false },
-    { day: "Wednesday", open: "08:30", close: "19:00", isClosed: false },
-    { day: "Thursday", open: "08:30", close: "19:00", isClosed: false },
-    { day: "Friday", open: "08:30", close: "19:00", isClosed: false },
-    { day: "Saturday", open: "09:00", close: "17:00", isClosed: false },
-    { day: "Sunday", open: "10:00", close: "14:00", isClosed: false },
-  ],
-  staff: [
-    {
-      id: "st1",
-      name: "Dr. Sarah Miller",
-      role: "Head Veterinarian",
-      specialty: ["Surgery", "Oncology"],
-      clinicId: "1",
-      avatar:
-        "https://images.unsplash.com/photo-1559839734-2b71f1536783?auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
-    },
-    {
-      id: "st2",
-      name: "Dr. James Wilson",
-      role: "Senior Vet",
-      specialty: ["Dental", "Nutrition"],
-      clinicId: "1",
-      avatar:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
-    },
-    {
-      id: "st3",
-      name: "Emma Watson",
-      role: "Vet Nurse",
-      specialty: ["Emergency Care"],
-      clinicId: "1",
-    },
-  ],
-  reviews: [
-    {
-      id: "r1",
-      userId: "u1",
-      userName: "John Doe",
-      rating: 5,
-      comment:
-        "Dr. Miller saved our dog after a complex surgery. Incredible care and empathy throughout.",
-      date: "2023-11-01",
-    },
-    {
-      id: "r2",
-      userId: "u2",
-      userName: "Alice Smith",
-      rating: 4,
-      comment:
-        "Great clinic, bit of a wait sometimes but the quality of care is worth it.",
-      date: "2023-11-15",
-    },
-    {
-      id: "r3",
-      userId: "u3",
-      userName: "Mark Ruffalo",
-      rating: 5,
-      comment:
-        "My cat is actually happy to go there! Modern equipment and very clean environment.",
-      date: "2023-11-20",
-    },
-  ],
-};
+import { clinicsAPI } from "@/lib/api/clinicsAPI";
+import { isAxiosError } from "axios";
 
 export default function ClinicProfile() {
+  const router = useRouter();
+  const clinicId = typeof router.query.id === "string" ? router.query.id : "";
+
+  const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "services" | "staff" | "locations" | "reviews"
   >("services");
 
-  // Logic to get current day status
+  const loadClinic = useCallback(async () => {
+    if (!clinicId) return;
+
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
+
+    try {
+      const data = await clinicsAPI.getClinicById(clinicId);
+      setClinic(data);
+    } catch (err) {
+      setClinic(null);
+      if (isAxiosError(err) && err.response?.status === 404) {
+        setNotFound(true);
+      } else {
+        setError("Failed to load clinic details.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [clinicId]);
+
+  useEffect(() => {
+    if (router.isReady && clinicId) {
+      loadClinic();
+    }
+  }, [router.isReady, clinicId, loadClinic]);
+
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   const tabs: {
@@ -178,21 +75,84 @@ export default function ClinicProfile() {
     { id: "reviews", label: "Client Feedback", icon: Award },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
+        <Head>
+          <title>Clinic | PetChain</title>
+        </Head>
+        <HeaderComponent />
+        <div className="flex-grow flex flex-col items-center justify-center text-gray-500">
+          <Loader2 className="w-10 h-10 animate-spin mb-3" />
+          <p>Loading clinic details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
+        <Head>
+          <title>Clinic Not Found | PetChain</title>
+        </Head>
+        <HeaderComponent />
+        <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
+          <h1 className="text-2xl font-bold text-blue-900 mb-2">
+            Clinic not found
+          </h1>
+          <p className="text-gray-600 mb-6">
+            We could not find a clinic with that ID. It may have been removed or
+            the link is incorrect.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !clinic) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
+        <Head>
+          <title>Clinic | PetChain</title>
+        </Head>
+        <HeaderComponent />
+        <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
+          <p className="text-red-600 mb-4">{error || "Something went wrong."}</p>
+          <button
+            onClick={loadClinic}
+            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const emergencyPhone = clinic.locations[0]?.phone || "";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
       <Head>
-        <title>{MOCK_CLINIC_DETAILS.name} | PetChain</title>
+        <title>{clinic.name} | PetChain</title>
       </Head>
 
       <HeaderComponent />
 
       {/* Hero Header */}
       <section className="relative h-[450px] overflow-hidden">
-        <img
-          src={MOCK_CLINIC_DETAILS.mainImage}
-          className="w-full h-full object-cover"
-          alt={MOCK_CLINIC_DETAILS.name}
-        />
+        {clinic.mainImage ? (
+          <img
+            src={clinic.mainImage}
+            className="w-full h-full object-cover"
+            alt={clinic.name}
+          />
+        ) : (
+          <div className="w-full h-full bg-blue-200 flex items-center justify-center">
+            <MapPin className="w-16 h-16 text-blue-400" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-900/40 to-transparent"></div>
 
         <div className="absolute bottom-0 inset--0">
@@ -205,15 +165,14 @@ export default function ClinicProfile() {
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-white text-xs font-bold">
                     <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    {MOCK_CLINIC_DETAILS.rating} Rating •{" "}
-                    {MOCK_CLINIC_DETAILS.reviewCount} Reviews
+                    {clinic.rating} Rating • {clinic.reviewCount} Reviews
                   </div>
                 </div>
                 <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight drop-shadow-lg">
-                  {MOCK_CLINIC_DETAILS.name}
+                  {clinic.name}
                 </h1>
                 <p className="text-blue-100 text-lg md:text-xl font-medium max-w-2xl leading-relaxed drop-shadow-md">
-                  {MOCK_CLINIC_DETAILS.description}
+                  {clinic.description}
                 </p>
               </div>
 
@@ -259,18 +218,16 @@ export default function ClinicProfile() {
             {/* Tab Panes */}
             <div className="min-h-[400px] animate-fade-in">
               {activeTab === "services" && (
-                <ServiceList services={MOCK_CLINIC_DETAILS.services} />
+                <ServiceList services={clinic.services} />
               )}
-              {activeTab === "staff" && (
-                <StaffList staff={MOCK_CLINIC_DETAILS.staff} />
-              )}
+              {activeTab === "staff" && <StaffList staff={clinic.staff} />}
               {activeTab === "locations" && (
-                <LocationMap locations={MOCK_CLINIC_DETAILS.locations} />
+                <LocationMap locations={clinic.locations} />
               )}
               {activeTab === "reviews" && (
                 <ReviewSection
-                  reviews={MOCK_CLINIC_DETAILS.reviews || []}
-                  averageRating={MOCK_CLINIC_DETAILS.rating}
+                  reviews={clinic.reviews || []}
+                  averageRating={clinic.rating}
                 />
               )}
             </div>
@@ -293,7 +250,7 @@ export default function ClinicProfile() {
                 </div>
 
                 <div className="space-y-3">
-                  {MOCK_CLINIC_DETAILS.hours.map((h) => (
+                  {clinic.hours.map((h) => (
                     <div
                       key={h.day}
                       className={`flex items-center justify-between text-sm ${h.day === today ? "bg-blue-50 -mx-4 px-4 py-2 rounded-xl font-bold text-blue-600" : "text-gray-500 font-medium"}`}
@@ -306,17 +263,19 @@ export default function ClinicProfile() {
                   ))}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                  <p className="text-xs text-gray-400 mb-1">
-                    Emergency Line (24/7)
-                  </p>
-                  <a
-                    href="tel:02012345678"
-                    className="text-2xl font-black text-rose-500 hover:text-rose-600 transition-colors"
-                  >
-                    020 1234 5678
-                  </a>
-                </div>
+                {emergencyPhone && (
+                  <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                    <p className="text-xs text-gray-400 mb-1">
+                      Emergency Line (24/7)
+                    </p>
+                    <a
+                      href={`tel:${emergencyPhone.replace(/\s/g, "")}`}
+                      className="text-2xl font-black text-rose-500 hover:text-rose-600 transition-colors"
+                    >
+                      {emergencyPhone}
+                    </a>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -351,11 +310,11 @@ export default function ClinicProfile() {
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],
-    fallback: 'blocking',
+    fallback: "blocking",
   };
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getStaticProps: GetStaticProps = async () => {
   return {
     props: {},
     revalidate: false,
