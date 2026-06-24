@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Props) {
-  const { generateProof, verifyProof, loading, error } = useZkp();
+  const { generateProof, verifyProof, isGenerating, isVerifying, error } = useZkp();
   const [proof, setProof] = useState<ZkpProof | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
 
@@ -91,18 +91,18 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
       <div className="flex gap-2">
         <button
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={isGenerating || isVerifying}
           className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
         >
-          {loading ? 'Generating…' : 'Generate Proof'}
+          {isGenerating ? 'Generating…' : 'Generate Proof'}
         </button>
         {proof && (
           <button
             onClick={handleVerify}
-            disabled={loading}
+            disabled={isGenerating || isVerifying}
             className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Verifying…' : 'Verify Proof'}
+            {isVerifying ? 'Verifying…' : 'Verify Proof'}
           </button>
         )}
       </div>
