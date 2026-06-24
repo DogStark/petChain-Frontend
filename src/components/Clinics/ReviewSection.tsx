@@ -83,11 +83,17 @@ export default function ReviewSection({ reviews, averageRating }: ReviewSectionP
             </blockquote>
 
             <div className="flex items-center gap-4 mt-auto pt-4 border-t border-gray-100/50">
-              <button className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors">
-                <ThumbsUp className="w-3.5 h-3.5" /> Helpful
+              <button
+                aria-label={`Mark ${review.userName}'s review as helpful`}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <ThumbsUp className="w-3.5 h-3.5" aria-hidden="true" /> Helpful
               </button>
-              <button className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors">
-                <MessageSquare className="w-3.5 h-3.5" /> Reply
+              <button
+                aria-label={`Reply to ${review.userName}'s review`}
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" /> Reply
               </button>
             </div>
           </div>
@@ -96,6 +102,7 @@ export default function ReviewSection({ reviews, averageRating }: ReviewSectionP
 
       <button
         type="button"
+        aria-label="Write a review for this clinic"
         className="w-full py-4 bg-white border-2 border-dashed border-blue-200 text-blue-600 font-bold rounded-3xl hover:bg-blue-50 transition-all active:scale-[0.99] shadow-sm"
       >
         + Write a Review
