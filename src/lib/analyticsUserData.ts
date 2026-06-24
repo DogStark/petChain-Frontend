@@ -1,4 +1,6 @@
-export const generateAnalyticsData = () => {
+import { analyticsAPI } from './api/analyticsAPI';
+
+export const generateAnalyticsData = async () => {
   // Engagement Data (Last 7 Days)
   const engagementData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
@@ -28,22 +30,39 @@ export const generateAnalyticsData = () => {
     { month: 'Jun', compliant: 91, nonCompliant: 9 },
   ];
 
-  // Geographic Usage
-  const geoData = [
-    { region: 'North America', users: Math.floor(Math.random() * 1000) + 500 },
-    { region: 'Europe', users: Math.floor(Math.random() * 800) + 300 },
-    { region: 'Asia', users: Math.floor(Math.random() * 600) + 200 },
-    { region: 'South America', users: Math.floor(Math.random() * 300) + 100 },
-    { region: 'Africa', users: Math.floor(Math.random() * 200) + 50 },
-    { region: 'Oceania', users: Math.floor(Math.random() * 150) + 20 },
+  // Geographic Usage - Call real backend
+  let geoData = [
+    { region: 'North America', users: 500 },
+    { region: 'Europe', users: 300 },
+    { region: 'Asia', users: 200 },
+    { region: 'South America', users: 100 },
+    { region: 'Africa', users: 50 },
+    { region: 'Oceania', users: 20 },
   ];
+  try {
+    const geoDistribution = await analyticsAPI.getGeographicDistribution();
+    geoData = geoDistribution.map(item => ({
+      region: item.region,
+      users: item.users,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch geographic distribution:', error);
+  }
 
-  // API Usage
-  const apiUsageData = Array.from({ length: 24 }, (_, i) => ({
+  // API Usage - Call real backend
+  let apiUsageData = Array.from({ length: 24 }, (_, i) => ({
     time: `${i}:00`,
-    requests: Math.floor(Math.random() * 500) + 100,
-    errors: Math.floor(Math.random() * 20),
+    requests: 100,
+    errors: 0,
   }));
+  try {
+    const response = await fetch('/api/analytics/api-usage');
+    if (response.ok) {
+      apiUsageData = await response.json();
+    }
+  } catch (error) {
+    console.error('Failed to fetch API usage stats:', error);
+  }
 
   return {
     engagementData,
