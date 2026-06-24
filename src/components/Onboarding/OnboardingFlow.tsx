@@ -247,7 +247,7 @@ function WelcomeStep() {
         />
         <FeatureItem
           icon={<Search size={18} color="#2563eb" />}
-          text="Find vets &amp; emergency services"
+          text="Find vets & emergency services"
         />
         <FeatureItem
           icon={<BarChart2 size={18} color="#2563eb" />}
@@ -322,7 +322,7 @@ function ExploreStep() {
       <div className={styles.featureList}>
         <FeatureItem
           icon={<Search size={18} color="#2563eb" />}
-          text="Search pets, vets &amp; records"
+          text="Search pets, vets & records"
           link="/search"
         />
         <FeatureItem
@@ -344,7 +344,7 @@ function FeatureItem({ icon, text, link }: { icon: React.ReactNode; text: string
   const content = (
     <div className={styles.featureItem}>
       <span className={styles.featureIcon}>{icon}</span>
-      <span className={styles.featureText} dangerouslySetInnerHTML={{ __html: text }} />
+      <span className={styles.featureText}>{text}</span>
       {link && <ArrowRight size={12} className={styles.featureArrow} />}
     </div>
   );
