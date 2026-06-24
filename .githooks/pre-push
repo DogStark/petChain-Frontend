@@ -1,8 +1,10 @@
 #!/bin/sh
 
-# Pre-push hook: prevent pushing orphan branches with disconnected history.
-# This ensures every push shares a common ancestor with the remote ref,
-# preventing the "entirely different commit histories" error on PR creation.
+# Pre-push hook: prevent pushing orphan branches with disconnected history
+# and verify every commit is authored by the expected GitHub account.
+
+EXPECTED_NAME="FairBid"
+EXPECTED_EMAIL="fairbid01@gmail.com"
 
 remote="$1"
 url="$2"
@@ -11,19 +13,48 @@ zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
 
 while read local_ref local_oid remote_ref remote_oid; do
   if [ "$local_oid" = "$zero" ]; then
-    # Deleting a branch — always allowed
     continue
   fi
 
+  # ── Verify commit authorship ──────────────────────────────────────────
   if [ "$remote_oid" = "$zero" ]; then
-    # New branch — ensure it's based on a known remote ref
-    # Check if HEAD has any ancestor in common with the remote's main branches
+    range="$local_oid"
+  else
+    range="$remote_oid..$local_oid"
+  fi
+
+  bad_commits=$(git log --format="%h %an <%ae>" "$range" 2>/dev/null | \
+    while read hash name email; do
+      if [ "$name $email" != "$EXPECTED_NAME <$EXPECTED_EMAIL>" ]; then
+        echo "$hash $name $email"
+      fi
+    done)
+
+  if [ -n "$bad_commits" ]; then
+    echo ""
+    echo "ERROR: Some commits in this push are not authored by the expected account."
+    echo "  Expected: $EXPECTED_NAME <$EXPECTED_EMAIL>"
+    echo ""
+    echo "  Offending commits:"
+    echo "$bad_commits" | while read hash name email; do
+      echo "    $hash  $name <$email>"
+    done
+    echo ""
+    echo "  To fix, amend each commit to the correct author:"
+    echo "    git commit --amend --author=\"$EXPECTED_NAME <$EXPECTED_EMAIL>\" --no-edit"
+    echo "    # or rebase and edit:"
+    echo "    git rebase -i origin/main -x \"git commit --amend --author='$EXPECTED_NAME <$EXPECTED_EMAIL>' --no-edit\""
+    echo ""
+    exit 1
+  fi
+
+  # ── Verify shared history ─────────────────────────────────────────────
+  if [ "$remote_oid" = "$zero" ]; then
     if ! git merge-base --is-ancestor origin/main "$local_oid" 2>/dev/null && \
        ! git merge-base --is-ancestor origin/master "$local_oid" 2>/dev/null; then
       echo ""
       echo "ERROR: Cannot push new branch '$local_ref'."
       echo "  This branch has no shared history with origin/main or origin/master."
-      echo "  It was likely created with 'git init' instead of branching from the remote."
       echo ""
       echo "  To fix:"
       echo "    git fetch origin main"
@@ -33,16 +64,14 @@ while read local_ref local_oid remote_ref remote_oid; do
       exit 1
     fi
   else
-    # Existing branch — ensure local history contains the remote tip
     if ! git merge-base --is-ancestor "$remote_oid" "$local_oid"; then
       echo ""
       echo "ERROR: Cannot push to remote branch '$remote_ref'."
       echo "  Your local branch and the remote branch have diverged with no shared history."
-      echo "  This usually happens after 'git init' or 'git rebase --onto' with a different base."
       echo ""
       echo "  To fix, rebase your work on the remote branch:"
       echo "    git fetch origin $remote_ref"
-      echo "    git rebase --onto origin/$remote_ref HEAD~ $(git rev-parse --abbrev-ref HEAD)"
+      echo "    git rebase --onto origin/$remote_ref HEAD~ \$(git rev-parse --abbrev-ref HEAD)"
       echo "    # or reset and cherry-pick:"
       echo "    git checkout -b temp-branch origin/$remote_ref"
       echo "    git cherry-pick <your-commit-hash>"

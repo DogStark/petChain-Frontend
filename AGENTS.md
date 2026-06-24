@@ -48,6 +48,17 @@ git config core.hooksPath .githooks
 
 This ensures the hook in `.githooks/pre-push` is used by everyone who clones the repo.
 
+## Commit authorship
+
+All commits must be authored by the GitHub account that owns the token. Before making any commits, set the correct author:
+
+```bash
+git config user.name "FairBid"
+git config user.email "fairbid01@gmail.com"
+```
+
+The pre-commit hook will block commits that don't match the expected author. The pre-push hook will also verify every commit in the push matches the expected author.
+
 ## Before pushing
 
 The pre-push hook will reject pushes where your branch has no shared history with the remote. This prevents the "entirely different commit histories" error when opening a PR. If the hook blocks you, follow its instructions to rebase properly.
