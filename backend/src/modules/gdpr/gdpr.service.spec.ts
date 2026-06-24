@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import {
   ConflictException,
@@ -37,7 +38,7 @@ describe('GdprService', () => {
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepo },
         { provide: getRepositoryToken(DataDeletionRequest), useValue: mockDeletionRepo },
         { provide: getRepositoryToken(GdprRequest), useValue: mockGdprRequestRepo },
-        { provide: 'DataSource', useValue: mockDataSource },
+        { provide: DataSource, useValue: mockDataSource },
         { provide: StorageService, useValue: mockStorageService },
         { provide: getQueueToken('gdpr'), useValue: mockGdprQueue },
       ],
