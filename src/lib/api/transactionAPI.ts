@@ -11,6 +11,8 @@ export type TransactionType =
   | 'vaccination'
   | 'transfer';
 
+export type TransactionEstimateData = Record<string, unknown>;
+
 export interface Transaction {
   id: string;
   hash: string;
@@ -23,7 +25,7 @@ export interface Transaction {
   timestamp: string;
   blockNumber?: number;
   confirmations: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   errorMessage?: string;
 }
 
@@ -35,7 +37,7 @@ export interface TransactionReceipt {
   timestamp: string;
   gasUsed: string;
   effectiveFee: string;
-  logs: any[];
+  logs: Record<string, unknown>[];
 }
 
 export interface TransactionCost {
@@ -97,7 +99,7 @@ class TransactionAPI {
     return response.data;
   }
 
-  async estimateTransactionCost(type: TransactionType, data?: any): Promise<TransactionCost> {
+  async estimateTransactionCost(type: TransactionType, data?: TransactionEstimateData): Promise<TransactionCost> {
     const response = await this.api.post('/estimate', { type, data });
     return response.data;
   }
