@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import * as FormData from 'form-data';
+import FormData from 'form-data';
 
 type KuboRPCClient = {
   add(data: string | Buffer): Promise<{ path: string }>;
