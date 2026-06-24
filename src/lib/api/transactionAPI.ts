@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type TransactionType =
@@ -61,7 +60,7 @@ class TransactionAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/transactions`,
+      baseURL: `${getApiBaseUrl()}/transactions`,
       withCredentials: true,
     });
 
