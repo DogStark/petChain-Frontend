@@ -107,7 +107,7 @@ export class ReportService {
   ): Promise<Report> {
     const report = await this.getReportById(reportId);
 
-    report.status = updateDto.status;
+    report.status = updateDto.status as unknown as Report['status'];
     const updatedReport = await this.reportRepository.save(report);
 
     if (note) {
