@@ -114,6 +114,18 @@ describe('WalletService', () => {
       // localStorage.getItem returns null for missing keys
       expect(walletService.getWallets()).toEqual([]);
     });
+
+    it('clears corrupted wallet data and returns empty array', () => {
+      const tampered = [{ evil: true }];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tampered));
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      expect(walletService.getWallets()).toEqual([]);
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+      expect(consoleSpy).toHaveBeenCalledWith('Corrupted wallet data detected in localStorage. Clearing.');
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('getWallet', () => {
