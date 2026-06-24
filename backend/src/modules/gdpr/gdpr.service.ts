@@ -1,12 +1,19 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
+
+class TooManyRequestsException extends HttpException {
+  constructor(message = 'Too Many Requests') {
+    super(message, HttpStatus.TOO_MANY_REQUESTS);
+  }
+}
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, MoreThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';

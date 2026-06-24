@@ -3,10 +3,17 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import {
   ConflictException,
+  HttpException,
+  HttpStatus,
   NotFoundException,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
+
+class TooManyRequestsException extends HttpException {
+  constructor(message = 'Too Many Requests') {
+    super(message, HttpStatus.TOO_MANY_REQUESTS);
+  }
+}
 import { GdprService } from './gdpr.service';
 import { UserConsent } from './entities/user-consent.entity';
 import { DataDeletionRequest, DeletionStatus } from './entities/data-deletion-request.entity';
