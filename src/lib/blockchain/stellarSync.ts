@@ -124,8 +124,7 @@ class StellarSyncService {
       const syncResult = this.syncQueue.get(recordId);
       if (!syncResult?.txHash) return false;
 
-      // Access the Horizon server via the engine for consistency
-      const server = (this.engine as any).server || new StellarSdk.Horizon.Server(process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org');
+      const server = this.engine.getServer();
       const tx = await server.transactions().transaction(syncResult.txHash).call();
       return tx.successful;
     } catch {

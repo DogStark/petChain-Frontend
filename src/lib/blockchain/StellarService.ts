@@ -137,6 +137,10 @@ export class StellarService {
     };
   }
 
+  getServer(): StellarSdk.Horizon.Server {
+    return this.server;
+  }
+
   /**
    * Estimates optimal fee based on network congestion
    */
