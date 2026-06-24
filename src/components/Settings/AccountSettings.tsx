@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AccountSettings.module.css';
 import { ActivityLog } from '../../lib/api/userAPI';
+import { formatDate, formatDateTime } from '../../utils/formatDate';
 
 interface Session {
   id: string;
@@ -190,7 +191,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                       </div>
                       <div className={styles.sessionDetails}>
                         <span>{session.ipAddress}</span>
-                        <span> • Created {new Date(session.createdAt).toLocaleDateString()}</span>
+                        <span> • Created {formatDate(session.createdAt)}</span>
                       </div>
                     </div>
                     {session.isActive && (
@@ -263,7 +264,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                 {complianceActivities.slice(0, 6).map((activity) => (
                   <li key={activity.id}>
                     <strong>{activity.activityType}</strong> -{' '}
-                    {new Date(activity.createdAt).toLocaleString()} - {activity.description}
+                    {formatDateTime(activity.createdAt)} - {activity.description}
                   </li>
                 ))}
               </ul>
