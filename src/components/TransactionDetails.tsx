@@ -5,6 +5,7 @@ import {
   TransactionReceipt,
   TransactionCost,
 } from '@/lib/api/transactionAPI';
+import { formatDateTime } from '@/utils/formatDate';
 
 interface TransactionDetailsProps {
   transactionId: string;
@@ -97,7 +98,7 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
 
             <div>
               <label className="font-semibold">Timestamp:</label>
-              <p>{new Date(transaction.timestamp).toLocaleString()}</p>
+              <p>{formatDateTime(transaction.timestamp)}</p>
             </div>
 
             {cost && (

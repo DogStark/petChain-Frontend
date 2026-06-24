@@ -9,6 +9,7 @@ import {
   Plus,
 } from 'lucide-react';
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
+import { formatBalance } from '../../utils/formatCurrency';
 
 interface Props {
   wallets: WalletAccount[];
@@ -215,11 +216,7 @@ export default function WalletDashboard({
                   XLM Balance
                 </p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {xlmBalance
-                    ? parseFloat(xlmBalance.balance).toLocaleString(undefined, {
-                        maximumFractionDigits: 7,
-                      })
-                    : '0'}
+                  {xlmBalance ? formatBalance(xlmBalance.balance) : '0'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">Stellar Lumens</p>
               </div>
@@ -231,7 +228,7 @@ export default function WalletDashboard({
                     {b.asset_code ?? 'Unknown'}
                   </p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                    {formatBalance(b.balance)}
                   </p>
                   {b.limit && <p className="text-sm text-gray-400 mt-1">Limit: {b.limit}</p>}
                 </div>

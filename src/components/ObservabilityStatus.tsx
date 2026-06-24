@@ -27,14 +27,19 @@ export default function ObservabilityStatus() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     const load = () =>
       fetch('/api/observability/status')
         .then((r) => r.json())
-        .then(setStatus)
-        .catch((e) => setError(e.message));
+        .then((data) => { if (active) setStatus(data); })
+        .catch((e) => { if (active) setError(e.message); });
     load();
     const id = setInterval(load, 30_000);
-    return () => clearInterval(id);
+    // Cleanup: always clears interval and prevents stale state updates after unmount
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, []);
 
   if (error) return <div className="text-sm text-red-500">Monitoring unavailable: {error}</div>;
