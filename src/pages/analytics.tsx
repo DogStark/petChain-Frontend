@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
@@ -98,6 +98,19 @@ const AnalyticsPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Memoize each chart's data so unrelated charts skip re-renders when their
+  // slice hasn't changed between 30s polls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const engagementData = useMemo(() => data?.engagementData ?? [], [JSON.stringify(data?.engagementData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const healthData = useMemo(() => data?.healthData ?? [], [JSON.stringify(data?.healthData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vaccinationData = useMemo(() => data?.vaccinationData ?? [], [JSON.stringify(data?.vaccinationData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -148,23 +161,23 @@ const AnalyticsPage = () => {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <UserEngagementChart data={data.engagementData} />
+            <UserEngagementChart data={engagementData} />
           </div>
 
           <div className="lg:col-span-4">
-            <PetHealthChart data={data.healthData} />
+            <PetHealthChart data={healthData} />
           </div>
 
           <div className="lg:col-span-6">
-            <VaccinationChart data={data.vaccinationData} />
+            <VaccinationChart data={vaccinationData} />
           </div>
 
           <div className="lg:col-span-6">
-            <GeoDistributionChart data={data.geoData} />
+            <GeoDistributionChart data={geoData} />
           </div>
 
           <div className="lg:col-span-12">
-            <ApiUsageChart data={data.apiUsageData} />
+            <ApiUsageChart data={apiUsageData} />
           </div>
         </div>
       </div>

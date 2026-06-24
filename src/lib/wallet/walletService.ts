@@ -29,6 +29,14 @@ function getNetworkPassphrase(network: WalletNetwork): string {
   return network === 'PUBLIC' ? StellarSdk.Networks.PUBLIC : StellarSdk.Networks.TESTNET;
 }
 
+type StellarSubmitTransactionResponse = {
+  hash: string;
+  ledger?: number;
+  successful?: boolean;
+  envelope_xdr?: string;
+  result_xdr?: string;
+};
+
 class WalletService {
   private network: WalletNetwork;
   private server: StellarSdk.Horizon.Server;
@@ -45,6 +53,16 @@ class WalletService {
     return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
   }
 
+  private normalizeBroadcastResult(result: StellarSubmitTransactionResponse): BroadcastResult {
+    return {
+      hash: result.hash,
+      ledger: result.ledger ?? 0,
+      successful: result.successful !== false,
+      envelopeXdr: result.envelope_xdr ?? '',
+      resultXdr: result.result_xdr ?? '',
+    };
+  }
+
   // ─── Wallet CRUD ─────────────────────────────────────────────────────────────
 
   async createWallet(label: string, pin: string): Promise<WalletAccount> {
@@ -53,7 +71,7 @@ class WalletService {
 
     const wallet: WalletAccount = {
       id: `wallet_${randomUUID()}`,
-      publicKey: keypair.publicKey(),
+      publicKey,
       encryptedSecretKey: encryptedKey,
       iv,
       salt,
@@ -188,15 +206,9 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
-    };
+    return this.normalizeBroadcastResult(result);
   }
 
   // ─── Multi-Signature Setup ────────────────────────────────────────────────────
@@ -236,18 +248,12 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
     // Persist updated wallet type
     this.persistWallet({ ...wallet, type: 'multisig' });
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
-    };
+    return this.normalizeBroadcastResult(result);
   }
 
   async removeSigner(
@@ -272,15 +278,9 @@ class WalletService {
       .build();
 
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
-    };
+    return this.normalizeBroadcastResult(result);
   }
 
   // ─── Backup & Recovery ────────────────────────────────────────────────────────
