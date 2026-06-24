@@ -138,6 +138,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             value={formData.pet_id}
             onChange={(e) => setFormData((f) => ({ ...f, pet_id: e.target.value }))}
             required
+            aria-required="true"
             error={errors.pet_id}
           />
 
@@ -155,6 +156,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
               onChange={(e) => setFormData((f) => ({ ...f, date: e.target.value }))}
               min={new Date().toISOString().split('T')[0]}
               required
+              aria-required="true"
               error={errors.date}
             />
             <TouchSelect
@@ -172,6 +174,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             value={formData.vet_id}
             onChange={(e) => setFormData((f) => ({ ...f, vet_id: e.target.value }))}
             required
+            aria-required="true"
             error={errors.vet_id}
           />
 
