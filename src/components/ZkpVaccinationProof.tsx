@@ -93,22 +93,16 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
         <button
           onClick={handleGenerate}
           disabled={isGenerating || isVerifying}
-          className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
         >
-          {isGenerating && (
-            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          )}
           {isGenerating ? 'Generating…' : 'Generate Proof'}
         </button>
         {proof && (
           <button
             onClick={handleVerify}
             disabled={isGenerating || isVerifying}
-            className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
           >
-            {isVerifying && (
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            )}
             {isVerifying ? 'Verifying…' : 'Verify Proof'}
           </button>
         )}
