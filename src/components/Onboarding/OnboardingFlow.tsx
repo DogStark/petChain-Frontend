@@ -32,6 +32,13 @@ const STEPS: { id: OnboardingStepId; label: string }[] = [
   { id: 'explore', label: 'Explore' },
 ];
 
+/** Pulls a human-readable message out of an unknown error, falling back to a default. */
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'string' && err) return err;
+  return fallback;
+}
+
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   status,
   analytics,
@@ -65,15 +72,20 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       } else {
         setCurrentIndex((i) => i + 1);
       }
-    } catch {
-      setError('Failed to save progress. Please try again.');
+    } catch (err) {
+      setError(
+        getErrorMessage(err, 'Failed to save progress. Please check your connection and try again.')
+      );
     } finally {
       setCompleting(false);
     }
   };
 
   const handleBack = () => {
-    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
+    if (currentIndex > 0) {
+      setError(null);
+      setCurrentIndex((i) => i - 1);
+    }
   };
 
   const handleSkip = async () => {
@@ -81,8 +93,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     setError(null);
     try {
       await onSkip();
-    } catch {
-      setError('Failed to skip. Please try again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to skip setup. Please try again.'));
       setSkipping(false);
     }
   };
@@ -201,7 +213,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         {currentStep.id === 'explore' && <ExploreStep />}
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && (
+        <div className={styles.error} role="alert">
+          {error}
+        </div>
+      )}
 
       {/* Navigation */}
       <div className={styles.navigation}>
@@ -247,7 +263,7 @@ function WelcomeStep() {
         />
         <FeatureItem
           icon={<Search size={18} color="#2563eb" />}
-          text="Find vets &amp; emergency services"
+          text="Find vets & emergency services"
         />
         <FeatureItem
           icon={<BarChart2 size={18} color="#2563eb" />}
@@ -322,7 +338,7 @@ function ExploreStep() {
       <div className={styles.featureList}>
         <FeatureItem
           icon={<Search size={18} color="#2563eb" />}
-          text="Search pets, vets &amp; records"
+          text="Search pets, vets & records"
           link="/search"
         />
         <FeatureItem
@@ -344,7 +360,7 @@ function FeatureItem({ icon, text, link }: { icon: React.ReactNode; text: string
   const content = (
     <div className={styles.featureItem}>
       <span className={styles.featureIcon}>{icon}</span>
-      <span className={styles.featureText} dangerouslySetInnerHTML={{ __html: text }} />
+      <span className={styles.featureText}>{text}</span>
       {link && <ArrowRight size={12} className={styles.featureArrow} />}
     </div>
   );
