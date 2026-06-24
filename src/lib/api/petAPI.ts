@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { PetEmergencyInfo } from '@/types/pet';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class PetAPI {
@@ -9,7 +8,7 @@ class PetAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/pets`,
+      baseURL: `${getApiBaseUrl()}/pets`,
       withCredentials: true,
     });
 
