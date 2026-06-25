@@ -6,6 +6,15 @@ import styles from './PetPhotos.module.css';
 
 const MAX_PHOTOS = 10;
 
+function getApiError(err: unknown, fallback: string): string {
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+    if (typeof msg === 'string') return msg;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 interface PetPhotosManagerProps {
   petId: string;
 }
@@ -23,8 +32,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
       const data = await petPhotosAPI.getPhotos(petId);
       setPhotos(data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load photos');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Failed to load photos'));
     } finally {
       setIsLoading(false);
     }
@@ -45,8 +54,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
       });
 
       setPhotos((prev) => [...prev, ...uploaded]);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload photos');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Failed to upload photos'));
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -63,8 +72,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
           isPrimary: p.id === photoId,
         }))
       );
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to set primary photo');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Failed to set primary photo'));
     }
   };
 
@@ -80,8 +89,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         }
         return remaining;
       });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete photo');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Failed to delete photo'));
     }
   };
 
@@ -96,9 +105,9 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
     try {
       setError(null);
       await petPhotosAPI.reorderPhotos(petId, photoIds);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setPhotos(previousPhotos);
-      setError(err.response?.data?.message || 'Failed to reorder photos');
+      setError(getApiError(err, 'Failed to reorder photos'));
     }
   };
 
