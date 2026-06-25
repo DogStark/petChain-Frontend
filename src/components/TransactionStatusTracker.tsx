@@ -7,6 +7,7 @@ const MAX_INTERVAL = 160_000;
 export default function TransactionStatusTracker() {
   const [pending, setPending] = useState<Transaction[]>([]);
   const [failed, setFailed] = useState<Transaction[]>([]);
+  const [pollError, setPollError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const delayRef = useRef(BASE_INTERVAL);
 
@@ -23,9 +24,13 @@ export default function TransactionStatusTracker() {
       ]);
       setPending(pendingTxs);
       setFailed(failedTxs);
+      setPollError(null); // clear error on success
       delayRef.current = BASE_INTERVAL; // reset on success
     } catch (error) {
       console.error('Failed to load transaction status:', error);
+      setPollError(
+        error instanceof Error ? error.message : 'Failed to refresh transaction status'
+      );
       delayRef.current = Math.min(delayRef.current * 2, MAX_INTERVAL); // backoff
     }
     scheduleNext(delayRef.current);
@@ -68,12 +73,21 @@ export default function TransactionStatusTracker() {
     }
   };
 
-  if (pending.length === 0 && failed.length === 0) return null;
+  if (pending.length === 0 && failed.length === 0 && !pollError) return null;
 
   return (
     <div className="fixed bottom-4 right-4 w-80 bg-white shadow-lg rounded-lg border">
       <div className="p-4">
         <h3 className="font-semibold mb-3">Transaction Status</h3>
+
+        {pollError && (
+          <div
+            role="alert"
+            className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700"
+          >
+            Couldn&apos;t refresh transaction status — retrying… ({pollError})
+          </div>
+        )}
 
         {pending.length > 0 && (
           <div className="mb-3">
