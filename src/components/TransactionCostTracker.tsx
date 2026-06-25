@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { transactionAPI } from '@/lib/api/transactionAPI';
+import { useTransactions } from '@/hooks/useTransactions';
 
 export default function TransactionCostTracker() {
+  const { getTotalCosts } = useTransactions();
   const [costs, setCosts] = useState({
     totalFees: '0',
     totalTransactions: 0,
@@ -25,7 +26,7 @@ export default function TransactionCostTracker() {
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
       }
 
-      const data = await transactionAPI.getTotalCosts(startDate);
+      const data = await getTotalCosts(startDate);
       setCosts(data);
     } catch (error) {
       console.error('Failed to load costs:', error);
