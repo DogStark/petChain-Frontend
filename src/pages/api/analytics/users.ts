@@ -5,14 +5,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { startDate, endDate } = req.query;
+  const engagementData = [
+    { date: 'Mon', activeUsers: 1200, newSignups: 45 },
+    { date: 'Tue', activeUsers: 1350, newSignups: 52 },
+    { date: 'Wed', activeUsers: 1100, newSignups: 38 },
+    { date: 'Thu', activeUsers: 1420, newSignups: 65 },
+    { date: 'Fri', activeUsers: 1580, newSignups: 72 },
+    { date: 'Sat', activeUsers: 1800, newSignups: 95 },
+    { date: 'Sun', activeUsers: 1950, newSignups: 110 },
+  ];
 
-  const metrics = {
-    totalUsers: 1247,
-    activeUsers: 892,
-    newSignups: 156,
-    retentionRate: 71.5,
-  };
-
-  res.status(200).json(metrics);
+  res.status(200).json(engagementData);
 }
