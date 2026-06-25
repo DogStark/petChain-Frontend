@@ -15,6 +15,25 @@ import type {
 
 const STORAGE_KEY = 'petchain_wallets';
 
+function isValidWalletRecords(data: unknown): data is WalletAccount[] {
+  if (!Array.isArray(data)) return false;
+  return data.every(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof item.id === 'string' &&
+      typeof item.publicKey === 'string' &&
+      typeof item.encryptedSecretKey === 'string' &&
+      typeof item.iv === 'string' &&
+      typeof item.salt === 'string' &&
+      typeof item.label === 'string' &&
+      (item.type === 'standard' || item.type === 'multisig') &&
+      (item.network === 'TESTNET' || item.network === 'PUBLIC') &&
+      typeof item.createdAt === 'string' &&
+      typeof item.backupVerified === 'boolean'
+  );
+}
+
 function getNetwork(): WalletNetwork {
   return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'PUBLIC' : 'TESTNET';
 }
@@ -89,7 +108,14 @@ class WalletService {
   getWallets(): WalletAccount[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!isValidWalletRecords(parsed)) {
+        console.warn('Corrupted wallet data detected in localStorage. Clearing.');
+        localStorage.removeItem(STORAGE_KEY);
+        return [];
+      }
+      return parsed;
     } catch {
       return [];
     }
