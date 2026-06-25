@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Pre-commit hook: ensure commit author matches the expected GitHub account.
+
+EXPECTED_NAME="FairBid"
+EXPECTED_EMAIL="fairbid01@gmail.com"
+
+author_name=$(git config user.name)
+author_email=$(git config user.email)
+
+if [ "$author_name" != "$EXPECTED_NAME" ] || [ "$author_email" != "$EXPECTED_EMAIL" ]; then
+  echo ""
+  echo "ERROR: Commit author does not match the expected GitHub account."
+  echo "  Current:  $author_name <$author_email>"
+  echo "  Expected: $EXPECTED_NAME <$EXPECTED_EMAIL>"
+  echo ""
+  echo "  To fix, run:"
+  echo "    git config user.name \"$EXPECTED_NAME\""
+  echo "    git config user.email \"$EXPECTED_EMAIL\""
+  echo ""
+  exit 1
+fi
