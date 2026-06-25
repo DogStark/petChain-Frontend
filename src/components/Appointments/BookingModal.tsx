@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { AppointmentType } from '@/types/appointments';
 import {
@@ -54,6 +54,8 @@ const TIME_OPTIONS = [
 
 export default function BookingModal({ onClose }: BookingModalProps) {
   const { trigger } = useHaptic();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
     pet_id: '',
     vet_id: '',
@@ -109,6 +111,68 @@ export default function BookingModal({ onClose }: BookingModalProps) {
     if (e.target === e.currentTarget) onClose();
   };
 
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const focusableSelectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'textarea:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+
+    const focusableElements = Array.from(
+      dialog.querySelectorAll<HTMLElement>(focusableSelectors)
+    ).filter((el) => !el.hasAttribute('disabled'));
+
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    lastFocusedElementRef.current = document.activeElement as HTMLElement;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement as HTMLElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !dialog.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (activeElement === lastElement || !dialog.contains(activeElement)) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      lastFocusedElementRef.current?.focus();
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
@@ -118,7 +182,10 @@ export default function BookingModal({ onClose }: BookingModalProps) {
       onClick={handleBackdrop}
     >
       {/* Sheet slides up on mobile, centered modal on desktop */}
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up max-h-[92dvh] flex flex-col">
+      <div
+        className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up max-h-[92dvh] flex flex-col"
+        ref={dialogRef}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           {/* Drag handle (mobile) */}
