@@ -9,6 +9,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 interface FinancialReportChartProps {
     data: {

@@ -44,7 +44,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
 
   const addContact = () => {
     const newContact: EmergencyContact = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: '',
       relationship: '',
       phone: '',

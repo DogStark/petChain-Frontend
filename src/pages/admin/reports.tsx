@@ -4,14 +4,15 @@ import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
-// Import Charts
-import UserEngagementChart from '@/components/analytics/UserEngagementChart';
-import ApiUsageChart from '@/components/analytics/ApiUsageChart';
-import PetHealthChart from '@/components/analytics/PetHealthChart';
-import VaccinationChart from '@/components/analytics/VaccinationChart';
-import GeoDistributionChart from '@/components/analytics/GeoDistributionChart';
-import FinancialReportChart from '@/components/analytics/FinancialReportChart';
+// Import Charts with dynamic loading
+const UserEngagementChart = dynamic(() => import('@/components/analytics/UserEngagementChart'), { ssr: false });
+const ApiUsageChart = dynamic(() => import('@/components/analytics/ApiUsageChart'), { ssr: false });
+const PetHealthChart = dynamic(() => import('@/components/analytics/PetHealthChart'), { ssr: false });
+const VaccinationChart = dynamic(() => import('@/components/analytics/VaccinationChart'), { ssr: false });
+const GeoDistributionChart = dynamic(() => import('@/components/analytics/GeoDistributionChart'), { ssr: false });
+const FinancialReportChart = dynamic(() => import('@/components/analytics/FinancialReportChart'), { ssr: false });
 
 // Mock Data for Reports
 const MOCK_ENGAGEMENT_DATA = [
@@ -322,15 +323,14 @@ export default function AdminReports() {
             </div>
 
             {/* Embedded styles for print optimization */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style>{`
                 @media print {
                     @page { size: landscape; margin: 1cm; }
                     body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .recharts-responsive-container { width: 100% !important; min-height: 400px !important; }
                     .shadow-lg, .shadow-md, .shadow-xl { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
                 }
-            `}} />
+            `}</style>
         </ProtectedRoute>
     );
 }

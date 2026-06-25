@@ -211,4 +211,22 @@ export class MetricsService {
 
     return buckets[buckets.length - 1] ?? 0;
   }
+
+  // ── Business Metrics ───────────────────────────────────────────────────────
+
+  setPetsTotal(count: number): void {
+    this.set('petchain_pets_total', count);
+  }
+
+  setMedicalRecordsTotal(count: number): void {
+    this.set('petchain_medical_records_total', count);
+  }
+
+  incBlockchainSync(status: 'success' | 'failed'): void {
+    this.inc('petchain_blockchain_syncs_total', `status="${status}"`);
+  }
+
+  setActiveSessions(count: number): void {
+    this.set('petchain_active_sessions_total', count);
+  }
 }

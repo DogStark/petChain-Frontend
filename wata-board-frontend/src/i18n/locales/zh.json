@@ -2,7 +2,10 @@
   "app": {
     "title": "Wata-Board",
     "tagline": "基于Stellar区块链的去中心化公用事业支付",
-    "description": "在Stellar网络上使用加密货币支付您的公用事业账单"
+    "description": "在Stellar网络上使用加密货币支付您的公用事业账单",
+    "footer": {
+      "tagline": "面向去中心化网络的现代支付解决方案"
+    }
   },
   "navigation": {
     "home": "支付账单",
@@ -35,6 +38,7 @@
       "amountTooLarge": "金额太大。",
       "insufficientBalance": "余额不足。请向您的钱包添加更多XLM。",
       "estimatingFees": "估算交易费用中...请稍候。",
+      "estimationFailed": "无法估算交易费用，请重试。",
       "paymentSuccess": "支付成功！交易ID：{{id}}...",
       "paymentFailed": "支付失败：{{error}}"
     },
@@ -77,7 +81,13 @@
     "mainnet": "主网",
     "testnet": "测试网",
     "switchNetwork": "切换网络",
-    "currentNetwork": "当前网络"
+    "currentNetwork": "当前网络",
+    "switchTo": "切换到 {{network}}？",
+    "mainnetWarning": "警告：这是生产网络，将使用真实资金。",
+    "testnetInfo": "您正在切换到Stellar测试网，交易将使用测试XLM。",
+    "mainnetConfirm": "您即将切换到Stellar主网，交易将使用真实XLM。",
+    "cancel": "取消",
+    "confirm": "确认"
   },
   "offline": {
     "banner": {

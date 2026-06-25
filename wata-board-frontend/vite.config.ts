@@ -59,10 +59,18 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // Chunk splitting for optimal caching
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-stellar': ['@stellar/stellar-sdk', '@stellar/freighter-api'],
-            'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@stellar/stellar-sdk') || id.includes('@stellar/freighter-api') || id.includes('@stellar/stellar-base')) {
+                return 'vendor-stellar';
+              }
+              if (id.includes('i18next') || id.includes('react-i18next') || id.includes('i18next-browser-languagedetector')) {
+                return 'vendor-i18n';
+              }
+            }
           },
         },
       },

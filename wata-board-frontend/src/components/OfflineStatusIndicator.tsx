@@ -42,7 +42,7 @@ export function OfflineStatusIndicator({
     return (
       <div
         className={`
-          inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border
+          inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border
           ${getStatusColor()}
           ${className}
         `}
@@ -68,7 +68,7 @@ export function OfflineStatusIndicator({
         aria-label={getStatusAriaLabel()}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <span aria-hidden="true">{getStatusIcon()}</span>
             <span>{getStatusText()}</span>
           </div>
@@ -86,7 +86,7 @@ export function OfflineStatusIndicator({
   return (
     <div
       className={`
-        inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium border
+        inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border
         ${getStatusColor()}
         ${className}
       `}

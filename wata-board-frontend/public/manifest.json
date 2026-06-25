@@ -4,6 +4,7 @@
   "description": "Pay utility bills using cryptocurrency on the Stellar blockchain",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "background_color": "#0f172a",
   "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
