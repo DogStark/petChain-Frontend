@@ -3,9 +3,9 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
+import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { analyticsAPI } from '@/lib/api/analyticsAPI';
+import { fetchEngagementData, fetchFinancialData, fetchHealthData, fetchVaccinationData } from '@/lib/analyticsUserData';
 
 // Import Charts with dynamic loading
 const UserEngagementChart = dynamic(() => import('@/components/analytics/UserEngagementChart'), { ssr: false });
@@ -16,38 +16,21 @@ const GeoDistributionChart = dynamic(() => import('@/components/analytics/GeoDis
 const FinancialReportChart = dynamic(() => import('@/components/analytics/FinancialReportChart'), { ssr: false });
 
 // Mock Data for Reports
-const MOCK_ENGAGEMENT_DATA = [
-    { date: 'Mon', activeUsers: 1200, newSignups: 45 },
-    { date: 'Tue', activeUsers: 1350, newSignups: 52 },
-    { date: 'Wed', activeUsers: 1100, newSignups: 38 },
-    { date: 'Thu', activeUsers: 1420, newSignups: 65 },
-    { date: 'Fri', activeUsers: 1580, newSignups: 72 },
-    { date: 'Sat', activeUsers: 1800, newSignups: 95 },
-    { date: 'Sun', activeUsers: 1950, newSignups: 110 },
+const MOCK_API_DATA = [
+    { time: '00:00', requests: 120, errors: 2 },
+    { time: '04:00', requests: 80, errors: 1 },
+    { time: '08:00', requests: 450, errors: 5 },
+    { time: '12:00', requests: 850, errors: 12 },
+    { time: '16:00', requests: 920, errors: 8 },
+    { time: '20:00', requests: 600, errors: 4 },
 ];
 
-const MOCK_FINANCIAL_DATA = [
-    { month: 'Jan', revenue: 45000, expenses: 28000, profit: 17000 },
-    { month: 'Feb', revenue: 52000, expenses: 31000, profit: 21000 },
-    { month: 'Mar', revenue: 48000, expenses: 29000, profit: 19000 },
-    { month: 'Apr', revenue: 61000, expenses: 34000, profit: 27000 },
-    { month: 'May', revenue: 59000, expenses: 33000, profit: 26000 },
-    { month: 'Jun', revenue: 75000, expenses: 40000, profit: 35000 },
-];
-
-const MOCK_HEALTH_DATA = [
-    { name: 'Healthy', value: 350, color: '#10b981' },
-    { name: 'Sick', value: 45, color: '#f59e0b' },
-    { name: 'Critical', value: 12, color: '#ef4444' },
-];
-
-const MOCK_VACCINATION_DATA = [
-    { month: 'Jan', compliant: 85, nonCompliant: 15 },
-    { month: 'Feb', compliant: 82, nonCompliant: 18 },
-    { month: 'Mar', compliant: 88, nonCompliant: 12 },
-    { month: 'Apr', compliant: 86, nonCompliant: 14 },
-    { month: 'May', compliant: 90, nonCompliant: 10 },
-    { month: 'Jun', compliant: 92, nonCompliant: 8 },
+const MOCK_GEO_DATA = [
+    { region: 'North America', users: 4500 },
+    { region: 'Europe', users: 3200 },
+    { region: 'Asia', users: 2800 },
+    { region: 'South America', users: 1500 },
+    { region: 'Australia', users: 900 },
 ];
 
 type ReportTab = 'activity' | 'financial' | 'health' | 'usage' | 'scheduled' | 'templates';
@@ -100,6 +83,81 @@ export default function AdminReports() {
         };
 
         loadAnalyticsData();
+    }, []);
+
+    const [engagementData, setEngagementData] = useState<any>(null);
+    const [engagementLoading, setEngagementLoading] = useState(true);
+    const [engagementError, setEngagementError] = useState<string | null>(null);
+
+    const [financialData, setFinancialData] = useState<any>(null);
+    const [financialLoading, setFinancialLoading] = useState(true);
+    const [financialError, setFinancialError] = useState<string | null>(null);
+
+    const [healthData, setHealthData] = useState<any>(null);
+    const [healthLoading, setHealthLoading] = useState(true);
+    const [healthError, setHealthError] = useState<string | null>(null);
+
+    const [vaccinationData, setVaccinationData] = useState<any>(null);
+    const [vaccinationLoading, setVaccinationLoading] = useState(true);
+    const [vaccinationError, setVaccinationError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadEngagementData = async () => {
+            try {
+                setEngagementLoading(true);
+                const data = await fetchEngagementData();
+                setEngagementData(data);
+                setEngagementError(null);
+            } catch (err) {
+                setEngagementError(err instanceof Error ? err.message : 'Failed to load engagement data');
+            } finally {
+                setEngagementLoading(false);
+            }
+        };
+
+        const loadFinancialData = async () => {
+            try {
+                setFinancialLoading(true);
+                const data = await fetchFinancialData();
+                setFinancialData(data);
+                setFinancialError(null);
+            } catch (err) {
+                setFinancialError(err instanceof Error ? err.message : 'Failed to load financial data');
+            } finally {
+                setFinancialLoading(false);
+            }
+        };
+
+        const loadHealthData = async () => {
+            try {
+                setHealthLoading(true);
+                const data = await fetchHealthData();
+                setHealthData(data);
+                setHealthError(null);
+            } catch (err) {
+                setHealthError(err instanceof Error ? err.message : 'Failed to load health data');
+            } finally {
+                setHealthLoading(false);
+            }
+        };
+
+        const loadVaccinationData = async () => {
+            try {
+                setVaccinationLoading(true);
+                const data = await fetchVaccinationData();
+                setVaccinationData(data);
+                setVaccinationError(null);
+            } catch (err) {
+                setVaccinationError(err instanceof Error ? err.message : 'Failed to load vaccination data');
+            } finally {
+                setVaccinationLoading(false);
+            }
+        };
+
+        loadEngagementData();
+        loadFinancialData();
+        loadHealthData();
+        loadVaccinationData();
     }, []);
 
     const handlePrint = () => {
@@ -179,7 +237,22 @@ export default function AdminReports() {
                         {activeTab === 'activity' && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="col-span-1 lg:col-span-2">
-                                    <UserEngagementChart data={MOCK_ENGAGEMENT_DATA} />
+                                    {engagementError && (
+                                        <div className="mb-4 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                                            <AlertCircle className="w-5 h-5" />
+                                            <span>{engagementError}</span>
+                                        </div>
+                                    )}
+                                    {engagementLoading ? (
+                                        <div className="flex items-center justify-center h-80 bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                                <p className="mt-4 text-slate-600">Loading engagement data...</p>
+                                            </div>
+                                        </div>
+                                    ) : engagementData ? (
+                                        <UserEngagementChart data={engagementData} />
+                                    ) : null}
                                 </div>
 
                                 <div className="bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
@@ -220,7 +293,22 @@ export default function AdminReports() {
                         {/* Financial Reports */}
                         {activeTab === 'financial' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <FinancialReportChart data={MOCK_FINANCIAL_DATA} />
+                                {financialError && (
+                                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                                        <AlertCircle className="w-5 h-5" />
+                                        <span>{financialError}</span>
+                                    </div>
+                                )}
+                                {financialLoading ? (
+                                    <div className="flex items-center justify-center h-80 bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                                            <p className="mt-4 text-slate-600">Loading financial data...</p>
+                                        </div>
+                                    </div>
+                                ) : financialData ? (
+                                    <FinancialReportChart data={financialData} />
+                                ) : null}
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     {[
@@ -241,8 +329,39 @@ export default function AdminReports() {
                         {/* Health Trend Reports */}
                         {activeTab === 'health' && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <PetHealthChart data={MOCK_HEALTH_DATA} />
-                                <VaccinationChart data={MOCK_VACCINATION_DATA} />
+                                {healthError && (
+                                    <div className="col-span-1 lg:col-span-2 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                                        <AlertCircle className="w-5 h-5" />
+                                        <span>{healthError}</span>
+                                    </div>
+                                )}
+                                {healthLoading ? (
+                                    <div className="flex items-center justify-center h-80 bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                            <p className="mt-4 text-slate-600">Loading health data...</p>
+                                        </div>
+                                    </div>
+                                ) : healthData ? (
+                                    <PetHealthChart data={healthData} />
+                                ) : null}
+
+                                {vaccinationError && (
+                                    <div className="col-span-1 lg:col-span-2 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                                        <AlertCircle className="w-5 h-5" />
+                                        <span>{vaccinationError}</span>
+                                    </div>
+                                )}
+                                {vaccinationLoading ? (
+                                    <div className="flex items-center justify-center h-80 bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                            <p className="mt-4 text-slate-600">Loading vaccination data...</p>
+                                        </div>
+                                    </div>
+                                ) : vaccinationData ? (
+                                    <VaccinationChart data={vaccinationData} />
+                                ) : null}
                             </div>
                         )}
 

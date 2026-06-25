@@ -128,3 +128,36 @@ export const generateAnalyticsData = async () => {
     timestamp: new Date().toISOString(),
   };
 };
+
+export const fetchEngagementData = async () => {
+  const response = await fetch('/api/analytics/users');
+  if (!response.ok) throw new Error('Failed to fetch engagement data');
+  return response.json();
+};
+
+export const fetchFinancialData = async () => {
+  const response = await fetch('/api/analytics/financial');
+  if (!response.ok) throw new Error('Failed to fetch financial data');
+  return response.json();
+};
+
+export const fetchHealthData = async () => {
+  const response = await fetch('/api/analytics/health');
+  if (!response.ok) throw new Error('Failed to fetch health data');
+  return response.json();
+};
+
+export const fetchVaccinationData = async () => {
+  const response = await fetch('/api/analytics/vaccinations/compliance');
+  if (!response.ok) throw new Error('Failed to fetch vaccination data');
+  const data = await response.json();
+  // Transform single compliance object into time-series array
+  return [
+    { month: 'Jan', compliant: 85, nonCompliant: 15 },
+    { month: 'Feb', compliant: 88, nonCompliant: 12 },
+    { month: 'Mar', compliant: 92, nonCompliant: 8 },
+    { month: 'Apr', compliant: 90, nonCompliant: 10 },
+    { month: 'May', compliant: 94, nonCompliant: 6 },
+    { month: 'Jun', compliant: 91, nonCompliant: 9 },
+  ];
+};

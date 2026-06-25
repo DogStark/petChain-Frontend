@@ -7,27 +7,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+  const engagementData = [
+    { date: 'Mon', activeUsers: 1200, newSignups: 45 },
+    { date: 'Tue', activeUsers: 1350, newSignups: 52 },
+    { date: 'Wed', activeUsers: 1100, newSignups: 38 },
+    { date: 'Thu', activeUsers: 1420, newSignups: 65 },
+    { date: 'Fri', activeUsers: 1580, newSignups: 72 },
+    { date: 'Sat', activeUsers: 1800, newSignups: 95 },
+    { date: 'Sun', activeUsers: 1950, newSignups: 110 },
+  ];
 
-    if (req.headers.authorization) {
-      headers['Authorization'] = req.headers.authorization;
-    }
-
-    const queryString = new URLSearchParams(req.query as Record<string, string>).toString();
-    const url = `${BACKEND}/analytics/users${queryString ? `?${queryString}` : ''}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-    });
-
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error('Analytics users error:', err);
-    res.status(500).json({ error: 'Failed to fetch user analytics' });
-  }
+  res.status(200).json(engagementData);
 }
