@@ -14,7 +14,9 @@ import { UserActivityLogService } from './services/user-activity-log.service';
 import { FileUploadService } from './services/file-upload.service';
 import { OnboardingService } from './services/onboarding.service';
 import { UserSearchService } from './services/user-search.service';
+import { RedisService } from '../../auth/services/redis.service';
 import { AuthModule } from '../../auth/auth.module';
+import { SmsModule } from '../sms/sms.module';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import { AuthModule } from '../../auth/auth.module';
       UserOnboarding,
     ]),
     forwardRef(() => AuthModule),
+    SmsModule,
   ],
   controllers: [UsersController, UploadsController],
   providers: [
@@ -36,6 +39,7 @@ import { AuthModule } from '../../auth/auth.module';
     FileUploadService,
     OnboardingService,
     UserSearchService,
+    RedisService,
   ],
   exports: [
     UsersService,

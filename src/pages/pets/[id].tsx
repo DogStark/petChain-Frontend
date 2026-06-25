@@ -6,6 +6,7 @@ import { ArrowLeft, PawPrint } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
+import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ interface Pet {
   }>;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PetDetailPage() {

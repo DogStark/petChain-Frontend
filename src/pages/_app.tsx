@@ -63,10 +63,14 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          console.log("SW registered:", reg.scope);
+          if (process.env.NODE_ENV !== "production") {
+            console.log("SW registered:", reg.scope);
+          }
         })
         .catch((err) => {
-          console.warn("SW registration failed:", err);
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("SW registration failed:", err);
+          }
         });
     }
   }, []);
@@ -74,8 +78,10 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   // Global Pageview Analytics Event Tracker
   useEffect(() => {
     const handleRouteChange = (url: string) => {
-      // eslint-disable-next-line no-console
-      console.log(`[Analytics] Pageview tracked for: ${url}`);
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.log(`[Analytics] Pageview tracked for: ${url}`);
+      }
     };
     Router.events.on("routeChangeComplete", handleRouteChange);
     return () => {

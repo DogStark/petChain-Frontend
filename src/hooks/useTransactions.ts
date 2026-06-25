@@ -4,8 +4,7 @@ import {
   Transaction,
   TransactionType,
   TransactionFilters,
-  TransactionReceipt,
-  TransactionCost,
+  EstimateData,
 } from '@/lib/api/transactionAPI';
 
 export function useTransactions() {
@@ -100,7 +99,7 @@ export function useTransactions() {
     }
   }, []);
 
-  const estimateCost = useCallback(async (type: TransactionType, data?: any) => {
+  const estimateCost = useCallback(async (type: TransactionType, data?: EstimateData) => {
     setLoading(true);
     setError(null);
     try {
