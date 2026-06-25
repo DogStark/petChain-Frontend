@@ -35,11 +35,17 @@ const AnalyticsPage = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchData = () => {
-    const newData = generateAnalyticsData();
-    setData(newData);
-    setLastUpdated(new Date());
-    setLoading(false);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const newData = await generateAnalyticsData();
+      setData(newData);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to fetch analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
