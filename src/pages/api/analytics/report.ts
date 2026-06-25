@@ -1,8 +1,38 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  let petTrends = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toISOString().split('T')[0],
+      registrations: 10,
+      species: {
+        dogs: 5,
+        cats: 3,
+        other: 1,
+      },
+    };
+  });
+
+  try {
+    const authHeader = req.headers.authorization || '';
+    const petTrendsResponse = await fetch(`${BACKEND}/api/v1/analytics/pet-registrations`, {
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+    if (petTrendsResponse.ok) {
+      petTrends = await petTrendsResponse.json();
+    }
+  } catch (error) {
+    console.error('Failed to fetch pet trends from backend:', error);
   }
 
   const report = {
@@ -12,19 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       newSignups: 156,
       retentionRate: 71.5,
     },
-    petTrends: Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      return {
-        date: date.toISOString().split('T')[0],
-        registrations: Math.floor(Math.random() * 50) + 10,
-        species: {
-          dogs: Math.floor(Math.random() * 30) + 5,
-          cats: Math.floor(Math.random() * 20) + 3,
-          other: Math.floor(Math.random() * 5) + 1,
-        },
-      };
-    }),
+    petTrends,
     vaccinationCompliance: {
       compliant: 856,
       nonCompliant: 124,

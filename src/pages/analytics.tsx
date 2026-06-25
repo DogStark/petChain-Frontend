@@ -33,13 +33,22 @@ interface AnalyticsData {
 const AnalyticsPage = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchData = () => {
-    const newData = generateAnalyticsData();
-    setData(newData);
-    setLastUpdated(new Date());
-    setLoading(false);
+  const fetchData = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const newData = await generateAnalyticsData();
+      setData(newData);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError('Failed to load analytics data. Please try again.');
+      console.error('Analytics fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -47,7 +56,7 @@ const AnalyticsPage = () => {
 
     const interval = setInterval(() => {
       fetchData();
-    }, 30000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -115,6 +124,23 @@ const AnalyticsPage = () => {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-xl font-medium text-gray-500">Loading Analytics...</div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-xl font-medium text-red-600 mb-4">{error}</div>
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-white font-semibold hover:bg-red-700 transition-all duration-300"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
