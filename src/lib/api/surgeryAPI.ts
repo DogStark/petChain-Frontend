@@ -65,9 +65,14 @@ class SurgeryAPI {
 
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      if (!token || token.trim() === '' || token === 'null') {
+        throw new Error('Authentication required. Please log in to continue.');
       }
+
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
       return config;
     });
   }
