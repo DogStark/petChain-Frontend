@@ -13,7 +13,6 @@ import {
   DrugInteractionService,
   InteractionResult,
 } from '../prescriptions/services/drug-interaction.service';
-import { DrugInteractionService } from '../prescriptions/services/drug-interaction.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 export interface RefillReminder {
@@ -478,7 +477,6 @@ export class PrescriptionsService {
     expiration.setDate(expiration.getDate() + days);
     return expiration;
   }
-}
 
   async getRefillReminders(daysWindow: number = 7): Promise<RefillReminder[]> {
     const cutoffDate = new Date();
