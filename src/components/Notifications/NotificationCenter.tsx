@@ -93,6 +93,7 @@ export default function NotificationCenter() {
     markRead,
     markAllRead,
     isLoading,
+    bellRef,
   } = useNotifications();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -107,10 +108,17 @@ export default function NotificationCenter() {
     return () => document.removeEventListener('keydown', handler);
   }, [isCenterOpen, toggleCenter]);
 
-  // Trap focus inside panel
+  // Focus panel on open; restore focus to bell on close
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (isCenterOpen) panelRef.current?.focus();
-  }, [isCenterOpen]);
+    if (isCenterOpen) {
+      wasOpenRef.current = true;
+      panelRef.current?.focus();
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      bellRef.current?.focus();
+    }
+  }, [isCenterOpen, bellRef]);
 
   if (!isCenterOpen) return null;
 
