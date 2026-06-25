@@ -38,14 +38,12 @@ const AnalyticsPage = () => {
 
   const fetchData = async () => {
     try {
-      setError(null);
       setLoading(true);
       const newData = await generateAnalyticsData();
       setData(newData);
       setLastUpdated(new Date());
-    } catch (err) {
-      setError('Failed to load analytics data. Please try again.');
-      console.error('Analytics fetch error:', err);
+    } catch (error) {
+      console.error('Failed to fetch analytics data:', error);
     } finally {
       setLoading(false);
     }

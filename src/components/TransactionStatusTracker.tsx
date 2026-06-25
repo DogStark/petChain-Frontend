@@ -46,12 +46,10 @@ export default function TransactionStatusTracker() {
 
   const loadTransactions = async () => {
     try {
-      const [pendingTxs, failedTxs] = await Promise.all([
-        transactionAPI.getPendingTransactions(),
-        transactionAPI.getFailedTransactions(),
+      await Promise.all([
+        fetchPendingTransactions(),
+        fetchFailedTransactions(),
       ]);
-      setPending(pendingTxs);
-      setFailed(failedTxs);
     } catch (error) {
       console.error('Failed to load transaction status:', error);
     }
@@ -59,8 +57,8 @@ export default function TransactionStatusTracker() {
 
   const handleCancel = async (id: string) => {
     try {
-      await transactionAPI.cancelPendingTransaction(id);
-      loadTransactions();
+      await cancelTransaction(id);
+      await loadTransactions();
     } catch (error) {
       console.error('Failed to cancel transaction:', error);
     }
@@ -68,8 +66,8 @@ export default function TransactionStatusTracker() {
 
   const handleRetry = async (id: string) => {
     try {
-      await transactionAPI.retryFailedTransaction(id);
-      loadTransactions();
+      await retryTransaction(id);
+      await loadTransactions();
     } catch (error) {
       console.error('Failed to retry transaction:', error);
     }
