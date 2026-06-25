@@ -9,6 +9,7 @@ import {
   TouchButton,
 } from '@/components/TouchUI';
 import { useHaptic } from '@/hooks/useHaptic';
+import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
 
 interface BookingModalProps {
   onClose: () => void;
@@ -63,6 +64,7 @@ export default function BookingModal({ onClose }: BookingModalProps) {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -81,11 +83,22 @@ export default function BookingModal({ onClose }: BookingModalProps) {
       return;
     }
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 600));
+      await appointmentsAPI.createAppointment({
+        pet_id: formData.pet_id,
+        vet_id: formData.vet_id,
+        appointment_type: formData.appointment_type,
+        date: formData.date,
+        time: formData.time,
+        notes: formData.notes || undefined,
+      });
       trigger('success');
       onClose();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Booking failed, please try again';
+      setSubmitError(errorMessage);
+      trigger('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -131,6 +144,11 @@ export default function BookingModal({ onClose }: BookingModalProps) {
           noValidate
           className="overflow-y-auto flex-1 px-5 py-5 space-y-5"
         >
+          {submitError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {submitError}
+            </div>
+          )}
           <TouchSelect
             label="Select pet"
             options={PET_OPTIONS}
