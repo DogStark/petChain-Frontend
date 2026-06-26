@@ -5,6 +5,23 @@ import { CheckCircle, XCircle, Loader2, Clock } from 'lucide-react';
 export const BlockchainSyncStatus: React.FC = () => {
   const { syncStatuses } = useBlockchainSync();
 
+  // Derived counts
+  const syncedCount   = syncStatuses.filter((s) => s.status === 'success').length;
+  const syncingCount  = syncStatuses.filter((s) => s.status === 'syncing' || s.status === 'retrying').length;
+  const failedCount   = syncStatuses.filter((s) => s.status === 'failed').length;
+  const pendingCount  = syncStatuses.filter((s) => s.status !== 'success' && s.status !== 'failed' && s.status !== 'syncing' && s.status !== 'retrying').length;
+
+  // True when at least one item is actively syncing or retrying
+  const isAnySyncing = syncingCount > 0;
+
+  // Build the summary string from non-zero counts only
+  const summaryParts: string[] = [];
+  if (syncedCount  > 0) summaryParts.push(`${syncedCount} synced`);
+  if (syncingCount > 0) summaryParts.push(`${syncingCount} syncing`);
+  if (failedCount  > 0) summaryParts.push(`${failedCount} failed`);
+  if (pendingCount > 0) summaryParts.push(`${pendingCount} pending`);
+  const summaryLine = summaryParts.join(' · ');
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -19,12 +36,34 @@ export const BlockchainSyncStatus: React.FC = () => {
     }
   };
 
+  const getRowClassName = (status: string) => {
+    const base = 'flex items-center justify-between p-3 border rounded';
+    if (status === 'syncing' || status === 'retrying') {
+      return `${base} border-l-4 border-l-blue-400 bg-blue-50`;
+    }
+    return base;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Blockchain Sync Status</h2>
+      <h2 className="text-xl font-semibold mb-1">Blockchain Sync Status</h2>
+
+      {/* Status summary line */}
+      {syncStatuses.length > 0 && (
+        <p className="text-sm text-gray-500 mb-3">{summaryLine}</p>
+      )}
+
+      {/* Top-level syncing banner */}
+      {isAnySyncing && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-blue-50 border border-blue-200 text-blue-600 text-sm font-medium">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Sync in progress...</span>
+        </div>
+      )}
+
       <div className="space-y-3">
         {syncStatuses.map((sync) => (
-          <div key={sync.recordId} className="flex items-center justify-between p-3 border rounded">
+          <div key={sync.recordId} className={getRowClassName(sync.status)}>
             <div className="flex items-center gap-3">
               {getStatusIcon(sync.status)}
               <div>
