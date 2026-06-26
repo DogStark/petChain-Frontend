@@ -1,154 +1,46 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { GetServerSideProps } from "next";
 import HeaderComponent from "@/components/Header";
 import ClinicCard from "@/components/Clinics/ClinicCard";
-import { Search, Filter, Star } from "lucide-react";
+import { Search, Filter, Star, Loader2 } from "lucide-react";
 import { Clinic } from "@/types/clinic";
-
-const MOCK_CLINICS: Clinic[] = [
-  {
-    id: "1",
-    name: "Pawfect Health Center",
-    description: "Premier veterinary clinic offering full medical services.",
-    rating: 4.8,
-    reviewCount: 156,
-    locations: [
-      {
-        id: "1-1",
-        name: "Main Branch",
-        city: "London",
-        address: "123 Pet Lane",
-        phone: "020 1234 5678",
-        email: "main@pawfect.com",
-      },
-      {
-        id: "1-2",
-        name: "West End",
-        city: "London",
-        address: "45 Bark Street",
-        phone: "020 8765 4321",
-        email: "west@pawfect.com",
-      },
-    ],
-    services: [
-      {
-        id: "s1",
-        name: "General Checkup",
-        description: "Routine health assessment",
-        priceRange: "£50-£80",
-      },
-      {
-        id: "s2",
-        name: "Vaccination",
-        description: "Preventative shots",
-        priceRange: "£30-£60",
-      },
-      {
-        id: "s3",
-        name: "Emergency",
-        description: "Urgent medical care",
-        priceRange: "£150+",
-      },
-      {
-        id: "s4",
-        name: "Surgery",
-        description: "Complex procedures",
-        priceRange: "£500+",
-      },
-    ],
-    hours: [],
-    staff: [],
-    mainImage:
-      "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "2",
-    name: "The Cat & Dog Clinic",
-    description:
-      "Affordable and caring veterinary services for your furry friends.",
-    rating: 4.5,
-    reviewCount: 89,
-    locations: [
-      {
-        id: "2-1",
-        name: "London Central",
-        city: "London",
-        address: "10 Meow Road",
-        phone: "020 2222 3333",
-        email: "info@catdogclinic.com",
-      },
-    ],
-    services: [
-      {
-        id: "s1",
-        name: "General Checkup",
-        description: "Routine health assessment",
-        priceRange: "£40-£60",
-      },
-      {
-        id: "s5",
-        name: "Dental Care",
-        description: "Teeth cleaning and treatment",
-        priceRange: "£80-£150",
-      },
-      {
-        id: "s6",
-        name: "Microchipping",
-        description: "Secure pet ID",
-        priceRange: "£20-£40",
-      },
-    ],
-    hours: [],
-    staff: [],
-    mainImage:
-      "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "3",
-    name: "VetOne Specialists",
-    description: "Expert specialist care for complex pet medical needs.",
-    rating: 4.9,
-    reviewCount: 210,
-    locations: [
-      {
-        id: "3-1",
-        name: "Specialist Hub",
-        city: "London",
-        address: "50 Expert Way",
-        phone: "020 5555 6666",
-        email: "vets@vetone.com",
-      },
-    ],
-    services: [
-      {
-        id: "s4",
-        name: "Surgery",
-        description: "Complex procedures",
-        priceRange: "£800+",
-      },
-      {
-        id: "s7",
-        name: "Imaging",
-        description: "X-rays and Scans",
-        priceRange: "£200-£500",
-      },
-      {
-        id: "s8",
-        name: "Oncology",
-        description: "Cancer treatment",
-        priceRange: "£1000+",
-      },
-    ],
-    hours: [],
-    staff: [],
-    mainImage:
-      "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&q=80&w=800",
-  },
-];
+import { clinicsAPI } from "@/lib/api/clinicsAPI";
 
 export default function ClinicDirectory() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadClinics = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await clinicsAPI.getClinics();
+      setClinics(data);
+    } catch {
+      setError("Failed to load clinics.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadClinics();
+  }, [loadClinics]);
+
+  const filteredClinics = clinics.filter((clinic) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      clinic.name.toLowerCase().includes(term) ||
+      clinic.locations.some((loc) => loc.city.toLowerCase().includes(term)) ||
+      clinic.services.some((service) =>
+        service.name.toLowerCase().includes(term),
+      )
+    );
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
@@ -263,7 +155,7 @@ export default function ClinicDirectory() {
           <div className="flex-grow">
             <div className="flex items-center justify-between mb-6">
               <p className="text-gray-500 font-medium">
-                Displaying {MOCK_CLINICS.length} clinics
+                Displaying {filteredClinics.length} clinics
               </p>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Sort by:</span>
@@ -275,11 +167,32 @@ export default function ClinicDirectory() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {MOCK_CLINICS.map((clinic) => (
-                <ClinicCard key={clinic.id} clinic={clinic} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+                <Loader2 className="w-10 h-10 animate-spin mb-3" />
+                <p>Loading clinics...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16">
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                  onClick={loadClinics}
+                  className="px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : filteredClinics.length === 0 ? (
+              <p className="text-center text-gray-500 py-16">
+                No clinics found. Try adjusting your search or check back later.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredClinics.map((clinic) => (
+                  <ClinicCard key={clinic.id} clinic={clinic} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -7,7 +7,6 @@ const MAX_INTERVAL = 160_000;
 export default function TransactionStatusTracker() {
   const [pending, setPending] = useState<Transaction[]>([]);
   const [failed, setFailed] = useState<Transaction[]>([]);
-  const [pollError, setPollError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const delayRef = useRef(BASE_INTERVAL);
 
@@ -15,6 +14,30 @@ export default function TransactionStatusTracker() {
     if (intervalRef.current) clearTimeout(intervalRef.current);
     intervalRef.current = setTimeout(poll, delay);
   };
+
+  const poll = async () => {
+    try {
+      const [pendingTxs, failedTxs] = await Promise.all([
+        transactionAPI.getPendingTransactions(),
+        transactionAPI.getFailedTransactions(),
+      ]);
+      setPending(pendingTxs);
+      setFailed(failedTxs);
+      delayRef.current = BASE_INTERVAL; // reset on success
+    } catch (error) {
+      console.error('Failed to load transaction status:', error);
+      delayRef.current = Math.min(delayRef.current * 2, MAX_INTERVAL); // backoff
+    }
+    scheduleNext(delayRef.current);
+  };
+
+  useEffect(() => {
+    poll();
+    return () => {
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const poll = async () => {
     try {

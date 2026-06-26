@@ -1,14 +1,77 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
-import { Appointment, AppointmentType } from '@/types/appointments';
+import { Appointment, AppointmentStatus, AppointmentType } from '@/types/appointments';
 
-export interface CreateAppointmentRequest {
-  pet_id: string;
-  vet_id: string;
-  appointment_type: AppointmentType;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm
+const API_BASE_URL = getApiBaseUrl();
+
+interface BackendPet {
+  id: string;
+  name: string;
+}
+
+interface BackendVetClinic {
+  id: string;
+  name: string;
+}
+
+interface BackendAppointment {
+  id: string;
+  petId: string;
+  vetClinicId: string;
+  scheduledDate: string;
+  duration?: number;
+  status: string;
+  type: string;
   notes?: string;
+  veterinarianName?: string;
+  createdAt: string;
+  updatedAt: string;
+  pet?: BackendPet;
+  vetClinic?: BackendVetClinic;
+}
+
+export interface UpcomingAppointmentView {
+  appointment: Appointment;
+  petName: string;
+  vetName: string;
+}
+
+const STATUS_MAP: Record<string, AppointmentStatus> = {
+  SCHEDULED: 'Scheduled',
+  CONFIRMED: 'Scheduled',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+  NO_SHOW: 'No-Show',
+};
+
+const TYPE_MAP: Record<string, AppointmentType> = {
+  VACCINATION: 'Vaccination',
+  CHECKUP: 'Checkup',
+  EMERGENCY: 'Emergency',
+  GROOMING: 'Dental',
+  OTHER: 'Consultation',
+};
+
+function mapAppointment(item: BackendAppointment): UpcomingAppointmentView {
+  const appointment: Appointment = {
+    id: item.id,
+    pet_id: item.petId,
+    vet_id: item.vetClinicId,
+    appointment_type: TYPE_MAP[item.type] || 'Consultation',
+    scheduled_at: item.scheduledDate,
+    duration: item.duration ?? 30,
+    status: STATUS_MAP[item.status] || 'Scheduled',
+    notes: item.notes,
+    reminder_sent: false,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
+  };
+
+  return {
+    appointment,
+    petName: item.pet?.name || 'Unknown pet',
+    vetName: item.veterinarianName || item.vetClinic?.name || 'Veterinarian',
+  };
 }
 
 class AppointmentsAPI {
@@ -16,43 +79,26 @@ class AppointmentsAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${getApiBaseUrl()}/appointments`,
+      baseURL: `${API_BASE_URL}/appointments`,
       withCredentials: true,
     });
 
     this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
       return config;
     });
   }
 
-  async createAppointment(data: CreateAppointmentRequest): Promise<Appointment> {
-    const response = await this.api.post('/', data);
-    return response.data;
-  }
-
-  async getAppointment(id: string): Promise<Appointment> {
-    const response = await this.api.get(`/${id}`);
-    return response.data;
-  }
-
-  async listAppointments(params?: { status?: string; limit?: number; offset?: number }): Promise<Appointment[]> {
-    const response = await this.api.get('/', { params });
-    return response.data;
-  }
-
-  async updateAppointment(id: string, data: Partial<Appointment>): Promise<Appointment> {
-    const response = await this.api.patch(`/${id}`, data);
-    return response.data;
-  }
-
-  async cancelAppointment(id: string, reason?: string): Promise<Appointment> {
-    const response = await this.api.post(`/${id}/cancel`, { reason });
-    return response.data;
+  async getUpcomingAppointments(): Promise<UpcomingAppointmentView[]> {
+    const response = await this.api.get<BackendAppointment[]>('/upcoming');
+    return response.data.map(mapAppointment);
   }
 }
 
 export const appointmentsAPI = new AppointmentsAPI();
+export { isAxiosError };

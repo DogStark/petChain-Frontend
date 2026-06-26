@@ -3,9 +3,8 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText, AlertCircle } from 'lucide-react';
+import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { fetchEngagementData, fetchFinancialData, fetchHealthData, fetchVaccinationData } from '@/lib/analyticsUserData';
 
 // Import Charts with dynamic loading
 const UserEngagementChart = dynamic(() => import('@/components/analytics/UserEngagementChart'), { ssr: false });
