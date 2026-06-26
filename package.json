@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
