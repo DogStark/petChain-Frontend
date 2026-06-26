@@ -3,6 +3,7 @@ import { transactionAPI } from '@/lib/api/transactionAPI';
 import { daysAgo } from '@/utils/dateRange';
 
 export default function TransactionCostTracker() {
+  const { getTotalCosts } = useTransactions();
   const [costs, setCosts] = useState({
     totalFees: '0',
     totalTransactions: 0,
@@ -25,7 +26,7 @@ export default function TransactionCostTracker() {
         startDate = daysAgo(30);
       }
 
-      const data = await transactionAPI.getTotalCosts(startDate);
+      const data = await getTotalCosts(startDate);
       setCosts(data);
     } catch (error) {
       console.error('Failed to load costs:', error);

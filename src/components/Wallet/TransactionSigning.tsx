@@ -110,6 +110,11 @@ export default function TransactionSigning({
     setLocalError(null);
     setResult(null);
 
+    if (!wallet) {
+      setLocalError('Wallet not loaded. Please try again.');
+      return;
+    }
+
     const err = validate();
     if (err) {
       setLocalError(err);
@@ -118,7 +123,7 @@ export default function TransactionSigning({
 
     try {
       const res = await onSendPayment(pin, {
-        sourcePublicKey: wallet!.publicKey,
+        sourcePublicKey: wallet.publicKey,
         destination: destination.trim(),
         amount,
         asset: selectedAsset,
@@ -330,7 +335,7 @@ export default function TransactionSigning({
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !wallet}
           className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           <Send size={15} />

@@ -14,20 +14,33 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
   const { generateProof, verifyProof, isGenerating, isVerifying, error } = useZkp();
   const [proof, setProof] = useState<ZkpProof | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [handlerError, setHandlerError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    const result = await generateProof(vaccinationId);
-    if (result) {
-      setProof(result);
-      setVerifyResult(null);
+    setHandlerError(null);
+    try {
+      const result = await generateProof(vaccinationId);
+      if (result) {
+        setProof(result);
+        setVerifyResult(null);
+      }
+    } catch (e) {
+      setHandlerError(e instanceof Error ? e.message : 'Failed to generate proof');
     }
   };
 
   const handleVerify = async () => {
     if (!proof) return;
-    const result = await verifyProof(proof.id);
-    if (result) setVerifyResult(result);
+    setHandlerError(null);
+    try {
+      const result = await verifyProof(proof.id);
+      if (result) setVerifyResult(result);
+    } catch (e) {
+      setHandlerError(e instanceof Error ? e.message : 'Failed to verify proof');
+    }
   };
+
+  const displayError = handlerError ?? error;
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
@@ -41,9 +54,12 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
         medical details.
       </p>
 
-      {error && (
-        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2">
-          {error}
+      {displayError && (
+        <div
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2"
+        >
+          {displayError}
         </div>
       )}
 
