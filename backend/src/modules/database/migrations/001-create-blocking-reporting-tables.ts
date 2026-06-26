@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateBlockingReportingTables1701234567890 implements MigrationInterface {
   name = 'CreateBlockingReportingTables1701234567890';
@@ -33,8 +33,8 @@ export class CreateBlockingReportingTables1701234567890 implements MigrationInte
           },
         ],
         indices: [
-          new Index('IDX_blocks_blockerId', ['blockerId']),
-          new Index('IDX_blocks_blockedId', ['blockedId']),
+          new TableIndex({ name: 'IDX_blocks_blockerId', columnNames: ['blockerId'] }),
+          new TableIndex({ name: 'IDX_blocks_blockedId', columnNames: ['blockedId'] }),
         ],
         uniques: [
           {
@@ -104,9 +104,9 @@ export class CreateBlockingReportingTables1701234567890 implements MigrationInte
           },
         ],
         indices: [
-          new Index('IDX_reports_reporterId', ['reporterId']),
-          new Index('IDX_reports_targetId_targetType', ['targetId', 'targetType']),
-          new Index('IDX_reports_status', ['status']),
+          new TableIndex({ name: 'IDX_reports_reporterId', columnNames: ['reporterId'] }),
+          new TableIndex({ name: 'IDX_reports_targetId_targetType', columnNames: ['targetId', 'targetType'] }),
+          new TableIndex({ name: 'IDX_reports_status', columnNames: ['status'] }),
         ],
       }),
       true,

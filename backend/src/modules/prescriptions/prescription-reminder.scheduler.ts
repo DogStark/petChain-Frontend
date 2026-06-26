@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrescriptionsService } from './prescriptions.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationCategory } from '../notifications/entities/notification.entity';
+import { RedisService } from '../../auth/services/redis.service';
 
 @Injectable()
 export class PrescriptionReminderScheduler {
@@ -11,6 +12,7 @@ export class PrescriptionReminderScheduler {
   constructor(
     private readonly prescriptionsService: PrescriptionsService,
     private readonly notificationsService: NotificationsService,
+    private readonly redisService: RedisService,
   ) {}
 
   @Cron('0 9 * * *') // Daily at 9am
@@ -25,7 +27,7 @@ export class PrescriptionReminderScheduler {
         const redisKey = `refill_reminder:${reminder.prescriptionId}:${new Date().toDateString()}`;
         
         // Check if reminder already sent today
-        const alreadySent = await this.redis.get(redisKey);
+        const alreadySent = await this.redisService.get(redisKey);
         if (alreadySent) {
           continue;
         }
@@ -46,7 +48,7 @@ export class PrescriptionReminderScheduler {
         });
 
         // Mark as sent with 24h TTL
-        await this.redis.setex(redisKey, 86400, 'sent');
+        await this.redisService.set(redisKey, 'sent', 86400);
         sentCount++;
       }
 
