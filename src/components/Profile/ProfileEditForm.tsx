@@ -4,34 +4,6 @@ import { AvatarUpload } from './AvatarUpload';
 import { ProfileCompletion } from './ProfileCompletion';
 import { isValidEmail, isValidPhone } from '@/utils/validation';
 
-interface UserProfileData {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  avatarUrl?: string;
-  dateOfBirth?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-}
-
-interface UserProfile extends UserProfileData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  emailVerified?: boolean;
-  phoneVerified?: boolean;
-  isVerified?: boolean;
-}
-
-interface ProfileCompletionState {
-  completionScore: number;
-  isComplete: boolean;
-  missingFields: string[];
-}
-
 interface ProfileEditFormProps {
   user?: UserProfile;
   onSubmit: (data: UserProfileData) => Promise<void>;

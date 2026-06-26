@@ -224,10 +224,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!token) return;
 
     try {
-      const ws = new WebSocket(`${wsUrl}?token=${token}`);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        // Send auth token as first message in handshake frame instead of query string.
+        // This approach is more secure: tokens in query strings can leak in logs/referrer headers.
+        // Backend receives this as the first message and validates before processing notifications.
+        ws.send(JSON.stringify({ type: 'auth', token }));
         dispatch({ type: 'SET_CONNECTED', value: true });
         reconnectDelay.current = 1000;
       };
