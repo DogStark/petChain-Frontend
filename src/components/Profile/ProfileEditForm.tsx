@@ -5,22 +5,8 @@ import { ProfileCompletion } from './ProfileCompletion';
 import { isValidEmail, isValidPhone } from '@/utils/validation';
 
 interface ProfileEditFormProps {
-  user?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    avatarUrl?: string;
-    emailVerified?: boolean;
-    phoneVerified?: boolean;
-    isVerified?: boolean;
-    dateOfBirth?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-  };
-  onSubmit: (data: any) => Promise<void>;
+  user?: UserProfile;
+  onSubmit: (data: UserProfileData) => Promise<void>;
   onAvatarUpload: (file: File) => Promise<void>;
   isLoading?: boolean;
 }
@@ -46,7 +32,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState<any>(null);
+  const [profileCompletion, setProfileCompletion] = useState<ProfileCompletionState | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -73,7 +59,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
   }, [user]);
 
-  const calculateCompletion = (userData: any) => {
+  const calculateCompletion = (userData: UserProfileData): number => {
     let score = 0;
     const fields = [
       userData.firstName,
@@ -92,7 +78,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     return score;
   };
 
-  const calculateMissingFields = (userData: any) => {
+  const calculateMissingFields = (userData: UserProfileData): string[] => {
     const missing = [];
     if (!userData.firstName) missing.push('firstName');
     if (!userData.lastName) missing.push('lastName');
@@ -181,9 +167,9 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         missingFields: calculateMissingFields(formData),
       };
       setProfileCompletion(completion);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErrors({
-        submit: error.message || 'Failed to update profile',
+        submit: error instanceof Error ? error.message : 'Failed to update profile',
       });
     } finally {
       setIsSubmitting(false);

@@ -21,6 +21,11 @@ class PetAPI {
     });
   }
 
+  async getUserPets(): Promise<Pet[]> {
+    const response = await this.api.get('/me');
+    return response.data;
+  }
+
   async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo> {
     if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     try {

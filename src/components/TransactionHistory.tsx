@@ -16,30 +16,17 @@ const statusColors: Record<TransactionStatus, string> = {
 };
 
 export default function TransactionHistory() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { transactions, loading, fetchTransactions, retryTransaction } = useTransactions();
   const [filters, setFilters] = useState<TransactionFilters>({});
 
   useEffect(() => {
-    loadTransactions();
-  }, [filters]);
-
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-      const data = await transactionAPI.getTransactionHistory(filters);
-      setTransactions(data);
-    } catch (error) {
-      console.error('Failed to load transactions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchTransactions(filters);
+  }, [filters, fetchTransactions]);
 
   const handleRetry = async (id: string) => {
     try {
-      await transactionAPI.retryFailedTransaction(id);
-      loadTransactions();
+      await retryTransaction(id);
+      await fetchTransactions(filters);
     } catch (error) {
       console.error('Failed to retry transaction:', error);
     }
