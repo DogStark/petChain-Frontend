@@ -46,7 +46,7 @@ const resources = {
 const defaultLanguage = 'en';
 
 // Initialize i18n
-i18n
+(i18n as any)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -66,7 +66,7 @@ i18n
     interpolation: {
       escapeValue: false,
       formatSeparator: ',',
-      format: function(value, format, lng) {
+      format: function(value: any, format: any, lng: any) {
         if (format === 'uppercase') return value.toUpperCase();
         if (format === 'lowercase') return value.toLowerCase();
         if (format === 'capitalize') return value.charAt(0).toUpperCase() + value.slice(1);
@@ -136,6 +136,16 @@ export const isRTL = (languageCode?: string) => {
   const langCode = languageCode || i18n.language;
   return getTextDirection(langCode) === 'rtl';
 };
+
+// Ensure initial document direction and language are set for detected locale
+const initializeDocumentLanguage = () => {
+  const currentLangInfo = supportedLanguages.find((lang) => lang.code === i18n.language) || supportedLanguages[0];
+  document.documentElement.lang = currentLangInfo.code;
+  document.documentElement.dir = currentLangInfo.dir;
+};
+
+initializeDocumentLanguage();
+i18n.on('languageChanged', initializeDocumentLanguage);
 
 // Helper function to format numbers with locale
 export const formatNumber = (number: number, options?: Intl.NumberFormatOptions) => {

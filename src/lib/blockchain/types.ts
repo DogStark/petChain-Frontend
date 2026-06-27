@@ -27,6 +27,14 @@ export interface SubmitOptions {
   memo?: StellarSdk.Memo;
 }
 
+export interface MedicalRecord {
+  id: string;
+  petId: string;
+  type: string;
+  critical: boolean;
+  data: Record<string, unknown>;
+}
+
 export const NETWORK_CONFIGS = {
   TESTNET: {
     horizonUrl: 'https://horizon-testnet.stellar.org',

@@ -191,3 +191,11 @@ This feature enhances the existing search module in the PetChain NestJS backend 
 3. WHEN numeric filter parameters (e.g., `latitude`, `longitude`, `radius`, `minAge`, `maxAge`) are outside their valid ranges, THE Search_Engine SHALL return a 400 Bad Request error with field-level error details.
 4. THE Search_Engine SHALL sanitize query strings to remove SQL special characters before constructing parameterized queries.
 5. WHEN the `limit` parameter exceeds 100, THE Search_Engine SHALL cap the value at 100 without returning an error.
+
+---
+
+## Revision History
+
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | 2026-05-27 | PetChain Team | Initial requirements document — functional requirements, non-functional requirements, user stories, acceptance criteria, constraints, assumptions, and dependencies |

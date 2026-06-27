@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Vaccination } from '../vaccinations/entities/vaccination.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import PDFDocument from 'pdfkit';
+import * as QRCode from 'qrcode';
 
 export interface VaccinationCertificate {
   certificateCode: string;
@@ -164,7 +165,7 @@ export class CertificatesService {
   async generateCertificatePdf(vaccinationId: string): Promise<Buffer> {
     const certificate = await this.generateCertificate(vaccinationId);
 
-    return await new Promise<Buffer>((resolve, reject) => {
+    return await new Promise<Buffer>(async (resolve, reject) => {
       const doc = new PDFDocument({ margin: 50 });
       const chunks: Buffer[] = [];
 
@@ -172,41 +173,41 @@ export class CertificatesService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      doc.fontSize(20).text('Vaccination Certificate', { align: 'center' });
+      // Header
+      doc.fontSize(20).text('PetChain Vaccination Certificate', { align: 'center' });
       doc.moveDown(1.5);
 
+      // Certificate info
       doc.fontSize(11).text(`Certificate Code: ${certificate.certificateCode}`);
-      doc.text(
-        `Issued Date: ${new Date(certificate.issuedDate).toDateString()}`,
-      );
+      doc.text(`Issued Date: ${new Date(certificate.issuedDate).toDateString()}`);
       doc.text(`Valid: ${certificate.isValid ? 'Yes' : 'No'}`);
       doc.moveDown();
 
+      // Pet Information
       doc.fontSize(13).text('Pet Information', { underline: true });
       doc.fontSize(11);
       doc.text(`Name: ${certificate.pet.name}`);
       doc.text(`Species: ${certificate.pet.species}`);
       doc.text(`Breed: ${certificate.pet.breed ?? 'N/A'}`);
-      doc.text(
-        `Date of Birth: ${new Date(certificate.pet.dateOfBirth).toDateString()}`,
-      );
+      doc.text(`Date of Birth: ${new Date(certificate.pet.dateOfBirth).toDateString()}`);
       doc.text(`Microchip: ${certificate.pet.microchipNumber ?? 'N/A'}`);
       doc.moveDown();
 
+      // Vaccination Information
       doc.fontSize(13).text('Vaccination Information', { underline: true });
       doc.fontSize(11);
       doc.text(`Vaccine: ${certificate.vaccination.vaccineName}`);
-      doc.text(
-        `Date Administered: ${new Date(certificate.vaccination.administeredDate).toDateString()}`,
-      );
-      doc.text(
-        `Manufacturer: ${certificate.vaccination.manufacturer ?? 'N/A'}`,
-      );
+      doc.text(`Date Administered: ${new Date(certificate.vaccination.administeredDate).toDateString()}`);
+      if (certificate.vaccination.expirationDate) {
+        doc.text(`Expiry Date: ${new Date(certificate.vaccination.expirationDate).toDateString()}`);
+      }
+      doc.text(`Manufacturer: ${certificate.vaccination.manufacturer ?? 'N/A'}`);
       doc.text(`Batch Number: ${certificate.vaccination.batchNumber ?? 'N/A'}`);
       doc.text(`Site: ${certificate.vaccination.site ?? 'N/A'}`);
       doc.text(`Veterinarian: ${certificate.vaccination.veterinarianName}`);
       doc.moveDown();
 
+      // Owner Information
       if (certificate.owner) {
         doc.fontSize(13).text('Owner Information', { underline: true });
         doc.fontSize(11);
@@ -215,8 +216,9 @@ export class CertificatesService {
         doc.moveDown();
       }
 
+      // Clinic Information
       if (certificate.vetClinic) {
-        doc.fontSize(13).text('Clinic Information', { underline: true });
+        doc.fontSize(13).text('Veterinary Clinic', { underline: true });
         doc.fontSize(11);
         doc.text(`Clinic: ${certificate.vetClinic.name}`);
         doc.text(`Address: ${certificate.vetClinic.address}`);
@@ -224,11 +226,25 @@ export class CertificatesService {
         doc.moveDown();
       }
 
-      doc
-        .fontSize(10)
-        .text(`Verification URL: ${certificate.verificationUrl}`, {
-          align: 'left',
+      // Generate QR Code
+      try {
+        const qrCodeBuffer = await QRCode.toBuffer(certificate.verificationUrl, {
+          type: 'png',
+          width: 100,
+          margin: 1,
         });
+        
+        // Add QR code to PDF
+        doc.fontSize(13).text('Verification QR Code', { underline: true });
+        doc.image(qrCodeBuffer, { width: 100 });
+        doc.moveDown(0.5);
+      } catch (error) {
+        console.error('Failed to generate QR code:', error);
+      }
+
+      // Footer
+      doc.fontSize(10).text(`Verification URL: ${certificate.verificationUrl}`, { align: 'left' });
+      doc.text(`Certificate Code: ${certificate.certificateCode}`, { align: 'left' });
 
       doc.end();
     });

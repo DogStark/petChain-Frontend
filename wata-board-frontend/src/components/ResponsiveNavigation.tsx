@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NetworkSwitcher } from './NetworkSwitcher';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import MobileNavigation from './MobileNavigation';
-import { announceToScreenReader, trapFocus, removeFocusTrap, generateId, getAriaLabel } from '../utils/accessibility';
+import { announceToScreenReader, trapFocus, generateId, getAriaLabel } from '../utils/accessibility';
 
 export const ResponsiveNavigation: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -11,7 +12,6 @@ export const ResponsiveNavigation: React.FC = () => {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  const navigationId = useRef(generateId('navigation'));
   const menuButtonId = useRef(generateId('menu-button'));
 
   const isActive = (path: string) => {
@@ -95,7 +95,7 @@ export const ResponsiveNavigation: React.FC = () => {
         className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-sm sticky top-0 z-40"
         role="navigation"
         aria-label="Main navigation"
-        id={navigationId.current}
+        id="navigation"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -146,11 +146,15 @@ export const ResponsiveNavigation: React.FC = () => {
                   Rate Us
                 </Link>
               </div>
-              <NetworkSwitcher showLabel={false} />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher showNativeName={false} />
+                <NetworkSwitcher showLabel={false} />
+              </div>
             </div>
 
             {/* Mobile menu button */}
             <div className="lg:hidden flex items-center gap-3">
+              <LanguageSwitcher variant="compact" showNativeName={false} />
               <NetworkSwitcher showLabel={false} />
               <button
                 ref={menuButtonRef}
@@ -158,7 +162,7 @@ export const ResponsiveNavigation: React.FC = () => {
                 className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                 aria-label={getAriaLabel('menu-button')}
                 aria-expanded={isMobileMenuOpen}
-                aria-controls={navigationId.current}
+                aria-controls="navigation"
                 id={menuButtonId.current}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

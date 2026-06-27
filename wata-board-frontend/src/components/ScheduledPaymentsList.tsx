@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PaymentStatus,
   PaymentFrequency,
@@ -121,7 +121,8 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
   };
 
   const getStatusColor = (status: PaymentStatus): string => {
-    const colors = {
+    const colors: Record<string, string> = {
+      [PaymentStatus.PENDING]: 'text-slate-400 bg-slate-400/10',
       [PaymentStatus.SCHEDULED]: 'text-sky-400 bg-sky-400/10',
       [PaymentStatus.COMPLETED]: 'text-green-400 bg-green-400/10',
       [PaymentStatus.FAILED]: 'text-red-400 bg-red-400/10',
@@ -312,7 +313,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                     <div className="mt-4">
                       <p className="text-slate-400 text-sm mb-2">Recent Payments</p>
                       <div className="space-y-1">
-                        {schedule.paymentHistory.slice(-3).reverse().map((payment) => (
+                        {schedule.paymentHistory.slice(-3).reverse().map((payment: ScheduledPayment) => (
                           <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span className="text-slate-300">
                               {formatDate(payment.scheduledDate)}
@@ -331,7 +332,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col gap-2 lg:ml-4">
+                <div className="flex flex-col gap-2 lg:ms-4">
                   <button
                     onClick={() => setSelectedSchedule(schedule)}
                     className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors text-sm"
@@ -456,7 +457,7 @@ export function ScheduledPaymentsList({ userId, onEditSchedule, onNewSchedule }:
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-end">
                         <p className="text-slate-200 font-medium">{formatCurrency(payment.amount)}</p>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs mt-1 ${getStatusColor(payment.status)}`}>
                           {payment.status.replace('_', ' ')}

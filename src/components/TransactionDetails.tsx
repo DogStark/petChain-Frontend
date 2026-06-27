@@ -5,6 +5,7 @@ import {
   TransactionReceipt,
   TransactionCost,
 } from '@/lib/api/transactionAPI';
+import { formatDateTime } from '@/utils/formatDate';
 
 interface TransactionDetailsProps {
   transactionId: string;
@@ -12,6 +13,7 @@ interface TransactionDetailsProps {
 }
 
 export default function TransactionDetails({ transactionId, onClose }: TransactionDetailsProps) {
+  const { getTransaction, getTransactionReceipt, getTransactionCost, loading: hookLoading } = useTransactions();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
   const [cost, setCost] = useState<TransactionCost | null>(null);
@@ -25,9 +27,9 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
     try {
       setLoading(true);
       const [txData, receiptData, costData] = await Promise.all([
-        transactionAPI.getTransactionById(transactionId),
-        transactionAPI.getTransactionReceipt(transactionId).catch(() => null),
-        transactionAPI.getTransactionCost(transactionId).catch(() => null),
+        getTransaction(transactionId),
+        getTransactionReceipt(transactionId).catch(() => null),
+        getTransactionCost(transactionId).catch(() => null),
       ]);
       setTransaction(txData);
       setReceipt(receiptData);
@@ -97,7 +99,7 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
 
             <div>
               <label className="font-semibold">Timestamp:</label>
-              <p>{new Date(transaction.timestamp).toLocaleString()}</p>
+              <p>{formatDateTime(transaction.timestamp)}</p>
             </div>
 
             {cost && (

@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, Not } from 'typeorm';
 import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -24,21 +24,52 @@ export class AppointmentsService {
   ) {}
 
   /**
-   * Create a new appointment
+   * Create a new appointment with schedule validation and conflict detection.
+   * Auto-adds to waitlist when slot is taken and clinic has waitlist enabled.
    */
   async create(
     createAppointmentDto: CreateAppointmentDto,
   ): Promise<Appointment> {
-    // Verify clinic exists
-    await this.vetClinicsService.findOne(createAppointmentDto.vetClinicId);
+    const { vetClinicId, scheduledDate, duration = 30 } = createAppointmentDto;
 
-    // Check for conflicts
-    const hasConflict = await this.hasSchedulingConflict(
-      createAppointmentDto.vetClinicId,
-      createAppointmentDto.scheduledDate,
-      createAppointmentDto.duration || 30,
-    );
+    await this.vetClinicsService.findOne(vetClinicId);
 
+    // Validate against clinic schedule
+    const requestedDate = new Date(scheduledDate);
+    const dayOfWeek = requestedDate.getDay();
+    const schedule = await this.vetClinicsService.getScheduleForDay(vetClinicId, dayOfWeek);
+    if (schedule) {
+      const [openH, openM] = schedule.openTime.split(':').map(Number);
+      const [closeH, closeM] = schedule.closeTime.split(':').map(Number);
+      const slotMinutes = requestedDate.getHours() * 60 + requestedDate.getMinutes();
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
+      if (slotMinutes < openMinutes || slotMinutes + duration > closeMinutes) {
+        throw new BadRequestException('Requested time is outside clinic operating hours');
+      }
+    }
+
+    // Check for exact slot conflict (CONFIRMED appointments)
+    const slotTaken = await this.appointmentRepository.findOne({
+      where: {
+        vetClinicId,
+        scheduledDate: requestedDate,
+        status: AppointmentStatus.CONFIRMED,
+      },
+    });
+
+    if (slotTaken) {
+      // Auto-add to waitlist if slot is taken
+      await this.appointmentWaitlistService
+        .join({ petId: createAppointmentDto.petId, vetClinicId })
+        .catch(() => {});
+      throw new BadRequestException(
+        'This time slot is already confirmed. You have been added to the waitlist.',
+      );
+    }
+
+    // Broader overlap conflict check
+    const hasConflict = await this.hasSchedulingConflict(vetClinicId, scheduledDate, duration);
     if (hasConflict) {
       throw new BadRequestException(
         'This time slot is already booked. Please choose another time.',
@@ -47,9 +78,27 @@ export class AppointmentsService {
 
     const appointment = this.appointmentRepository.create({
       ...createAppointmentDto,
-      duration: createAppointmentDto.duration || 30,
+      duration,
     });
     return await this.appointmentRepository.save(appointment);
+  }
+
+  /** Returns scheduled-date timestamps for all non-cancelled appointments at a clinic on a given date. */
+  async getBookedTimesForClinicOnDate(clinicId: string, date: string): Promise<Date[]> {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const appointments = await this.appointmentRepository.find({
+      where: {
+        vetClinicId: clinicId,
+        scheduledDate: Between(start, end),
+        status: Not(AppointmentStatus.CANCELLED),
+      },
+      select: ['scheduledDate'],
+    });
+    return appointments.map((a: Appointment) => a.scheduledDate);
   }
 
   /**

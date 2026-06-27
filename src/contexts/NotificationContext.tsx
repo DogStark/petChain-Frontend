@@ -15,6 +15,7 @@ import {
   NotificationCategory,
 } from '@/types/notification';
 import { notificationsAPI } from '@/lib/api/notificationsAPI';
+import { notificationService } from '@/services/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -223,10 +224,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!token) return;
 
     try {
-      const ws = new WebSocket(`${wsUrl}?token=${token}`);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        // Send auth token as first message in handshake frame instead of query string.
+        // This approach is more secure: tokens in query strings can leak in logs/referrer headers.
+        // Backend receives this as the first message and validates before processing notifications.
+        ws.send(JSON.stringify({ type: 'auth', token }));
         dispatch({ type: 'SET_CONNECTED', value: true });
         reconnectDelay.current = 1000;
       };
@@ -265,6 +270,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
   }, [connectWS]);
+
+  // ── Subscribe to notificationService events ──────────────────────────────
+  useEffect(() => {
+    const unsub = notificationService.on('notification', (inApp) => {
+      const prefs = loadPrefs();
+      if (inApp.category && !prefs.categories[inApp.category]) return;
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: { id: `toast-${++toastCounter}`, ...notificationService.toToast(inApp) },
+      });
+    });
+    return unsub;
+  }, []);
 
   // ── Incoming notification handler ───────────────────────────────────────────
   const handleIncoming = useCallback((notif: AppNotification) => {

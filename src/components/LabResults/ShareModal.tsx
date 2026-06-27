@@ -7,22 +7,25 @@ interface ShareModalProps {
 
 export default function ShareModal({ onClose }: ShareModalProps) {
   const [email, setEmail] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   const handleShare = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setSuccess(true);
+
+    // Simulate API call to send email
+    setIsSuccess(true);
     setTimeout(() => {
       onClose();
     }, 2000);
   };
 
   const handleCopyLink = () => {
+    // Simulate link generation and copying
     navigator.clipboard.writeText('https://petchain.app/share/lr_9x8f7a6d');
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
   };
 
   return (
@@ -49,12 +52,14 @@ export default function ShareModal({ onClose }: ShareModalProps) {
             <Share2 className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-blue-900">Share Results</h2>
+            <h2 id="share-modal-title" className="text-2xl font-bold text-blue-900">
+              Share Results
+            </h2>
             <p className="text-sm text-gray-500">Securely send these lab results to a vet.</p>
           </div>
         </div>
 
-        {success ? (
+        {isSuccess ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
             <p className="text-lg font-semibold text-green-700">Sent Successfully!</p>
@@ -65,12 +70,15 @@ export default function ShareModal({ onClose }: ShareModalProps) {
         ) : (
           <div className="space-y-6">
             <form onSubmit={handleShare} className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <label htmlFor="email-input" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  id="email-input"
                   type="email"
                   required
                   value={email}
@@ -81,7 +89,7 @@ export default function ShareModal({ onClose }: ShareModalProps) {
               </div>
               <button
                 type="submit"
-                className="w-full py-3 bg-pink-600 text-white rounded-xl font-semibold hover:bg-pink-700 transition-colors shadow-md hover:shadow-lg"
+                className="w-full py-3 bg-pink-600 text-white rounded-xl font-semibold hover:bg-pink-700 transition-colors shadow-md hover:shadow-lg active:scale-[0.98] transform transition-transform"
               >
                 Send Secure Email
               </button>
@@ -98,14 +106,16 @@ export default function ShareModal({ onClose }: ShareModalProps) {
 
             <button
               onClick={handleCopyLink}
-              className={`w-full flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-semibold transition-all ${
-                linkCopied
+              className={`w-full flex items-center justify-center gap-2 py-3 border-2 rounded-xl font-semibold transition-all active:scale-[0.98] transform ${
+                isLinkCopied
                   ? 'border-green-500 text-green-600 bg-green-50'
                   : 'border-blue-100 text-blue-600 hover:bg-blue-50'
               }`}
             >
-              {linkCopied ? (
-                <>Copied!</>
+              {isLinkCopied ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5" /> Copied!
+                </>
               ) : (
                 <>
                   <Link className="w-5 h-5" /> Copy Secure Link

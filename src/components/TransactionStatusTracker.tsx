@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { transactionAPI, Transaction } from '@/lib/api/transactionAPI';
+
+const BASE_INTERVAL = 10_000;
+const MAX_INTERVAL = 160_000;
 
 export default function TransactionStatusTracker() {
   const [pending, setPending] = useState<Transaction[]>([]);
   const [failed, setFailed] = useState<Transaction[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const delayRef = useRef(BASE_INTERVAL);
 
-  useEffect(() => {
-    loadTransactions();
-    const interval = setInterval(loadTransactions, 10000); // Poll every 10s
-    return () => clearInterval(interval);
-  }, []);
+  const scheduleNext = (delay: number) => {
+    if (intervalRef.current) clearTimeout(intervalRef.current);
+    intervalRef.current = setTimeout(poll, delay);
+  };
 
-  const loadTransactions = async () => {
+  const poll = async () => {
     try {
       const [pendingTxs, failedTxs] = await Promise.all([
         transactionAPI.getPendingTransactions(),
@@ -19,6 +23,56 @@ export default function TransactionStatusTracker() {
       ]);
       setPending(pendingTxs);
       setFailed(failedTxs);
+      delayRef.current = BASE_INTERVAL; // reset on success
+    } catch (error) {
+      console.error('Failed to load transaction status:', error);
+      delayRef.current = Math.min(delayRef.current * 2, MAX_INTERVAL); // backoff
+    }
+    scheduleNext(delayRef.current);
+  };
+
+  useEffect(() => {
+    poll();
+    return () => {
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const poll = async () => {
+    try {
+      const [pendingTxs, failedTxs] = await Promise.all([
+        transactionAPI.getPendingTransactions(),
+        transactionAPI.getFailedTransactions(),
+      ]);
+      setPending(pendingTxs);
+      setFailed(failedTxs);
+      setPollError(null); // clear error on success
+      delayRef.current = BASE_INTERVAL; // reset on success
+    } catch (error) {
+      console.error('Failed to load transaction status:', error);
+      setPollError(
+        error instanceof Error ? error.message : 'Failed to refresh transaction status'
+      );
+      delayRef.current = Math.min(delayRef.current * 2, MAX_INTERVAL); // backoff
+    }
+    scheduleNext(delayRef.current);
+  };
+
+  useEffect(() => {
+    poll();
+    return () => {
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadTransactions = async () => {
+    try {
+      await Promise.all([
+        fetchPendingTransactions(),
+        fetchFailedTransactions(),
+      ]);
     } catch (error) {
       console.error('Failed to load transaction status:', error);
     }
@@ -26,8 +80,8 @@ export default function TransactionStatusTracker() {
 
   const handleCancel = async (id: string) => {
     try {
-      await transactionAPI.cancelPendingTransaction(id);
-      loadTransactions();
+      await cancelTransaction(id);
+      await loadTransactions();
     } catch (error) {
       console.error('Failed to cancel transaction:', error);
     }
@@ -35,19 +89,28 @@ export default function TransactionStatusTracker() {
 
   const handleRetry = async (id: string) => {
     try {
-      await transactionAPI.retryFailedTransaction(id);
-      loadTransactions();
+      await retryTransaction(id);
+      await loadTransactions();
     } catch (error) {
       console.error('Failed to retry transaction:', error);
     }
   };
 
-  if (pending.length === 0 && failed.length === 0) return null;
+  if (pending.length === 0 && failed.length === 0 && !pollError) return null;
 
   return (
     <div className="fixed bottom-4 right-4 w-80 bg-white shadow-lg rounded-lg border">
       <div className="p-4">
         <h3 className="font-semibold mb-3">Transaction Status</h3>
+
+        {pollError && (
+          <div
+            role="alert"
+            className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700"
+          >
+            Couldn&apos;t refresh transaction status — retrying… ({pollError})
+          </div>
+        )}
 
         {pending.length > 0 && (
           <div className="mb-3">

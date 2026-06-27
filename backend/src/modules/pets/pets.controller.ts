@@ -18,6 +18,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { QueryPetsDto } from './dto/query-pets.dto';
 import { SharePetDto } from './dto/share-pet.dto';
 import { TransferPetOwnershipDto } from './dto/transfer-pet-ownership.dto';
+import { BulkPetActionDto } from './dto/bulk-pet-action.dto';
 import { ReportLostPetDto } from '../lost-pets/dto/report-lost-pet.dto';
 import { ReportFoundPetDto } from '../lost-pets/dto/report-found-pet.dto';
 import { UpdateLostMessageDto } from '../lost-pets/dto/update-lost-message.dto';
@@ -32,6 +33,17 @@ export class PetsController {
     private readonly petsService: PetsService,
     private readonly lostPetsService: LostPetsService,
   ) {}
+
+  @Get('search')
+  search(@Query('q') q: string, @CurrentUser() user: User) {
+    return this.petsService.search(q ?? '', user.id);
+  }
+
+  @Post('bulk')
+  @HttpCode(HttpStatus.OK)
+  bulkAction(@Body() dto: BulkPetActionDto, @CurrentUser() user: User) {
+    return this.petsService.bulkAction(user.id, dto);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

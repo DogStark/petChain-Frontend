@@ -13,6 +13,7 @@ import {
 import { PrescriptionsService, RefillReminder } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
+import { CheckInteractionDto } from './dto/check-interaction.dto';
 import { DosageCalculationService } from './services/dosage-calculation.service';
 import type {
   DosageCalculationRequest,
@@ -159,8 +160,11 @@ export class PrescriptionsController {
    * Drug Interaction Endpoints
    */
   @Post('check-interactions')
-  checkInteractions(@Body() body: { medicationNames: string[] }) {
-    return this.drugInteractionService.checkInteractions(body.medicationNames);
+  checkInteractions(@Body() body: CheckInteractionDto) {
+    return this.prescriptionsService.checkDrugInteractions(
+      body.petId,
+      body.medication,
+    );
   }
 
   @Get(':id/interactions')

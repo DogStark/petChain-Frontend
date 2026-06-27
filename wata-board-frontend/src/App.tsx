@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from './hooks/useRTL';
 import { isConnected, requestAccess, signTransaction } from "./utils/wallet-bridge";
 import { Horizon, Networks, TransactionBuilder, Operation, Asset, BASE_FEE } from '@stellar/stellar-sdk';
 import { ResponsiveNavigation } from './components/ResponsiveNavigation';
@@ -17,6 +18,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Rate from './pages/Rate';
 import ScheduledPayments from './pages/ScheduledPayments';
+import DentalRecords from './pages/DentalRecords';
 import { WalletBalance } from './components/WalletBalance';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useFeeEstimation } from './hooks/useFeeEstimation';
@@ -226,7 +228,6 @@ function Home() {
                 </div>
               </div>
             </header>
-
             <WalletBalance className="mt-6" />
 
             {/* Fee Estimation Display */}
@@ -252,7 +253,7 @@ function Home() {
             <form onSubmit={handlePayment} className="mt-8 space-y-6">
               <div className="space-y-4">
                 <div className="relative">
-                  <label htmlFor={meterInputId.current} className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">
+                  <label htmlFor={meterInputId.current} className="block text-sm font-medium text-slate-400 mb-1.5 ms-1">
                     {t('payment.form.meterNumber')}
                   </label>
                   <input
@@ -269,7 +270,7 @@ function Home() {
                 </div>
 
                 <div className="relative">
-                  <label htmlFor={amountInputId.current} className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">
+                  <label htmlFor={amountInputId.current} className="block text-sm font-medium text-slate-400 mb-1.5 ms-1">
                     {t('payment.form.amount')} (XLM)
                   </label>
                   <input
@@ -318,7 +319,7 @@ function Home() {
             </form>
           </div>
 
-          <footer className="mt-12 text-center text-xs text-slate-500">
+          <footer id="footer" className="mt-12 text-center text-xs text-slate-500">
             <p>© {new Date().getFullYear()} Wata-Board. {t('app.footer.tagline')}</p>
           </footer>
         </div>
@@ -329,6 +330,9 @@ function Home() {
 
 export default function App() {
   const [offlineActions, setOfflineActions] = useState<any[]>([]);
+
+  // Wire up RTL support — sets document.dir and document.lang reactively on language change
+  useRTL();
 
   useEffect(() => {
     // Setup accessibility and global handlers
@@ -358,6 +362,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/rate" element={<Rate />} />
             <Route path="/schedules" element={<ScheduledPayments />} />
+            <Route path="/dental" element={<DentalRecords />} />
           </Routes>
         </div>
       </OfflineErrorBoundary>

@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosProgressEvent } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export interface PetPhoto {
   id: string;
@@ -23,7 +22,7 @@ class PetPhotosAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: getApiBaseUrl(),
       withCredentials: true,
     });
 

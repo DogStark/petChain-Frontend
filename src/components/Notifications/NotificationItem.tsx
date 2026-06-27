@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
+import type { NotificationMetadata } from '../../types/notification';
 
 const formatTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -32,7 +33,7 @@ export interface NotificationItemProps {
     isRead: boolean;
     createdAt: string;
     actionUrl?: string | null;
-    metadata?: any;
+    metadata?: NotificationMetadata | null;
   };
   onMarkAsRead: (id: string) => void;
   onActionClick?: (url: string) => void;
@@ -97,7 +98,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         <p className={styles.message}>{message}</p>
 
         {/* Rich Notification: Image Display */}
-        {metadata?.imageUrl && (
+        {metadata && 'imageUrl' in metadata && metadata.imageUrl && (
           <div className={styles.imageContainer}>
             <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
           </div>

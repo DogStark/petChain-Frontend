@@ -14,6 +14,7 @@ import type {
   FeeEstimate,
   WalletBalance,
 } from '../../types/wallet';
+import { formatBalance } from '../../utils/formatCurrency';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -97,7 +98,7 @@ export default function TransactionSigning({
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
       return 'Enter a valid positive amount.';
     if (parseFloat(amount) > parseFloat(currentBalance))
-      return `Insufficient balance. Available: ${parseFloat(currentBalance).toLocaleString()} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`;
+      return `Insufficient balance. Available: ${formatBalance(currentBalance)} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`;
     if (memo.length > 28) return 'Memo must be 28 characters or fewer.';
     if (!pin) return 'PIN is required to sign the transaction.';
     return null;
@@ -109,6 +110,11 @@ export default function TransactionSigning({
     setLocalError(null);
     setResult(null);
 
+    if (!wallet) {
+      setLocalError('Wallet not loaded. Please try again.');
+      return;
+    }
+
     const err = validate();
     if (err) {
       setLocalError(err);
@@ -117,7 +123,7 @@ export default function TransactionSigning({
 
     try {
       const res = await onSendPayment(pin, {
-        sourcePublicKey: wallet!.publicKey,
+        sourcePublicKey: wallet.publicKey,
         destination: destination.trim(),
         amount,
         asset: selectedAsset,
@@ -190,7 +196,7 @@ export default function TransactionSigning({
           </select>
           <p className="text-xs text-gray-400 mt-1">
             Available:{' '}
-            {parseFloat(currentBalance).toLocaleString(undefined, { maximumFractionDigits: 7 })}{' '}
+            {formatBalance(currentBalance)}{' '}
             {selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}
           </p>
         </div>
@@ -329,7 +335,7 @@ export default function TransactionSigning({
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !wallet}
           className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           <Send size={15} />

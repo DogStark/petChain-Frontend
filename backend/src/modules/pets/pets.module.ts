@@ -17,6 +17,7 @@ import { ProcessingModule } from '../processing/processing.module';
 import { LostPetsModule } from '../lost-pets/lost-pets.module';
 import { AuthModule } from '../../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { RedisCacheModule } from '../cache/cache.module';
 
 // Timeline-related imports
 import { Vaccination } from '../vaccinations/entities/vaccination.entity';
@@ -36,7 +37,6 @@ import { SharedTimelineController } from './controllers/shared-timeline.controll
       PetPhoto,
       PetShare,
       TimelineShare,
-      // Timeline-related entities
       Vaccination,
       MedicalRecord,
       Prescription,
@@ -48,6 +48,7 @@ import { SharedTimelineController } from './controllers/shared-timeline.controll
     forwardRef(() => LostPetsModule),
     AuthModule,
     UsersModule,
+    RedisCacheModule,
   ],
   controllers: [
     PetsController,
