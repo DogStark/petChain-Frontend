@@ -28,39 +28,50 @@ export default function ObservabilityStatus() {
 
   useEffect(() => {
     let active = true;
-    const load = () =>
+    const load = () => {
+      setError(null);
       fetch('/api/observability/status')
         .then((r) => r.json())
         .then((data) => { if (active) setStatus(data); })
         .catch((e) => { if (active) setError(e.message); });
+    };
     load();
     const id = setInterval(load, 30_000);
-    // Cleanup: always clears interval and prevents stale state updates after unmount
     return () => {
       active = false;
       clearInterval(id);
     };
   }, []);
 
-  if (error) return <div className="text-sm text-red-500">Monitoring unavailable: {error}</div>;
-  if (!status) return <div className="text-sm text-gray-400">Loading…</div>;
+  if (!status && !error) return <div className="text-sm text-gray-400">Loading…</div>;
 
-  const isUp = status.health?.status === 'ok';
-  const performance = status.performance;
+  const isError = !!error;
+  const isUp = !isError && status?.health?.status === 'ok';
+  const performance = status?.performance;
+
+  const badge = (() => {
+    if (isError) return { bg: 'bg-yellow-50 dark:bg-yellow-900/20', dot: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-300', label: 'Status Unknown' };
+    return {
+      bg: isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20',
+      dot: isUp ? 'bg-green-500' : 'bg-red-500',
+      text: isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300',
+      label: `Backend ${isUp ? 'Healthy' : 'Degraded'}`,
+    };
+  })();
 
   return (
     <div className="space-y-4">
-      <div className={`flex items-center gap-2 rounded-lg px-4 py-3 ${isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-        <span className={`h-2.5 w-2.5 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`} />
-        <span className={`text-sm font-medium ${isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-          Backend {isUp ? 'Healthy' : 'Degraded'}
+      <div className={`flex items-center gap-2 rounded-lg px-4 py-3 ${badge.bg}`}>
+        <span className={`h-2.5 w-2.5 rounded-full ${badge.dot}`} />
+        <span className={`text-sm font-medium ${badge.text}`}>
+          {badge.label}
         </span>
         <span className="ml-auto text-xs text-gray-400">
-          {status.health?.timestamp ? new Date(status.health.timestamp).toLocaleTimeString() : ''}
+          {status?.health?.timestamp ? new Date(status.health.timestamp).toLocaleTimeString() : ''}
         </span>
       </div>
 
-      {status.alerts?.length > 0 && (
+      {!isError && status?.alerts?.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Alerts</p>
           {status.alerts.map((a, i) => (
@@ -74,7 +85,7 @@ export default function ObservabilityStatus() {
         </div>
       )}
 
-      {performance?.http && performance?.system && (
+      {!isError && performance?.http && performance?.system && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Avg Latency"
