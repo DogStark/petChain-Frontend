@@ -72,12 +72,18 @@ export function usePWA(): PWAState {
             });
           });
         })
-        .catch((err) => console.error('[PWA] SW registration failed:', err));
+        .catch((err) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('[PWA] SW registration failed:', err);
+          }
+        });
 
       // Listen for SW messages
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'BACKGROUND_SYNC_COMPLETE') {
-          console.log('[PWA] Background sync completed');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[PWA] Background sync completed');
+          }
         }
       });
     }
