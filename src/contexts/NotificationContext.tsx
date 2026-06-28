@@ -106,7 +106,7 @@ interface NotificationContextType extends NotificationState {
   updatePreferences: (p: Partial<NotificationPreferences>) => void;
   requestBrowserPermission: () => Promise<void>;
   filteredNotifications: AppNotification[];
-  bellRef: React.RefObject<HTMLButtonElement>;
+  bellRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
