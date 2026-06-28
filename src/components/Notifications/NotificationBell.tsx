@@ -1,10 +1,11 @@
 import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function NotificationBell({ className = '' }: { className?: string }) {
-  const { unreadCount, toggleCenter, isConnected } = useNotifications();
+  const { unreadCount, toggleCenter, isConnected, bellRef } = useNotifications();
 
   return (
     <button
+      ref={bellRef}
       onClick={toggleCenter}
       aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
       className={`relative p-2 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ${className}`}

@@ -106,6 +106,7 @@ interface NotificationContextType extends NotificationState {
   updatePreferences: (p: Partial<NotificationPreferences>) => void;
   requestBrowserPermission: () => Promise<void>;
   filteredNotifications: AppNotification[];
+  bellRef: React.RefObject<HTMLButtonElement>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -175,6 +176,7 @@ let toastCounter = 0;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const bellRef = useRef<HTMLButtonElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(1000);
@@ -419,6 +421,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         updatePreferences,
         requestBrowserPermission,
         filteredNotifications,
+        bellRef,
       }}
     >
       {children}
