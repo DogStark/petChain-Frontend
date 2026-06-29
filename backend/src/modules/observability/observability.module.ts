@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { MetricsService } from './metrics.service';
 import { TracingService } from './tracing.service';
 import { LogAggregatorService } from './log-aggregator.service';
@@ -11,6 +12,7 @@ import { PerformanceInsightsService } from './performance-insights.service';
 
 @Global()
 @Module({
+  imports: [TypeOrmModule.forFeature([])],
   controllers: [ObservabilityController],
   providers: [
     MetricsService,

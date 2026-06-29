@@ -271,3 +271,11 @@ Upgrade the existing `SearchModule` from basic ILIKE queries to a production-gra
 - The existing `searchEmergencyServices` method is preserved unchanged; only the three primary entities (pets, vets, medical-records) are upgraded to full-text search
 - `search_vector` columns are GENERATED ALWAYS AS STORED — never map them in TypeORM entities
 - The `xss` package is already in `dependencies`; use it alongside a regex strip for SQL special characters
+
+---
+
+## Revision History
+
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | 2026-05-27 | PetChain Team | Initial tasks document — task breakdown by phase, dependencies between tasks, effort estimates, assignee suggestions, milestones, deadlines, and testing requirements per task |

@@ -200,7 +200,7 @@ function Rate() {
                       style={{ width: `${getRatingPercentage(stars)}%` }}
                     />
                   </div>
-                  <span className="text-sm text-slate-500 w-10 text-right">
+                  <span className="text-sm text-slate-500 w-10 text-end">
                     {getRatingPercentage(stars)}%
                   </span>
                 </div>
@@ -278,7 +278,7 @@ function Rate() {
                   <div className="flex gap-1 justify-center sm:justify-start">
                     {renderStars()}
                   </div>
-                  <p className="mt-2 text-sm text-slate-400 text-center sm:text-left">
+                  <p className="mt-2 text-sm text-slate-400 text-center sm:text-start">
                     {rating > 0 && ['Terrible', 'Poor', 'Average', 'Good', 'Excellent'][rating - 1]}
                   </p>
                 </div>
@@ -296,7 +296,7 @@ function Rate() {
                     required
                     disabled={isLoading}
                   />
-                  <p className="mt-1 text-xs text-slate-500 text-right">
+                  <p className="mt-1 text-xs text-slate-500 text-end">
                     {review.length}/500 characters
                   </p>
                 </div>

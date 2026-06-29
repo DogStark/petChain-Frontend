@@ -1,6 +1,6 @@
-import { Horizon, Asset, Networks, StrKey } from '@stellar/stellar-sdk';
+import { Horizon, Networks, StrKey } from '@stellar/stellar-sdk';
 import { requestAccess, isConnected } from '../utils/wallet-bridge';
-import { getCurrentNetworkConfig } from '../utils/network-config';
+import { getCurrentNetworkConfig, NETWORK_CHANGE_EVENT, type NetworkConfig } from '../utils/network-config';
 
 export interface BalanceInfo {
   assetCode: string;
@@ -14,6 +14,7 @@ export interface WalletBalance {
   publicKey: string;
   balances: BalanceInfo[];
   nativeBalance: number;
+  xlmPriceUSD?: number;
   totalBalanceUSD?: number;
   lastUpdated: Date;
   network: string;
@@ -21,6 +22,22 @@ export interface WalletBalance {
 
 export interface BalanceUpdateCallback {
   (balance: WalletBalance): void;
+}
+
+interface StellarBalanceLine {
+  asset_type: BalanceInfo['assetType'];
+  balance: string;
+  asset_code?: string;
+  asset_issuer?: string;
+}
+
+interface StellarAccountLike {
+  id: string;
+  balances: StellarBalanceLine[];
+}
+
+interface WalletTestWindow extends Window {
+  __MOCK_STELLAR_ACCOUNT__?: (publicKey: string) => StellarAccountLike;
 }
 
 export const balanceUtils = {
@@ -57,20 +74,66 @@ export const balanceUtils = {
 
 export class WalletBalanceService {
   private server: Horizon.Server;
-  private networkConfig: any;
+  private networkConfig: NetworkConfig;
   private balanceCache: Map<string, { balance: WalletBalance; timestamp: number }> = new Map();
   private updateCallbacks: Set<BalanceUpdateCallback> = new Set();
   private refreshInterval: NodeJS.Timeout | null = null;
-  private readonly CACHE_DURATION = 30000; // 30 seconds cache
+  private priceCache: { price: number; timestamp: number } | null = null;
+  private readonly CACHE_DURATION = 30000;
+  private readonly PRICE_CACHE_DURATION = 60000;
+  private networkChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.networkConfig = getCurrentNetworkConfig();
     const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
     this.server = new Horizon.Server(horizonUrl);
+    
+    // Listen for network changes
+    if (typeof window !== 'undefined') {
+      this.networkChangeHandler = () => {
+        this.networkConfig = getCurrentNetworkConfig();
+        const horizonUrl = this.networkConfig.rpcUrl.replace('soroban', 'horizon');
+        this.server = new Horizon.Server(horizonUrl);
+        this.clearCache();
+      };
+      window.addEventListener(NETWORK_CHANGE_EVENT, this.networkChangeHandler);
+    }
+  }
+
+  clearCache(): void {
+    this.balanceCache.clear();
+  }
+
+  getCachedBalance(publicKey: string): WalletBalance | null {
+    const cached = this.balanceCache.get(publicKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.balance;
+    }
+    return null;
   }
 
   async refreshBalance(): Promise<WalletBalance | null> {
     return this.getWalletBalance();
+  }
+
+  private async getXlmPriceUSD(): Promise<number | undefined> {
+    if (this.priceCache && Date.now() - this.priceCache.timestamp < this.PRICE_CACHE_DURATION) {
+      return this.priceCache.price;
+    }
+
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd');
+      if (!response.ok) return undefined;
+
+      const data = (await response.json()) as { stellar?: { usd?: number } };
+      const price = data.stellar?.usd;
+      if (typeof price !== 'number' || !Number.isFinite(price)) return undefined;
+
+      this.priceCache = { price, timestamp: Date.now() };
+      return price;
+    } catch {
+      return undefined;
+    }
   }
 
   async getWalletBalance(): Promise<WalletBalance | null> {
@@ -98,27 +161,31 @@ export class WalletBalanceService {
       console.log(`[WalletBalanceService] Loading account for ${pubKeyString} from ${this.server.serverURL.toString()}`);
       
       // FOR TESTS: Bypass loadAccount if mock is provided
-      let account;
-      if ((window as any).__MOCK_STELLAR_ACCOUNT__) {
+      let account: StellarAccountLike;
+      const testWindow = window as WalletTestWindow;
+      if (testWindow.__MOCK_STELLAR_ACCOUNT__) {
         console.log('[WalletBalanceService] Using mock stellar account');
-        const mockData = (window as any).__MOCK_STELLAR_ACCOUNT__(pubKeyString);
+        const mockData = testWindow.__MOCK_STELLAR_ACCOUNT__(pubKeyString);
         account = {
           id: pubKeyString,
           sequence: '100',
           balances: mockData.balances || [{ asset_type: 'native', balance: '1000.00' }]
-        };
+        } as StellarAccountLike;
       } else {
-        account = await this.server.loadAccount(pubKeyString);
+        account = await this.server.loadAccount(pubKeyString) as StellarAccountLike;
         console.log(`[WalletBalanceService] Account loaded:`, account.id);
       }
       
       const balances = this.parseBalances(account.balances);
       const nativeBalance = this.getNativeBalance(balances);
+      const xlmPriceUSD = await this.getXlmPriceUSD();
 
       const walletBalance: WalletBalance = {
         publicKey: pubKeyString,
         balances,
         nativeBalance,
+        xlmPriceUSD,
+        totalBalanceUSD: xlmPriceUSD ? nativeBalance * xlmPriceUSD : undefined,
         lastUpdated: new Date(),
         network: this.networkConfig.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       };
@@ -139,9 +206,9 @@ export class WalletBalanceService {
     }
   }
 
-  private parseBalances(stellarBalances: any[]): BalanceInfo[] {
+  private parseBalances(stellarBalances: StellarBalanceLine[]): BalanceInfo[] {
     return stellarBalances.map(balance => ({
-      assetCode: balance.asset_type === 'native' ? 'XLM' : balance.asset_code,
+      assetCode: balance.asset_type === 'native' ? 'XLM' : (balance.asset_code ?? 'UNKNOWN'),
       assetIssuer: balance.asset_issuer,
       balance: balance.balance,
       assetType: balance.asset_type,

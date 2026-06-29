@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { PetEmergencyInfo } from '@/types/pet';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class PetAPI {
@@ -9,7 +8,7 @@ class PetAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/pets`,
+      baseURL: `${getApiBaseUrl()}/pets`,
       withCredentials: true,
     });
 
@@ -22,13 +21,18 @@ class PetAPI {
     });
   }
 
+  async getUserPets(): Promise<Pet[]> {
+    const response = await this.api.get('/me');
+    return response.data;
+  }
+
   async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo> {
     if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     try {
       const response = await this.api.get(`/${petId}/emergency`);
       return response.data;
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         // Return mock data for demo if not found
         return this.getMockEmergencyInfo(petId);
       }

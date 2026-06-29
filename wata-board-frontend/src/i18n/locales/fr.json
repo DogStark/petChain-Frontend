@@ -2,7 +2,10 @@
   "app": {
     "title": "Wata-Board",
     "tagline": "Paiements de services publics décentralisés sur la blockchain Stellar",
-    "description": "Payez vos factures de services publics en utilisant la cryptomonnaie sur le réseau Stellar"
+    "description": "Payez vos factures de services publics en utilisant la cryptomonnaie sur le réseau Stellar",
+    "footer": {
+      "tagline": "Solutions de paiement modernes pour le web décentralisé"
+    }
   },
   "navigation": {
     "home": "Payer Facture",
@@ -35,8 +38,9 @@
       "amountTooLarge": "Le montant est trop élevé.",
       "insufficientBalance": "Solde insuffisant. Veuillez ajouter plus de XLM à votre portefeuille.",
       "estimatingFees": "Estimation des frais de transaction... Veuillez patienter.",
-      "paymentSuccess": "Paiement réussi ! ID de transaction : {{id}}...",
-      "paymentFailed": "Paiement échoué : {{error}}"
+      "estimationFailed": "Impossible d’estimer les frais de transaction. Veuillez réessayer.",
+      "paymentSuccess": "Paiement réussi ! ID de transaction : {{id}}...",
+      "paymentFailed": "Paiement échoué : {{error}}"
     },
     "feeEstimation": {
       "title": "Estimation des Frais de Transaction",
@@ -77,7 +81,13 @@
     "mainnet": "RÉSEAU PRINCIPAL",
     "testnet": "RÉSEAU DE TEST",
     "switchNetwork": "Changer Réseau",
-    "currentNetwork": "Réseau Actuel"
+    "currentNetwork": "Réseau Actuel",
+    "switchTo": "Passer à {{network}} ?",
+    "mainnetWarning": "Avertissement : Il s’agit d’un réseau de production. De vrais fonds seront utilisés.",
+    "testnetInfo": "Vous passez au Testnet Stellar. Les transactions utiliseront des XLM de test.",
+    "mainnetConfirm": "Vous êtes sur le point de passer au Mainnet Stellar en direct. Les transactions utiliseront de vrais XLM.",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
   },
   "offline": {
     "banner": {

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PaymentFrequency,
 } from '../types/scheduling';
@@ -99,7 +100,7 @@ export function SchedulePaymentForm({
     return service.validateSchedule(formData);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const validationResult = validateForm();
@@ -282,7 +283,7 @@ export function SchedulePaymentForm({
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="flex items-center text-sm text-slate-400 hover:text-slate-200 transition-colors"
           >
-            <span className="mr-2">{showAdvanced ? '▼' : '▶'}</span>
+            <span className="me-2">{showAdvanced ? '▼' : '▶'}</span>
             Advanced Settings
           </button>
 
@@ -321,8 +322,8 @@ export function SchedulePaymentForm({
                         formData.notificationSettings.email ? 'bg-sky-500' : 'bg-slate-600'
                       }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        formData.notificationSettings.email ? 'translate-x-6' : 'translate-x-0.5'
+                      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${
+                        formData.notificationSettings.email ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>
@@ -336,8 +337,8 @@ export function SchedulePaymentForm({
                         formData.notificationSettings.push ? 'bg-sky-500' : 'bg-slate-600'
                       }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        formData.notificationSettings.push ? 'translate-x-6' : 'translate-x-0.5'
+                      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${
+                        formData.notificationSettings.push ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>
@@ -351,8 +352,8 @@ export function SchedulePaymentForm({
                         formData.notificationSettings.sms ? 'bg-sky-500' : 'bg-slate-600'
                       }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        formData.notificationSettings.sms ? 'translate-x-6' : 'translate-x-0.5'
+                      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${
+                        formData.notificationSettings.sms ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>
@@ -366,8 +367,8 @@ export function SchedulePaymentForm({
                         formData.notificationSettings.successNotification ? 'bg-sky-500' : 'bg-slate-600'
                       }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        formData.notificationSettings.successNotification ? 'translate-x-6' : 'translate-x-0.5'
+                      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${
+                        formData.notificationSettings.successNotification ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>
@@ -381,8 +382,8 @@ export function SchedulePaymentForm({
                         formData.notificationSettings.failureNotification ? 'bg-sky-500' : 'bg-slate-600'
                       }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                        formData.notificationSettings.failureNotification ? 'translate-x-6' : 'translate-x-0.5'
+                      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${
+                        formData.notificationSettings.failureNotification ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                       }`} />
                     </button>
                   </div>

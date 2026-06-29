@@ -2,7 +2,10 @@
   "app": {
     "title": "Wata-Board",
     "tagline": "Dezentralisierte Versorgungsunternehmenzahlungen auf der Stellar-Blockchain",
-    "description": "Bezahlen Sie Ihre Versorgerrechnungen mit Kryptowährung auf dem Stellar-Netzwerk"
+    "description": "Bezahlen Sie Ihre Versorgerrechnungen mit Kryptowährung auf dem Stellar-Netzwerk",
+    "footer": {
+      "tagline": "Moderne Zahlungslösungen für das dezentralisierte Web"
+    }
   },
   "navigation": {
     "home": "Rechnung Bezahlen",
@@ -35,6 +38,7 @@
       "amountTooLarge": "Der Betrag ist zu groß.",
       "insufficientBalance": "Unzureichendes Guthaben. Bitte fügen Sie mehr XLM zu Ihrer Wallet hinzu.",
       "estimatingFees": "Schätzung der Transaktionsgebühren... Bitte warten.",
+      "estimationFailed": "Transaktionsgebühren konnten nicht geschätzt werden. Bitte versuchen Sie es erneut.",
       "paymentSuccess": "Zahlung erfolgreich! Transaktions-ID: {{id}}...",
       "paymentFailed": "Zahlung fehlgeschlagen: {{error}}"
     },
@@ -77,7 +81,13 @@
     "mainnet": "HAUPTNETZ",
     "testnet": "TESTNETZ",
     "switchNetwork": "Netzwerk Wechseln",
-    "currentNetwork": "Aktuelles Netzwerk"
+    "currentNetwork": "Aktuelles Netzwerk",
+    "switchTo": "Wechseln zu {{network}}?",
+    "mainnetWarning": "Warnung: Dies ist ein Produktionsnetzwerk. Echte Gelder werden verwendet.",
+    "testnetInfo": "Sie wechseln zum Stellar Testnetz. Transaktionen verwenden Test-XLM.",
+    "mainnetConfirm": "Sie sind dabei, zum Live Stellar Hauptnetz zu wechseln. Transaktionen verwenden echtes XLM.",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen"
   },
   "offline": {
     "banner": {
