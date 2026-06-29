@@ -30,9 +30,12 @@ export const SECURITY_CONSTANTS = {
       /union.*select/gi,
       /exec(\s|\+)+(s|x)p\w+/gi,
     ],
-    // NOTE: These are threat DETECTION patterns only — never use for sanitization
+    // NOTE: These are threat DETECTION patterns only — never use for sanitization.
+    // Detect the opening <script tag alone rather than a <script>...</script> pair:
+    // a script tag executes without ever needing a matching close tag (e.g. <script src=x>),
+    // so requiring both halves to match is itself a bypassable filter shape.
     XSS: [
-      /<script\b[\s\S]*?<\/script>/gi,
+      /<script\b/gi,
       /\bjavascript\s*:/gi,
       /\bon[a-z]{1,20}\s*=/gi,
       /<iframe\b/gi,
