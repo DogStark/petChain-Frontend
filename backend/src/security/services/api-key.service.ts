@@ -5,7 +5,13 @@ import { scryptSync, randomBytes } from 'crypto';
 import { ApiKey } from '../entities/api-key.entity';
 import { CreateApiKeyDto, UpdateApiKeyDto } from '../dto/api-key.dto';
 
-const API_KEY_SALT = process.env.API_KEY_HMAC_SECRET || 'change-me-in-production';
+const API_KEY_SALT = process.env.API_KEY_HMAC_SECRET;
+if (!API_KEY_SALT) {
+  throw new Error(
+    'API_KEY_HMAC_SECRET environment variable is required but not set. ' +
+      'Set it to a long random string before starting the server.',
+  );
+}
 
 export interface ApiKeyValidationResult {
   valid: boolean;
