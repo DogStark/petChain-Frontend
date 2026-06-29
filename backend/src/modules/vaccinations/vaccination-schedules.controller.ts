@@ -8,12 +8,15 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { VaccinationSchedulesService } from './vaccination-schedules.service';
 import { CreateVaccinationScheduleDto } from './dto/create-vaccination-schedule.dto';
 import { UpdateVaccinationScheduleDto } from './dto/update-vaccination-schedule.dto';
 import { VaccinationSchedule } from './entities/vaccination-schedule.entity';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('vaccination-schedules')
 export class VaccinationSchedulesController {
   constructor(private readonly schedulesService: VaccinationSchedulesService) {}
