@@ -159,7 +159,14 @@ export class MfaService {
   }
 
   private hashCode(code: string): string {
-    return crypto.createHash('sha256').update(code).digest('hex');
+    if (!process.env.MFA_BACKUP_CODE_SECRET && process.env.NODE_ENV === 'production') {
+      throw new Error('MFA_BACKUP_CODE_SECRET must be set in production environments');
+    }
+    const secret =
+      process.env.MFA_BACKUP_CODE_SECRET || 'mfa-backup-code-secret-change-in-production';
+    // Backup codes have low entropy (40 bits); scrypt's computational cost makes
+    // offline brute-forcing of a leaked hash table impractical, unlike a bare SHA-256 digest.
+    return crypto.scryptSync(code, secret, 32).toString('hex');
   }
 
   private ensureSpeakeasy(): void {

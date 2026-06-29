@@ -1,4 +1,16 @@
-// Safe HTML-to-text: removes all tags by iterating characters, no regex on HTML structure
+const HTML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&nbsp;': ' ',
+};
+
+// Safe HTML-to-text: removes all tags by iterating characters, no regex on HTML structure.
+// Entities are decoded in a single replace pass (not sequential replaces) so that decoding
+// one entity (e.g. &amp; -> &) can never produce text that a later replace re-decodes
+// (e.g. turning a literal "&amp;lt;" into "<" instead of the intended "&lt;").
 function stripHtml(html: string): string {
   let result = '';
   let inTag = false;
@@ -9,12 +21,7 @@ function stripHtml(html: string): string {
     if (!inTag) result += ch;
   }
   return result
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;/g, (entity) => HTML_ENTITIES[entity])
     .replace(/\s+/g, ' ')
     .trim();
 }

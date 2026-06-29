@@ -39,6 +39,12 @@ export class PetPhotosService {
     petId: string,
     files: Express.Multer.File[],
   ): Promise<PetPhoto[]> {
+    // Guard against a tampered multipart payload producing a non-array
+    // `files` value, which would make the length checks below unreliable.
+    if (!Array.isArray(files)) {
+      throw new BadRequestException('files must be an array of uploaded files');
+    }
+
     await this.ensurePetExists(petId);
 
     const existingCount = await this.photoRepository.count({

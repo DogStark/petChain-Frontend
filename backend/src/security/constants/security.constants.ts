@@ -32,7 +32,7 @@ export const SECURITY_CONSTANTS = {
     ],
     // NOTE: These are threat DETECTION patterns only — never use for sanitization
     XSS: [
-      /<script\b[^<]*<\/script>/gi,
+      /<script\b[\s\S]*?<\/script>/gi,
       /\bjavascript\s*:/gi,
       /\bon[a-z]{1,20}\s*=/gi,
       /<iframe\b/gi,
