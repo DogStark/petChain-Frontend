@@ -24,17 +24,20 @@ export class AppointmentsService {
       throw new BadRequestException('Invalid appointment data');
     }
 
-    // 🔥 Conflict prevention (generic - no date/time assumption)
+    // Conflict prevention: only block if the same vet already has a
+    // SCHEDULED appointment at the same date and time.
     const existing = await this.appointmentRepository.findOne({
       where: {
         vetId: dto.vetId,
         status: AppointmentStatus.SCHEDULED,
+        appointmentDate: new Date(dto.appointmentDate),
+        appointmentTime: dto.appointmentTime,
       },
     });
 
     if (existing) {
       throw new BadRequestException(
-        'Vet already has a scheduled appointment (basic conflict prevention)',
+        'Vet already has a scheduled appointment at this date and time',
       );
     }
 
@@ -80,11 +83,11 @@ export class AppointmentsService {
 
   // ---------------- UPCOMING ----------------
   async getUpcomingAppointments(petId?: string) {
-    const now = new Date();
+    const today = new Date().toISOString().slice(0, 10);
 
     const query = this.appointmentRepository
       .createQueryBuilder('appointment')
-      .where('appointment.createdAt >= :now', { now }) // safe fallback field
+      .where('appointment.appointmentDate >= :today', { today })
       .andWhere('appointment.status = :status', {
         status: AppointmentStatus.SCHEDULED,
       });

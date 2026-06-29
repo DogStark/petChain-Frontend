@@ -209,7 +209,14 @@ export class StellarService implements OnModuleInit {
         throw new Error(`Transaction failed: ${response.errorResult}`);
 
       let result = await this.sorobanServer.getTransaction(response.hash);
+      const maxAttempts = 30; // ~30s at 1s intervals
+      let attempts = 0;
       while (result.status === 'NOT_FOUND') {
+        if (++attempts > maxAttempts) {
+          throw new Error(
+            `Timed out waiting for transaction ${response.hash} to be confirmed`,
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
         result = await this.sorobanServer.getTransaction(response.hash);
       }

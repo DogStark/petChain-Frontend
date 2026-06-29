@@ -14,6 +14,7 @@ import { StorageService } from '../storage/storage.service';
 import { ValidationService } from '../validation/validation.service';
 import { VirusScannerService } from '../security/virus-scanner.service';
 import { EncryptionService } from '../security/encryption.service';
+import { CdnService } from '../cdn/cdn.service';
 import { FileMetadata } from './entities/file-metadata.entity';
 import { FileVersion } from './entities/file-version.entity';
 import { FileVariant } from './entities/file-variant.entity';
@@ -53,6 +54,7 @@ export class UploadService {
     private readonly virusScannerService: VirusScannerService,
     private readonly encryptionService: EncryptionService,
     private readonly configService: ConfigService,
+    private readonly cdnService: CdnService,
   ) {
     const config = this.configService.get<StorageConfig>('storage');
     this.maxFileSizeBytes = (config?.maxFileSizeMb || 50) * 1024 * 1024;
@@ -437,7 +439,9 @@ export class UploadService {
           }
         : undefined,
       variants,
-      thumbnailUrl: thumbnail ? undefined : undefined, // Will be populated by CDN in next milestone
+      thumbnailUrl: thumbnail
+        ? this.cdnService.getPublicUrl(thumbnail.storageKey)
+        : undefined,
       owner: file.owner
         ? {
             id: file.owner.id,

@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -22,7 +22,7 @@ import {
 import { baseTemplate, emailButton } from './templates/base.template';
 
 @Injectable()
-export class EmailService implements OnModuleInit {
+export class EmailService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EmailService.name);
   private processorInterval: NodeJS.Timeout | null = null;
 
@@ -57,6 +57,13 @@ export class EmailService implements OnModuleInit {
     this.logger.log(
       `Email queue processor started (every ${intervalMs / 1000}s)`,
     );
+  }
+
+  onModuleDestroy() {
+    if (this.processorInterval) {
+      clearInterval(this.processorInterval);
+      this.processorInterval = null;
+    }
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────

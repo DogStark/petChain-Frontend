@@ -168,12 +168,31 @@ export class LostPetsService {
     return saved;
   }
 
+  /**
+   * Strips sensitive owner fields (password, tokens, email, address) before
+   * these reports are returned from public, unauthenticated endpoints.
+   */
+  private redactOwners(reports: LostPetReport[]): LostPetReport[] {
+    for (const report of reports) {
+      const owner = report.pet?.owner as Partial<typeof report.pet.owner> | undefined;
+      if (owner) {
+        report.pet.owner = {
+          id: owner.id,
+          firstName: owner.firstName,
+          lastName: owner.lastName,
+        } as typeof report.pet.owner;
+      }
+    }
+    return reports;
+  }
+
   async findAllLost(): Promise<LostPetReport[]> {
-    return this.lostPetReportRepository.find({
+    const reports = await this.lostPetReportRepository.find({
       where: { status: LostPetStatus.LOST },
       relations: ['pet', 'pet.owner', 'pet.photos', 'pet.breed'],
       order: { reportedDate: 'DESC' },
     });
+    return this.redactOwners(reports);
   }
 
   async findNearby(
@@ -184,7 +203,7 @@ export class LostPetsService {
     const haversine =
       '(6371 * acos(cos(radians(:lat)) * cos(radians(report.lastSeenLatitude)) * cos(radians(report.lastSeenLongitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(report.lastSeenLatitude))))';
 
-    return this.lostPetReportRepository
+    const reports = await this.lostPetReportRepository
       .createQueryBuilder('report')
       .leftJoinAndSelect('report.pet', 'pet')
       .leftJoinAndSelect('pet.owner', 'owner')
@@ -201,6 +220,7 @@ export class LostPetsService {
       .addSelect(haversine, 'distance')
       .orderBy('distance', 'ASC')
       .getMany();
+    return this.redactOwners(reports);
   }
 
   async updateUserLocation(

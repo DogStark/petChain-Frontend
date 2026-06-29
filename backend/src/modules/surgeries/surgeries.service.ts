@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { promises as fs } from 'fs';
+import { join, extname } from 'path';
+import { randomUUID } from 'crypto';
 import { Surgery, SurgeryStatus } from './entities/surgery.entity';
 import { CreateSurgeryDto } from './dto/create-surgery.dto';
 import { UpdateSurgeryDto } from './dto/update-surgery.dto';
+
+const SURGERY_PHOTOS_DIR = join(process.cwd(), 'uploads', 'surgeries');
 
 @Injectable()
 export class SurgeriesService {
@@ -64,7 +69,10 @@ export class SurgeriesService {
   }
 
   async savePhoto(file: Express.Multer.File): Promise<string> {
-    // Implement file upload logic (S3, local storage, etc.)
-    return `uploads/surgeries/${Date.now()}-${file.originalname}`;
+    await fs.mkdir(SURGERY_PHOTOS_DIR, { recursive: true });
+    const filename = `${randomUUID()}${extname(file.originalname)}`;
+    const filePath = join(SURGERY_PHOTOS_DIR, filename);
+    await fs.writeFile(filePath, file.buffer);
+    return `uploads/surgeries/${filename}`;
   }
 }

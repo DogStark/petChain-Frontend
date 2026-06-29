@@ -10,6 +10,7 @@ import { FileVariant } from './entities/file-variant.entity';
 import { StorageModule } from '../storage/storage.module';
 import { ValidationModule } from '../validation/validation.module';
 import { SecurityModule } from '../security/security.module';
+import { CdnModule } from '../cdn/cdn.module';
 
 /**
  * Upload Module
@@ -37,6 +38,7 @@ import { SecurityModule } from '../security/security.module';
     StorageModule,
     ValidationModule,
     SecurityModule,
+    CdnModule,
   ],
   controllers: [UploadController],
   providers: [UploadService],

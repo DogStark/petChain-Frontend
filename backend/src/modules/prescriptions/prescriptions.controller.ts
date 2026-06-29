@@ -59,6 +59,7 @@ export class PrescriptionsController {
   getExpiringSoon(@Param('petId') petId: string, @Query('days') days?: number) {
     return this.prescriptionsService.getExpiringPrescriptions(
       days ? +days : 30,
+      petId,
     );
   }
 

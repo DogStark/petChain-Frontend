@@ -198,6 +198,12 @@ export class WalletsService {
   }> {
     const wallet = await this.findOneForUser(walletId, userId);
 
+    if (wallet.network !== dto.network) {
+      throw new BadRequestException(
+        `Requested network '${dto.network}' does not match wallet network '${wallet.network}'`,
+      );
+    }
+
     const network = this.stellarCfg.networks[dto.network];
     const horizonUrl = dto.horizonUrl || network.horizonUrl;
 

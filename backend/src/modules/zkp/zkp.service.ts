@@ -136,6 +136,9 @@ export class ZkpService {
     publicInputs: Record<string, unknown>,
     privateWitness: Record<string, unknown>,
   ): { proof: string; commitment: string } {
+    if (!process.env.ZKP_SECRET && process.env.NODE_ENV === 'production') {
+      throw new Error('ZKP_SECRET must be set in production environments');
+    }
     const secret = process.env.ZKP_SECRET ?? 'zkp-dev-secret';
     const commitment = crypto
       .createHmac('sha256', secret)

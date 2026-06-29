@@ -24,7 +24,9 @@ export class QRCodesService {
     @InjectRepository(QRCodeScan)
     private scanRepository: Repository<QRCodeScan>,
   ) {
-    // In production, use environment variable for encryption key
+    if (!process.env.QR_ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
+      throw new Error('QR_ENCRYPTION_KEY must be set in production environments');
+    }
     this.encryptionKey =
       process.env.QR_ENCRYPTION_KEY ||
       'default-encryption-key-change-in-production';

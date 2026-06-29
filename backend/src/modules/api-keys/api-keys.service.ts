@@ -12,6 +12,10 @@ import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
+if (!process.env.API_KEY_HMAC_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('API_KEY_HMAC_SECRET must be set in production environments');
+}
+
 const API_KEY_SALT = process.env.API_KEY_HMAC_SECRET || 'change-me-in-production';
 
 export interface CreateApiKeyOptions {

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   HttpCode,
@@ -50,27 +51,40 @@ export class GdprController {
     return this.gdprService.requestErasure(user.id, dto.password);
   }
 
+  private assertOwner(currentUser: User, userId: string) {
+    if (currentUser.id !== userId) {
+      throw new ForbiddenException('Cannot access another user\'s GDPR data');
+    }
+  }
+
   /** GET /gdpr/users/:userId/consents */
   @Get('users/:userId/consents')
-  getConsents(@Param('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  getConsents(@Param('userId') userId: string, @CurrentUser() user: User) {
+    this.assertOwner(user, userId);
     return this.gdprService.getConsents(userId);
   }
 
   /** POST /gdpr/users/:userId/consents/init */
   @Post('users/:userId/consents/init')
   @HttpCode(HttpStatus.CREATED)
-  initConsents(@Param('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  initConsents(@Param('userId') userId: string, @CurrentUser() user: User) {
+    this.assertOwner(user, userId);
     return this.gdprService.initDefaultConsents(userId);
   }
 
   /** PATCH /gdpr/users/:userId/consents */
   @Patch('users/:userId/consents')
+  @UseGuards(JwtAuthGuard)
   updateConsent(
     @Param('userId') userId: string,
     @Body() dto: UpdateConsentDto,
     @Req() req: Request,
+    @CurrentUser() user: User,
     @Headers('user-agent') userAgent?: string,
   ) {
+    this.assertOwner(user, userId);
     const ip =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0] ??
       req.socket.remoteAddress ??
@@ -86,28 +100,36 @@ export class GdprController {
   /** POST /gdpr/users/:userId/deletion-request */
   @Post('users/:userId/deletion-request')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
   requestDeletion(
     @Param('userId') userId: string,
     @Body() dto: RequestDeletionDto,
+    @CurrentUser() user: User,
   ) {
+    this.assertOwner(user, userId);
     return this.gdprService.requestDeletion(userId, dto);
   }
 
   /** POST /gdpr/deletion-requests/:requestId/process */
   @Post('deletion-requests/:requestId/process')
+  @UseGuards(JwtAuthGuard)
   processDeletion(@Param('requestId') requestId: string) {
     return this.gdprService.processDeletion(requestId);
   }
 
   /** GET /gdpr/users/:userId/deletion-status */
   @Get('users/:userId/deletion-status')
-  getDeletionStatus(@Param('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  getDeletionStatus(@Param('userId') userId: string, @CurrentUser() user: User) {
+    this.assertOwner(user, userId);
     return this.gdprService.getDeletionStatus(userId);
   }
 
   /** GET /gdpr/users/:userId/export */
   @Get('users/:userId/export')
-  exportData(@Param('userId') userId: string) {
+  @UseGuards(JwtAuthGuard)
+  exportData(@Param('userId') userId: string, @CurrentUser() user: User) {
+    this.assertOwner(user, userId);
     return this.gdprService.exportUserData(userId);
   }
 }

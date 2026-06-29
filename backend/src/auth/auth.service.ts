@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   BadRequestException,
   ConflictException,
@@ -75,6 +76,8 @@ export interface VerificationStatusResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -150,7 +153,7 @@ export class AuthService {
       );
     } catch (error) {
       // Log error but don't fail registration
-      console.error('Failed to send verification email:', error);
+      this.logger.error('Failed to send verification email:', error);
     }
 
     await this.sendPhoneVerificationCode(savedUser, phoneVerificationCode);
@@ -448,7 +451,7 @@ export class AuthService {
         verificationToken,
       );
     } catch (error) {
-      console.error('Failed to resend verification email:', error);
+      this.logger.error('Failed to resend verification email:', error);
     }
   }
 
@@ -709,7 +712,7 @@ export class AuthService {
     );
 
     if (!result.success) {
-      console.error('Failed to send verification SMS:', result.error);
+      this.logger.error('Failed to send verification SMS:', result.error);
     }
   }
 
