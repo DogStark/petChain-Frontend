@@ -198,6 +198,12 @@ export class WalletsService {
   }> {
     const wallet = await this.findOneForUser(walletId, userId);
 
+    if (dto.network !== wallet.network) {
+      throw new BadRequestException(
+        `Network mismatch: request specifies '${dto.network}' but wallet is configured for '${wallet.network}'`,
+      );
+    }
+
     const network = this.stellarCfg.networks[dto.network];
     const horizonUrl = dto.horizonUrl || network.horizonUrl;
 
