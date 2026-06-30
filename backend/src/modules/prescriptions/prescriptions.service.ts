@@ -388,6 +388,7 @@ export class PrescriptionsService {
    * Get prescriptions expiring soon
    */
   async getExpiringPrescriptions(
+    petId: string,
     daysWindow: number = 30,
   ): Promise<Prescription[]> {
     const today = new Date();
@@ -396,6 +397,7 @@ export class PrescriptionsService {
 
     return await this.prescriptionRepository.find({
       where: {
+        petId,
         status: PrescriptionStatus.ACTIVE,
         endDate: Between(today, windowEnd),
       },

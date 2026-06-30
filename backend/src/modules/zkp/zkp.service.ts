@@ -136,7 +136,13 @@ export class ZkpService {
     publicInputs: Record<string, unknown>,
     privateWitness: Record<string, unknown>,
   ): { proof: string; commitment: string } {
-    const secret = process.env.ZKP_SECRET ?? 'zkp-dev-secret';
+    const secret = process.env.ZKP_SECRET;
+    if (!secret) {
+      throw new Error(
+        'ZKP_SECRET environment variable is not configured. ' +
+          'Set ZKP_SECRET to a strong random value before starting the application.',
+      );
+    }
     const commitment = crypto
       .createHmac('sha256', secret)
       .update(JSON.stringify(privateWitness))
