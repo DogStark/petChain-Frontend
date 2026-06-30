@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { VaccinationsService } from './vaccinations.service';
 import { CreateVaccinationDto } from './dto/create-vaccination.dto';
@@ -16,7 +17,9 @@ import { UpdateVaccinationDto } from './dto/update-vaccination.dto';
 import { Vaccination } from './entities/vaccination.entity';
 import { CreateAdverseReactionDto } from './dto/create-adverse-reaction.dto';
 import { VaccinationAdverseReaction } from './entities/vaccination-adverse-reaction.entity';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('vaccinations')
 export class VaccinationsController {
   constructor(private readonly vaccinationsService: VaccinationsService) {}
