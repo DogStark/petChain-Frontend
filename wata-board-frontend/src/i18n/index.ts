@@ -13,6 +13,9 @@ import hi from './locales/hi.json';
 import pt from './locales/pt.json';
 import ru from './locales/ru.json';
 import ja from './locales/ja.json';
+import frCA from './locales/fr-CA.json';
+import ptBR from './locales/pt-BR.json';
+import sw from './locales/sw.json';
 
 // Supported languages configuration
 export const supportedLanguages = [
@@ -25,7 +28,10 @@ export const supportedLanguages = [
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', dir: 'ltr', flag: '🇮🇳' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', dir: 'ltr', flag: '🇧🇷' },
   { code: 'ru', name: 'Russian', nativeName: 'Русский', dir: 'ltr', flag: '🇷🇺' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', dir: 'ltr', flag: '🇯🇵' }
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', dir: 'ltr', flag: '🇯🇵' },
+  { code: 'fr-CA', name: 'French (Canada)', nativeName: 'Français (Canada)', dir: 'ltr', flag: '🇨🇦' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', nativeName: 'Português (Brasil)', dir: 'ltr', flag: '🇧🇷' },
+  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', dir: 'ltr', flag: '🇰🇪' }
 ] as const;
 
 // Resources object with all translations
@@ -39,7 +45,10 @@ const resources = {
   hi: { translation: hi },
   pt: { translation: pt },
   ru: { translation: ru },
-  ja: { translation: ja }
+  ja: { translation: ja },
+  'fr-CA': { translation: frCA },
+  'pt-BR': { translation: ptBR },
+  sw: { translation: sw }
 };
 
 // Default language
@@ -87,11 +96,11 @@ const defaultLanguage = 'en';
     // Whitelist of supported languages
     supportedLngs: supportedLanguages.map(lang => lang.code),
     
-    // Load configuration
-    load: 'languageOnly',
+    // Load configuration (use 'all' so region-specific locales like fr-CA, pt-BR are respected)
+    load: 'all',
     
     // Preload languages for better performance
-    preload: ['en', 'es', 'fr', 'de', 'zh']
+    preload: ['en', 'es', 'fr', 'de', 'zh', 'fr-CA', 'pt-BR', 'sw']
   });
 
 // Export i18n instance and utilities
@@ -147,16 +156,23 @@ const initializeDocumentLanguage = () => {
 initializeDocumentLanguage();
 i18n.on('languageChanged', initializeDocumentLanguage);
 
+// Map i18n language codes to Intl locale identifiers for broader compatibility
+const toIntlLocale = (lang: string): string => {
+  const map: Record<string, string> = {
+    zh: 'zh-CN',
+    sw: 'sw-TZ',
+  };
+  return map[lang] || lang;
+};
+
 // Helper function to format numbers with locale
 export const formatNumber = (number: number, options?: Intl.NumberFormatOptions) => {
-  const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language;
-  return new Intl.NumberFormat(locale, options).format(number);
+  return new Intl.NumberFormat(toIntlLocale(i18n.language), options).format(number);
 };
 
 // Helper function to format currency
 export const formatCurrency = (amount: number, currency = 'XLM') => {
-  const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language;
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(toIntlLocale(i18n.language), {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 7,
@@ -166,8 +182,7 @@ export const formatCurrency = (amount: number, currency = 'XLM') => {
 
 // Helper function to format dates
 export const formatDate = (date: Date, options?: Intl.DateTimeFormatOptions) => {
-  const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language;
-  return new Intl.DateTimeFormat(locale, options).format(date);
+  return new Intl.DateTimeFormat(toIntlLocale(i18n.language), options).format(date);
 };
 
 // Helper function to get plural form

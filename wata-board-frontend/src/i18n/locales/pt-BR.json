@@ -1,0 +1,267 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Pagamentos de serviços públicos descentralizados na blockchain Stellar",
+    "description": "Pague suas contas de serviços públicos usando criptomoeda na rede Stellar",
+    "footer": {
+      "tagline": "Soluções de pagamento modernas para a web descentralizada"
+    }
+  },
+  "navigation": {
+    "home": "Pagar Conta",
+    "about": "Sobre",
+    "contact": "Contato",
+    "rate": "Avalie-nos",
+    "language": "Idioma"
+  },
+  "payment": {
+    "form": {
+      "title": "Informações de Pagamento",
+      "meterNumber": "Número do medidor",
+      "meterPlaceholder": "ex.: MEDIDOR-123",
+      "meterDescription": "Insira o número do seu medidor de serviços conforme exibido na sua conta",
+      "amount": "Valor",
+      "amountPlaceholder": "Número inteiro",
+      "amountDescription": "Insira o valor do pagamento em XLM inteiro",
+      "payButton": "Pagar conta",
+      "processing": "Processando...",
+      "rateLimited": "Limite de requisições atingido",
+      "requiresExtension": "Requer a extensão Freighter. Limite de 5 transações por minuto."
+    },
+    "status": {
+      "title": "Status",
+      "ready": "Pronto.",
+      "installWallet": "Por favor, instale a extensão Freighter Wallet!",
+      "enterMeter": "Por favor, insira um número de medidor.",
+      "enterValidAmount": "Por favor, insira um valor válido maior que 0.",
+      "wholeNumber": "O valor deve ser um número inteiro.",
+      "amountTooLarge": "O valor é muito grande.",
+      "insufficientBalance": "Saldo insuficiente. Por favor, adicione mais XLM à sua carteira.",
+      "estimatingFees": "Estimando taxas de transação... Por favor, aguarde.",
+      "estimationFailed": "Não foi possível estimar as taxas de transação. Por favor, tente novamente.",
+      "paymentSuccess": "Pagamento realizado com sucesso! ID da transação: {{id}}...",
+      "paymentFailed": "Falha no pagamento: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "Estimativa de Taxa de Transação",
+      "calculating": "(Calculando...)",
+      "calculatingFees": "Calculando taxas estimadas...",
+      "paymentAmount": "Valor do Pagamento",
+      "estimatedNetworkFee": "Taxa de Rede Estimada",
+      "totalCost": "Custo Total",
+      "unableToEstimate": "Não foi possível estimar as taxas no momento"
+    },
+    "rateLimit": {
+      "title": "Status do Limite de Requisições",
+      "requestsAvailable": "{{count}}/5 requisições disponíveis",
+      "rateLimited": "Limite atingido. Reinicia em {{time}}",
+      "queue": "Fila: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "Saldo da Carteira",
+      "available": "Saldo Disponível",
+      "total": "Saldo Total",
+      "loading": "Carregando saldo...",
+      "error": "Falha ao carregar saldo",
+      "reconnect": "Por favor, reconecte sua carteira",
+      "insufficient": "Saldo insuficiente para esta transação",
+      "lowBalance": "Aviso de saldo baixo"
+    },
+    "connection": {
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "connecting": "Conectando...",
+      "connectWallet": "Conectar Carteira",
+      "switchWallet": "Trocar Carteira"
+    }
+  },
+  "network": {
+    "mainnet": "REDE PRINCIPAL",
+    "testnet": "REDE DE TESTE",
+    "switchNetwork": "Trocar de Rede",
+    "currentNetwork": "Rede Atual",
+    "switchTo": "Mudar para {{network}}?",
+    "mainnetWarning": "Aviso: Esta é uma rede de produção. Fundos reais serão usados.",
+    "testnetInfo": "Você está mudando para a Stellar Testnet. As transações usarão XLM de teste.",
+    "mainnetConfirm": "Você está prestes a mudar para a Stellar Mainnet. As transações usarão XLM real.",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar"
+  },
+  "offline": {
+    "banner": {
+      "title": "Você está offline",
+      "description": "Alguns recursos podem estar indisponíveis. As ações serão enfileiradas e processadas quando você voltar a ficar online.",
+      "retry": "Tentar Reconectar",
+      "details": "Detalhes da Conexão"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "connecting": "Conectando...",
+      "queueStatus": "{{count}} ação na fila",
+      "queueStatus_plural": "{{count}} ações na fila"
+    },
+    "queue": {
+      "title": "Fila Offline",
+      "description": "{{count}} ação será processada quando você voltar a ficar online",
+      "description_plural": "{{count}} ações serão processadas quando você voltar a ficar online"
+    },
+    "error": {
+      "paymentOffline": "Pagamento enfileirado para quando você voltar a ficar online",
+      "generalOffline": "Ação enfileirada para quando você voltar a ficar online"
+    }
+  },
+  "about": {
+    "title": "Sobre o Wata-Board",
+    "description": "O Wata-Board é uma plataforma descentralizada de pagamento de serviços públicos construída na blockchain Stellar. Permitimos pagamentos de contas de serviços seguros, transparentes e eficientes usando criptomoeda.",
+    "features": {
+      "title": "Principais Recursos",
+      "secure": "Transações Seguras",
+      "secureDescription": "Construído na blockchain Stellar com segurança de nível empresarial",
+      "fast": "Pagamentos Rápidos",
+      "fastDescription": "Liquidação quase instantânea com taxas de transação baixas",
+      "transparent": "Registros Transparentes",
+      "transparentDescription": "Todas as transações são registradas na blockchain pública",
+      "decentralized": "Descentralizado",
+      "decentralizedDescription": "Sem ponto único de falha ou controle"
+    },
+    "howItWorks": {
+      "title": "Como Funciona",
+      "step1": "Conecte sua carteira",
+      "step2": "Insira os dados do medidor",
+      "step3": "Confirme o pagamento",
+      "step4": "Pagamento processado"
+    }
+  },
+  "contact": {
+    "title": "Fale Conosco",
+    "description": "Entre em contato com nossa equipe para suporte, dúvidas ou feedback.",
+    "form": {
+      "name": "Nome",
+      "namePlaceholder": "Digite seu nome",
+      "email": "E-mail",
+      "emailPlaceholder": "Digite seu e-mail",
+      "subject": "Assunto",
+      "subjectPlaceholder": "Digite o assunto",
+      "message": "Mensagem",
+      "messagePlaceholder": "Digite sua mensagem",
+      "sendButton": "Enviar Mensagem",
+      "sending": "Enviando..."
+    },
+    "info": {
+      "email": "E-mail",
+      "support": "Suporte",
+      "website": "Site"
+    }
+  },
+  "rate": {
+    "title": "Avalie sua Experiência",
+    "description": "Ajude-nos a melhorar avaliando sua experiência com o Wata-Board.",
+    "rating": {
+      "excellent": "Excelente",
+      "good": "Bom",
+      "average": "Regular",
+      "poor": "Ruim",
+      "terrible": "Péssimo"
+    },
+    "review": {
+      "title": "Escreva uma Avaliação",
+      "placeholder": "Compartilhe sua experiência com o Wata-Board...",
+      "submit": "Enviar Avaliação",
+      "thankYou": "Obrigado pelo seu feedback!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "Erro",
+      "unknown": "Ocorreu um erro desconhecido",
+      "tryAgain": "Por favor, tente novamente",
+      "contactSupport": "Entre em contato com o suporte se o problema persistir"
+    },
+    "network": {
+      "title": "Erro de Rede",
+      "description": "Não foi possível conectar à rede",
+      "checkConnection": "Por favor, verifique sua conexão com a internet"
+    },
+    "wallet": {
+      "title": "Erro de Carteira",
+      "notConnected": "Carteira não conectada",
+      "notInstalled": "Carteira Freighter não instalada",
+      "installFreighter": "Por favor, instale a extensão da carteira Freighter"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "Pular para o conteúdo principal",
+    "skipToNavigation": "Pular para a navegação",
+    "menuToggle": "Alternar menu de navegação",
+    "closeMenu": "Fechar menu",
+    "openMenu": "Abrir menu",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "warning": "Aviso",
+    "info": "Informação"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "reset": "Redefinir",
+    "clear": "Limpar",
+    "search": "Pesquisar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "retry": "Tentar novamente",
+    "refresh": "Atualizar",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "learnMore": "Saiba Mais",
+    "viewDetails": "Ver Detalhes",
+    "hideDetails": "Ocultar Detalhes"
+  },
+  "time": {
+    "seconds": "segundo",
+    "seconds_plural": "segundos",
+    "minutes": "minuto",
+    "minutes_plural": "minutos",
+    "hours": "hora",
+    "hours_plural": "horas",
+    "days": "dia",
+    "days_plural": "dias",
+    "weeks": "semana",
+    "weeks_plural": "semanas",
+    "months": "mês",
+    "months_plural": "meses",
+    "years": "ano",
+    "years_plural": "anos",
+    "ago": "há {{time}}",
+    "in": "em {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "Este campo é obrigatório",
+    "invalid": "Formato inválido",
+    "tooShort": "Deve ter pelo menos {{min}} caracteres",
+    "tooLong": "Deve ter no máximo {{max}} caracteres",
+    "invalidEmail": "Por favor, insira um endereço de e-mail válido",
+    "invalidNumber": "Por favor, insira um número válido",
+    "minValue": "Deve ser pelo menos {{min}}",
+    "maxValue": "Deve ser no máximo {{max}}"
+  }
+}

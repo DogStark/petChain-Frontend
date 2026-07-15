@@ -1,0 +1,267 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Malipo ya huduma yaliyogatuliwa kwenye blockchain ya Stellar",
+    "description": "Lipa bili zako za huduma kwa kutumia sarafu ya crypto kwenye mtandao wa Stellar",
+    "footer": {
+      "tagline": "Suluhisho za kisasa za malipo kwa wavuti iliyogatuliwa"
+    }
+  },
+  "navigation": {
+    "home": "Lipa Bili",
+    "about": "Kuhusu",
+    "contact": "Wasiliana",
+    "rate": "Tupime",
+    "language": "Lugha"
+  },
+  "payment": {
+    "form": {
+      "title": "Taarifa za Malipo",
+      "meterNumber": "Namba ya mita",
+      "meterPlaceholder": "mfano MITA-123",
+      "meterDescription": "Ingiza namba ya mita yako ya huduma kama inavyoonekana kwenye bili yako",
+      "amount": "Kiasi",
+      "amountPlaceholder": "Namba nzima",
+      "amountDescription": "Ingiza kiasi cha malipo katika XLM nzima",
+      "payButton": "Lipa bili",
+      "processing": "Inachakatwa...",
+      "rateLimited": "Kikomo kimefikiwa",
+      "requiresExtension": "Inahitaji kiendelezi cha Freighter. Kikomo cha miamala 5 kwa dakika."
+    },
+    "status": {
+      "title": "Hali",
+      "ready": "Tayari.",
+      "installWallet": "Tafadhali sakinisha kiendelezi cha Freighter Wallet!",
+      "enterMeter": "Tafadhali ingiza namba ya mita.",
+      "enterValidAmount": "Tafadhali ingiza kiasi halali kikubwa kuliko 0.",
+      "wholeNumber": "Kiasi lazima kiwe namba nzima.",
+      "amountTooLarge": "Kiasi ni kikubwa sana.",
+      "insufficientBalance": "Salio haitoshi. Tafadhali ongeza XLM zaidi kwenye pochi yako.",
+      "estimatingFees": "Inakadiria ada za muamala... Tafadhali subiri.",
+      "estimationFailed": "Haikuweza kukadiria ada za muamala. Tafadhali jaribu tena.",
+      "paymentSuccess": "Malipo yamefaulu! Kitambulisho cha muamala: {{id}}...",
+      "paymentFailed": "Malipo yameshindwa: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "Makadirio ya Ada ya Muamala",
+      "calculating": "(Inahesabu...)",
+      "calculatingFees": "Inahesabu ada zilizokadiriwa...",
+      "paymentAmount": "Kiasi cha Malipo",
+      "estimatedNetworkFee": "Ada ya Mtandao Iliyokadiriwa",
+      "totalCost": "Gharama ya Jumla",
+      "unableToEstimate": "Haikuweza kukadiria ada kwa sasa"
+    },
+    "rateLimit": {
+      "title": "Hali ya Kikomo cha Kiwango",
+      "requestsAvailable": "{{count}}/5 maombi yanapatikana",
+      "rateLimited": "Kikomo kimefikiwa. Itawekwa upya baada ya {{time}}",
+      "queue": "Foleni: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "Salio la Pochi",
+      "available": "Salio Lipatikanalo",
+      "total": "Salio la Jumla",
+      "loading": "Inapakia salio...",
+      "error": "Imeshindwa kupakia salio",
+      "reconnect": "Tafadhali unganisha pochi yako tena",
+      "insufficient": "Salio haitoshi kwa muamala huu",
+      "lowBalance": "Onyo la salio la chini"
+    },
+    "connection": {
+      "connected": "Imeunganishwa",
+      "disconnected": "Haijaunganishwa",
+      "connecting": "Inaunganisha...",
+      "connectWallet": "Unganisha Pochi",
+      "switchWallet": "Badilisha Pochi"
+    }
+  },
+  "network": {
+    "mainnet": "MTANDAO MIKUU",
+    "testnet": "MTANDAO WA MAJARIBIO",
+    "switchNetwork": "Badilisha Mtandao",
+    "currentNetwork": "Mtandao wa Sasa",
+    "switchTo": "Badilisha hadi {{network}}?",
+    "mainnetWarning": "Onyo: Huu ni mtandao wa uzalishaji. Fedha halisi zitatumika.",
+    "testnetInfo": "Unabadilisha hadi Stellar Testnet. Miamala itatumia XLM za majaribio.",
+    "mainnetConfirm": "Uko karibu kubadilisha hadi Stellar Mainnet. Miamala itatumia XLM halisi.",
+    "cancel": "Ghairi",
+    "confirm": "Thibitisha"
+  },
+  "offline": {
+    "banner": {
+      "title": "Haupo mtandaoni",
+      "description": "Baadhi ya vipengele vinaweza visipatikane. Vitendo vitapangwa kwenye foleni na kushughulikiwa utakaporudi mtandaoni.",
+      "retry": "Jaribu Kuunganisha Tena",
+      "details": "Maelezo ya Muunganisho"
+    },
+    "status": {
+      "online": "Mtandaoni",
+      "offline": "Nje ya mtandao",
+      "connecting": "Inaunganisha...",
+      "queueStatus": "{{count}} kitendo kwenye foleni",
+      "queueStatus_plural": "{{count}} vitendo kwenye foleni"
+    },
+    "queue": {
+      "title": "Foleni ya Nje ya Mtandao",
+      "description": "Kitendo {{count}} kitashughulikiwa utakaporudi mtandaoni",
+      "description_plural": "Vitendo {{count}} vitashughulikiwa utakaporudi mtandaoni"
+    },
+    "error": {
+      "paymentOffline": "Malipo yamepangwa kwenye foleni utakaporudi mtandaoni",
+      "generalOffline": "Kitendo kimepangwa kwenye foleni utakaporudi mtandaoni"
+    }
+  },
+  "about": {
+    "title": "Kuhusu Wata-Board",
+    "description": "Wata-Board ni jukwaa la malipo ya huduma lililogatuliwa lililojengwa kwenye blockchain ya Stellar. Tunawezesha malipo salama, ya uwazi, na yenye ufanisi ya bili za huduma kwa kutumia sarafu ya crypto.",
+    "features": {
+      "title": "Vipengele Muhimu",
+      "secure": "Miamala Salama",
+      "secureDescription": "Imejengwa kwenye blockchain ya Stellar kwa usalama wa kiwango cha biashara",
+      "fast": "Malipo ya Haraka",
+      "fastDescription": "Malipo ya karibu papo hapo kwa ada za chini za muamala",
+      "transparent": "Rekodi za Uwazi",
+      "transparentDescription": "Miamala yote inarekodiwa kwenye blockchain ya umma",
+      "decentralized": "Iliyogatuliwa",
+      "decentralizedDescription": "Hakuna sehemu moja ya kushindwa au udhibiti"
+    },
+    "howItWorks": {
+      "title": "Inavyofanya Kazi",
+      "step1": "Unganisha pochi yako",
+      "step2": "Ingiza maelezo ya mita",
+      "step3": "Thibitisha malipo",
+      "step4": "Malipo yamechakatwa"
+    }
+  },
+  "contact": {
+    "title": "Wasiliana Nasi",
+    "description": "Wasiliana na timu yetu kwa usaidizi, maswali, au maoni.",
+    "form": {
+      "name": "Jina",
+      "namePlaceholder": "Ingiza jina lako",
+      "email": "Barua pepe",
+      "emailPlaceholder": "Ingiza barua pepe yako",
+      "subject": "Mada",
+      "subjectPlaceholder": "Ingiza mada",
+      "message": "Ujumbe",
+      "messagePlaceholder": "Ingiza ujumbe wako",
+      "sendButton": "Tuma Ujumbe",
+      "sending": "Inatuma..."
+    },
+    "info": {
+      "email": "Barua pepe",
+      "support": "Usaidizi",
+      "website": "Tovuti"
+    }
+  },
+  "rate": {
+    "title": "Pima Uzoefu Wako",
+    "description": "Tusaidie kuboresha kwa kupima uzoefu wako na Wata-Board.",
+    "rating": {
+      "excellent": "Bora kabisa",
+      "good": "Nzuri",
+      "average": "Wastani",
+      "poor": "Mbaya",
+      "terrible": "Mbaya sana"
+    },
+    "review": {
+      "title": "Andika Maoni",
+      "placeholder": "Shiriki uzoefu wako na Wata-Board...",
+      "submit": "Tuma Maoni",
+      "thankYou": "Asante kwa maoni yako!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "Hitilafu",
+      "unknown": "Hitilafu isiyojulikana imetokea",
+      "tryAgain": "Tafadhali jaribu tena",
+      "contactSupport": "Wasiliana na usaidizi ikiwa tatizo litaendelea"
+    },
+    "network": {
+      "title": "Hitilafu ya Mtandao",
+      "description": "Haikuweza kuunganisha kwenye mtandao",
+      "checkConnection": "Tafadhali angalia muunganisho wako wa intaneti"
+    },
+    "wallet": {
+      "title": "Hitilafu ya Pochi",
+      "notConnected": "Pochi haijaunganishwa",
+      "notInstalled": "Pochi ya Freighter haijasakinishwa",
+      "installFreighter": "Tafadhali sakinisha kiendelezi cha pochi cha Freighter"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "Ruka hadi kwenye maudhui makuu",
+    "skipToNavigation": "Ruka hadi kwenye urambazaji",
+    "menuToggle": "Badilisha menyu ya urambazaji",
+    "closeMenu": "Funga menyu",
+    "openMenu": "Fungua menyu",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Imefaulu",
+    "warning": "Onyo",
+    "info": "Taarifa"
+  },
+  "common": {
+    "cancel": "Ghairi",
+    "confirm": "Thibitisha",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "close": "Funga",
+    "back": "Nyuma",
+    "next": "Inayofuata",
+    "previous": "Iliyotangulia",
+    "submit": "Wasilisha",
+    "reset": "Weka upya",
+    "clear": "Futa",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "sort": "Panga",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Imefaulu",
+    "retry": "Jaribu tena",
+    "refresh": "Onyesha upya",
+    "copy": "Nakili",
+    "copied": "Imenakiliwa!",
+    "learnMore": "Jifunze Zaidi",
+    "viewDetails": "Angalia Maelezo",
+    "hideDetails": "Ficha Maelezo"
+  },
+  "time": {
+    "seconds": "sekunde",
+    "seconds_plural": "sekunde",
+    "minutes": "dakika",
+    "minutes_plural": "dakika",
+    "hours": "saa",
+    "hours_plural": "saa",
+    "days": "siku",
+    "days_plural": "siku",
+    "weeks": "wiki",
+    "weeks_plural": "wiki",
+    "months": "mwezi",
+    "months_plural": "miezi",
+    "years": "mwaka",
+    "years_plural": "miaka",
+    "ago": "{{time}} iliyopita",
+    "in": "katika {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "Sehemu hii inahitajika",
+    "invalid": "Muundo batili",
+    "tooShort": "Lazima iwe angalau herufi {{min}}",
+    "tooLong": "Lazima isizidi herufi {{max}}",
+    "invalidEmail": "Tafadhali ingiza anwani halali ya barua pepe",
+    "invalidNumber": "Tafadhali ingiza namba halali",
+    "minValue": "Lazima iwe angalau {{min}}",
+    "maxValue": "Lazima isizidi {{max}}"
+  }
+}
