@@ -2,7 +2,7 @@ import { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import type React from 'react';
 import SearchBar, { SearchFilters } from '../components/SearchBar';
-import SearchResults from '../components/SearchResults';
+import SearchResults, { SearchEmptyState } from '../components/SearchResults';
 
 export const dynamic = 'force-dynamic';
 
@@ -207,6 +207,18 @@ export default function SearchPage() {
 
   const renderGlobalResults = () => {
     if (!searchResults) return null;
+
+    const hasResults =
+      (searchResults.pets?.results?.length ?? 0) > 0 ||
+      (searchResults.vets?.results?.length ?? 0) > 0 ||
+      (searchResults.medicalRecords?.results?.length ?? 0) > 0 ||
+      (searchResults.emergencyServices?.results?.length ?? 0) > 0;
+
+    if (!hasResults) {
+      return (
+        <SearchEmptyState message="No results found across pets, vets, medical records, or emergency services" />
+      );
+    }
 
     return (
       <div className="space-y-8">
