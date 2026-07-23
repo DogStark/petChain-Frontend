@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { GetStaticProps, GetStaticPaths } from 'next';
+import { GetServerSideProps } from 'next';
 import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink, QrCode } from 'lucide-react';
 import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
 import { petAPI } from '@/lib/api/petAPI';
@@ -267,16 +267,16 @@ export default function ScanPage() {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  return {
-    paths: [],
-    fallback: 'blocking',
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+// This page's data (QR tag status, emergency contacts, medical notes) must
+// always be current — a deactivated tag or an edited emergency contact has
+// to show up on the very next scan. getServerSideProps forces a fresh
+// server render on every request instead of the static-generation +
+// revalidate:false combo this page used to have, which cached the first
+// scan's result forever. The actual data fetch still happens client-side
+// in useEffect above (via qrcodeAPI/petAPI), so this only needs to opt the
+// route out of static generation.
+export const getServerSideProps: GetServerSideProps = async () => {
   return {
     props: {},
-    revalidate: false,
   };
 };
