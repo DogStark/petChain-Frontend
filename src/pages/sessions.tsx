@@ -2,63 +2,17 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { userAPI, UserSession } from '../lib/api/userAPI';
 import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-interface Session {
-  id: string;
-  device: string;
-  location: string;
-  ip: string;
-  lastActive: string;
-  isCurrent: boolean;
-}
-
-// Mock API calls - replace with actual API integration
-const mockFetchSessions = async (): Promise<Session[]> => {
-  return [
-    {
-      id: '1',
-      device: 'Chrome on MacOS',
-      location: 'Lagos, Nigeria',
-      ip: '192.168.1.1',
-      lastActive: 'Active now',
-      isCurrent: true,
-    },
-    {
-      id: '2',
-      device: 'Safari on iPhone 15',
-      location: 'Abuja, Nigeria',
-      ip: '102.176.54.12',
-      lastActive: '4 hours ago',
-      isCurrent: false,
-    },
-    {
-      id: '3',
-      device: 'Firefox on Windows',
-      location: 'London, UK',
-      ip: '82.145.21.7',
-      lastActive: '2 days ago',
-      isCurrent: false,
-    },
-  ];
-};
-
-const mockRevokeSession = async (_sessionId: string): Promise<void> => {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-};
-
-const mockRevokeAllSessions = async (): Promise<void> => {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-};
-
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -70,27 +24,41 @@ export default function SessionsPage() {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const sessionsData = await mockFetchSessions();
+      setError(null);
+      const sessionsData = await userAPI.getAllSessions();
       setSessions(sessionsData);
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
+      const activeSessions = sessionsData.filter((s) => s.isActive);
+      if (activeSessions.length > 0) {
+        setCurrentSessionId(activeSessions[0].id);
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to load sessions';
+      setError(errorMsg);
+      console.error('Failed to load sessions:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRevoke = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to revoke this session?')) {
+    const isCurrent = sessionId === currentSessionId;
+    const confirmMsg = isCurrent
+      ? 'This will log you out of this device. Continue?'
+      : 'Are you sure you want to revoke this session?';
+
+    if (!confirm(confirmMsg)) {
       return;
     }
 
     try {
       setActionLoading(sessionId);
-      await mockRevokeSession(sessionId);
-      setSessions(sessions.filter((s) => s.id !== sessionId));
-    } catch (error) {
-      console.error('Failed to revoke session:', error);
-      alert('Failed to revoke session. Please try again.');
+      setError(null);
+      await userAPI.revokeSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to revoke session';
+      setError(errorMsg);
+      console.error('Failed to revoke session:', err);
     } finally {
       setActionLoading(null);
     }
@@ -103,11 +71,15 @@ export default function SessionsPage() {
 
     try {
       setActionLoading('all');
-      await mockRevokeAllSessions();
-      setSessions(sessions.filter((s) => s.isCurrent));
-    } catch (error) {
-      console.error('Failed to revoke all sessions:', error);
-      alert('Failed to revoke sessions. Please try again.');
+      setError(null);
+      if (currentSessionId) {
+        await userAPI.revokeOtherSessions(currentSessionId);
+        setSessions((prev) => prev.filter((s) => s.id === currentSessionId));
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to revoke sessions';
+      setError(errorMsg);
+      console.error('Failed to revoke all sessions:', err);
     } finally {
       setActionLoading(null);
     }
@@ -144,61 +116,76 @@ export default function SessionsPage() {
               </p>
             </div>
 
+            {error && (
+              <div className="p-6 bg-red-50 border-t border-red-200">
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
+
             {loading ? (
               <div className="p-6 text-center">
                 <div className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2">⏳</div>
                 <p className="text-gray-600">Loading sessions...</p>
               </div>
+            ) : sessions.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-gray-600">No active sessions found.</p>
+              </div>
             ) : (
               <div className="p-6">
                 <div className="space-y-4">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
-                    >
-                      <div className="flex items-start space--4">
-                        <div className="shrink-0">
-                          {session.isCurrent ? (
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                              <span className="text-green-600 font-semibold">✓</span>
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                              <span className="text-gray-600">📱</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {session.device}
-                            {session.isCurrent && (
-                              <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                Current
-                              </span>
-                            )}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {session.location} • {session.ip}
-                          </p>
-                          <p className="text-xs text-gray-500">Last active: {session.lastActive}</p>
-                        </div>
-                      </div>
+                  {sessions.map((session) => {
+                    const isCurrent = session.id === currentSessionId;
+                    const lastActive = session.lastActivityAt
+                      ? new Date(session.lastActivityAt).toLocaleDateString()
+                      : 'Never';
 
-                      {!session.isCurrent && (
-                        <button
-                          onClick={() => handleRevoke(session.id)}
-                          disabled={actionLoading === session.id}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
-                        >
-                          {actionLoading === session.id ? 'Revoking...' : 'Revoke'}
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    return (
+                      <div
+                        key={session.id}
+                        className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className="shrink-0">
+                            {isCurrent ? (
+                              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 font-semibold">✓</span>
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                <span className="text-gray-600">📱</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {session.deviceName || 'Unknown Device'}
+                              {isCurrent && (
+                                <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  Current
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-sm text-gray-600">{session.ipAddress}</p>
+                            <p className="text-xs text-gray-500">Last active: {lastActive}</p>
+                          </div>
+                        </div>
+
+                        {!isCurrent && (
+                          <button
+                            onClick={() => handleRevoke(session.id)}
+                            disabled={actionLoading === session.id}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                          >
+                            {actionLoading === session.id ? 'Revoking...' : 'Revoke'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {sessions.filter((s) => !s.isCurrent).length > 1 && (
+                {sessions.filter((s) => s.id !== currentSessionId && s.isActive).length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <button
                       onClick={handleRevokeAll}
