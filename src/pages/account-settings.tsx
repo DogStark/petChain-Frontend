@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
+import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
 import { GetServerSideProps } from 'next';
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [complianceActivities, setComplianceActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +73,7 @@ export default function AccountSettingsPage() {
     try {
       setIsLoading(true);
       await userAPI.deactivateAccount();
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to deactivate account');
       throw err;
@@ -83,6 +86,7 @@ export default function AccountSettingsPage() {
     try {
       setIsLoading(true);
       await userAPI.deleteAccount();
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to delete account');
       throw err;
