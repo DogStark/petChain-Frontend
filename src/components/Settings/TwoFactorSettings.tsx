@@ -5,7 +5,7 @@ import TwoFactorSetup from './TwoFactorSetup';
 import TwoFactorRecovery from './TwoFactorRecovery';
 
 export default function TwoFactorSettings() {
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [backupCodesCount, setBackupCodesCount] = useState(0);
   const [showSetup, setShowSetup] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
@@ -14,11 +14,13 @@ export default function TwoFactorSettings() {
   const [newBackupCodes, setNewBackupCodes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showBackupCodesTotpPrompt, setShowBackupCodesTotpPrompt] = useState(false);
+  const [backupCodesTotpToken, setBackupCodesTotpToken] = useState('');
   const { tokens } = useAuth();
 
   useEffect(() => {
-    loadStatus();
-  }, []);
+    if (tokens?.accessToken) loadStatus();
+  }, [tokens?.accessToken]);
 
   const loadStatus = async () => {
     if (!tokens?.accessToken) return;
@@ -50,16 +52,23 @@ export default function TwoFactorSettings() {
     }
   };
 
-  const handleGenerateBackupCodes = async () => {
-    if (!tokens?.accessToken) return;
+  const handleGenerateBackupCodes = () => {
+    setShowBackupCodesTotpPrompt(true);
+    setError('');
+  };
+
+  const handleConfirmBackupCodesGeneration = async () => {
+    if (!tokens?.accessToken || !backupCodesTotpToken) return;
 
     setIsLoading(true);
     setError('');
 
     try {
-      const data = await twoFactorAPI.generateBackupCodes(tokens.accessToken);
+      const data = await twoFactorAPI.generateBackupCodes(backupCodesTotpToken);
       setNewBackupCodes(data.backupCodes);
       setBackupCodesCount(data.backupCodes.length);
+      setShowBackupCodesTotpPrompt(false);
+      setBackupCodesTotpToken('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate backup codes');
     } finally {
@@ -88,6 +97,18 @@ export default function TwoFactorSettings() {
         }}
         onCancel={() => setShowRecovery(false)}
       />
+    );
+  }
+
+  if (isEnabled === null) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border border-gray-300 border-t-blue-600"></div>
+          <p className="ml-3 text-gray-600">Loading 2FA status...</p>
+        </div>
+      </div>
     );
   }
 
@@ -156,6 +177,45 @@ export default function TwoFactorSettings() {
                 <button
                   onClick={() => setShowDisable(false)}
                   className="bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showBackupCodesTotpPrompt && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+              <h4 className="font-medium text-sm mb-2 text-yellow-800">⚠️ Regenerate Backup Codes</h4>
+              <p className="text-xs text-yellow-700 mb-4">
+                This action will invalidate all existing backup codes. Enter your authenticator code to confirm.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Authenticator Code</label>
+                <input
+                  type="text"
+                  value={backupCodesTotpToken}
+                  onChange={(e) => setBackupCodesTotpToken(e.target.value)}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmBackupCodesGeneration}
+                  disabled={isLoading || !backupCodesTotpToken}
+                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isLoading ? 'Confirming...' : 'Confirm & Generate'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBackupCodesTotpPrompt(false);
+                    setBackupCodesTotpToken('');
+                    setError('');
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
                 >
                   Cancel
                 </button>
