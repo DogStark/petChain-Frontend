@@ -47,6 +47,7 @@ interface PrivacySettingsProps {
     };
   }) => Promise<void>;
   onRevokeLink?: (id: string) => Promise<void>;
+  onDirtyChange?: (isDirty: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -56,6 +57,7 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   sharingLinks = [],
   onSubmit,
   onRevokeLink,
+  onDirtyChange,
   isLoading = false,
 }) => {
   const [privacySettings, setPrivacySettings] = useState({
@@ -100,31 +102,44 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [policyAcceptedAt, setPolicyAcceptedAt] = useState<string | null>(null);
+  const [savedPrivacySettings, setSavedPrivacySettings] = useState(privacySettings);
+  const [savedProfileSettings, setSavedProfileSettings] = useState(profileSettings);
 
   useEffect(() => {
     const localAccepted = localStorage.getItem('petchainPolicyAcceptedAt');
     if (localAccepted) setPolicyAcceptedAt(localAccepted);
 
     if (settings) {
-      setPrivacySettings({
+      const newSettings = {
         showEmail: settings.showEmail ?? false,
         showPhone: settings.showPhone ?? false,
         showActivity: settings.showActivity ?? false,
-      });
+      };
+      setPrivacySettings(newSettings);
+      setSavedPrivacySettings(newSettings);
     }
     if (preferences) {
-      setProfileSettings({
+      const newProfileSettings = {
         profilePublic: preferences.profilePublic ?? true,
         dataShareConsent: preferences.dataShareConsent ?? false,
         preferredLanguage: preferences.preferredLanguage ?? 'en',
         timezone: preferences.timezone ?? 'UTC',
-      });
+      };
+      setProfileSettings(newProfileSettings);
+      setSavedProfileSettings(newProfileSettings);
     }
   }, [settings, preferences]);
 
   useEffect(() => {
     setLinks(sharingLinks);
   }, [sharingLinks]);
+
+  useEffect(() => {
+    const isDirty =
+      JSON.stringify(privacySettings) !== JSON.stringify(savedPrivacySettings) ||
+      JSON.stringify(profileSettings) !== JSON.stringify(savedProfileSettings);
+    onDirtyChange?.(isDirty);
+  }, [privacySettings, profileSettings, savedPrivacySettings, savedProfileSettings, onDirtyChange]);
 
   const toggle = <T extends Record<string, boolean>>(
     setter: React.Dispatch<React.SetStateAction<T>>,
@@ -144,6 +159,8 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
         zkpPreferences,
         emergencyAccess,
       });
+      setSavedPrivacySettings(privacySettings);
+      setSavedProfileSettings(profileSettings);
       if (profileSettings.dataShareConsent) {
         const acceptedAt = new Date().toISOString();
         localStorage.setItem('petchainPolicyAcceptedAt', acceptedAt);
