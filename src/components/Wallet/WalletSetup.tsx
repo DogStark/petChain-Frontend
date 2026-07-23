@@ -98,6 +98,7 @@ export default function WalletSetup({
   onClearError,
 }: Props) {
   const [tab, setTab] = useState<Tab>('create');
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Create form
   const [createLabel, setCreateLabel] = useState('');
@@ -133,8 +134,12 @@ export default function WalletSetup({
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
+    setFormError(null);
     const err = validateCreate();
-    if (err) return;
+    if (err) {
+      setFormError(err);
+      return;
+    }
     try {
       await onCreateWallet(createLabel.trim(), createPin);
       setCreateSuccess(true);
@@ -149,8 +154,12 @@ export default function WalletSetup({
   async function handleImport(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
+    setFormError(null);
     const err = validateImport();
-    if (err) return;
+    if (err) {
+      setFormError(err);
+      return;
+    }
     try {
       await onImportWallet(importSecretKey, importLabel.trim(), importPin);
       setImportSuccess(true);
@@ -183,10 +192,10 @@ export default function WalletSetup({
         ))}
       </div>
 
-      {error && (
+      {(error || formError) && (
         <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
           <AlertTriangle size={16} className="flex-shrink-0" />
-          {error}
+          {formError || error}
         </div>
       )}
 
@@ -227,9 +236,6 @@ export default function WalletSetup({
             label="Confirm PIN"
             placeholder="Re-enter PIN…"
           />
-          {createPin && createPinConfirm && createPin !== createPinConfirm && (
-            <p className="text-xs text-red-500">PINs do not match.</p>
-          )}
           <button
             type="submit"
             disabled={loading}
@@ -271,9 +277,6 @@ export default function WalletSetup({
             label="Confirm PIN"
             placeholder="Re-enter PIN…"
           />
-          {importPin && importPinConfirm && importPin !== importPinConfirm && (
-            <p className="text-xs text-red-500">PINs do not match.</p>
-          )}
           <button
             type="submit"
             disabled={loading}
