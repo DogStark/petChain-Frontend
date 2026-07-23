@@ -15,6 +15,7 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
   const [totpToken, setTotpToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [codesAcknowledged, setCodesAcknowledged] = useState(false);
   const { tokens } = useAuth();
 
   const handleSetup = async () => {
@@ -114,10 +115,22 @@ export default function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupP
         </div>
       </div>
 
+      <div className="mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={codesAcknowledged}
+            onChange={(e) => setCodesAcknowledged(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <span className="text-sm text-gray-700">I have saved my backup codes</span>
+        </label>
+      </div>
+
       <div className="flex gap-3">
         <button
           onClick={handleEnable}
-          disabled={isLoading || !totpToken}
+          disabled={isLoading || !totpToken || !codesAcknowledged}
           className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
         >
           {isLoading ? 'Enabling...' : 'Enable 2FA'}

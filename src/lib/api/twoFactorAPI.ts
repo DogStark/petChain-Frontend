@@ -54,8 +54,8 @@ class TwoFactorAPI {
     return response.data;
   }
 
-  async generateBackupCodes(): Promise<{ backupCodes: string[] }> {
-    const response = await this.api.post('/backup-codes');
+  async generateBackupCodes(totpToken?: string): Promise<{ backupCodes: string[] }> {
+    const response = await this.api.post('/backup-codes', totpToken ? { token: totpToken } : {});
     return response.data;
   }
 
