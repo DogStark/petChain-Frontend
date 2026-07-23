@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,12 +9,13 @@ import { GetServerSideProps } from 'next';
 export const dynamic = 'force-dynamic';
 
 export default function SessionsPage() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -54,7 +56,13 @@ export default function SessionsPage() {
       setActionLoading(sessionId);
       setError(null);
       await userAPI.revokeSession(sessionId);
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+
+      if (isCurrent) {
+        await logout();
+        router.push('/login?message=Session revoked. Please log in again.');
+      } else {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message || 'Failed to revoke session';
       setError(errorMsg);

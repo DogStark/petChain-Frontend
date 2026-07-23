@@ -38,14 +38,39 @@ export default function AccountSettingsPage() {
   }, [router]);
 
   const handleRevokeSession = async (sessionId: string) => {
+    const currentSession = sessions.find((s) => s.isActive);
+    if (!currentSession) {
+      setError('Unable to determine current session');
+      return;
+    }
+
+    const isSelfRevoke = sessionId === currentSession.id;
+    const confirmMsg = isSelfRevoke
+      ? 'This will log you out of this device. Continue?'
+      : 'Are you sure you want to revoke this session?';
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       await userAPI.revokeSession(sessionId);
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, isActive: false } : s)));
-      setError(null);
+
+      if (isSelfRevoke) {
+        setError(null);
+        setTimeout(() => {
+          window.location.href = '/login?message=Session revoked. Please log in again.';
+        }, 500);
+      } else {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, isActive: false } : s)),
+        );
+        setError(null);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to revoke session');
-      throw err;
+      console.error('Failed to revoke session:', err);
     } finally {
       setIsLoading(false);
     }
