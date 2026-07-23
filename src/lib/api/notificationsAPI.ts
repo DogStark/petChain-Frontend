@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import type { NotificationPreferences } from '@/types/notification';
 
 export type NotificationCategory =
   | 'APPOINTMENT'
@@ -45,6 +46,64 @@ export interface Notification {
 export interface RegisterDeviceTokenDto {
   token: string;
   platform?: string;
+}
+
+// The backend's notification_settings table only stores per-category
+// booleans (+ a global switch) — it has no columns for sound/vibration/
+// browserPush/DND, which stay client-only (localStorage). This maps
+// between that DTO and the frontend's NotificationPreferences.categories.
+export interface NotificationSettingsDto {
+  globalEnabled?: boolean;
+  appointment?: boolean;
+  medication?: boolean;
+  consultation?: boolean;
+  alert?: boolean;
+  message?: boolean;
+  vaccination?: boolean;
+  lostPet?: boolean;
+  medicalRecord?: boolean;
+  system?: boolean;
+}
+
+const CATEGORY_TO_SETTINGS_FIELD: Record<
+  keyof NotificationPreferences['categories'],
+  keyof Omit<NotificationSettingsDto, 'globalEnabled'>
+> = {
+  APPOINTMENT: 'appointment',
+  MEDICATION: 'medication',
+  CONSULTATION: 'consultation',
+  ALERT: 'alert',
+  MESSAGE: 'message',
+  VACCINATION: 'vaccination',
+  LOST_PET: 'lostPet',
+  MEDICAL_RECORD: 'medicalRecord',
+  SYSTEM: 'system',
+};
+
+function categoriesToSettingsDto(
+  categories: NotificationPreferences['categories']
+): NotificationSettingsDto {
+  const dto: NotificationSettingsDto = {};
+  (
+    Object.keys(CATEGORY_TO_SETTINGS_FIELD) as (keyof NotificationPreferences['categories'])[]
+  ).forEach((category) => {
+    dto[CATEGORY_TO_SETTINGS_FIELD[category]] = categories[category];
+  });
+  return dto;
+}
+
+function settingsDtoToCategories(
+  dto: NotificationSettingsDto,
+  fallback: NotificationPreferences['categories']
+): NotificationPreferences['categories'] {
+  const categories = { ...fallback };
+  (
+    Object.keys(CATEGORY_TO_SETTINGS_FIELD) as (keyof NotificationPreferences['categories'])[]
+  ).forEach((category) => {
+    const value = dto[CATEGORY_TO_SETTINGS_FIELD[category]];
+    if (typeof value === 'boolean') categories[category] = value;
+  });
+  return categories;
 }
 
 class NotificationsAPI {
@@ -93,6 +152,26 @@ class NotificationsAPI {
 
   async removeDeviceToken(userId: string, token: string): Promise<void> {
     await this.api.delete(`/${userId}/device-tokens/${token}`);
+  }
+
+  /**
+   * Fetches the server's category settings and merges them into `fallback`
+   * (the locally cached preferences), so client-only fields the backend
+   * doesn't store (sound, vibration, browserPush, DND) are preserved.
+   */
+  async getPreferences(
+    userId: string,
+    fallback: NotificationPreferences
+  ): Promise<NotificationPreferences> {
+    const response = await this.api.get<NotificationSettingsDto>(`/${userId}/settings`);
+    return {
+      ...fallback,
+      categories: settingsDtoToCategories(response.data, fallback.categories),
+    };
+  }
+
+  async updatePreferences(userId: string, preferences: NotificationPreferences): Promise<void> {
+    await this.api.patch(`/${userId}/settings`, categoriesToSettingsDto(preferences.categories));
   }
 }
 
