@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
 import { Shield, AlertTriangle, Activity, Users, Clock, CheckCircle, XCircle, Home, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SecurityMetrics {
   totalEvents: number;
@@ -40,11 +41,18 @@ interface RealTimeAlert {
 
 export default function SecurityDashboard() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
   const [alerts, setAlerts] = useState<RealTimeAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
   const [activeTab, setActiveTab] = useState('events');
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to log out?')) {
+      await logout();
+    }
+  };
 
   useEffect(() => {
     fetchSecurityData();
@@ -135,7 +143,7 @@ export default function SecurityDashboard() {
                 <Link href="/settings" className="text-gray-700 hover:text-gray-900">
                   <Settings className="h-5 w-5" />
                 </Link>
-                <button className="text-red-600 hover:text-red-500">
+                <button onClick={handleLogout} className="text-red-600 hover:text-red-500">
                   <LogOut className="h-5 w-5" />
                 </button>
               </div>
@@ -168,7 +176,7 @@ export default function SecurityDashboard() {
                 <Settings className="h-5 w-5" />
                 <span>Settings</span>
               </Link>
-              <button className="text-red-600 hover:text-red-500 flex items-center space-x-1">
+              <button onClick={handleLogout} className="text-red-600 hover:text-red-500 flex items-center space-x-1">
                 <LogOut className="h-5 w-5" />
                 <span>Logout</span>
               </button>
