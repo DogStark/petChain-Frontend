@@ -354,16 +354,24 @@ class UserManagementAPI {
   }
 
   // Account endpoints
-  async deactivateAccount(): Promise<void> {
-    await this.api.post('/me/deactivate');
+  async deactivateAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.post('/me/deactivate', body);
   }
 
   async reactivateAccount(): Promise<void> {
     await this.api.post('/me/reactivate');
   }
 
-  async deleteAccount(): Promise<void> {
-    await this.api.delete('/me');
+  async deleteAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.delete('/me', { data: body });
   }
 
   async exportData(): Promise<any> {
