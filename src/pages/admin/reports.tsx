@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Download, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
+import { Printer, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 // Import Charts with dynamic loading
@@ -195,8 +195,8 @@ export default function AdminReports() {
                             onClick={handlePrint}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-95"
                         >
-                            <Download className="w-5 h-5" />
-                            Export Data
+                            <Printer className="w-5 h-5" />
+                            Print Report
                         </button>
                     </div>
 
@@ -405,9 +405,6 @@ export default function AdminReports() {
                             <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-bold text-slate-800">Automated Report Deliveries</h3>
-                                    <button className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800">
-                                        + New Schedule
-                                    </button>
                                 </div>
 
                                 <div className="overflow--auto">
@@ -418,7 +415,6 @@ export default function AdminReports() {
                                                 <th className="py-4 font-semibold text-slate-500">Frequency</th>
                                                 <th className="py-4 font-semibold text-slate-500">Recipients</th>
                                                 <th className="py-4 font-semibold text-slate-500">Next Run</th>
-                                                <th className="py-4 font-semibold text-slate-500 text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -434,9 +430,6 @@ export default function AdminReports() {
                                                     </td>
                                                     <td className="py-4 text-slate-600">{report.rec}</td>
                                                     <td className="py-4 text-slate-600">{report.next}</td>
-                                                    <td className="py-4 text-right">
-                                                        <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">Edit</button>
-                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
