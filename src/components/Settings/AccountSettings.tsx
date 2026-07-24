@@ -12,6 +12,8 @@ interface Session {
   expiresAt: string;
   lastActivityAt?: string;
   isActive: boolean;
+  /** True when this session corresponds to the browser currently viewing this page. */
+  isCurrentSession: boolean;
 }
 
 interface AccountSettingsProps {
@@ -52,7 +54,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleRevokeSession = async (sessionId: string) => {
-    const currentSession = sessions.find((s) => s.isActive);
+    const currentSession = sessions.find((s) => s.isCurrentSession);
     if (!currentSession) return;
 
     const isSelfRevoke = sessionId === currentSession.id;
@@ -77,7 +79,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   };
 
   const handleRevokeOthers = async () => {
-    const currentSession = sessions.find((s) => s.isActive);
+    const currentSession = sessions.find((s) => s.isCurrentSession);
     if (!currentSession) return;
 
     setIsSubmitting(true);
@@ -205,11 +207,14 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                 {sessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`${styles.sessionItem} ${session.isActive ? styles.active : ''}`}
+                    className={`${styles.sessionItem} ${session.isActive ? styles.active : ''} ${session.isCurrentSession ? styles.currentSession : ''}`}
                   >
                     <div className={styles.sessionInfo}>
                       <div className={styles.deviceName}>
                         {getDeviceName(session)}
+                        {session.isCurrentSession && (
+                          <span className={styles.currentBadge}>This device</span>
+                        )}
                         {!session.isActive && <span className={styles.badge}>Revoked</span>}
                       </div>
                       <div className={styles.sessionDetails}>
