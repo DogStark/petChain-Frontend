@@ -60,10 +60,19 @@ class WalletService {
   private network: WalletNetwork;
   private server: StellarSdk.Horizon.Server;
   private pinAttempts: Map<string, { count: number; lastAttemptTime: number }> = new Map();
+  private serverCache: Map<WalletNetwork, StellarSdk.Horizon.Server> = new Map();
 
   constructor() {
     this.network = getNetwork();
     this.server = new StellarSdk.Horizon.Server(getHorizonUrl(this.network));
+    this.serverCache.set(this.network, this.server);
+  }
+
+  private getServerFor(network: WalletNetwork): StellarSdk.Horizon.Server {
+    if (!this.serverCache.has(network)) {
+      this.serverCache.set(network, new StellarSdk.Horizon.Server(getHorizonUrl(network)));
+    }
+    return this.serverCache.get(network)!;
   }
 
   // ─── Key Generation ──────────────────────────────────────────────────────────
@@ -179,8 +188,10 @@ class WalletService {
 
   // ─── Balance Monitoring ───────────────────────────────────────────────────────
 
-  async fetchAccountData(publicKey: string): Promise<WalletMonitoringData> {
-    const account = await this.server.loadAccount(publicKey);
+  async fetchAccountData(publicKey: string, network?: WalletNetwork): Promise<WalletMonitoringData> {
+    const targetNetwork = network || this.network;
+    const server = this.getServerFor(targetNetwork);
+    const account = await server.loadAccount(publicKey);
     return {
       publicKey,
       balances: account.balances as WalletBalance[],
@@ -223,7 +234,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const asset =
       tx.asset === 'XLM'
@@ -248,7 +260,7 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
     return this.normalizeBroadcastResult(result);
   }
@@ -262,7 +274,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const builder = new StellarSdk.TransactionBuilder(account, {
       fee: StellarSdk.BASE_FEE,
@@ -290,7 +303,7 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
     // Persist updated wallet type
     this.persistWallet({ ...wallet, type: 'multisig' });
@@ -305,7 +318,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const transaction = new StellarSdk.TransactionBuilder(account, {
       fee: StellarSdk.BASE_FEE,
@@ -320,7 +334,7 @@ class WalletService {
       .build();
 
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
     return this.normalizeBroadcastResult(result);
   }
@@ -357,6 +371,14 @@ class WalletService {
     // Verify PIN decrypts correctly
     await decryptSecretKey(backup.encryptedKey, backup.iv, backup.salt, pin);
 
+    const backupNetwork = backup.network as WalletNetwork;
+    if (backupNetwork !== this.network) {
+      console.warn(
+        `Importing wallet from ${backupNetwork} network while app is configured for ${this.network}. ` +
+        `Wallet will be routed to the correct Horizon server based on its network.`
+      );
+    }
+
     const wallet: WalletAccount = {
       id: `wallet_${randomUUID()}`,
       publicKey: backup.publicKey,
@@ -365,7 +387,7 @@ class WalletService {
       salt: backup.salt,
       label: backup.label,
       type: 'standard',
-      network: backup.network as WalletNetwork,
+      network: backupNetwork,
       createdAt: backup.createdAt,
       backupVerified: true,
     };
@@ -376,8 +398,9 @@ class WalletService {
 
   // ─── Testnet Funding ──────────────────────────────────────────────────────────
 
-  async fundTestnetAccount(publicKey: string): Promise<void> {
-    if (this.network !== 'TESTNET') {
+  async fundTestnetAccount(publicKey: string, network?: WalletNetwork): Promise<void> {
+    const targetNetwork = network || this.network;
+    if (targetNetwork !== 'TESTNET') {
       throw new Error('Friendbot is only available on Testnet.');
     }
     const res = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`);
