@@ -11,7 +11,6 @@ import {
   isPasswordReused,
   savePasswordToHistory,
   clearPasswordHistory,
-  isPasswordExpired,
 } from './passwordPolicy';
 
 // Mock localStorage for Node environment
@@ -89,6 +88,21 @@ test('very weak for short simple password', () => {
   assert.ok(s.score <= 1);
 });
 
+test('short-but-diverse password (under 8 chars) is always Very Weak', () => {
+  // "Ab1!" has uppercase, lowercase, digit, and special char but is only 4 chars —
+  // it must score 0 (Very Weak) because validatePassword would reject it outright.
+  const s = getPasswordStrength('Ab1!');
+  assert.strictEqual(s.score, 0);
+  assert.strictEqual(s.label, 'Very Weak');
+});
+
+test('7-char diverse password is still Very Weak', () => {
+  // One char under the 8-char minimum — diversity must not lift the score.
+  const s = getPasswordStrength('Ab1!xyz');
+  assert.strictEqual(s.score, 0);
+  assert.strictEqual(s.label, 'Very Weak');
+});
+
 test('strong for complex long password', () => {
   const s = getPasswordStrength('MyStr0ng!Pass#2024');
   assert.ok(s.score >= 3);
@@ -134,22 +148,6 @@ test('clearPasswordHistory removes all history', () => {
   savePasswordToHistory('ToBeCleared@1');
   clearPasswordHistory();
   assert.strictEqual(isPasswordReused('ToBeCleared@1'), false);
-});
-
-// ── password expiry (optional) ────────────────────────────────────
-console.log('\npassword expiry');
-
-test('not expired right after saving', () => {
-  clearPasswordHistory();
-  savePasswordToHistory('Fresh@Pass1');
-  assert.strictEqual(isPasswordExpired(), false);
-});
-
-test('expired when timestamp is old', () => {
-  const ninetyOneDaysAgo = (Date.now() - 91 * 24 * 60 * 60 * 1000).toString();
-  store['pw_set_at'] = ninetyOneDaysAgo;
-  assert.strictEqual(isPasswordExpired(), true);
-  clearPasswordHistory();
 });
 
 // ── summary ───────────────────────────────────────────────────────

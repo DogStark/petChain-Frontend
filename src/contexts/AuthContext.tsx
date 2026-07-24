@@ -241,7 +241,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshToken: data.refreshToken,
       });
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
+      const message = error instanceof Error ? error.message : 'Login failed';
+      // Preserve the 2FA sentinel so the caller can branch on it; normalise everything else
+      // to avoid leaking account-state details (user enumeration).
+      setError(message === '2FA_REQUIRED' ? message : 'Invalid email or password. Please try again.');
       throw error;
     } finally {
       setLoading(false);

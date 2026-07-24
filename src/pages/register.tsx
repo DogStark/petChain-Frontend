@@ -36,7 +36,11 @@ export default function RegisterPage() {
 
     if (!formData.firstName.trim()) next.firstName = 'First name is required';
     if (!formData.lastName.trim()) next.lastName = 'Last name is required';
-    if (!formData.email.trim()) next.email = 'Email is required';
+    if (!formData.email.trim()) {
+      next.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      next.email = 'Enter a valid email address';
+    }
     if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
       next.phone = 'Enter a valid phone number in international format';
     }

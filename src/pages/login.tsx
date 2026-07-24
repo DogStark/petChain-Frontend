@@ -32,10 +32,7 @@ export default function LoginPage() {
       if (err instanceof Error && err.message === '2FA_REQUIRED') {
         setShow2FA(true);
       } else {
-        const msg = err instanceof Error ? err.message : 'Login failed';
-        setError(
-          msg === 'Invalid credentials' ? 'Invalid email or password. Please try again.' : msg
-        );
+        setError('Invalid email or password. Please try again.');
       }
     } finally {
       setIsLoading(false);
