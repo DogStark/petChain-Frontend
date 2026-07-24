@@ -14,10 +14,10 @@ interface Pet {
   age: number;
   location: string;
   status: string;
-  owner: {
+  owner?: {
     firstName: string;
     lastName: string;
-  };
+  } | null;
 }
 
 interface Vet {
@@ -36,10 +36,10 @@ interface MedicalRecord {
   treatment: string;
   recordDate: string;
   vetName: string;
-  pet: {
+  pet?: {
     name: string;
     breed: string;
-  };
+  } | null;
 }
 
 interface EmergencyService {
@@ -122,9 +122,11 @@ export default function SearchPage() {
             {pet.breed} • {pet.species} • {pet.age} years old
           </p>
           <p className="text-sm text-gray-500 mt-1">📍 {pet.location}</p>
-          <p className="text-xs text-gray-500 mt-1">
-            Owner: {pet.owner.firstName} {pet.owner.lastName}
-          </p>
+          {pet.owner && (
+            <p className="text-xs text-gray-500 mt-1">
+              Owner: {pet.owner.firstName} {pet.owner.lastName}
+            </p>
+          )}
         </div>
         <span
           className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -171,9 +173,11 @@ export default function SearchPage() {
           </span>
         </div>
         <p className="text-sm text-gray-600 mb-2">Treatment: {record.treatment}</p>
-        <p className="text-sm text-gray-500">
-          Pet: {record.pet.name} ({record.pet.breed})
-        </p>
+        {record.pet && (
+          <p className="text-sm text-gray-500">
+            Pet: {record.pet.name} ({record.pet.breed})
+          </p>
+        )}
         <p className="text-xs text-gray-500 mt-1">Vet: {record.vetName}</p>
       </div>
     </div>

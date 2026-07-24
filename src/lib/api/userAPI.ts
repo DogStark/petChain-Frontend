@@ -10,6 +10,14 @@ export type OnboardingStepId =
   | 'notifications'
   | 'explore';
 
+export const ONBOARDING_STEP_IDS: OnboardingStepId[] = [
+  'welcome',
+  'profile_setup',
+  'add_pet',
+  'notifications',
+  'explore',
+];
+
 export interface OnboardingStep {
   id: OnboardingStepId;
   title: string;

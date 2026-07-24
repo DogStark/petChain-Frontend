@@ -13,7 +13,12 @@ import {
   Search,
   Shield,
 } from 'lucide-react';
-import { OnboardingStatus, OnboardingStepId, OnboardingAnalytics } from '../../lib/api/userAPI';
+import {
+  OnboardingStatus,
+  OnboardingStepId,
+  OnboardingAnalytics,
+  ONBOARDING_STEP_IDS,
+} from '../../lib/api/userAPI';
 import styles from './OnboardingFlow.module.css';
 
 interface OnboardingFlowProps {
@@ -24,13 +29,18 @@ interface OnboardingFlowProps {
   onFinish: () => void;
 }
 
-const STEPS: { id: OnboardingStepId; label: string }[] = [
-  { id: 'welcome', label: 'Welcome' },
-  { id: 'profile_setup', label: 'Profile' },
-  { id: 'add_pet', label: 'Your Pet' },
-  { id: 'notifications', label: 'Alerts' },
-  { id: 'explore', label: 'Explore' },
-];
+const STEP_LABELS: Record<OnboardingStepId, string> = {
+  welcome: 'Welcome',
+  profile_setup: 'Profile',
+  add_pet: 'Your Pet',
+  notifications: 'Alerts',
+  explore: 'Explore',
+};
+
+const STEPS: { id: OnboardingStepId; label: string }[] = ONBOARDING_STEP_IDS.map((id) => ({
+  id,
+  label: STEP_LABELS[id],
+}));
 
 /** Pulls a human-readable message out of an unknown error, falling back to a default. */
 function getErrorMessage(err: unknown, fallback: string): string {
