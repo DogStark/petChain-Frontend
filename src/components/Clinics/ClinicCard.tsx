@@ -40,9 +40,14 @@ export default function ClinicCard({ clinic }: ClinicCardProps) {
 
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
           <MapPin className="w-3.5 h-3.5 text-pink-500" />
-          <span className="truncate">
-            {clinic.locations[0].city} (plus {clinic.locations.length - 1} more)
-          </span>
+          {clinic.locations.length > 0 ? (
+            <span className="truncate">
+              {clinic.locations[0].city}
+              {clinic.locations.length > 1 && ` (plus ${clinic.locations.length - 1} more)`}
+            </span>
+          ) : (
+            <span className="truncate text-gray-400">Location unavailable</span>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
