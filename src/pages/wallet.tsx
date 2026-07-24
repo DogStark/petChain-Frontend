@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../hooks/useWallet';
+import { isTestnetNetwork } from '../lib/blockchain/network';
 import WalletDashboard from '../components/Wallet/WalletDashboard';
 import WalletSetup from '../components/Wallet/WalletSetup';
 import WalletBackup from '../components/Wallet/WalletBackup';
@@ -60,7 +61,7 @@ const NAV: NavItem[] = [
   },
 ];
 
-const IS_TESTNET = process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public';
+const IS_TESTNET = isTestnetNetwork();
 
 export default function WalletPage() {
   const router = useRouter();

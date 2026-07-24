@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, AlertTriangle, CheckCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { DecryptionError } from '../../lib/wallet/walletCrypto';
 import type { BackupData, WalletAccount } from '../../types/wallet';
 
 interface Props {
@@ -69,14 +70,9 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
       setPin('');
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
-      // Translate crypto error to user-friendly message
-      if (
-        err instanceof Error &&
-        (err.message.includes('decrypt') || err.message.includes('operation'))
-      ) {
+      if (err instanceof DecryptionError) {
         setParseError('Incorrect PIN. The backup cannot be decrypted with this PIN.');
       }
-      // other errors shown via hook
     }
   }
 

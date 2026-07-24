@@ -1,5 +1,6 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
+import { getStellarNetwork } from '../blockchain/network';
 import { randomUUID } from 'crypto';
 import type {
   WalletAccount,
@@ -35,7 +36,7 @@ function isValidWalletRecords(data: unknown): data is WalletAccount[] {
 }
 
 function getNetwork(): WalletNetwork {
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'PUBLIC' : 'TESTNET';
+  return getStellarNetwork();
 }
 
 function getHorizonUrl(network: WalletNetwork): string {
