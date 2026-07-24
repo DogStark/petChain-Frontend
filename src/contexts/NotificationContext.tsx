@@ -54,6 +54,7 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'SET_NOTIFICATIONS':
       return { ...state, notifications: action.payload };
     case 'ADD_NOTIFICATION':
+      if (state.notifications.some((n) => n.id === action.payload.id)) return state;
       return {
         ...state,
         notifications: [action.payload, ...state.notifications],
@@ -188,6 +189,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(1000);
   const preferencesRef = useRef<NotificationPreferences>(loadPrefs());
+  const notificationsRef = useRef<AppNotification[]>([]);
 
   const [state, dispatch] = useReducer(reducer, {
     notifications: [],
@@ -207,6 +209,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     preferencesRef.current = state.preferences;
   }, [state.preferences]);
+
+  // Keep a ref in sync with the current notifications list so handleIncoming
+  // (which has stable deps) can perform de-duplication without a stale closure.
+  useEffect(() => {
+    notificationsRef.current = state.notifications;
+  }, [state.notifications]);
 
   // ── Load persisted + fetch from API ────────────────────────────────────────
   useEffect(() => {
@@ -321,6 +329,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Category filter
     if (!prefs.categories[notif.category as NotificationCategory]) return;
+
+    // De-duplicate: skip if this notification id is already present (e.g. rapid reconnects)
+    if (notificationsRef.current.some((n) => n.id === notif.id)) return;
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: notif });
 
