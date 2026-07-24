@@ -11,8 +11,6 @@ export interface PasswordValidationResult {
 
 const HISTORY_KEY = 'pw_history';
 const HISTORY_LIMIT = 5;
-const EXPIRY_DAYS = 90;
-const EXPIRY_KEY = 'pw_set_at';
 
 export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = [];
@@ -27,6 +25,13 @@ export function validatePassword(password: string): PasswordValidationResult {
 }
 
 export function getPasswordStrength(password: string): PasswordStrength {
+  // Any password that fails the minimum-length requirement is always Very Weak,
+  // regardless of character diversity. This prevents a short-but-diverse password
+  // (e.g. "Ab1!") from scoring as "Fair" when validatePassword would reject it.
+  if (password.length < 8) {
+    return { score: 0, label: 'Very Weak', color: '#ef4444' };
+  }
+
   let score = 0;
   if (password.length >= 8) score++;
   if (password.length >= 12) score++;
@@ -35,7 +40,7 @@ export function getPasswordStrength(password: string): PasswordStrength {
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
   // Clamp to 0-4
-  score = Math.min(4, Math.max(0, score - (password.length < 8 ? 1 : 0)));
+  score = Math.min(4, Math.max(0, score));
 
   const levels: PasswordStrength[] = [
     { score: 0, label: 'Very Weak', color: '#ef4444' },
@@ -70,19 +75,9 @@ export function savePasswordToHistory(password: string): void {
   const hash = simpleHash(password);
   const updated = [hash, ...history.filter((h) => h !== hash)].slice(0, HISTORY_LIMIT);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-  localStorage.setItem(EXPIRY_KEY, Date.now().toString());
-}
-
-export function isPasswordExpired(): boolean {
-  if (typeof window === 'undefined') return false;
-  const setAt = localStorage.getItem(EXPIRY_KEY);
-  if (!setAt) return false;
-  const elapsed = Date.now() - parseInt(setAt, 10);
-  return elapsed > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 }
 
 export function clearPasswordHistory(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(HISTORY_KEY);
-  localStorage.removeItem(EXPIRY_KEY);
 }
