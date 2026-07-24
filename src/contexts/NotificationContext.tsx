@@ -187,6 +187,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(1000);
+  const intentionalClose = useRef(false);
   const preferencesRef = useRef<NotificationPreferences>(loadPrefs());
 
   const [state, dispatch] = useReducer(reducer, {
@@ -248,6 +249,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // ── WebSocket ───────────────────────────────────────────────────────────────
   const connectWS = useCallback(() => {
     if (!isAuthenticated || !user) return;
+    intentionalClose.current = false;
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) return; // gracefully skip if not configured
 
@@ -281,11 +283,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       ws.onclose = () => {
         dispatch({ type: 'SET_CONNECTED', value: false });
-        // Exponential back-off reconnect
-        reconnectTimer.current = setTimeout(() => {
-          reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
-          connectWS();
-        }, reconnectDelay.current);
+        if (!intentionalClose.current) {
+          // Exponential back-off reconnect
+          reconnectTimer.current = setTimeout(() => {
+            reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
+            connectWS();
+          }, reconnectDelay.current);
+        }
       };
 
       ws.onerror = () => ws.close();
@@ -297,6 +301,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     connectWS();
     return () => {
+      intentionalClose.current = true;
       wsRef.current?.close();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
