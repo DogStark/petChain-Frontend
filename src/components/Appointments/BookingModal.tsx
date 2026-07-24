@@ -57,9 +57,9 @@ export default function BookingModal({ onClose }: BookingModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
-    pet_id: '',
-    vet_id: '',
-    appointment_type: 'Checkup' as AppointmentType,
+    petId: '',
+    vetId: '',
+    appointmentType: 'Checkup' as AppointmentType,
     date: '',
     time: '09:00',
     notes: '',
@@ -70,8 +70,8 @@ export default function BookingModal({ onClose }: BookingModalProps) {
 
   const validate = () => {
     const next: Record<string, string> = {};
-    if (!formData.pet_id) next.pet_id = 'Please select a pet';
-    if (!formData.vet_id) next.vet_id = 'Please select a vet';
+    if (!formData.petId) next.petId = 'Please select a pet';
+    if (!formData.vetId) next.vetId = 'Please select a vet';
     if (!formData.date) next.date = 'Please pick a date';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -88,9 +88,9 @@ export default function BookingModal({ onClose }: BookingModalProps) {
     setSubmitError(null);
     try {
       await appointmentsAPI.createAppointment({
-        pet_id: formData.pet_id,
-        vet_id: formData.vet_id,
-        appointment_type: formData.appointment_type,
+        petId: formData.petId,
+        vetId: formData.vetId,
+        appointmentType: formData.appointmentType,
         date: formData.date,
         time: formData.time,
         notes: formData.notes || undefined,
@@ -220,18 +220,18 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             label="Select pet"
             options={PET_OPTIONS}
             placeholder="Choose your pet"
-            value={formData.pet_id}
-            onChange={(e) => setFormData((f) => ({ ...f, pet_id: e.target.value }))}
+            value={formData.petId}
+            onChange={(e) => setFormData((f) => ({ ...f, petId: e.target.value }))}
             required
             aria-required="true"
-            error={errors.pet_id}
+            error={errors.petId}
           />
 
           <TouchPillGroup
             label="Appointment type"
             options={APPOINTMENT_TYPES}
-            value={formData.appointment_type}
-            onChange={(v) => setFormData((f) => ({ ...f, appointment_type: v }))}
+            value={formData.appointmentType}
+            onChange={(v) => setFormData((f) => ({ ...f, appointmentType: v }))}
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -256,11 +256,11 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             label="Veterinarian"
             options={VET_OPTIONS}
             placeholder="Select a vet"
-            value={formData.vet_id}
-            onChange={(e) => setFormData((f) => ({ ...f, vet_id: e.target.value }))}
+            value={formData.vetId}
+            onChange={(e) => setFormData((f) => ({ ...f, vetId: e.target.value }))}
             required
             aria-required="true"
-            error={errors.vet_id}
+            error={errors.vetId}
           />
 
           <TouchTextarea

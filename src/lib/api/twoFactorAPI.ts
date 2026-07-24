@@ -12,6 +12,26 @@ export interface TwoFactorStatusResponse {
   backupCodesCount: number;
 }
 
+/** Shared response shape for /auth/2fa/verify and /auth/2fa/recover. */
+export interface TwoFactorAuthResponse {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    avatarUrl?: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    isVerified: boolean;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  accessToken: string;
+  refreshToken: string;
+}
+
 class TwoFactorAPI {
   private api: AxiosInstance;
 
@@ -49,8 +69,8 @@ class TwoFactorAPI {
     await this.api.post('/disable', { token: totpToken });
   }
 
-  async verify(email: string, password: string, totpToken: string) {
-    const response = await this.api.post('/verify', { email, password, token: totpToken });
+  async verify(email: string, password: string, totpToken: string): Promise<TwoFactorAuthResponse> {
+    const response = await this.api.post<TwoFactorAuthResponse>('/verify', { email, password, token: totpToken });
     return response.data;
   }
 
@@ -59,8 +79,8 @@ class TwoFactorAPI {
     return response.data;
   }
 
-  async recover(email: string, password: string, backupCode: string) {
-    const response = await this.api.post('/recover', { email, password, backupCode });
+  async recover(email: string, password: string, backupCode: string): Promise<TwoFactorAuthResponse> {
+    const response = await this.api.post<TwoFactorAuthResponse>('/recover', { email, password, backupCode });
     return response.data;
   }
 }

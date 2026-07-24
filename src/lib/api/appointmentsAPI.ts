@@ -55,16 +55,16 @@ const TYPE_MAP: Record<string, AppointmentType> = {
 function mapAppointment(item: BackendAppointment): UpcomingAppointmentView {
   const appointment: Appointment = {
     id: item.id,
-    pet_id: item.petId,
-    vet_id: item.vetClinicId,
-    appointment_type: TYPE_MAP[item.type] || 'Consultation',
-    scheduled_at: item.scheduledDate,
+    petId: item.petId,
+    vetId: item.vetClinicId,
+    appointmentType: TYPE_MAP[item.type] || 'Consultation',
+    scheduledAt: item.scheduledDate,
     duration: item.duration ?? 30,
     status: STATUS_MAP[item.status] || 'Scheduled',
     notes: item.notes,
-    reminder_sent: false,
-    created_at: item.createdAt,
-    updated_at: item.updatedAt,
+    reminderSent: false,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 
   return {
@@ -72,6 +72,15 @@ function mapAppointment(item: BackendAppointment): UpcomingAppointmentView {
     petName: item.pet?.name || 'Unknown pet',
     vetName: item.veterinarianName || item.vetClinic?.name || 'Veterinarian',
   };
+}
+
+export interface CreateAppointmentDto {
+  petId: string;
+  vetId: string;
+  appointmentType: AppointmentType;
+  date: string;
+  time: string;
+  notes?: string;
 }
 
 class AppointmentsAPI {
@@ -97,6 +106,19 @@ class AppointmentsAPI {
   async getUpcomingAppointments(): Promise<UpcomingAppointmentView[]> {
     const response = await this.api.get<BackendAppointment[]>('/upcoming');
     return response.data.map(mapAppointment);
+  }
+
+  async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
+    // Map camelCase DTO to the backend's expected shape
+    const payload = {
+      petId: dto.petId,
+      vetClinicId: dto.vetId,
+      type: dto.appointmentType.toUpperCase(),
+      scheduledDate: `${dto.date}T${dto.time}:00`,
+      notes: dto.notes,
+    };
+    const response = await this.api.post<BackendAppointment>('/', payload);
+    return mapAppointment(response.data).appointment;
   }
 }
 

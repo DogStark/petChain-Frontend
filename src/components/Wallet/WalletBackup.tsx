@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { Download, ShieldCheck, AlertTriangle, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import type { WalletAccount, BackupData } from '../../types/wallet';
+import { walletAPI } from '../../lib/api/walletAPI';
 
 interface Props {
   wallet: WalletAccount | null;
+  /** walletId on the server, required for server-side backup storage */
+  serverWalletId?: string;
   onExportBackup: (pin: string) => Promise<BackupData>;
 }
 
-export default function WalletBackup({ wallet, onExportBackup }: Props) {
+export default function WalletBackup({ wallet, serverWalletId, onExportBackup }: Props) {
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exported, setExported] = useState(false);
+  const [serverBackupDone, setServerBackupDone] = useState(false);
 
   if (!wallet) {
     return (
@@ -40,6 +44,18 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
       URL.revokeObjectURL(url);
 
       setExported(true);
+
+      // Also store an encrypted copy on the server if we have a server wallet id.
+      // The backup payload contains only the encrypted key — the server never sees plaintext.
+      if (serverWalletId) {
+        try {
+          await walletAPI.storeBackup(serverWalletId, backup);
+          setServerBackupDone(true);
+        } catch (serverErr) {
+          console.warn('Server-side backup failed (local backup was still saved):', serverErr);
+        }
+      }
+
       setPin('');
     } catch (err) {
       setError(
@@ -135,7 +151,9 @@ export default function WalletBackup({ wallet, onExportBackup }: Props) {
         {exported && (
           <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
             <CheckCircle size={15} />
-            Backup downloaded. Store it in a secure location.
+            {serverBackupDone
+              ? 'Backup downloaded and saved to server. Store the local file in a secure location as well.'
+              : 'Backup downloaded. Store it in a secure location.'}
           </div>
         )}
 
