@@ -3,8 +3,12 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import Header from '@/components/Header';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Printer, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText } from 'lucide-react';
+import { Printer, Calendar, Activity, DollarSign, ActivitySquare, LayoutDashboard, FileText, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { analyticsAPI, UserMetrics } from '@/lib/api/analyticsAPI';
+import { userAPI, ActivityLog } from '@/lib/api/userAPI';
+import { fetchEngagementData, fetchFinancialData, fetchHealthData, fetchVaccinationData } from '@/lib/analyticsUserData';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 // Import Charts with dynamic loading
 const UserEngagementChart = dynamic(() => import('@/components/analytics/UserEngagementChart'), { ssr: false });
@@ -33,6 +37,13 @@ const MOCK_GEO_DATA = [
 ];
 
 type ReportTab = 'activity' | 'financial' | 'health' | 'usage' | 'scheduled' | 'templates';
+
+interface FinancialMonth {
+    month: string;
+    revenue: number;
+    expenses: number;
+    profit: number;
+}
 
 export default function AdminReports() {
     const [activeTab, setActiveTab] = useState<ReportTab>('activity');
@@ -88,9 +99,17 @@ export default function AdminReports() {
     const [engagementLoading, setEngagementLoading] = useState(true);
     const [engagementError, setEngagementError] = useState<string | null>(null);
 
-    const [financialData, setFinancialData] = useState<any>(null);
+    const [financialData, setFinancialData] = useState<FinancialMonth[] | null>(null);
     const [financialLoading, setFinancialLoading] = useState(true);
     const [financialError, setFinancialError] = useState<string | null>(null);
+
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[] | null>(null);
+    const [activityLogsLoading, setActivityLogsLoading] = useState(true);
+    const [activityLogsError, setActivityLogsError] = useState<string | null>(null);
+
+    const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
+    const [userMetricsLoading, setUserMetricsLoading] = useState(true);
+    const [userMetricsError, setUserMetricsError] = useState<string | null>(null);
 
     const [healthData, setHealthData] = useState<any>(null);
     const [healthLoading, setHealthLoading] = useState(true);
@@ -153,11 +172,50 @@ export default function AdminReports() {
             }
         };
 
+        const loadActivityLogs = async () => {
+            try {
+                setActivityLogsLoading(true);
+                const logs = await userAPI.getActivity(5);
+                setActivityLogs(logs);
+                setActivityLogsError(null);
+            } catch (err) {
+                setActivityLogsError(err instanceof Error ? err.message : 'Failed to load activity logs');
+            } finally {
+                setActivityLogsLoading(false);
+            }
+        };
+
+        const loadUserMetrics = async () => {
+            try {
+                setUserMetricsLoading(true);
+                const metrics = await analyticsAPI.getUserMetrics();
+                setUserMetrics(metrics);
+                setUserMetricsError(null);
+            } catch (err) {
+                setUserMetricsError(err instanceof Error ? err.message : 'Failed to load user metrics');
+            } finally {
+                setUserMetricsLoading(false);
+            }
+        };
+
         loadEngagementData();
         loadFinancialData();
         loadHealthData();
         loadVaccinationData();
+        loadActivityLogs();
+        loadUserMetrics();
     }, []);
+
+    const financialTotals = financialData
+        ? financialData.reduce(
+            (acc, m) => ({
+                revenue: acc.revenue + m.revenue,
+                expenses: acc.expenses + m.expenses,
+                profit: acc.profit + m.profit,
+            }),
+            { revenue: 0, expenses: 0, profit: 0 }
+        )
+        : null;
 
     const handlePrint = () => {
         window.print();
@@ -255,23 +313,43 @@ export default function AdminReports() {
                                 </div>
 
                                 <div className="bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
-                                    <h3 className="text-lg font-bold mb-4 text-blue-700">Recent User Logs</h3>
-                                    <div className="space-y-4">
-                                        {[1, 2, 3, 4, 5].map((i) => (
-                                            <div key={i} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                                        U{i}
+                                    {/* Scoped to the signed-in admin: /users/me/activity is the only activity endpoint available */}
+                                    <h3 className="text-lg font-bold mb-4 text-blue-700">Your Recent Activity</h3>
+                                    {activityLogsError && (
+                                        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                                            <AlertCircle className="w-5 h-5" />
+                                            <span>{activityLogsError}</span>
+                                        </div>
+                                    )}
+                                    {activityLogsLoading ? (
+                                        <div className="flex items-center justify-center h-40">
+                                            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : activityLogs && activityLogs.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {activityLogs.map((log) => (
+                                                <div key={log.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                                            {log.activityType.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-slate-800">{log.description || log.activityType}</p>
+                                                            <p className="text-xs text-slate-500">
+                                                                {new Date(log.createdAt).toLocaleString()}
+                                                                {log.ipAddress ? ` | IP: ${log.ipAddress}` : ''}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-semibold text-slate-800">User logged in</p>
-                                                        <p className="text-xs text-slate-500">Just now • IP: 192.168.1.{i}</p>
-                                                    </div>
+                                                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${log.isSuspicious ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                                        {log.isSuspicious ? 'Flagged' : 'Success'}
+                                                    </span>
                                                 </div>
-                                                <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-700 rounded-full">Success</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    ) : !activityLogsError ? (
+                                        <p className="text-slate-500 text-sm py-8 text-center">No recent activity to display.</p>
+                                    ) : null}
                                 </div>
 
                                 <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 rounded-3xl shadow-lg text-white flex flex-col justify-between">
@@ -280,10 +358,18 @@ export default function AdminReports() {
                                         <p className="text-indigo-100">Across all roles and regions</p>
                                     </div>
                                     <div className="mt-8">
-                                        <h2 className="text-5xl font-extrabold">24,592</h2>
-                                        <p className="text-indigo-100 mt-2 flex items-center gap-2">
-                                            <span className="bg-white/20 px-2 py-1 rounded text-sm">+12.5%</span> from last month
-                                        </p>
+                                        {userMetricsLoading ? (
+                                            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : userMetrics ? (
+                                            <>
+                                                <h2 className="text-5xl font-extrabold">{userMetrics.totalUsers.toLocaleString()}</h2>
+                                                <p className="text-indigo-100 mt-2 flex items-center gap-2">
+                                                    <span className="bg-white/20 px-2 py-1 rounded text-sm">+{userMetrics.newSignups.toLocaleString()}</span> new signups
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <p className="text-indigo-100">{userMetricsError || 'User metrics not available'}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -309,19 +395,20 @@ export default function AdminReports() {
                                     <FinancialReportChart data={financialData} />
                                 ) : null}
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {[
-                                        { label: 'Total Revenue YTD', value: '$340,000', trend: '+18.2%' },
-                                        { label: 'Operating Expenses YTD', value: '$195,000', trend: '+5.4%' },
-                                        { label: 'Net Profit YTD', value: '$145,000', trend: '+24.6%' },
-                                    ].map((stat, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-                                            <h4 className="text-slate-500 font-medium mb-1">{stat.label}</h4>
-                                            <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
-                                            <p className="text-sm text-green-600 font-medium mt-2">{stat.trend} vs last year</p>
-                                        </div>
-                                    ))}
-                                </div>
+                                {financialTotals && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {[
+                                            { label: 'Total Revenue YTD', value: financialTotals.revenue },
+                                            { label: 'Operating Expenses YTD', value: financialTotals.expenses },
+                                            { label: 'Net Profit YTD', value: financialTotals.profit },
+                                        ].map((stat) => (
+                                            <div key={stat.label} className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
+                                                <h4 className="text-slate-500 font-medium mb-1">{stat.label}</h4>
+                                                <p className="text-3xl font-bold text-slate-800">${formatCurrency(stat.value)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -378,23 +465,10 @@ export default function AdminReports() {
 
                                 <div className="bg-white/60 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-transparent">
                                     <h3 className="text-lg font-bold mb-4 text-slate-800">System Capacity</h3>
-                                    <div className="space-y-6">
-                                        {[
-                                            { label: 'Database Storage', value: 68, color: 'bg-blue-500' },
-                                            { label: 'IPFS Storage', value: 42, color: 'bg-emerald-500' },
-                                            { label: 'Server CPU Usage', value: 24, color: 'bg-indigo-500' },
-                                            { label: 'Memory Allocation', value: 85, color: 'bg-amber-500' },
-                                        ].map((resource, i) => (
-                                            <div key={i}>
-                                                <div className="flex justify-between text-sm font-medium mb-2">
-                                                    <span className="text-slate-600">{resource.label}</span>
-                                                    <span className="text-slate-800">{resource.value}%</span>
-                                                </div>
-                                                <div className="w-full bg-slate-100 rounded-full h-2.5">
-                                                    <div className={`${resource.color} h-2.5 rounded-full`} style={{ width: `${resource.value}%` }}></div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                                        <AlertCircle className="w-8 h-8 text-slate-400 mb-3" />
+                                        <p className="text-slate-600 font-medium">Infrastructure metrics not available</p>
+                                        <p className="text-slate-500 text-sm mt-1">Capacity data will appear here once a metrics endpoint is connected.</p>
                                     </div>
                                 </div>
                             </div>
@@ -403,64 +477,24 @@ export default function AdminReports() {
                         {/* Scheduled Reports */}
                         {activeTab === 'scheduled' && (
                             <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-bold text-slate-800">Automated Report Deliveries</h3>
-                                </div>
-
-                                <div className="overflow--auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-slate-200">
-                                                <th className="py-4 font-semibold text-slate-500">Report Name</th>
-                                                <th className="py-4 font-semibold text-slate-500">Frequency</th>
-                                                <th className="py-4 font-semibold text-slate-500">Recipients</th>
-                                                <th className="py-4 font-semibold text-slate-500">Next Run</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                { name: 'Weekly Platform Summary', freq: 'Weekly (Monday)', rec: 'admin@petchain.com', next: 'Oct 24, 08:00 AM' },
-                                                { name: 'Monthly Financial Audit', freq: 'Monthly (1st)', rec: 'finance@petchain.com', next: 'Nov 01, 12:00 AM' },
-                                                { name: 'Daily System Health', freq: 'Daily', rec: 'devops@petchain.com', next: 'Tomorrow, 06:00 AM' },
-                                            ].map((report, i) => (
-                                                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50">
-                                                    <td className="py-4 font-medium text-slate-800">{report.name}</td>
-                                                    <td className="py-4 text-slate-600 text-sm">
-                                                        <span className="px-2.5 py-1 bg-slate-100 rounded-full text-slate-700">{report.freq}</span>
-                                                    </td>
-                                                    <td className="py-4 text-slate-600">{report.rec}</td>
-                                                    <td className="py-4 text-slate-600">{report.next}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                <h3 className="text-xl font-bold text-slate-800 mb-6">Automated Report Deliveries</h3>
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <Calendar className="w-8 h-8 text-slate-400 mb-3" />
+                                    <p className="text-slate-600 font-medium">Report scheduling is not available yet</p>
+                                    <p className="text-slate-500 text-sm mt-1">Scheduled deliveries will appear here once the scheduling backend is in place.</p>
                                 </div>
                             </div>
                         )}
 
                         {/* Templates */}
                         {activeTab === 'templates' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
-                                {[
-                                    { title: 'Executive YTD Summary', desc: 'High-level aggregation of revenue, user growth, and critical system health alerts.', color: 'from-blue-500 to-indigo-600' },
-                                    { title: 'Clinical Operations', desc: 'Granular view of appointments, procedures, and veterinary facility engagement.', color: 'from-emerald-400 to-teal-500' },
-                                    { title: 'Network Performance', desc: 'Detailed metrics on API latency, error rates, and Blockchain transaction gas costs.', color: 'from-slate-700 to-slate-900' },
-                                    { title: 'Compliance Audit', desc: 'Logs of data access, profile modifications, and privacy consent status.', color: 'from-violet-500 to-purple-600' },
-                                ].map((template, i) => (
-                                    <div key={i} className="group cursor-pointer bg-white rounded-3xl p-6 shadow-md border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
-                                        <div className={`w-12 h-12 rounded-2xl mb-4 bg-gradient-to-br ${template.color} shadow-inner flex items-center justify-center`}>
-                                            <FileText className="w-6 h-6 text-white" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-slate-800 mb-2">{template.title}</h3>
-                                        <p className="text-slate-500 flex-grow text-sm leading-relaxed">{template.desc}</p>
-                                        <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="text-sm font-semibold text-blue-600">Use Template</span>
-                                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                                                →
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                            <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
+                                <h3 className="text-xl font-bold text-slate-800 mb-6">Report Templates</h3>
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <FileText className="w-8 h-8 text-slate-400 mb-3" />
+                                    <p className="text-slate-600 font-medium">Report templates are not available yet</p>
+                                    <p className="text-slate-500 text-sm mt-1">Templates will appear here once the template system is implemented.</p>
+                                </div>
                             </div>
                         )}
                     </div>
