@@ -59,6 +59,7 @@ type StellarSubmitTransactionResponse = {
 class WalletService {
   private network: WalletNetwork;
   private server: StellarSdk.Horizon.Server;
+  private pinAttempts: Map<string, { count: number; lastAttemptTime: number }> = new Map();
 
   constructor() {
     this.network = getNetwork();
@@ -153,10 +154,25 @@ class WalletService {
   }
 
   async verifyPin(wallet: WalletAccount, pin: string): Promise<boolean> {
+    const attempts = this.pinAttempts.get(wallet.id) || { count: 0, lastAttemptTime: 0 };
+    const now = Date.now();
+    const timeSinceLastAttempt = now - attempts.lastAttemptTime;
+
+    if (attempts.count > 0) {
+      const delayMs = Math.min(1000 * Math.pow(2, Math.min(attempts.count - 1, 5)), 30000);
+      if (timeSinceLastAttempt < delayMs) {
+        await new Promise(resolve => setTimeout(resolve, delayMs - timeSinceLastAttempt));
+      }
+    }
+
     try {
       await this.decryptKey(wallet, pin);
+      this.pinAttempts.delete(wallet.id);
       return true;
     } catch {
+      attempts.count++;
+      attempts.lastAttemptTime = Date.now();
+      this.pinAttempts.set(wallet.id, attempts);
       return false;
     }
   }
