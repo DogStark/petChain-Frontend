@@ -3,6 +3,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 import { stellarService } from './index';
 import type { StellarService, TransactionResult } from './index';
 import type { MedicalRecord } from './types';
+import { computeChecksum } from '../wallet/walletCrypto';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'retrying';
 
@@ -25,9 +26,36 @@ class StellarSyncService {
     this.engine = engine;
   }
 
-  private encrypt(data: Record<string, unknown>): string {
-    const str = JSON.stringify(data);
-    return Buffer.from(str).toString('base64');
+  private async encrypt(data: Record<string, unknown>, encryptionKey: string): Promise<{ ciphertext: string; iv: string }> {
+    const plaintext = JSON.stringify(data);
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+    const keyMaterial = await window.crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(encryptionKey),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    const key = await window.crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: new Uint8Array(16), iterations: 100_000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+
+    const cipherBuffer = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      new TextEncoder().encode(plaintext)
+    );
+
+    return {
+      ciphertext: Buffer.from(cipherBuffer).toString('base64'),
+      iv: Buffer.from(iv).toString('base64'),
+    };
   }
 
   private async uploadToIPFS(data: string): Promise<string> {
@@ -47,9 +75,10 @@ class StellarSyncService {
   async syncRecord(
     record: MedicalRecord,
     sourceKeypair: StellarSdk.Keypair,
-    encryptionKey: string
+    encryptionKey: string,
+    existingResult?: SyncResult
   ): Promise<SyncResult> {
-    const result: SyncResult = {
+    const result: SyncResult = existingResult || {
       recordId: record.id,
       status: 'syncing',
       attempts: 0,
@@ -64,18 +93,19 @@ class StellarSyncService {
     }
 
     try {
-      const encrypted = this.encrypt(record.data);
-      const dataSize = Buffer.from(encrypted).length;
-      
+      const encrypted = await this.encrypt(record.data, encryptionKey);
+      const encryptedPayload = encrypted.ciphertext;
+      const dataSize = Buffer.from(encryptedPayload).length;
+
       let dataHash: string;
       if (dataSize > 1024) {
-        dataHash = await this.uploadToIPFS(encrypted);
+        await this.uploadToIPFS(encryptedPayload);
+        dataHash = await computeChecksum(encryptedPayload);
         result.ipfsHash = dataHash;
       } else {
-        dataHash = encrypted.substring(0, 64);
+        dataHash = await computeChecksum(encryptedPayload);
       }
 
-      // Use the new StellarService building and submission logic
       const operation = StellarSdk.Operation.manageData({
         name: `pet_${record.petId}_${record.type}`,
         value: dataHash,
@@ -98,7 +128,7 @@ class StellarSyncService {
     } catch (error) {
       result.error = error instanceof Error ? error.message : 'Unknown error';
       result.status = 'failed';
-      
+
       if (result.attempts < this.maxRetries) {
         await this.retrySync(record, sourceKeypair, encryptionKey, result);
       }
@@ -116,22 +146,30 @@ class StellarSyncService {
   ): Promise<void> {
     previousResult.attempts++;
     previousResult.status = 'retrying';
-    
-    // Waiting logic is already somewhat handled in StellarService.submitTransaction,
-    // but this higher-level retry handles record-specific failures (like IPFS issues).
-    await new Promise(resolve => setTimeout(resolve, 2000 * previousResult.attempts));
-    
-    await this.syncRecord(record, sourceKeypair, encryptionKey);
+
+    const backoffMs = 2000 * previousResult.attempts;
+    await new Promise(resolve => setTimeout(resolve, backoffMs));
+
+    await this.syncRecord(record, sourceKeypair, encryptionKey, previousResult);
   }
 
-  async verifyRecord(recordId: string): Promise<boolean> {
+  async verifyRecord(recordId: string, currentData?: Record<string, unknown>): Promise<boolean> {
     try {
       const syncResult = this.syncQueue.get(recordId);
       if (!syncResult?.txHash) return false;
 
       const server = this.engine.getServer();
       const tx = await server.transactions().transaction(syncResult.txHash).call();
-      return tx.successful;
+
+      if (!tx.successful) return false;
+
+      if (currentData) {
+        const currentHash = await computeChecksum(JSON.stringify(currentData));
+        const storedHash = syncResult.ipfsHash || '';
+        return currentHash === storedHash;
+      }
+
+      return true;
     } catch {
       return false;
     }

@@ -147,23 +147,41 @@ export default function PreferencesPage() {
   }) => {
     try {
       setIsLoading(true);
-      // Update both privacy and profile settings
+      const errors: string[] = [];
+
       if (data.privacy) {
-        await userAPI.updatePrivacySettings(data.privacy);
+        try {
+          await userAPI.updatePrivacySettings(data.privacy);
+          setPrivacyPrefs(data.privacy);
+        } catch (err: unknown) {
+          errors.push('Visibility settings failed to save');
+        }
       }
+
       if (data.profile) {
-        const updatedPreferences = await userAPI.updatePreferences({
-          profilePublic: data.profile.profilePublic,
-          dataShareConsent: data.profile.dataShareConsent,
-          preferredLanguage: data.profile.preferredLanguage,
-          timezone: data.profile.timezone,
-        });
-        setPreferences(updatedPreferences);
+        try {
+          const updatedPreferences = await userAPI.updatePreferences({
+            profilePublic: data.profile.profilePublic,
+            dataShareConsent: data.profile.dataShareConsent,
+            preferredLanguage: data.profile.preferredLanguage,
+            timezone: data.profile.timezone,
+          });
+          setPreferences(updatedPreferences);
+        } catch (err: unknown) {
+          errors.push('Profile preferences failed to save');
+        }
       }
-      setPrivacyPrefs(data.privacy);
+
+      if (errors.length > 0) {
+        setError(errors.join('. '));
+        throw new Error(errors.join('. '));
+      }
+
       setError(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update settings');
+      if (!error) {
+        setError(err instanceof Error ? err.message : 'Failed to update settings');
+      }
       throw err;
     } finally {
       setIsLoading(false);
