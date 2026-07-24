@@ -325,15 +325,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     setLoading(true);
 
+    const emitLogoutWarning = () => {
+      if (typeof window === 'undefined') return;
+
+      window.dispatchEvent(
+        new CustomEvent('auth:logout-warning', {
+          detail: {
+            title: 'Session sign-out warning',
+            message:
+              'You have been signed out on this device, but we could not confirm that your session was closed on our server. If this device may be compromised, please change your password.',
+          },
+        })
+      );
+    };
+
     try {
       if (state.tokens?.refreshToken) {
-        await makeRequest('/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
-        });
+        let lastError: unknown;
+
+        try {
+          await makeRequest('/auth/logout', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
+          });
+        } catch (error) {
+          lastError = error;
+
+          try {
+            await makeRequest('/auth/logout', {
+              method: 'POST',
+              body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
+            });
+          } catch (retryError) {
+            lastError = retryError;
+          }
+        }
+
+        if (lastError) {
+          throw lastError;
+        }
       }
     } catch (error) {
       console.error('Logout error:', error);
+      emitLogoutWarning();
     } finally {
       clearAuth();
       setLoading(false);

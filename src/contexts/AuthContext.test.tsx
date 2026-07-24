@@ -115,7 +115,9 @@ describe('AuthContext', () => {
       expect(result.current.user).toBeNull();
     });
 
-    it('clears auth even when logout API call fails', async () => {
+    it('clears auth even when logout API call fails and emits a warning', async () => {
+      const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({
           ok: true,
@@ -137,6 +139,11 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.isAuthenticated).toBe(false);
+      expect(dispatchSpy).toHaveBeenCalled();
+      expect(dispatchSpy.mock.calls[0][0]).toBeInstanceOf(CustomEvent);
+      expect((dispatchSpy.mock.calls[0][0] as CustomEvent).detail).toMatchObject({
+        title: 'Session sign-out warning',
+      });
     });
   });
 
