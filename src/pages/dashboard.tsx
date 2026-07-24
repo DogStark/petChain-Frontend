@@ -1,8 +1,12 @@
 import { GetServerSideProps } from 'next';
+import { useEffect, useState } from 'react';
 import { useAuth, type User } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { SkeletonAvatar, SkeletonLine } from '@/components/Skeleton';
 import Link from 'next/link';
+import { petAPI } from '@/lib/api/petAPI';
+import { userAPI } from '@/lib/api/userAPI';
+import { medicalRecordsAPI } from '@/lib/api/medicalRecordsAPI';
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
@@ -47,6 +51,50 @@ export default function DashboardPage() {
 }
 
 function DashboardContent({ user }: { user: User }) {
+  const [petCount, setPetCount] = useState<number | null>(null);
+  const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
+  const [sessionCount, setSessionCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    petAPI
+      .getUserPets()
+      .then(async (pets) => {
+        if (cancelled) return;
+        setPetCount(pets.length);
+
+        const recordCounts = await Promise.all(
+          pets.map((pet) =>
+            medicalRecordsAPI
+              .getByPetId(pet.id)
+              .then((records) => records.length)
+              .catch(() => 0)
+          )
+        );
+        if (!cancelled) setMedicalRecordCount(recordCounts.reduce((a, b) => a + b, 0));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPetCount(null);
+          setMedicalRecordCount(null);
+        }
+      });
+
+    userAPI
+      .getAllSessions()
+      .then((sessions) => {
+        if (!cancelled) setSessionCount(sessions.filter((s) => s.isActive).length);
+      })
+      .catch(() => {
+        if (!cancelled) setSessionCount(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -61,7 +109,7 @@ function DashboardContent({ user }: { user: User }) {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">My Pets</dt>
-                  <dd className="text-lg font-medium text-gray-900">3</dd>
+                  <dd className="text-lg font-medium text-gray-900">{petCount ?? '—'}</dd>
                 </dl>
               </div>
             </div>
@@ -86,7 +134,9 @@ function DashboardContent({ user }: { user: User }) {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Medical Records</dt>
-                  <dd className="text-lg font-medium text-gray-900">12</dd>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {medicalRecordCount ?? '—'}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -111,7 +161,7 @@ function DashboardContent({ user }: { user: User }) {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Active Sessions</dt>
-                  <dd className="text-lg font-medium text-gray-900">3</dd>
+                  <dd className="text-lg font-medium text-gray-900">{sessionCount ?? '—'}</dd>
                 </dl>
               </div>
             </div>
