@@ -127,12 +127,26 @@ export function useWallet() {
 
   // ─── Wallet deletion ───────────────────────────────────────────────────────
   const deleteWallet = useCallback(
-    (id: string) => {
-      walletService.deleteWallet(id);
-      const updated = walletService.getWallets();
-      setWallets(updated);
-      if (selectedWalletId === id) {
-        setSelectedWalletId(updated[0]?.id ?? null);
+    async (id: string, pin: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const wallet = walletService.getWallet(id);
+        if (!wallet) throw new Error('Wallet not found.');
+        const isValid = await walletService.verifyPin(wallet, pin);
+        if (!isValid) throw new Error('Invalid PIN.');
+        walletService.deleteWallet(id);
+        const updated = walletService.getWallets();
+        setWallets(updated);
+        if (selectedWalletId === id) {
+          setSelectedWalletId(updated[0]?.id ?? null);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to delete wallet.';
+        setError(msg);
+        throw err;
+      } finally {
+        setLoading(false);
       }
     },
     [selectedWalletId]
@@ -206,12 +220,16 @@ export function useWallet() {
     async (pin: string): Promise<BackupData> => {
       if (!selectedWallet) throw new Error('No wallet selected.');
       const backup = await walletService.exportBackup(selectedWallet, pin);
-      walletService.markBackupVerified(selectedWallet.id);
-      setWallets(walletService.getWallets());
       return backup;
     },
     [selectedWallet]
   );
+
+  const markBackupAsVerified = useCallback(() => {
+    if (!selectedWallet) throw new Error('No wallet selected.');
+    walletService.markBackupVerified(selectedWallet.id);
+    setWallets(walletService.getWallets());
+  }, [selectedWallet]);
 
   const importBackup = useCallback(async (backup: BackupData, pin: string) => {
     setLoading(true);
@@ -270,6 +288,7 @@ export function useWallet() {
     setupMultiSig,
     removeSigner,
     exportBackup,
+    markBackupAsVerified,
     importBackup,
     fundTestnet,
   };
