@@ -4,6 +4,13 @@
  * Keys are never stored in plaintext — only encrypted blobs are persisted.
  */
 
+export class DecryptionError extends Error {
+  constructor(message: string = 'Decryption failed') {
+    super(message);
+    this.name = 'DecryptionError';
+  }
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -32,7 +39,7 @@ async function deriveKey(pin: string, salt: Uint8Array, usage: KeyUsage[]): Prom
   );
 
   return window.crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations: 600_000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -67,7 +74,7 @@ export async function encryptSecretKey(
 
 /**
  * Decrypts a Stellar secret key using the PIN that was used to encrypt it.
- * Throws if the PIN is incorrect (AES-GCM authentication tag fails).
+ * Throws DecryptionError if the PIN is incorrect (AES-GCM authentication tag fails).
  */
 export async function decryptSecretKey(
   encryptedKey: string,
@@ -80,13 +87,17 @@ export async function decryptSecretKey(
   const cipherBytes = base64ToUint8Array(encryptedKey);
   const key = await deriveKey(pin, saltBytes, ['decrypt']);
 
-  const decrypted = await window.crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: ivBytes },
-    key,
-    cipherBytes
-  );
+  try {
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: ivBytes },
+      key,
+      cipherBytes
+    );
 
-  return new TextDecoder().decode(decrypted);
+    return new TextDecoder().decode(decrypted);
+  } catch (err) {
+    throw new DecryptionError('Decryption failed — invalid PIN or corrupted backup');
+  }
 }
 
 /**

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { GetStaticProps, GetStaticPaths } from 'next';
 import { ArrowLeft, PawPrint } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
+import SafeImage from '@/components/SafeImage';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
@@ -105,7 +105,7 @@ export default function PetDetailPage() {
 
         <div className={styles.petHeader}>
           {primaryPhoto ? (
-            <Image
+            <SafeImage
               src={primaryPhoto.thumbnailUrl || primaryPhoto.photoUrl}
               alt={pet.name}
               fill

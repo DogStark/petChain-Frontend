@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import { Star, MapPin, Clock, ArrowRight } from "lucide-react";
 import { Clinic } from "@/types/clinic";
 
@@ -13,7 +13,7 @@ export default function ClinicCard({ clinic }: ClinicCardProps) {
     <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-xl border border-white/40 hover:shadow-2xl transition-all group flex flex-col h-full">
       <div className="relative h-40 w-full mb-4 overflow-hidden rounded-2xl">
         {clinic.mainImage ? (
-          <Image
+          <SafeImage
             src={clinic.mainImage}
             alt={clinic.name}
             fill

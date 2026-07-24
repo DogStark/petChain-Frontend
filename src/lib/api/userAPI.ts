@@ -105,6 +105,10 @@ export interface UserSession {
   expiresAt: string;
   lastActivityAt?: string;
   isActive: boolean;
+  /** True when this session corresponds to the browser making the current request.
+   *  Populated server-side by comparing the session id embedded in the access token
+   *  against each listed session, or derived client-side when the backend cannot provide it. */
+  isCurrentSession: boolean;
   createdAt: string;
 }
 
@@ -306,8 +310,36 @@ class UserManagementAPI {
   }
 
   async getAllSessions(): Promise<UserSession[]> {
-    const response = await this.api.get('/me/sessions/all');
-    return response.data;
+    const response = await this.api.get<UserSession[]>('/me/sessions/all');
+    const sessions: UserSession[] = response.data;
+
+    // If the backend already populates isCurrentSession, use it as-is.
+    // Otherwise, derive it client-side from the session id embedded in the access token.
+    const alreadyFlagged = sessions.some((s) => s.isCurrentSession === true);
+    if (!alreadyFlagged) {
+      const currentSessionId = this.extractSessionIdFromToken();
+      return sessions.map((s) => ({
+        ...s,
+        isCurrentSession: currentSessionId ? s.id === currentSessionId : false,
+      }));
+    }
+
+    return sessions;
+  }
+
+  /** Decode the access token (without verifying signature) to extract the session id claim. */
+  private extractSessionIdFromToken(): string | null {
+    const token = this.getAccessToken();
+    if (!token) return null;
+    try {
+      const payloadBase64 = token.split('.')[1];
+      if (!payloadBase64) return null;
+      const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+      // Common JWT claim names for session id
+      return payload.sessionId ?? payload.session_id ?? payload.sid ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async revokeSession(sessionId: string): Promise<void> {
@@ -354,16 +386,24 @@ class UserManagementAPI {
   }
 
   // Account endpoints
-  async deactivateAccount(): Promise<void> {
-    await this.api.post('/me/deactivate');
+  async deactivateAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.post('/me/deactivate', body);
   }
 
   async reactivateAccount(): Promise<void> {
     await this.api.post('/me/reactivate');
   }
 
-  async deleteAccount(): Promise<void> {
-    await this.api.delete('/me');
+  async deleteAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.delete('/me', { data: body });
   }
 
   async exportData(): Promise<any> {

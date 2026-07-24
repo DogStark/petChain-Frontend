@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
+import { twoFactorAPI } from '../lib/api/twoFactorAPI';
 
 export interface User {
   id: string;
@@ -91,6 +92,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load tokens from localStorage on mount
   useEffect(() => {
     const loadStoredAuth = () => {
@@ -122,6 +125,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     loadStoredAuth();
+
+    return () => {
+      clearTokenRefresh();
+    };
   }, []);
 
   const setAuth = (user: User, tokens: AuthTokens) => {
@@ -168,23 +175,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setState((prev) => ({ ...prev, isLoading }));
   };
 
-  let refreshTimer: NodeJS.Timeout | null = null;
-
   const setupTokenRefresh = () => {
     clearTokenRefresh();
 
     // Refresh token 2 minutes before expiry (access token expires in 15 minutes)
     const refreshInterval = 13 * 60 * 1000; // 13 minutes
 
-    refreshTimer = setInterval(() => {
+    refreshTimerRef.current = setInterval(() => {
       refreshTokens();
     }, refreshInterval);
   };
 
   const clearTokenRefresh = () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer);
-      refreshTimer = null;
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
     }
   };
 
@@ -252,11 +257,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/verify', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, token: totpToken }),
-      });
-
+      const data = await twoFactorAPI.verify(email, password, totpToken);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -278,11 +279,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/recover', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, backupCode }),
-      });
-
+      const data = await twoFactorAPI.recover(email, password, backupCode);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
