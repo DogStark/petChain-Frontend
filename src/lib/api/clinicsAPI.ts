@@ -119,6 +119,10 @@ class ClinicsAPI {
     const response = await this.api.get<BackendVetClinic>(`/${id}`);
     return mapVetClinicToClinic(response.data);
   }
+
+  async saveAvailability(clinicId: string, availability: Array<{day: string; slots: string; active: boolean}>): Promise<void> {
+    await this.api.patch(`/${clinicId}/availability`, { availability });
+  }
 }
 
 export const clinicsAPI = new ClinicsAPI();
