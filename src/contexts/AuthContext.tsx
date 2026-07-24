@@ -196,30 +196,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const config: RequestInit = {
+    const buildConfig = (token?: string): RequestInit => ({
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...options,
+    });
+
+    const attempt = async (token?: string) => {
+      const response = await fetch(url, buildConfig(token));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const err = Object.assign(new Error(errorData.message || `HTTP error! status: ${response.status}`), { status: response.status });
+        throw err;
+      }
+      return response.json();
     };
 
-    // Add auth header if we have a token
-    if (state.tokens?.accessToken) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${state.tokens.accessToken}`,
-      };
+    try {
+      return await attempt(state.tokens?.accessToken);
+    } catch (err: unknown) {
+      if ((err as { status?: number }).status === 401 && state.tokens?.refreshToken) {
+        const refreshed = await refreshTokens();
+        if (refreshed && state.tokens?.accessToken) {
+          return attempt(state.tokens.accessToken);
+        }
+        clearAuth();
+      }
+      throw err;
     }
-
-    const response = await fetch(url, config);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
   };
 
   const login = async (email: string, password: string): Promise<void> => {
