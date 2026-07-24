@@ -18,12 +18,13 @@ interface AccountSettingsProps {
   sessions?: Session[];
   onRevokeSession: (sessionId: string) => Promise<void>;
   onRevokeOtherSessions: (currentSessionId: string) => Promise<void>;
-  onDeactivateAccount: () => Promise<void>;
-  onDeleteAccount: () => Promise<void>;
+  onDeactivateAccount: (password: string, totpToken?: string) => Promise<void>;
+  onDeleteAccount: (password: string, totpToken?: string) => Promise<void>;
   onExportData: () => Promise<void>;
   onRequestErasure?: () => Promise<void>;
   onAcceptPolicy?: () => Promise<void>;
   complianceActivities?: ActivityLog[];
+  isTwoFactorEnabled?: boolean;
   isLoading?: boolean;
 }
 
@@ -37,11 +38,16 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   onRequestErasure,
   onAcceptPolicy,
   complianceActivities = [],
+  isTwoFactorEnabled = false,
   isLoading = false,
 }) => {
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deactivatePassword, setDeactivatePassword] = useState('');
+  const [deactivateTotpToken, setDeactivateTotpToken] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteTotpToken, setDeleteTotpToken] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -77,7 +83,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const handleDeactivate = async () => {
     setIsSubmitting(true);
     try {
-      await onDeactivateAccount();
+      await onDeactivateAccount(deactivatePassword, isTwoFactorEnabled ? deactivateTotpToken : undefined);
       setSuccessMessage('Account deactivated. You will be logged out.');
       setTimeout(() => {
         // Redirect to login page
@@ -88,6 +94,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     } finally {
       setIsSubmitting(false);
       setShowDeactivateModal(false);
+      setDeactivatePassword('');
+      setDeactivateTotpToken('');
     }
   };
 
@@ -98,7 +106,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onDeleteAccount();
+      await onDeleteAccount(deletePassword, isTwoFactorEnabled ? deleteTotpToken : undefined);
       setSuccessMessage('Account deleted. Redirecting to home page...');
       setTimeout(() => {
         window.location.href = '/';
@@ -108,6 +116,9 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     } finally {
       setIsSubmitting(false);
       setShowDeleteModal(false);
+      setDeletePassword('');
+      setDeleteTotpToken('');
+      setDeleteConfirmation('');
     }
   };
 
@@ -335,10 +346,41 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               Your account will be temporarily disabled. You can reactivate it anytime by logging in
               again.
             </p>
+            <div className={styles.modalForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Password</label>
+                <input
+                  type="password"
+                  className={styles.input}
+                  placeholder="Enter your password"
+                  value={deactivatePassword}
+                  onChange={(e) => setDeactivatePassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {isTwoFactorEnabled && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Two-Factor Code</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Enter your authenticator code"
+                    maxLength={6}
+                    value={deactivateTotpToken}
+                    onChange={(e) => setDeactivateTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
+            </div>
             <div className={styles.modalActions}>
               <button
                 className={styles.cancelBtn}
-                onClick={() => setShowDeactivateModal(false)}
+                onClick={() => {
+                  setShowDeactivateModal(false);
+                  setDeactivatePassword('');
+                  setDeactivateTotpToken('');
+                }}
                 disabled={isSubmitting}
               >
                 Cancel
@@ -346,7 +388,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <button
                 className={styles.confirmDangerBtn}
                 onClick={handleDeactivate}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !deactivatePassword || (isTwoFactorEnabled && !deactivateTotpToken)}
               >
                 {isSubmitting ? 'Deactivating...' : 'Deactivate'}
               </button>
@@ -364,21 +406,50 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               This action cannot be undone. All your data will be permanently deleted after 30 days.
               You will not be able to log in anymore.
             </p>
-            <p className={styles.warning}>Type "delete my account" below to confirm:</p>
-            <input
-              type="text"
-              className={styles.confirmInput}
-              placeholder="Type 'delete my account' to confirm"
-              value={deleteConfirmation}
-              onChange={(e) => setDeleteConfirmation(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className={styles.modalForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Password</label>
+                <input
+                  type="password"
+                  className={styles.input}
+                  placeholder="Enter your password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {isTwoFactorEnabled && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Two-Factor Code</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Enter your authenticator code"
+                    maxLength={6}
+                    value={deleteTotpToken}
+                    onChange={(e) => setDeleteTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
+              <p className={styles.warning}>Type "delete my account" below to confirm:</p>
+              <input
+                type="text"
+                className={styles.confirmInput}
+                placeholder="Type 'delete my account' to confirm"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
             <div className={styles.modalActions}>
               <button
                 className={styles.cancelBtn}
                 onClick={() => {
                   setShowDeleteModal(false);
                   setDeleteConfirmation('');
+                  setDeletePassword('');
+                  setDeleteTotpToken('');
                 }}
                 disabled={isSubmitting}
               >
@@ -387,7 +458,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <button
                 className={styles.deleteConfirmBtn}
                 onClick={handleDelete}
-                disabled={isSubmitting || deleteConfirmation.toLowerCase() !== 'delete my account'}
+                disabled={isSubmitting || deleteConfirmation.toLowerCase() !== 'delete my account' || !deletePassword || (isTwoFactorEnabled && !deleteTotpToken)}
               >
                 {isSubmitting ? 'Deleting...' : 'Delete Permanently'}
               </button>

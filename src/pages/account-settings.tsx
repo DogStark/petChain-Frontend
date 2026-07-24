@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
+import { useAuth } from '../contexts/AuthContext';
+import { twoFactorAPI } from '../lib/api/twoFactorAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
 import { GetServerSideProps } from 'next';
 
@@ -10,20 +12,24 @@ export const dynamic = 'force-dynamic';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [complianceActivities, setComplianceActivities] = useState<ActivityLog[]>([]);
+  const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const [allSessions, activity] = await Promise.all([
+        const [allSessions, activity, twoFactorStatus] = await Promise.all([
           userAPI.getAllSessions(),
           userAPI.getActivity(20, 0),
+          twoFactorAPI.getStatus(),
         ]);
         setSessions(allSessions);
         setComplianceActivities(activity);
+        setIsTwoFactorEnabled(twoFactorStatus.isEnabled);
       } catch (err: any) {
         setError(err.message || 'Failed to load sessions and compliance activities');
         if (err.response?.status === 401) {
@@ -67,10 +73,11 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleDeactivateAccount = async () => {
+  const handleDeactivateAccount = async (password: string, totpToken?: string) => {
     try {
       setIsLoading(true);
-      await userAPI.deactivateAccount();
+      await userAPI.deactivateAccount(password, totpToken);
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to deactivate account');
       throw err;
@@ -79,10 +86,11 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (password: string, totpToken?: string) => {
     try {
       setIsLoading(true);
-      await userAPI.deleteAccount();
+      await userAPI.deleteAccount(password, totpToken);
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to delete account');
       throw err;
@@ -185,6 +193,7 @@ export default function AccountSettingsPage() {
         onRequestErasure={handleRequestErasure}
         onAcceptPolicy={handleAcceptPolicy}
         complianceActivities={complianceActivities}
+        isTwoFactorEnabled={isTwoFactorEnabled}
         isLoading={isLoading}
       />
 
