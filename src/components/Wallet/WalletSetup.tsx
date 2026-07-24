@@ -11,7 +11,11 @@ interface Props {
 
 type Tab = 'create' | 'import';
 
-const PIN_MIN_LENGTH = 6;
+const PIN_MIN_LENGTH = 8;
+
+function isNumericOnly(pin: string): boolean {
+  return /^\d+$/.test(pin);
+}
 
 function PinInput({
   value,
@@ -117,6 +121,7 @@ export default function WalletSetup({
     if (createPin.length < PIN_MIN_LENGTH)
       return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (createPin !== createPinConfirm) return 'PINs do not match.';
+    if (isNumericOnly(createPin)) return 'PIN cannot be numeric-only. Please include letters or special characters.';
     return null;
   }
 
@@ -127,6 +132,7 @@ export default function WalletSetup({
     if (importPin.length < PIN_MIN_LENGTH)
       return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (importPin !== importPinConfirm) return 'PINs do not match.';
+    if (isNumericOnly(importPin)) return 'PIN cannot be numeric-only. Please include letters or special characters.';
     return null;
   }
 
@@ -193,8 +199,8 @@ export default function WalletSetup({
       {/* Security Notice */}
       <div className="mb-5 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
         <strong>Security:</strong> Your secret key is encrypted with AES-256-GCM using your PIN
-        before being stored. The PIN is never stored — if you forget it, your key cannot be
-        recovered.
+        (600,000-round PBKDF2-SHA256) before being stored. Your PIN is never stored — if you forget it, your key cannot be
+        recovered. Choose a strong PIN with at least 8 characters including letters, numbers, or symbols. The strength of your secret key depends entirely on PIN entropy.
       </div>
 
       {/* ── Create Form ─────────────────────────────────────── */}

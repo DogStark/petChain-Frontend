@@ -495,6 +495,6 @@ Thank you for your patience and support.
 
 ---
 
-**Last Updated:** March 25, 2024  
-**Version:** 1.0  
-**Next Review:** March 25, 2024
+**Last Updated:** July 23, 2026  
+**Version:** 1.0.1  
+**Next Review:** January 23, 2027

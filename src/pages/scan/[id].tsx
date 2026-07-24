@@ -273,6 +273,15 @@ export default function ScanPage({
     </div>
   );
 }
+
+// This page's data (QR tag status, emergency contacts, medical notes) must
+// always be current — a deactivated tag or an edited emergency contact has
+// to show up on the very next scan. getServerSideProps forces a fresh
+// server render on every request instead of the static-generation +
+// revalidate:false combo this page used to have, which cached the first
+// scan's result forever. The actual data fetch still happens client-side
+// in useEffect above (via qrcodeAPI/petAPI), so this only needs to opt the
+// route out of static generation.
 export const getServerSideProps: GetServerSideProps = async () => {
   return {
     props: {},

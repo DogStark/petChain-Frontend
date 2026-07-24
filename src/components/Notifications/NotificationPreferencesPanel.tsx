@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { NotificationCategory, CATEGORY_LABELS, CATEGORY_ICONS } from '@/types/notification';
 
@@ -49,13 +48,13 @@ function Toggle({
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as NotificationCategory[];
 
 export default function NotificationPreferencesPanel() {
-  const { preferences, updatePreferences, requestBrowserPermission } = useNotifications();
-  const [saved, setSaved] = useState(false);
-
-  const save = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const {
+    preferences,
+    updatePreferences,
+    syncPreferences,
+    requestBrowserPermission,
+    preferencesSyncStatus,
+  } = useNotifications();
 
   return (
     <div className="space-y-6">
@@ -175,11 +174,23 @@ export default function NotificationPreferencesPanel() {
       </section>
 
       <button
-        onClick={save}
-        className="w-full py-3 bg-blue-600 text-white font-semibold rounded-2xl hover:bg-blue-700 transition-colors min-h-[44px]"
+        onClick={syncPreferences}
+        disabled={preferencesSyncStatus === 'saving'}
+        className="w-full py-3 bg-blue-600 text-white font-semibold rounded-2xl hover:bg-blue-700 transition-colors min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {saved ? '✓ Saved' : 'Save preferences'}
+        {preferencesSyncStatus === 'saving'
+          ? 'Saving…'
+          : preferencesSyncStatus === 'error'
+            ? 'Retry save'
+            : preferencesSyncStatus === 'saved'
+              ? '✓ Saved'
+              : 'Save preferences'}
       </button>
+      {preferencesSyncStatus === 'error' && (
+        <p className="text-xs text-red-600 text-center -mt-4">
+          Couldn&apos;t save your preferences. Check your connection and try again.
+        </p>
+      )}
     </div>
   );
 }
