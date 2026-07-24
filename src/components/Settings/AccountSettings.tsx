@@ -52,6 +52,18 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleRevokeSession = async (sessionId: string) => {
+    const currentSession = sessions.find((s) => s.isActive);
+    if (!currentSession) return;
+
+    const isSelfRevoke = sessionId === currentSession.id;
+    const confirmMsg = isSelfRevoke
+      ? 'This will log you out of this device. Continue?'
+      : 'Are you sure you want to revoke this session?';
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onRevokeSession(sessionId);
