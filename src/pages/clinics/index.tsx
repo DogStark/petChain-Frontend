@@ -12,6 +12,8 @@ export default function ClinicDirectory() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState<number | null>(null);
 
   const loadClinics = useCallback(async () => {
     setLoading(true);
@@ -30,16 +32,44 @@ export default function ClinicDirectory() {
     loadClinics();
   }, [loadClinics]);
 
-  const filteredClinics = clinics.filter((clinic) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      clinic.name.toLowerCase().includes(term) ||
-      clinic.locations.some((loc) => loc.city.toLowerCase().includes(term)) ||
-      clinic.services.some((service) =>
-        service.name.toLowerCase().includes(term),
-      )
+  const toggleService = (service: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service],
     );
+  };
+
+  const toggleRating = (star: number) => {
+    setMinRating((prev) => (prev === star ? null : star));
+  };
+
+  const filteredClinics = clinics.filter((clinic) => {
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch =
+        clinic.name.toLowerCase().includes(term) ||
+        clinic.locations.some((loc) => loc.city.toLowerCase().includes(term)) ||
+        clinic.services.some((service) =>
+          service.name.toLowerCase().includes(term),
+        );
+      if (!matchesSearch) return false;
+    }
+
+    if (selectedServices.length > 0) {
+      const hasService = clinic.services.some((service) =>
+        selectedServices.some(
+          (sel) => service.name.toLowerCase() === sel.toLowerCase(),
+        ),
+      );
+      if (!hasService) return false;
+    }
+
+    if (minRating !== null && clinic.rating < minRating) {
+      return false;
+    }
+
+    return true;
   });
 
   return (
@@ -103,6 +133,8 @@ export default function ClinicDirectory() {
                         >
                           <input
                             type="checkbox"
+                            checked={selectedServices.includes(service)}
+                            onChange={() => toggleService(service)}
                             className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-600 group-hover:text-blue-600 transition-colors">
@@ -126,6 +158,8 @@ export default function ClinicDirectory() {
                       >
                         <input
                           type="checkbox"
+                          checked={minRating === star}
+                          onChange={() => toggleRating(star)}
                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-600 flex items-center gap-1 group-hover:text-blue-600">

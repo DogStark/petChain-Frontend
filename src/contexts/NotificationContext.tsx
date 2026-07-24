@@ -386,28 +386,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const markRead = useCallback(
     async (id: string) => {
+      const prev = state.notifications;
+      const prevCount = state.unreadCount;
       dispatch({ type: 'MARK_READ', id });
       if (user) {
         try {
           await notificationsAPI.markAsRead(user.id, id);
         } catch {
-          /* optimistic */
+          dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+          dispatch({ type: 'SET_UNREAD', count: prevCount });
         }
       }
     },
-    [user]
+    [user, state.notifications, state.unreadCount]
   );
 
   const markAllRead = useCallback(async () => {
+    const prev = state.notifications;
     dispatch({ type: 'MARK_ALL_READ' });
     if (user) {
       try {
         await notificationsAPI.markAllAsRead(user.id);
       } catch {
-        /* optimistic */
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+        dispatch({ type: 'SET_UNREAD', count: prev.filter((n) => !n.isRead).length });
       }
     }
-  }, [user]);
+  }, [user, state.notifications]);
 
   const toggleCenter = useCallback(() => dispatch({ type: 'TOGGLE_CENTER' }), []);
 
