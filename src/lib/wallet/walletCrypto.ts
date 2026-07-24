@@ -39,7 +39,7 @@ async function deriveKey(pin: string, salt: Uint8Array, usage: KeyUsage[]): Prom
   );
 
   return window.crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations: 600_000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,

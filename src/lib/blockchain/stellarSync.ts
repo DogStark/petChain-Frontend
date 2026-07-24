@@ -81,7 +81,9 @@ class StellarSyncService {
         value: dataHash,
       });
 
-      const transaction = await this.engine.buildTransaction(sourceKeypair.publicKey(), [operation]);
+      const transaction = await this.engine.buildTransaction(sourceKeypair.publicKey(), [operation], {
+        timeoutSeconds: 180,
+      });
       transaction.sign(sourceKeypair);
 
       const txResult: TransactionResult = await this.engine.submitTransaction(transaction);

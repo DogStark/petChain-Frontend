@@ -25,6 +25,8 @@ export interface SubmitOptions {
   retryAttempts?: number;
   baseFee?: string;
   memo?: StellarSdk.Memo;
+  timeoutSeconds?: number;
+  rebuild?: () => Promise<StellarSdk.Transaction | StellarSdk.FeeBumpTransaction>;
 }
 
 export interface MedicalRecord {
