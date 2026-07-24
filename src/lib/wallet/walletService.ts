@@ -2,6 +2,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
 import { getStellarNetwork } from '../blockchain/network';
 import { randomUUID } from 'crypto';
+import { walletAPI } from '../api/walletAPI';
 import type {
   WalletAccount,
   WalletBalance,
@@ -113,6 +114,12 @@ class WalletService {
     };
 
     this.persistWallet(wallet);
+
+    // Register the public key with the backend (fire-and-forget; never sends secret key)
+    walletAPI.registerWallet(publicKey, label, this.network).catch((err) => {
+      console.warn('Failed to register wallet with backend:', err);
+    });
+
     return wallet;
   }
 
@@ -394,6 +401,12 @@ class WalletService {
     };
 
     this.persistWallet(wallet);
+
+    // Register the restored public key with the backend (fire-and-forget; never sends secret key)
+    walletAPI.registerWallet(backup.publicKey, backup.label, backupNetwork).catch((err) => {
+      console.warn('Failed to register imported wallet with backend:', err);
+    });
+
     return wallet;
   }
 

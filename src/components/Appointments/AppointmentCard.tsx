@@ -28,7 +28,7 @@ export default function AppointmentCard({ appointment, vetName, petName }: Appoi
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-bold text-blue-900 group-hover:text-blue-600 transition-colors uppercase text-xs tracking-wider">
-            {appointment.appointment_type}
+            {appointment.appointmentType}
           </h3>
           <p className="text-sm font-semibold text-gray-800">{petName}</p>
         </div>
@@ -43,7 +43,7 @@ export default function AppointmentCard({ appointment, vetName, petName }: Appoi
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Clock className="w-3.5 h-3.5" />
-          {new Date(appointment.scheduled_at).toLocaleTimeString([], {
+          {new Date(appointment.scheduledAt).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           })}{' '}

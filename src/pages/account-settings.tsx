@@ -44,7 +44,7 @@ export default function AccountSettingsPage() {
   }, [router]);
 
   const handleRevokeSession = async (sessionId: string) => {
-    const currentSession = sessions.find((s) => s.isActive);
+    const currentSession = sessions.find((s) => s.isCurrentSession);
     if (!currentSession) {
       setError('Unable to determine current session');
       return;
