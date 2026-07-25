@@ -9,8 +9,9 @@ export interface PasswordValidationResult {
   errors: string[];
 }
 
-const HISTORY_KEY = 'pw_history';
+const HISTORY_KEY_PREFIX = 'pw_history';
 const HISTORY_LIMIT = 5;
+const DEFAULT_SCOPE = 'anonymous';
 
 export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = [];
@@ -53,31 +54,38 @@ export function getPasswordStrength(password: string): PasswordStrength {
   return levels[score] ?? levels[0];
 }
 
-// Simple hash for history comparison (not cryptographic — just for client-side UX)
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash.toString(36);
+// NOTE: This is a client-side UX hint only, not a security control. It lives in
+// localStorage, is trivially bypassed by clearing site data or switching browsers/
+// devices, and must never be the sole gate on password reuse — the backend must
+// independently reject reuse of a user's actual password history.
+async function digest(str: string): Promise<string> {
+  const bytes = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-export function isPasswordReused(password: string): boolean {
+function historyKey(scope?: string): string {
+  return `${HISTORY_KEY_PREFIX}:${scope || DEFAULT_SCOPE}`;
+}
+
+export async function isPasswordReused(password: string, scope?: string): Promise<boolean> {
   if (typeof window === 'undefined') return false;
-  const history: string[] = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-  return history.includes(simpleHash(password));
+  const history: string[] = JSON.parse(localStorage.getItem(historyKey(scope)) || '[]');
+  return history.includes(await digest(password));
 }
 
-export function savePasswordToHistory(password: string): void {
+export async function savePasswordToHistory(password: string, scope?: string): Promise<void> {
   if (typeof window === 'undefined') return;
-  const history: string[] = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-  const hash = simpleHash(password);
+  const key = historyKey(scope);
+  const history: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+  const hash = await digest(password);
   const updated = [hash, ...history.filter((h) => h !== hash)].slice(0, HISTORY_LIMIT);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+  localStorage.setItem(key, JSON.stringify(updated));
 }
 
-export function clearPasswordHistory(): void {
+export function clearPasswordHistory(scope?: string): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(HISTORY_KEY);
+  localStorage.removeItem(historyKey(scope));
 }

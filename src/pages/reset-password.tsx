@@ -13,6 +13,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
   const { resetPassword } = useAuth();
   const router = useRouter();
 
@@ -21,9 +22,12 @@ export default function ResetPasswordPage() {
     if (router.query.token) {
       setToken(router.query.token as string);
     }
-  }, [router.query.token]);
+    if (router.query.email) {
+      setEmail((router.query.email as string).trim().toLowerCase());
+    }
+  }, [router.query.token, router.query.email]);
 
-  const validateForm = () => {
+  const validateForm = async () => {
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return false;
@@ -35,7 +39,7 @@ export default function ResetPasswordPage() {
       return false;
     }
 
-    if (isPasswordReused(password)) {
+    if (await isPasswordReused(password, email)) {
       setError('This password was used recently. Please choose a different one.');
       return false;
     }
@@ -51,8 +55,8 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (!validateForm()) {
+
+    if (!(await validateForm())) {
       return;
     }
 
@@ -60,7 +64,7 @@ export default function ResetPasswordPage() {
 
     try {
       await resetPassword(token, password);
-      savePasswordToHistory(password);
+      await savePasswordToHistory(password, email);
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Password reset failed');
