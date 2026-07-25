@@ -41,8 +41,16 @@ export default function PetDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Router not yet hydrated — stay in loading state until id is available
     if (!id || typeof id !== 'string') return;
-    if (!UUID_RE.test(id)) return;
+
+    // id is present but not a valid UUID — stop loading and surface an error
+    if (!UUID_RE.test(id)) {
+      setIsLoading(false);
+      setError('Invalid pet id');
+      return;
+    }
+
     // Use sanitized copy to break taint flow
     const safeId = id.replace(/[^0-9a-f-]/gi, '');
 
