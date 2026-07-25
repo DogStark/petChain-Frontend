@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { AppointmentType } from '@/types/appointments';
+import React, { useState, useEffect, useRef } from 'react';
+
 import {
   TouchSelect,
   TouchDatePicker,
@@ -10,9 +10,14 @@ import {
 } from '@/components/TouchUI';
 import { useHaptic } from '@/hooks/useHaptic';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
+import type { AppointmentType } from '@/types/appointments';
 
 interface BookingModalProps {
   onClose: () => void;
+  /** Pre-select a clinic so the booking is scoped to it. */
+  initialClinicId?: string;
+  /** Display name of the pre-selected clinic shown in the modal header area. */
+  initialClinicName?: string;
   /** Pre-select an appointment type when the modal is opened from a service card. */
   initialAppointmentType?: AppointmentType;
 }
@@ -54,12 +59,15 @@ const TIME_OPTIONS = [
   { value: '15:00', label: '03:00 PM' },
 ];
 
+export default function BookingModal({ onClose, initialClinicId, initialClinicName }: BookingModalProps) {
 export default function BookingModal({ onClose, initialAppointmentType }: BookingModalProps) {
   const { trigger } = useHaptic();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
     petId: '',
+    vetId: initialClinicId ?? '',
+    appointmentType: 'Checkup' as AppointmentType,
     vetId: '',
     appointmentType: (initialAppointmentType ?? 'Checkup') as AppointmentType,
     date: '',
@@ -73,7 +81,8 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
   const validate = () => {
     const next: Record<string, string> = {};
     if (!formData.petId) next.petId = 'Please select a pet';
-    if (!formData.vetId) next.vetId = 'Please select a vet';
+    // Only require vet selection when no clinic is pre-selected from a clinic profile
+    if (!initialClinicId && !formData.vetId) next.vetId = 'Please select a vet';
     if (!formData.date) next.date = 'Please pick a date';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -99,8 +108,9 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
       });
       trigger('success');
       onClose();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Booking failed, please try again';
+    } catch (err) {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
       setSubmitError(errorMessage);
       trigger('error');
     } finally {
@@ -195,9 +205,16 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
             className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full sm:hidden"
             aria-hidden="true"
           />
-          <h2 id="booking-modal-title" className="text-xl font-bold text-blue-900">
-            Book Appointment
-          </h2>
+          <div>
+            <h2 id="booking-modal-title" className="text-xl font-bold text-blue-900">
+              Book Appointment
+            </h2>
+            {initialClinicName && (
+              <p className="text-sm text-blue-600 font-semibold mt-0.5">
+                at {initialClinicName}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             aria-label="Close booking modal"
@@ -254,16 +271,29 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
             />
           </div>
 
-          <TouchSelect
-            label="Veterinarian"
-            options={VET_OPTIONS}
-            placeholder="Select a vet"
-            value={formData.vetId}
-            onChange={(e) => setFormData((f) => ({ ...f, vetId: e.target.value }))}
-            required
-            aria-required="true"
-            error={errors.vetId}
-          />
+          {initialClinicId && initialClinicName ? (
+            /* Clinic pre-selected — show as a read-only "Veterinarian / Clinic" field */
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                Veterinarian / Clinic
+              </label>
+              <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm font-semibold text-blue-800">
+                <span className="flex-1">{initialClinicName}</span>
+                <span className="text-xs text-blue-400 uppercase tracking-wide font-bold">Pre-selected</span>
+              </div>
+            </div>
+          ) : (
+            <TouchSelect
+              label="Veterinarian"
+              options={VET_OPTIONS}
+              placeholder="Select a vet"
+              value={formData.vetId}
+              onChange={(e) => setFormData((f) => ({ ...f, vetId: e.target.value }))}
+              required
+              aria-required="true"
+              error={errors.vetId}
+            />
+          )}
 
           <TouchTextarea
             label="Notes (optional)"
