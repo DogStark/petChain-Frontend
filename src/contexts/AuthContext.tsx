@@ -175,6 +175,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setState((prev) => ({ ...prev, isLoading }));
   };
 
+  const showLogoutWarning = (message: string) => {
+    if (typeof window === 'undefined') {
+      console.warn(message);
+      return;
+    }
+
+    const bannerId = 'auth-logout-warning-banner';
+    const existingBanner = document.getElementById(bannerId);
+    existingBanner?.remove();
+
+    const banner = document.createElement('div');
+    banner.id = bannerId;
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.style.position = 'fixed';
+    banner.style.bottom = '1rem';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.maxWidth = 'min(92vw, 32rem)';
+    banner.style.padding = '0.875rem 1rem';
+    banner.style.borderRadius = '0.75rem';
+    banner.style.backgroundColor = '#fef3c7';
+    banner.style.color = '#92400e';
+    banner.style.border = '1px solid #f59e0b';
+    banner.style.boxShadow = '0 12px 32px rgba(15, 23, 42, 0.16)';
+    banner.style.zIndex = '99999';
+    banner.style.fontSize = '0.95rem';
+    banner.style.lineHeight = '1.4';
+    banner.textContent = message;
+
+    document.body.appendChild(banner);
+    window.setTimeout(() => banner.remove(), 8000);
+  };
+
   const setupTokenRefresh = () => {
     clearTokenRefresh();
 
@@ -196,37 +230,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const buildConfig = (token?: string): RequestInit => ({
+    const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...options,
-    });
-
-    const attempt = async (token?: string) => {
-      const response = await fetch(url, buildConfig(token));
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const err = Object.assign(new Error(errorData.message || `HTTP error! status: ${response.status}`), { status: response.status });
-        throw err;
-      }
-      return response.json();
     };
 
-    try {
-      return await attempt(state.tokens?.accessToken);
-    } catch (err: unknown) {
-      if ((err as { status?: number }).status === 401 && state.tokens?.refreshToken) {
-        const refreshed = await refreshTokens();
-        if (refreshed && state.tokens?.accessToken) {
-          return attempt(state.tokens.accessToken);
-        }
-        clearAuth();
-      }
-      throw err;
+    // Add auth header if we have a token
+    if (state.tokens?.accessToken) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${state.tokens.accessToken}`,
+      };
     }
+
+    const response = await fetch(url, config);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
   };
 
   const login = async (email: string, password: string): Promise<void> => {
@@ -332,52 +359,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     setLoading(true);
 
-    const emitLogoutWarning = () => {
-      if (typeof window === 'undefined') return;
+    const refreshToken = state.tokens?.refreshToken;
+    let serverLogoutSucceeded = !refreshToken; // no token = nothing to revoke
 
-      window.dispatchEvent(
-        new CustomEvent('auth:logout-warning', {
-          detail: {
-            title: 'Session sign-out warning',
-            message:
-              'You have been signed out on this device, but we could not confirm that your session was closed on our server. If this device may be compromised, please change your password.',
-          },
-        })
-      );
-    };
-
-    try {
-      if (state.tokens?.refreshToken) {
-        let lastError: unknown;
-
+    if (refreshToken) {
+      // Attempt server-side revocation with one retry
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
           await makeRequest('/auth/logout', {
             method: 'POST',
-            body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
+            body: JSON.stringify({ refreshToken }),
           });
+          serverLogoutSucceeded = true;
+          break;
         } catch (error) {
-          lastError = error;
-
-          try {
-            await makeRequest('/auth/logout', {
-              method: 'POST',
-              body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
-            });
-          } catch (retryError) {
-            lastError = retryError;
-          }
-        }
-
-        if (lastError) {
-          throw lastError;
+          console.error(`Logout attempt ${attempt + 1} failed:`, error);
         }
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-      emitLogoutWarning();
-    } finally {
-      clearAuth();
-      setLoading(false);
+    }
+
+    clearAuth();
+    setLoading(false);
+
+    if (!serverLogoutSucceeded) {
+      showLogoutWarning(
+        "You've been signed out on this device, but we couldn't confirm the session was closed on our server. If this device may be compromised, consider changing your password."
+      );
     }
   };
 

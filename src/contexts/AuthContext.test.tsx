@@ -145,6 +145,36 @@ describe('AuthContext', () => {
         title: 'Session sign-out warning',
       });
     });
+
+    it('shows a visible warning when the logout API call fails', async () => {
+      jest.useFakeTimers();
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ user: mockUser, ...mockTokens }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ message: 'Server error' }),
+        });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.login('test@example.com', 'password123');
+      });
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      const warningMessage = document.body.textContent || '';
+      expect(warningMessage).toContain('signed out on this device');
+      expect(result.current.isAuthenticated).toBe(false);
+
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
   });
 
   describe('refreshTokens', () => {

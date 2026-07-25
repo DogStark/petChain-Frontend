@@ -1,5 +1,21 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+
+async function parseBlobError(error: AxiosError): Promise<never> {
+  const data = error.response?.data;
+  const contentType = error.response?.headers?.['content-type'] ?? '';
+  if (data instanceof Blob && contentType.includes('application/json')) {
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      error.message = parsed?.message ?? error.message;
+      (error.response as any).data = parsed;
+    } catch {
+      // leave error as-is if parsing fails
+    }
+  }
+  return Promise.reject(error);
+}
 
 export interface DateRange {
   startDate: string;
@@ -67,6 +83,8 @@ class AnalyticsAPI {
       }
       return config;
     });
+
+    this.api.interceptors.response.use((r) => r, parseBlobError);
   }
 
   async getUserMetrics(dateRange?: DateRange): Promise<UserMetrics> {
