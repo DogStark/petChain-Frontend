@@ -30,15 +30,19 @@ const mockLocalStorage = {
 let passed = 0;
 let failed = 0;
 
-function test(name: string, fn: () => void) {
-  try {
-    fn();
-    console.log(`  ✓ ${name}`);
-    passed++;
-  } catch (e: unknown) {
-    console.error(`  ✗ ${name}\n    ${(e as Error).message}`);
-    failed++;
-  }
+const tests: Array<() => Promise<void>> = [];
+
+function test(name: string, fn: () => void | Promise<void>) {
+  tests.push(async () => {
+    try {
+      await fn();
+      console.log(`  ✓ ${name}`);
+      passed++;
+    } catch (e: unknown) {
+      console.error(`  ✗ ${name}\n    ${(e as Error).message}`);
+      failed++;
+    }
+  });
 }
 
 // ── validatePassword ──────────────────────────────────────────────
@@ -117,39 +121,50 @@ test('returns a label and color', () => {
 // ── password history (last 5) ─────────────────────────────────────
 console.log('\npassword history');
 
-test('new password is not flagged as reused', () => {
+test('new password is not flagged as reused', async () => {
   clearPasswordHistory();
-  assert.strictEqual(isPasswordReused('BrandNew@1'), false);
+  assert.strictEqual(await isPasswordReused('BrandNew@1'), false);
 });
 
-test('saved password is detected as reused', () => {
+test('saved password is detected as reused', async () => {
   clearPasswordHistory();
-  savePasswordToHistory('Reused@Pass1');
-  assert.strictEqual(isPasswordReused('Reused@Pass1'), true);
+  await savePasswordToHistory('Reused@Pass1');
+  assert.strictEqual(await isPasswordReused('Reused@Pass1'), true);
 });
 
-test('different password is not flagged as reused', () => {
+test('different password is not flagged as reused', async () => {
   clearPasswordHistory();
-  savePasswordToHistory('First@Pass1');
-  assert.strictEqual(isPasswordReused('Different@Pass2'), false);
+  await savePasswordToHistory('First@Pass1');
+  assert.strictEqual(await isPasswordReused('Different@Pass2'), false);
 });
 
-test('only last 5 passwords are tracked', () => {
+test('only last 5 passwords are tracked', async () => {
   clearPasswordHistory();
   const passwords = ['Pass@1111', 'Pass@2222', 'Pass@3333', 'Pass@4444', 'Pass@5555', 'Pass@6666'];
-  passwords.forEach(savePasswordToHistory);
+  for (const p of passwords) await savePasswordToHistory(p);
   // oldest (index 0) should be evicted
-  assert.strictEqual(isPasswordReused('Pass@1111'), false);
+  assert.strictEqual(await isPasswordReused('Pass@1111'), false);
   // most recent should still be tracked
-  assert.strictEqual(isPasswordReused('Pass@6666'), true);
+  assert.strictEqual(await isPasswordReused('Pass@6666'), true);
 });
 
-test('clearPasswordHistory removes all history', () => {
-  savePasswordToHistory('ToBeCleared@1');
+test('clearPasswordHistory removes all history', async () => {
+  await savePasswordToHistory('ToBeCleared@1');
   clearPasswordHistory();
-  assert.strictEqual(isPasswordReused('ToBeCleared@1'), false);
+  assert.strictEqual(await isPasswordReused('ToBeCleared@1'), false);
+});
+
+test('history is scoped per identifier', async () => {
+  clearPasswordHistory('userA');
+  clearPasswordHistory('userB');
+  await savePasswordToHistory('Shared@Pass1', 'userA');
+  assert.strictEqual(await isPasswordReused('Shared@Pass1', 'userA'), true);
+  assert.strictEqual(await isPasswordReused('Shared@Pass1', 'userB'), false);
 });
 
 // ── summary ───────────────────────────────────────────────────────
-console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
-if (failed > 0) process.exit(1);
+(async () => {
+  for (const t of tests) await t();
+  console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
+  if (failed > 0) process.exit(1);
+})();
