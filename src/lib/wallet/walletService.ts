@@ -347,6 +347,34 @@ class WalletService {
     return this.normalizeBroadcastResult(result);
   }
 
+  async importWallet(secretKey: string, label: string, pin: string): Promise<WalletAccount> {
+    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    const publicKey = keypair.publicKey();
+
+    const existing = this.getWallets().find((w) => w.publicKey === publicKey);
+    if (existing) {
+      throw new Error(`This wallet is already added as "${existing.label}".`);
+    }
+
+    const { encryptedKey, iv, salt } = await encryptSecretKey(secretKey, pin);
+
+    const wallet: WalletAccount = {
+      id: `wallet_${randomUUID()}`,
+      publicKey,
+      encryptedSecretKey: encryptedKey,
+      iv,
+      salt,
+      label,
+      type: 'standard',
+      network: this.network,
+      createdAt: new Date().toISOString(),
+      backupVerified: false,
+    };
+
+    this.persistWallet(wallet);
+    return wallet;
+  }
+
   // ─── Backup & Recovery ────────────────────────────────────────────────────────
 
   async exportBackup(wallet: WalletAccount, pin: string): Promise<BackupData> {
@@ -379,6 +407,9 @@ class WalletService {
     // Verify PIN decrypts correctly
     await decryptSecretKey(backup.encryptedKey, backup.iv, backup.salt, pin);
 
+    const existing = this.getWallets().find((w) => w.publicKey === backup.publicKey);
+    if (existing) {
+      throw new Error(`This wallet is already added as "${existing.label}".`);
     const backupNetwork = backup.network as WalletNetwork;
     if (backupNetwork !== this.network) {
       console.warn(
