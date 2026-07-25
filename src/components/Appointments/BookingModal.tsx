@@ -18,6 +18,8 @@ interface BookingModalProps {
   initialClinicId?: string;
   /** Display name of the pre-selected clinic shown in the modal header area. */
   initialClinicName?: string;
+  /** Pre-select an appointment type when the modal is opened from a service card. */
+  initialAppointmentType?: AppointmentType;
 }
 
 const APPOINTMENT_TYPES: { value: AppointmentType; label: string; color: string }[] = [
@@ -58,6 +60,7 @@ const TIME_OPTIONS = [
 ];
 
 export default function BookingModal({ onClose, initialClinicId, initialClinicName }: BookingModalProps) {
+export default function BookingModal({ onClose, initialAppointmentType }: BookingModalProps) {
   const { trigger } = useHaptic();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -65,6 +68,8 @@ export default function BookingModal({ onClose, initialClinicId, initialClinicNa
     petId: '',
     vetId: initialClinicId ?? '',
     appointmentType: 'Checkup' as AppointmentType,
+    vetId: '',
+    appointmentType: (initialAppointmentType ?? 'Checkup') as AppointmentType,
     date: '',
     time: '09:00',
     notes: '',
