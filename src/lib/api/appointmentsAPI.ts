@@ -120,6 +120,23 @@ class AppointmentsAPI {
     const response = await this.api.post<BackendAppointment>('/', payload);
     return mapAppointment(response.data).appointment;
   }
+
+  async getWaitlist(): Promise<Array<{ id: string; petName: string; type: string; joinedAt: string }>> {
+    const response = await this.api.get('/waitlist');
+    return response.data;
+  }
+
+  async addToWaitlist(petId: string, type: string): Promise<void> {
+    await this.api.post('/waitlist', { petId, type });
+  }
+
+  async removeFromWaitlist(entryId: string): Promise<void> {
+    await this.api.delete(`/waitlist/${entryId}`);
+  }
+
+  async scheduleFromWaitlist(entryId: string): Promise<void> {
+    await this.api.patch(`/waitlist/${entryId}/schedule`);
+  }
 }
 
 export const appointmentsAPI = new AppointmentsAPI();
