@@ -223,7 +223,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Seed from localStorage immediately (offline-first)
     const cached = loadPersisted();
-    if (cached.length) dispatch({ type: 'SET_NOTIFICATIONS', payload: cached });
+    if (cached.length) {
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: cached });
+      dispatch({ type: 'SET_UNREAD', count: cached.filter((n) => !n.isRead).length });
+    }
 
     // Then fetch fresh from API
     dispatch({ type: 'SET_LOADING', value: true });
