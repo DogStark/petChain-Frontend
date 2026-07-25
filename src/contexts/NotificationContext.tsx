@@ -331,6 +331,35 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return unsub;
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLogoutWarning = (event: Event) => {
+      const detail = (event as CustomEvent<{ title?: string; message?: string }>).detail;
+      const title = detail?.title ?? 'Session sign-out warning';
+      const message =
+        detail?.message ??
+        'You have been signed out on this device, but we could not confirm that your session was closed on our server.';
+
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: {
+          id: `toast-${++toastCounter}`,
+          title,
+          message,
+          type: 'warning',
+          duration: 8000,
+        },
+      });
+    };
+
+    window.addEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+
+    return () => {
+      window.removeEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+    };
+  }, []);
+
   // ── Incoming notification handler ───────────────────────────────────────────
   const handleIncoming = useCallback((notif: AppNotification) => {
     const prefs = preferencesRef.current;
