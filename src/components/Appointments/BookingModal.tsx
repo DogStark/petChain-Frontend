@@ -13,6 +13,8 @@ import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
 
 interface BookingModalProps {
   onClose: () => void;
+  /** Pre-select an appointment type when the modal is opened from a service card. */
+  initialAppointmentType?: AppointmentType;
 }
 
 const APPOINTMENT_TYPES: { value: AppointmentType; label: string; color: string }[] = [
@@ -52,14 +54,14 @@ const TIME_OPTIONS = [
   { value: '15:00', label: '03:00 PM' },
 ];
 
-export default function BookingModal({ onClose }: BookingModalProps) {
+export default function BookingModal({ onClose, initialAppointmentType }: BookingModalProps) {
   const { trigger } = useHaptic();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
     petId: '',
     vetId: '',
-    appointmentType: 'Checkup' as AppointmentType,
+    appointmentType: (initialAppointmentType ?? 'Checkup') as AppointmentType,
     date: '',
     time: '09:00',
     notes: '',
