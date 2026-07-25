@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import TwoFactorVerify from '../components/Settings/TwoFactorVerify';
 import { TouchInput, TouchButton } from '../components/TouchUI';
+import { isSafeRedirectPath } from '../utils/validation';
 import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,12 @@ export default function LoginPage() {
   const { login, loginWith2FA, recoverWith2FA } = useAuth();
   const router = useRouter();
 
+  const getRedirectTarget = () => {
+    const next = router.query.next;
+    if (typeof next === 'string' && isSafeRedirectPath(next)) return next;
+    return '/dashboard';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Prevent double-submit
@@ -27,7 +34,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+      router.push(getRedirectTarget());
     } catch (err) {
       if (err instanceof Error && err.message === '2FA_REQUIRED') {
         setShow2FA(true);
@@ -41,12 +48,12 @@ export default function LoginPage() {
 
   const handle2FAVerify = async (token: string) => {
     await loginWith2FA(email, password, token);
-    router.push('/dashboard');
+    router.push(getRedirectTarget());
   };
 
   const handle2FARecover = async (backupCode: string) => {
     await recoverWith2FA(email, password, backupCode);
-    router.push('/dashboard');
+    router.push(getRedirectTarget());
   };
 
   if (show2FA) {
