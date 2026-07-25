@@ -7,7 +7,7 @@ import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
 import { petAPI } from '@/lib/api/petAPI';
 import { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
 
-export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic';
 
 interface PublicProfile {
   qrCodeId: string;
@@ -17,13 +17,20 @@ interface PublicProfile {
   emergency: PetEmergencyInfo | null;
 }
 
-export default function ScanPage() {
+interface ScanPageProps {
+  profile: PublicProfile | null;
+  error: string | null;
+}
+
+export default function ScanPage({
+  profile: initialProfile,
+  error: initialError,
+}: ScanPageProps) {
   const router = useRouter();
   const { id } = router.query;
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [profile, setProfile] = useState(initialProfile);
+  const [error, setError] = useState(initialError);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
 
@@ -31,7 +38,7 @@ export default function ScanPage() {
       try {
         // Record the scan (best-effort, non-blocking)
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
-        qrcodeAPI.recordScan(id, { deviceType }).catch(() => {});
+        qrcodeAPI.recordScan(id, { deviceType }).catch(() => { });
 
         const qr = await qrcodeAPI.getOne(id);
 
