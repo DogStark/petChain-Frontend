@@ -30,14 +30,21 @@ function labelFor(segment: string) {
 }
 
 export default function Breadcrumbs() {
-  const { pathname } = useRouter();
+  const { pathname, asPath } = useRouter();
 
-  const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0) return null;
+  // pathname  → route pattern:  /pets/[id]/emergency  (used for labels)
+  // asPath    → resolved URL:   /pets/abc-123/emergency (used for hrefs)
+  // Strip query strings / hash from asPath before splitting
+  const patternSegments = pathname.split('/').filter(Boolean);
+  const resolvedSegments = asPath.split('?')[0].split('#')[0].split('/').filter(Boolean);
 
-  const crumbs = segments.map((seg, i) => ({
-    label: labelFor(seg),
-    href: '/' + segments.slice(0, i + 1).join('/'),
+  if (patternSegments.length === 0) return null;
+
+  const crumbs = patternSegments.map((patternSeg, i) => ({
+    label: labelFor(patternSeg),
+    // Use the resolved segment for the href so [id] becomes the real value.
+    // Fall back to the pattern segment if asPath somehow has fewer segments.
+    href: '/' + resolvedSegments.slice(0, i + 1).join('/'),
   }));
 
   return (
