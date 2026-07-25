@@ -4,9 +4,11 @@ import { Tag } from 'lucide-react';
 
 interface ServiceListProps {
   services: ClinicService[];
+  /** Called when the user clicks "Book This" on a service card. */
+  onBook?: (service: ClinicService) => void;
 }
 
-export default function ServiceList({ services }: ServiceListProps) {
+export default function ServiceList({ services, onBook }: ServiceListProps) {
   return (
     <div className="space-y-4">
       {services.map((service) => (
@@ -35,6 +37,7 @@ export default function ServiceList({ services }: ServiceListProps) {
             </div>
             <button
               type="button"
+              onClick={() => onBook?.(service)}
               className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
             >
               Book This
