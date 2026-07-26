@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import type { NotificationPreferences } from '@/types/notification';
+export type { NotificationPriority } from '@/types/notification';
 
 export type NotificationCategory =
   | 'APPOINTMENT'
@@ -35,6 +36,7 @@ export interface Notification {
   title: string;
   message: string;
   category: NotificationCategory;
+  priority: NotificationPriority;
   isRead: boolean;
   readAt: string | null;
   actionUrl: string | null;
@@ -42,6 +44,8 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
 }
+
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface RegisterDeviceTokenDto {
   token: string;

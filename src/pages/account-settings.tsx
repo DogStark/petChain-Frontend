@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
+import GdprSettings from '../components/Settings/GdprSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
 import { useAuth } from '../contexts/AuthContext';
 import { twoFactorAPI } from '../lib/api/twoFactorAPI';
@@ -225,6 +226,12 @@ export default function AccountSettingsPage() {
       <div className={styles.section}>
         <TwoFactorSettings />
       </div>
+
+      {auth.user && (
+        <div className={styles.section}>
+          <GdprSettings userId={auth.user.id} />
+        </div>
+      )}
     </div>
   );
 }
