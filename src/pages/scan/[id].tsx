@@ -51,7 +51,7 @@ export default function ScanPage({
         try {
           emergency = await petAPI.getPetEmergencyInfo(qr.petId);
         } catch {
-          // Emergency info optional
+          // Emergency info optional — null means not configured
         }
 
         setProfile({
@@ -125,6 +125,18 @@ export default function ScanPage({
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-4 pb-12">
+        {/* No emergency info configured */}
+        {!emergency && !emergencyContact && (
+          <div className="bg-white border-4 border-gray-300 rounded-3xl p-6 shadow-lg text-center">
+            <AlertOctagon size={40} className="text-gray-400 mx-auto mb-3" />
+            <p className="font-black text-gray-700 text-lg uppercase">No Emergency Info Set Up</p>
+            <p className="text-gray-500 text-sm mt-2">
+              The owner of this pet has not yet configured emergency contacts or vet information.
+              If this is your pet, please update your emergency info in the PetChain app.
+            </p>
+          </div>
+        )}
+
         {/* Custom message from owner */}
         {customMessage && (
           <div className="bg-white border-4 border-red-500 rounded-3xl p-6 shadow-2xl">

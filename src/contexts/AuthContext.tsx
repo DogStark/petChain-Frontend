@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
 import { twoFactorAPI } from '../lib/api/twoFactorAPI';
 
+export type UserRole = 'user' | 'admin' | 'moderator';
+
 export interface User {
   id: string;
   email: string;
@@ -13,6 +15,7 @@ export interface User {
   phoneVerified: boolean;
   isVerified: boolean;
   isActive: boolean;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }

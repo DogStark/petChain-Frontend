@@ -5,24 +5,32 @@ import { useAuth } from '@/contexts/AuthContext';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
+  requireAdmin?: boolean;
   redirectTo?: string;
 }
 
 export default function ProtectedRoute({
   children,
   requireAuth = true,
+  requireAdmin = false,
   redirectTo = '/login',
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && requireAuth && !isAuthenticated) {
-      router.push(`${redirectTo}?next=${encodeURIComponent(router.asPath)}`);
-    }
-  }, [isAuthenticated, isLoading, requireAuth, redirectTo, router]);
+  const isAdmin = user?.role === 'admin';
 
-  // Show loading screen while checking authentication
+  useEffect(() => {
+    if (isLoading) return;
+    if (requireAuth && !isAuthenticated) {
+      router.push(`${redirectTo}?next=${encodeURIComponent(router.asPath)}`);
+      return;
+    }
+    if (requireAdmin && !isAdmin) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, isAdmin, requireAuth, requireAdmin, redirectTo, router]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -39,10 +47,8 @@ export default function ProtectedRoute({
     );
   }
 
-  // If auth is required but user is not authenticated, don't render children
-  if (requireAuth && !isAuthenticated) {
-    return null;
-  }
+  if (requireAuth && !isAuthenticated) return null;
+  if (requireAdmin && !isAdmin) return null;
 
   return <>{children}</>;
 }

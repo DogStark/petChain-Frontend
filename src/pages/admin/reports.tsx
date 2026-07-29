@@ -231,7 +231,7 @@ export default function AdminReports() {
     ];
 
     return (
-        <ProtectedRoute>
+        <ProtectedRoute requireAdmin>
             <div className="min-h-screen bg-slate-50 print:bg-white text-slate-800 font-sans">
                 <Head>
                     <title>Admin Reports | PetChain</title>

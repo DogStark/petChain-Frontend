@@ -26,15 +26,16 @@ class PetAPI {
     return response.data;
   }
 
-  async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo> {
+  async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo | null> {
     if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     try {
       const response = await this.api.get(`/${petId}/emergency`);
       return response.data;
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        // Return mock data for demo if not found
-        return this.getMockEmergencyInfo(petId);
+        // Owner hasn't configured emergency info yet — return null so callers
+        // can show a "no info configured" state instead of fake data.
+        return null;
       }
       throw error;
     }
@@ -44,42 +45,6 @@ class PetAPI {
     if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
     const response = await this.api.put(`/${petId}/emergency`, info);
     return response.data;
-  }
-
-  private getMockEmergencyInfo(petId: string): PetEmergencyInfo {
-    return {
-      petId,
-      contacts: [
-        {
-          id: '1',
-          name: 'Jane Doe',
-          relationship: 'Co-owner',
-          phone: '+1 (555) 123-4567',
-          email: 'jane@example.com',
-          priority: 1,
-        },
-        {
-          id: '2',
-          name: 'Bob Smith',
-          relationship: 'Neighbor',
-          phone: '+1 (555) 987-6543',
-          priority: 2,
-        },
-      ],
-      emergencyVet: {
-        name: 'City Emergency Vet',
-        phone: '+1 (555) 000-9999',
-        address: '789 Rescue Lane, Pet City, PC 12345',
-        is24Hours: true,
-        notes: "They have Max's records on file.",
-      },
-      poisonControl: {
-        name: 'ASPCA Poison Control',
-        phone: '(888) 426-4435',
-        website: 'https://www.aspca.org/pet-care/animal-poison-control',
-      },
-      medicalNotes: 'No known allergies. Up to date on all shots.',
-    };
   }
 }
 
