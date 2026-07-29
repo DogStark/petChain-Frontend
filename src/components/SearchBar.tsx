@@ -88,13 +88,17 @@ export default function SearchBar({
     }
   };
 
-  // Debounced autocomplete
+  // Debounced autocomplete — cancel on unmount to prevent setState after unmount
   const debouncedFetchSuggestions = useCallback(
     debounce((searchQuery: unknown) => {
       fetchSuggestions(searchQuery as string);
     }, 300),
     [searchType]
   );
+
+  useEffect(() => {
+    return () => debouncedFetchSuggestions.cancel();
+  }, [debouncedFetchSuggestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

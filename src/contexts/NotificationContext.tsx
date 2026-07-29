@@ -233,7 +233,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     notificationsAPI
       .getNotifications(user.id)
       .then((res) => {
-        const ns = res.data as AppNotification[];
+        // Map API Notification → AppNotification, defaulting priority when absent
+        // (older backend responses may omit it).
+        const ns: AppNotification[] = res.data.map((n) => ({
+          ...n,
+          priority: n.priority ?? 'normal',
+          metadata: n.metadata as AppNotification['metadata'],
+        }));
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
         persistNotifications(ns);
