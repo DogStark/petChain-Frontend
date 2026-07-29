@@ -3,7 +3,7 @@ import { useBlockchainSync } from '@/hooks/useBlockchainSync';
 import { CheckCircle, XCircle, Loader2, Clock } from 'lucide-react';
 
 export const BlockchainSyncStatus: React.FC = () => {
-  const { syncStatuses } = useBlockchainSync();
+  const { syncStatuses, syncError } = useBlockchainSync();
 
   // Derived counts
   const syncedCount   = syncStatuses.filter((s) => s.status === 'success').length;
@@ -58,6 +58,13 @@ export const BlockchainSyncStatus: React.FC = () => {
         <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-blue-50 border border-blue-200 text-blue-600 text-sm font-medium">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span>Sync in progress...</span>
+        </div>
+      )}
+
+      {syncError && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+          <XCircle className="w-4 h-4" />
+          <span>{syncError}</span>
         </div>
       )}
 
