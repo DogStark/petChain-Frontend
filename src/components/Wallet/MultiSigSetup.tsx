@@ -46,6 +46,31 @@ export default function MultiSigSetup({
   const [removePin, setRemovePin] = useState('');
   const [removingKey, setRemovingKey] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (pin || removePin) {
+      timeoutId = setTimeout(() => {
+        setPin('');
+        setRemovePin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && (pin || removePin)) {
+        setPin('');
+        setRemovePin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pin, removePin]);
+
   if (!wallet) {
     return (
       <div className="text-center py-12 text-gray-400">Select a wallet to configure multi-sig.</div>

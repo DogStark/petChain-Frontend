@@ -18,6 +18,29 @@ export default function WalletBackup({ wallet, serverWalletId, onExportBackup }:
   const [exported, setExported] = useState(false);
   const [serverBackupDone, setServerBackupDone] = useState(false);
 
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (pin) {
+      timeoutId = setTimeout(() => {
+        setPin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && pin) {
+        setPin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pin]);
+
   if (!wallet) {
     return (
       <div className="text-center py-12 text-gray-400">Select a wallet to manage its backup.</div>
