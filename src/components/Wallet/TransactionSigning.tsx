@@ -70,6 +70,13 @@ export default function TransactionSigning({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setPin('');
+    };
+  }, []);
+
   // Build asset options from balances
   const assetOptions = [
     { label: 'XLM (Stellar Lumens)', value: 'XLM' },
@@ -131,12 +138,14 @@ export default function TransactionSigning({
         fee: selectedFee ?? undefined,
       });
       setResult(res);
+      // Zero all sensitive and transaction details immediately after success
       setDestination('');
       setAmount('');
       setMemo('');
       setPin('');
     } catch {
-      // error surfaced by hook
+      // error surfaced by hook, also zero sensitive state on failure
+      setPin('');
     }
   }
 
@@ -300,7 +309,13 @@ export default function TransactionSigning({
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Enter PIN to sign…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, AlertTriangle, CheckCircle, Eye, EyeOff, Info } from 'lucide-react';
 import type {
   WalletAccount,
@@ -45,6 +45,14 @@ export default function MultiSigSetup({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [removePin, setRemovePin] = useState('');
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setPin('');
+      setRemovePin('');
+    };
+  }, []);
 
   if (!wallet) {
     return (
@@ -102,9 +110,11 @@ export default function MultiSigSetup({
         highThreshold,
       });
       setResult(res);
+      // Zero sensitive state immediately after success
       setPin('');
     } catch {
-      // error shown via hook
+      // error shown via hook, also zero sensitive state on failure
+      setPin('');
     }
   }
 
@@ -114,9 +124,12 @@ export default function MultiSigSetup({
     onClearError();
     try {
       await onRemoveSigner(removePin, signerKey);
+      // Zero sensitive state immediately after success
       setRemovePin('');
       setRemovingKey(null);
     } catch {
+      // error shown via hook, also zero sensitive state on failure
+      setRemovePin('');
       setRemovingKey(null);
     }
   }
@@ -184,7 +197,13 @@ export default function MultiSigSetup({
                 type="password"
                 value={removePin}
                 onChange={(e) => setRemovePin(e.target.value)}
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
                 placeholder="Your wallet PIN…"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -308,7 +327,13 @@ export default function MultiSigSetup({
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Enter PIN to sign setup transaction…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
