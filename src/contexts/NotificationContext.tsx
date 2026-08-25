@@ -32,6 +32,7 @@ interface NotificationState {
   isCenterOpen: boolean;
   activeFilter: NotificationCategory | 'ALL';
   isLoading: boolean;
+  error: string | null;
 }
 
 type Action =
@@ -47,7 +48,8 @@ type Action =
   | { type: 'SET_CONNECTED'; value: boolean }
   | { type: 'TOGGLE_CENTER' }
   | { type: 'SET_FILTER'; filter: NotificationCategory | 'ALL' }
-  | { type: 'SET_LOADING'; value: boolean };
+  | { type: 'SET_LOADING'; value: boolean }
+  | { type: 'SET_ERROR'; message: string | null };
 
 function reducer(state: NotificationState, action: Action): NotificationState {
   switch (action.type) {
@@ -91,11 +93,19 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'SET_CONNECTED':
       return { ...state, isConnected: action.value };
     case 'TOGGLE_CENTER':
-      return { ...state, isCenterOpen: !state.isCenterOpen };
+      // Closing clears the advisory error. Only the mount fetch ever sets it,
+      // so one transient failure would otherwise pin the banner for the session.
+      return {
+        ...state,
+        isCenterOpen: !state.isCenterOpen,
+        error: state.isCenterOpen ? null : state.error,
+      };
     case 'SET_FILTER':
       return { ...state, activeFilter: action.filter };
     case 'SET_LOADING':
       return { ...state, isLoading: action.value };
+    case 'SET_ERROR':
+      return { ...state, error: action.message };
     default:
       return state;
   }
@@ -103,6 +113,14 @@ function reducer(state: NotificationState, action: Action): NotificationState {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
+/**
+ * Value published by `NotificationProvider` and read through `useNotifications()`.
+ *
+ * `error` holds the message for the last failed notification fetch, or `null`
+ * when the most recent fetch succeeded or the center was closed. It is advisory
+ * only: the offline-first localStorage cache is still served while an error is
+ * set, so consumers must render it beside cached data rather than instead of it.
+ */
 interface NotificationContextType extends NotificationState {
   toast: (n: Omit<ToastNotification, 'id'>) => void;
   dismissToast: (id: string) => void;
@@ -202,6 +220,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     isCenterOpen: false,
     activeFilter: 'ALL',
     isLoading: false,
+    error: null,
   });
 
   // Keep a ref in sync with the latest preferences so callbacks with stable
@@ -242,10 +261,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }));
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
+        dispatch({ type: 'SET_ERROR', message: null });
         persistNotifications(ns);
       })
       .catch(() => {
-        /* use cached */
+        // Cached notifications stay on screen; the error is surfaced beside them.
+        dispatch({ type: 'SET_ERROR', message: 'Could not load the latest notifications.' });
       })
       .finally(() => dispatch({ type: 'SET_LOADING', value: false }));
 
