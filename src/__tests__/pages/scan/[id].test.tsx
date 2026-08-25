@@ -1,12 +1,15 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import ScanPage from '@/pages/scan/[id]';
-import { qrcodeAPI, type QRCodeRecord } from '@/lib/api/qrcodeAPI';
+import React from 'react';
+
 import { petAPI } from '@/lib/api/petAPI';
+import { qrcodeAPI, type QRCodeRecord } from '@/lib/api/qrcodeAPI';
+import ScanPage from '@/pages/scan/[id]';
 
 jest.mock('next/head', () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="mock-head">{children}</div>
+  ),
 }));
 
 jest.mock('next/router', () => ({
@@ -50,14 +53,15 @@ describe('ScanPage (public emergency scan)', () => {
   // revalidate:false — every render must reflect the tag's current status,
   // so a tag deactivated after the first scan must show as deactivated,
   // not stale "active" content, on the very next scan.
-  it('shows the deactivated state when the tag is inactive, not stale cached content', async () => {
+  it('shows a safe revoked or replaced state when the tag is inactive, not stale cached content', async () => {
     (qrcodeAPI.getOne as jest.Mock).mockResolvedValue({ ...activeTag, isActive: false });
 
     render(<ScanPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/deactivated by the owner/i)).toBeInTheDocument();
+      expect(screen.getByText(/revoked or replaced by the owner/i)).toBeInTheDocument();
     });
+    expect(petAPI.getPetEmergencyInfo).not.toHaveBeenCalled();
   });
 
   it('renders emergency info for an active tag', async () => {
@@ -68,7 +72,31 @@ describe('ScanPage (public emergency scan)', () => {
     await waitFor(() => {
       expect(screen.getByText(/Emergency Record/i)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/deactivated by the owner/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/revoked or replaced by the owner/i)).not.toBeInTheDocument();
+  });
+
+  it('does not expose emergency details when an old replaced tag is no longer found', async () => {
+    (qrcodeAPI.getOne as jest.Mock).mockRejectedValue(new Error('not found'));
+
+    render(
+      <ScanPage
+        profile={{
+          qrCodeId: 'old-tag',
+          petId: 'pet-1',
+          customMessage: 'Private medication note',
+          emergencyContact: '555-1111',
+          emergency: null,
+        }}
+        error={null}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/No private pet details are available/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Private medication note/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/555-1111/i)).not.toBeInTheDocument();
+    expect(petAPI.getPetEmergencyInfo).not.toHaveBeenCalled();
   });
 
   it('re-fetches the tag on every mount instead of relying on cached props', async () => {
