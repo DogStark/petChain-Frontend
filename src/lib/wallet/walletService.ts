@@ -1,6 +1,12 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
-import { getStellarNetwork } from '../blockchain/network';
+import {
+  getStellarNetwork,
+  getHorizonUrl,
+  getNetworkPassphrase,
+  getNetworkConfigFor,
+  isWalletNetworkActive,
+} from '../blockchain/network';
 import { randomUUID } from 'crypto';
 import { walletAPI } from '../api/walletAPI';
 import type {
@@ -40,16 +46,6 @@ function getNetwork(): WalletNetwork {
   return getStellarNetwork();
 }
 
-function getHorizonUrl(network: WalletNetwork): string {
-  return network === 'PUBLIC'
-    ? 'https://horizon.stellar.org'
-    : 'https://horizon-testnet.stellar.org';
-}
-
-function getNetworkPassphrase(network: WalletNetwork): string {
-  return network === 'PUBLIC' ? StellarSdk.Networks.PUBLIC : StellarSdk.Networks.TESTNET;
-}
-
 type StellarSubmitTransactionResponse = {
   hash: string;
   ledger?: number;
@@ -58,7 +54,7 @@ type StellarSubmitTransactionResponse = {
   result_xdr?: string;
 };
 
-class WalletService {
+export class WalletService {
   private network: WalletNetwork;
   private server: StellarSdk.Horizon.Server;
   private pinAttempts: Map<string, { count: number; lastAttemptTime: number }> = new Map();
@@ -240,6 +236,15 @@ class WalletService {
     pin: string,
     tx: WalletTransaction
   ): Promise<BroadcastResult> {
+    // Never mix testnet and mainnet assets: a wallet created on another network
+    // must not be able to sign payments against the currently configured network.
+    if (!isWalletNetworkActive(wallet.network)) {
+      throw new Error(
+        `Cannot send from a ${wallet.network} wallet while the app is configured for ${getStellarNetwork()}. ` +
+          'Restore or create the wallet on the active network before sending.'
+      );
+    }
+
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
     const server = this.getServerFor(wallet.network);
@@ -410,6 +415,7 @@ class WalletService {
     const existing = this.getWallets().find((w) => w.publicKey === backup.publicKey);
     if (existing) {
       throw new Error(`This wallet is already added as "${existing.label}".`);
+    }
     const backupNetwork = backup.network as WalletNetwork;
     if (backupNetwork !== this.network) {
       console.warn(
@@ -448,7 +454,8 @@ class WalletService {
     if (targetNetwork !== 'TESTNET') {
       throw new Error('Friendbot is only available on Testnet.');
     }
-    const res = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`);
+    const friendbotUrl = getNetworkConfigFor('TESTNET').friendbotUrl;
+    const res = await fetch(`${friendbotUrl}?addr=${encodeURIComponent(publicKey)}`);
     if (!res.ok) {
       throw new Error('Friendbot funding failed. The account may already be funded.');
     }

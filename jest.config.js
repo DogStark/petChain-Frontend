@@ -11,6 +11,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@stellar/stellar-sdk$': '<rootDir>/node_modules/@stellar/stellar-sdk/lib/index.js',
   },
   transform: {
     '^.+\\.[jt]sx?$': ['ts-jest', {

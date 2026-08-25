@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Send,
   ExternalLink,
@@ -15,6 +15,14 @@ import type {
   WalletBalance,
 } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
+import {
+  isValidStellarAddress,
+  validateTransactionInput,
+  validateMemo,
+  memoByteLength,
+} from '../../utils/transactionValidation';
+import { isValidStellarAmount, stroopsToXlm } from '../../utils/stellarAmounts';
+import { getExplorerUrl } from '../../lib/blockchain/network';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -39,14 +47,8 @@ interface Props {
 }
 
 function getExplorerTxUrl(hash: string, isTestnet: boolean): string {
-  const base = isTestnet
-    ? 'https://stellar.expert/explorer/testnet/tx'
-    : 'https://stellar.expert/explorer/public/tx';
-  return `${base}/${hash}`;
-}
-
-function stroopsToXLM(stroops: string): string {
-  return (parseInt(stroops) / 10_000_000).toFixed(7);
+  const base = getExplorerUrl(isTestnet ? 'TESTNET' : 'PUBLIC');
+  return `${base}/tx/${hash}`;
 }
 
 export default function TransactionSigning({
@@ -91,15 +93,14 @@ export default function TransactionSigning({
   const selectedFee = feeEstimate ? feeEstimate[feeLevel] : null;
 
   function validate(): string | null {
-    if (!destination.trim()) return 'Destination address is required.';
-    if (!destination.startsWith('G') || destination.length !== 56)
-      return 'Invalid destination — must be a 56-character Stellar public key starting with G.';
-    if (wallet && destination === wallet.publicKey) return 'Cannot send to your own address.';
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
-      return 'Enter a valid positive amount.';
-    if (parseFloat(amount) > parseFloat(currentBalance))
-      return `Insufficient balance. Available: ${formatBalance(currentBalance)} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`;
-    if (memo.length > 28) return 'Memo must be 28 characters or fewer.';
+    const validationError = validateTransactionInput({
+      destination,
+      amount,
+      memo,
+      maxAmount: currentBalance,
+      sourcePublicKey: wallet?.publicKey,
+    });
+    if (validationError) return validationError;
     if (!pin) return 'PIN is required to sign the transaction.';
     return null;
   }
@@ -210,9 +211,9 @@ export default function TransactionSigning({
             type="text"
             value={destination}
             onChange={(e) => setDestination(e.target.value.trim())}
-            placeholder="G... (56-character Stellar public key)"
+            placeholder="G... (valid Stellar public key)"
             className={`w-full px-3 py-2 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              destination && (!destination.startsWith('G') || destination.length !== 56)
+              destination && !isValidStellarAddress(destination)
                 ? 'border-red-400'
                 : 'border-gray-300'
             }`}
@@ -241,7 +242,7 @@ export default function TransactionSigning({
         {/* Memo */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Memo <span className="text-gray-400 font-normal">(optional, max 28 chars)</span>
+            Memo <span className="text-gray-400 font-normal">(optional, max 28 bytes)</span>
           </label>
           <input
             type="text"
@@ -249,8 +250,17 @@ export default function TransactionSigning({
             onChange={(e) => setMemo(e.target.value)}
             maxLength={28}
             placeholder="e.g. Payment for vet visit"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-describedby="memo-hint"
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              memo && validateMemo(memo) ? 'border-red-400' : ''
+            }`}
           />
+          {memo && (
+            <p id="memo-hint" className="text-xs text-gray-400 mt-1">
+              {memoByteLength(memo)}/28 bytes
+              {memoByteLength(memo) > 24 ? ' — near the limit' : ''}
+            </p>
+          )}
         </div>
 
         {/* Fee Selector */}
@@ -284,7 +294,7 @@ export default function TransactionSigning({
                 </p>
                 {feeEstimate && (
                   <p className="text-xs opacity-75 mt-0.5">
-                    {stroopsToXLM(feeEstimate[level])} XLM
+                    {stroopsToXlm(feeEstimate[level])} XLM
                   </p>
                 )}
               </button>
@@ -314,7 +324,7 @@ export default function TransactionSigning({
         </div>
 
         {/* Summary */}
-        {destination && amount && parseFloat(amount) > 0 && (
+        {destination && amount && isValidStellarAmount(amount) && (
           <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-600 space-y-1">
             <p>
               Sending{' '}
@@ -328,7 +338,7 @@ export default function TransactionSigning({
                 {destination.slice(0, 10)}…{destination.slice(-6)}
               </code>
             </p>
-            {selectedFee && <p>Fee ~{stroopsToXLM(selectedFee)} XLM</p>}
+            {selectedFee && <p>Fee ~{stroopsToXlm(selectedFee)} XLM</p>}
             {memo && <p>Memo: &quot;{memo}&quot;</p>}
           </div>
         )}
