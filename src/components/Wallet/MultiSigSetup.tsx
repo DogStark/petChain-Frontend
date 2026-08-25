@@ -7,6 +7,7 @@ import type {
   BroadcastResult,
   WalletMonitoringData,
 } from '../../types/wallet';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -45,6 +46,8 @@ export default function MultiSigSetup({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [removePin, setRemovePin] = useState('');
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const [showSetupConfirm, setShowSetupConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
 
   if (!wallet) {
     return (
@@ -83,16 +86,22 @@ export default function MultiSigSetup({
     return null;
   }
 
-  async function handleSetup(e: React.FormEvent) {
+  function handleInitiateSetup(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
     const err = validateSigners();
     if (err) {
-      // Inline error display via hook's setError isn't accessible here, show locally
       setResult(null);
       alert(err);
       return;
     }
+    setShowSetupConfirm(true);
+  }
+
+  async function handleSetup(e: React.FormEvent) {
+    e.preventDefault();
+    onClearError();
+    setShowSetupConfirm(false);
     try {
       const res = await onSetupMultiSig(pin, {
         signers: signers.filter((s) => s.publicKey.trim()),
@@ -108,9 +117,14 @@ export default function MultiSigSetup({
     }
   }
 
-  async function handleRemoveSigner(signerKey: string) {
+  function handleInitiateRemoveSigner(signerKey: string) {
     if (!removePin) return;
+    setShowRemoveConfirm(signerKey);
+  }
+
+  async function handleRemoveSigner(signerKey: string) {
     setRemovingKey(signerKey);
+    setShowRemoveConfirm(null);
     onClearError();
     try {
       await onRemoveSigner(removePin, signerKey);
@@ -165,7 +179,7 @@ export default function MultiSigSetup({
                   w={s.weight}
                 </span>
                 <button
-                  onClick={() => handleRemoveSigner(s.publicKey)}
+                  onClick={() => handleInitiateRemoveSigner(s.publicKey)}
                   disabled={loading || removingKey === s.publicKey}
                   className="text-red-400 hover:text-red-600 flex-shrink-0 disabled:opacity-40"
                   title="Remove signer"
@@ -194,7 +208,7 @@ export default function MultiSigSetup({
 
       {/* Setup Form */}
       <form
-        onSubmit={handleSetup}
+        onSubmit={handleInitiateSetup}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5"
       >
         <h3 className="font-semibold text-gray-900">Configure Multi-Sig</h3>
@@ -329,6 +343,64 @@ export default function MultiSigSetup({
           {loading ? 'Submitting transaction…' : 'Apply Multi-Sig Configuration'}
         </button>
       </form>
+
+      <ConfirmationDialog
+        open={showSetupConfirm}
+        title="Confirm Multi-Sig Configuration"
+        description="You are about to change the multi-signature configuration for this wallet. This will modify the signing requirements on-chain."
+        confirmLabel={loading ? 'Applying...' : 'Apply Configuration'}
+        cancelLabel="Go Back"
+        onConfirm={(e) => handleSetup(e as unknown as React.FormEvent)}
+        onCancel={() => setShowSetupConfirm(false)}
+        loading={loading}
+        variant="warning"
+        details={[
+          {
+            label: 'Co-signers',
+            value: `${signers.filter((s) => s.publicKey.trim()).length} signer(s)`,
+          },
+          { label: 'Master Weight', value: String(masterWeight) },
+          { label: 'Low Threshold', value: String(lowThreshold) },
+          {
+            label: 'Medium Threshold',
+            value: String(medThreshold),
+            highlight: true,
+          },
+          {
+            label: 'High Threshold',
+            value: String(highThreshold),
+            highlight: true,
+          },
+          { label: 'Total Weight', value: String(totalWeight) },
+        ]}
+        riskCues={[
+          'This will change your wallet\'s signing requirements on-chain.',
+          'Existing co-signers will be affected immediately.',
+          'Ensure your signing parties can meet the new thresholds.',
+        ]}
+      />
+
+      <ConfirmationDialog
+        open={showRemoveConfirm !== null}
+        title="Remove Co-Signer"
+        description="You are about to remove a co-signer from this wallet. The removed party will no longer be able to authorize transactions."
+        confirmLabel={loading ? 'Removing...' : 'Remove Signer'}
+        cancelLabel="Go Back"
+        onConfirm={() => showRemoveConfirm && handleRemoveSigner(showRemoveConfirm)}
+        onCancel={() => setShowRemoveConfirm(null)}
+        loading={loading}
+        variant="danger"
+        details={
+          showRemoveConfirm
+            ? [{ label: 'Signer', value: `${showRemoveConfirm.slice(0, 12)}…${showRemoveConfirm.slice(-6)}` }]
+            : []
+        }
+        riskCues={[
+          'This signer will no longer be able to approve transactions.',
+          'The change takes effect immediately on the Stellar network.',
+          'You may need other signers to re-authorize operations.',
+        ]}
+      />
     </div>
   );
 }

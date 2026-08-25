@@ -15,6 +15,7 @@ import type {
   WalletBalance,
 } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -69,8 +70,8 @@ export default function TransactionSigning({
   const [showPin, setShowPin] = useState(false);
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Build asset options from balances
   const assetOptions = [
     { label: 'XLM (Stellar Lumens)', value: 'XLM' },
     ...balances
@@ -104,7 +105,7 @@ export default function TransactionSigning({
     return null;
   }
 
-  async function handleSend(e: React.FormEvent) {
+  function handleInitiateSend(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
     setLocalError(null);
@@ -120,6 +121,13 @@ export default function TransactionSigning({
       setLocalError(err);
       return;
     }
+
+    setShowConfirmDialog(true);
+  }
+
+  async function handleConfirmSend() {
+    if (!wallet) return;
+    setShowConfirmDialog(false);
 
     try {
       const res = await onSendPayment(pin, {
@@ -175,7 +183,7 @@ export default function TransactionSigning({
       )}
 
       <form
-        onSubmit={handleSend}
+        onSubmit={handleInitiateSend}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4"
       >
         <h3 className="font-semibold text-gray-900">Send Payment</h3>
@@ -342,6 +350,41 @@ export default function TransactionSigning({
           {loading ? 'Signing & broadcasting…' : 'Send Transaction'}
         </button>
       </form>
+
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        title="Confirm Transaction"
+        description="You are about to send a payment on the Stellar network. This action cannot be undone."
+        confirmLabel={loading ? 'Sending...' : 'Send Payment'}
+        cancelLabel="Go Back"
+        onConfirm={handleConfirmSend}
+        onCancel={() => setShowConfirmDialog(false)}
+        loading={loading}
+        variant="danger"
+        network={isTestnet ? 'Testnet' : 'Mainnet'}
+        fee={selectedFee ? `${stroopsToXLM(selectedFee)} XLM` : undefined}
+        details={[
+          {
+            label: 'Asset',
+            value: selectedAsset === 'XLM' ? 'XLM (Stellar Lumens)' : selectedAsset.split(':')[0],
+          },
+          {
+            label: 'Amount',
+            value: `${amount} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`,
+            highlight: true,
+          },
+          {
+            label: 'Destination',
+            value: `${destination.slice(0, 10)}…${destination.slice(-6)}`,
+          },
+          ...(memo.trim() ? [{ label: 'Memo', value: memo.trim() }] : []),
+        ]}
+        riskCues={[
+          'This transaction is irreversible once confirmed.',
+          'Double-check the destination address before proceeding.',
+          'Funds will be permanently transferred to the recipient.',
+        ]}
+      />
     </div>
   );
 }
