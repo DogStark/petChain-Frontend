@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import styles from './PetPhotos.module.css';
+import { verifyMetadataStripped } from './exifUtils';
 
 const MAX_FILE_SIZE_MB = 10;
 const COMPRESSION_MAX_SIZE_MB = 2;
@@ -21,6 +22,48 @@ interface PreviewFile {
   previewUrl: string;
 }
 
+/**
+ * Compress a single image file and strip all EXIF / XMP metadata.
+ *
+ * `browser-image-compression` re-encodes the image through a <canvas>
+ * element with `preserveExif: false`, which discards all metadata segments.
+ * JPEG orientation (Exif tag 0x0112) is applied to the pixel data before
+ * encoding so the visual appearance is preserved without the orientation tag.
+ *
+ * After compression we call `verifyMetadataStripped` as a defence-in-depth
+ * check.  If metadata is unexpectedly present the original uncompressed file
+ * is **not** used as a fallback — instead the verification error is surfaced
+ * so the upload can be blocked.
+ *
+ * @throws {Error} When the post-compression metadata check detects residual EXIF/XMP.
+ */
+async function compressAndStripMetadata(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+
+  const compressed = await imageCompression(file, {
+    maxSizeMB: COMPRESSION_MAX_SIZE_MB,
+    maxWidthOrHeight: COMPRESSION_MAX_DIMENSION,
+    useWebWorker: true,
+    // Strips all EXIF / XMP metadata during canvas re-encoding.
+    // JPEG orientation is applied to pixel data before encoding — visual
+    // appearance is preserved without the orientation tag being present.
+    preserveExif: false,
+  });
+
+  const result = new File([compressed], file.name, { type: compressed.type });
+
+  // Defence-in-depth: verify the output contains no metadata segments.
+  const check = await verifyMetadataStripped(result);
+  if (!check.clean) {
+    throw new Error(
+      `Metadata stripping failed for "${file.name}": ` +
+        `EXIF=${check.hasExif}, XMP=${check.hasXmp}. Upload blocked for privacy.`
+    );
+  }
+
+  return result;
+}
+
 export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   currentCount,
   maxPhotos,
@@ -31,29 +74,26 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<PreviewFile[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionError, setCompressionError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const remainingSlots = maxPhotos - currentCount;
-
-  const compressFile = async (file: File): Promise<File> => {
-    if (!file.type.startsWith('image/')) return file;
-
-    try {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: COMPRESSION_MAX_SIZE_MB,
-        maxWidthOrHeight: COMPRESSION_MAX_DIMENSION,
-        useWebWorker: true,
-        preserveExif: false,
+  // Revoke object URLs for any staged files when the component unmounts
+  // to avoid memory leaks.
+  useEffect(() => {
+    return () => {
+      setStagedFiles((prev) => {
+        prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+        return [];
       });
-      return new File([compressed], file.name, { type: compressed.type });
-    } catch {
-      return file;
-    }
-  };
+    };
+  }, []);
+
+  const remainingSlots = maxPhotos - currentCount;
 
   const processFiles = useCallback(
     async (rawFiles: FileList | File[]) => {
       const fileArray = Array.from(rawFiles);
+      setCompressionError(null);
 
       const valid = fileArray.filter((f) => {
         if (!ALLOWED_TYPES.includes(f.type)) return false;
@@ -67,7 +107,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       setIsCompressing(true);
       try {
-        const compressed = await Promise.all(toProcess.map(compressFile));
+        // Compress and strip metadata; surface errors if verification fails
+        const compressed = await Promise.all(toProcess.map(compressAndStripMetadata));
 
         const previews: PreviewFile[] = compressed.map((file) => ({
           file,
@@ -75,6 +116,9 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         }));
 
         setStagedFiles((prev) => [...prev, ...previews]);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Image processing failed.';
+        setCompressionError(message);
       } finally {
         setIsCompressing(false);
       }
@@ -124,13 +168,16 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const handleUpload = () => {
     if (stagedFiles.length === 0) return;
     onUpload(stagedFiles.map((p) => p.file));
+    // Revoke object URLs immediately since we're done with them
     stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setStagedFiles([]);
   };
 
   const handleCancel = () => {
+    // Revoke object URLs to free memory when the user cancels staging
     stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setStagedFiles([]);
+    setCompressionError(null);
   };
 
   const disabled = isUploading || remainingSlots <= 0;
@@ -167,7 +214,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           <Upload className={styles.uploadIcon} />
           <p className={styles.dropzoneText}>
             {isCompressing
-              ? 'Compressing images...'
+              ? 'Compressing & stripping metadata…'
               : isDragging
                 ? 'Drop your photos here'
                 : 'Drag & drop photos or click to browse'}
@@ -179,6 +226,19 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           </p>
         </div>
       </div>
+
+      {compressionError && (
+        <div role="alert" className={styles.compressionError}>
+          <span>{compressionError}</span>
+          <button
+            type="button"
+            onClick={() => setCompressionError(null)}
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {stagedFiles.length > 0 && (
         <>
@@ -206,7 +266,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               disabled={isUploading}
             >
               {isUploading
-                ? 'Uploading...'
+                ? 'Uploading…'
                 : `Upload ${stagedFiles.length} photo${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
             <button
@@ -223,7 +283,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       {isUploading && (
         <div className={styles.progressContainer}>
-          <div className={styles.progressBar}>
+          <div
+            className={styles.progressBar}
+            role="progressbar"
+            aria-valuenow={uploadProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Upload progress"
+          >
             <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }} />
           </div>
           <p className={styles.progressText}>{uploadProgress}%</p>
