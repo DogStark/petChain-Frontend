@@ -68,8 +68,16 @@ class QRCodeAPI {
 
   async getOne(qrCodeId: string): Promise<QRCodeRecord> {
     const safe = safeQrId(qrCodeId);
-    const { data } = await this.api.get(`/${safe}`);
-    return data;
+    try {
+      const { data } = await this.api.get(`/${safe}`);
+      return data;
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        // Re-throw with status so callers can distinguish rate-limit errors
+        throw Object.assign(new Error('Rate limited'), { status: 429 });
+      }
+      throw err;
+    }
   }
 
   async update(
@@ -98,7 +106,16 @@ class QRCodeAPI {
     meta?: { deviceType?: string; city?: string; country?: string }
   ): Promise<void> {
     const safe = safeQrId(qrCodeId);
-    await this.api.post(`/${safe}/scan`, meta ?? {});
+    try {
+      await this.api.post(`/${safe}/scan`, meta ?? {});
+    } catch (err) {
+      // Best-effort: swallow non-rate-limit errors so scans never block the UI.
+      // Re-throw rate-limit errors so callers can handle them.
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        throw Object.assign(new Error('Rate limited'), { status: 429 });
+      }
+      // Non-429 errors are intentionally swallowed (best-effort recording).
+    }
   }
 
   getImageUrl(qrCodeId: string): string {

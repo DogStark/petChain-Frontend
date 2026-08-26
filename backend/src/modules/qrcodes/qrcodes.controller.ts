@@ -10,7 +10,9 @@ import {
   Res,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { QRCodesService } from './qrcodes.service';
 import { CreateQRCodeDto, BatchCreateQRCodeDto } from './dto/create-qrcode.dto';
@@ -67,8 +69,10 @@ export class QRCodesController {
   /**
    * Get a single QR code by ID
    * GET /qrcodes/:id
+   * Strict throttling to prevent enumeration of public QR tag IDs.
    */
   @Get(':id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async findOne(@Param('id') id: string): Promise<QRCodeResponseDto> {
     const qrcode = await this.qrcodesService.findOne(id);
     return QRCodeResponseDto.fromEntity(qrcode);
@@ -169,9 +173,11 @@ export class QRCodesController {
   /**
    * Record a QR code scan
    * POST /qrcodes/:id/scan
+   * Strict throttling to prevent enumeration of public QR tag IDs.
    */
   @Post(':id/scan')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async recordScan(
     @Param('id') id: string,
     @Body() scanDto: ScanQRCodeDto,
