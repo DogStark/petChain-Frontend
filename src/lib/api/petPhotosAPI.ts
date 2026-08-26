@@ -41,10 +41,19 @@ class PetPhotosAPI {
     return response.data;
   }
 
+  /**
+   * Upload photos to the server.
+   *
+   * @param petId        Target pet ID.
+   * @param files        Compressed, metadata-stripped files ready for upload.
+   * @param onProgress   Optional progress callback (0–100).
+   * @param signal       Optional AbortSignal for cancellation (issue #877).
+   */
   async uploadPhotos(
     petId: string,
     files: File[],
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    signal?: AbortSignal
   ): Promise<PetPhoto[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('photos', file));
@@ -56,6 +65,8 @@ class PetPhotosAPI {
           onProgress(Math.round((event.loaded * 100) / event.total));
         }
       },
+      // Axios accepts an AbortSignal in its config (axios >= 0.22)
+      signal,
     });
     return response.data;
   }

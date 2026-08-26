@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import styles from './PetPhotos.module.css';
 import { verifyMetadataStripped } from './exifUtils';
@@ -9,12 +9,32 @@ const COMPRESSION_MAX_SIZE_MB = 2;
 const COMPRESSION_MAX_DIMENSION = 1920;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+/**
+ * Upload phases shown to the user as meaningful progress feedback.
+ * Each phase has an associated progress range so the combined indicator
+ * covers the full 0-100% arc.
+ */
+export type UploadPhase = 'idle' | 'compressing' | 'verifying' | 'uploading' | 'done' | 'error';
+
+export interface PhaseProgress {
+  phase: UploadPhase;
+  /** 0–100 value combining all phases. */
+  percent: number;
+  /** Human-readable label for the current phase. */
+  label: string;
+}
+
 interface PhotoUploaderProps {
   currentCount: number;
   maxPhotos: number;
+  /** Whether an upload is in flight (controlled by parent). */
   isUploading: boolean;
+  /** Upload progress 0–100 reported by the parent after onUpload fires. */
   uploadProgress: number;
-  onUpload: (files: File[]) => void;
+  /** Called with the files to upload once staging is complete. */
+  onUpload: (files: File[], abortSignal: AbortSignal) => void;
+  /** Optional: called when the user cancels an in-progress upload. */
+  onCancelUpload?: () => void;
 }
 
 interface PreviewFile {
@@ -25,34 +45,32 @@ interface PreviewFile {
 /**
  * Compress a single image file and strip all EXIF / XMP metadata.
  *
- * `browser-image-compression` re-encodes the image through a <canvas>
- * element with `preserveExif: false`, which discards all metadata segments.
- * JPEG orientation (Exif tag 0x0112) is applied to the pixel data before
- * encoding so the visual appearance is preserved without the orientation tag.
+ * `browser-image-compression` re-encodes through <canvas> with `preserveExif: false`.
+ * JPEG orientation is applied to pixel data before encoding so visual appearance is
+ * preserved without the tag. Defence-in-depth verification follows compression.
  *
- * After compression we call `verifyMetadataStripped` as a defence-in-depth
- * check.  If metadata is unexpectedly present the original uncompressed file
- * is **not** used as a fallback — instead the verification error is surfaced
- * so the upload can be blocked.
- *
- * @throws {Error} When the post-compression metadata check detects residual EXIF/XMP.
+ * @throws {Error} When compression is aborted or metadata verification fails.
  */
-async function compressAndStripMetadata(file: File): Promise<File> {
+async function compressAndStripMetadata(file: File, signal?: AbortSignal): Promise<File> {
   if (!file.type.startsWith('image/')) return file;
+
+  if (signal?.aborted) throw new DOMException('Compression cancelled', 'AbortError');
 
   const compressed = await imageCompression(file, {
     maxSizeMB: COMPRESSION_MAX_SIZE_MB,
     maxWidthOrHeight: COMPRESSION_MAX_DIMENSION,
     useWebWorker: true,
     // Strips all EXIF / XMP metadata during canvas re-encoding.
-    // JPEG orientation is applied to pixel data before encoding — visual
-    // appearance is preserved without the orientation tag being present.
+    // JPEG orientation is applied to pixel data before encoding.
     preserveExif: false,
+    signal,
   });
+
+  if (signal?.aborted) throw new DOMException('Compression cancelled', 'AbortError');
 
   const result = new File([compressed], file.name, { type: compressed.type });
 
-  // Defence-in-depth: verify the output contains no metadata segments.
+  // Defence-in-depth: verify output contains no metadata segments.
   const check = await verifyMetadataStripped(result);
   if (!check.clean) {
     throw new Error(
@@ -70,30 +88,69 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   isUploading,
   uploadProgress,
   onUpload,
+  onCancelUpload,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<PreviewFile[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [compressionError, setCompressionError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [phaseProgress, setPhaseProgress] = useState<PhaseProgress>({
+    phase: 'idle',
+    percent: 0,
+    label: '',
+  });
+  const [error, setError] = useState<string | null>(null);
 
-  // Revoke object URLs for any staged files when the component unmounts
-  // to avoid memory leaks.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  /**
+   * AbortController for the current compression pipeline.
+   * Replaced on each new processFiles() call.
+   */
+  const compressionAbortRef = useRef<AbortController | null>(null);
+  /**
+   * AbortController for the active upload, passed to onUpload().
+   * Replaced on each handleUpload() call.
+   */
+  const uploadAbortRef = useRef<AbortController | null>(null);
+
+  const remainingSlots = maxPhotos - currentCount;
+
+  // Revoke all staged preview URLs on unmount to prevent memory leaks.
   useEffect(() => {
     return () => {
       setStagedFiles((prev) => {
         prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
         return [];
       });
+      compressionAbortRef.current?.abort();
+      uploadAbortRef.current?.abort();
     };
   }, []);
 
-  const remainingSlots = maxPhotos - currentCount;
+  // Sync phase progress with the parent-controlled uploadProgress once uploading.
+  useEffect(() => {
+    if (isUploading) {
+      // Map parent's 0-100 upload progress to the 'uploading' phase range (70-100%)
+      const combined = 70 + Math.round(uploadProgress * 0.3);
+      setPhaseProgress({
+        phase: 'uploading',
+        percent: Math.min(combined, 100),
+        label: `Uploading… ${uploadProgress}%`,
+      });
+    } else if (phaseProgress.phase === 'uploading') {
+      // Parent says upload is done
+      setPhaseProgress({ phase: 'done', percent: 100, label: 'Upload complete' });
+    }
+  }, [isUploading, uploadProgress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const processFiles = useCallback(
     async (rawFiles: FileList | File[]) => {
+      // Cancel any running compression
+      compressionAbortRef.current?.abort();
+      const abortController = new AbortController();
+      compressionAbortRef.current = abortController;
+
       const fileArray = Array.from(rawFiles);
-      setCompressionError(null);
+      setError(null);
+      setPhaseProgress({ phase: 'compressing', percent: 5, label: 'Compressing images…' });
 
       const valid = fileArray.filter((f) => {
         if (!ALLOWED_TYPES.includes(f.type)) return false;
@@ -103,24 +160,52 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       const slotsAvailable = remainingSlots - stagedFiles.length;
       const toProcess = valid.slice(0, Math.max(0, slotsAvailable));
-      if (toProcess.length === 0) return;
+      if (toProcess.length === 0) {
+        setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
+        return;
+      }
 
-      setIsCompressing(true);
       try {
-        // Compress and strip metadata; surface errors if verification fails
-        const compressed = await Promise.all(toProcess.map(compressAndStripMetadata));
+        // Compression phase: 5% → 60%
+        const totalFiles = toProcess.length;
+        const compressedFiles: File[] = [];
 
-        const previews: PreviewFile[] = compressed.map((file) => ({
+        for (let i = 0; i < totalFiles; i++) {
+          if (abortController.signal.aborted) return;
+          const pct = 5 + Math.round(((i + 0.5) / totalFiles) * 55);
+          setPhaseProgress({
+            phase: 'compressing',
+            percent: pct,
+            label: `Compressing ${i + 1}/${totalFiles}…`,
+          });
+          compressedFiles.push(await compressAndStripMetadata(toProcess[i], abortController.signal));
+        }
+
+        if (abortController.signal.aborted) return;
+
+        // Verification phase: 60% → 70%
+        setPhaseProgress({ phase: 'verifying', percent: 65, label: 'Verifying metadata removal…' });
+        // compressAndStripMetadata already runs the per-file check;
+        // this phase marker is for the aggregated confirmation.
+        await new Promise<void>((resolve) => setTimeout(resolve, 0)); // yield to event loop
+
+        if (abortController.signal.aborted) return;
+
+        const previews: PreviewFile[] = compressedFiles.map((file) => ({
           file,
           previewUrl: URL.createObjectURL(file),
         }));
 
         setStagedFiles((prev) => [...prev, ...previews]);
+        setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
       } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Image processing failed.';
-        setCompressionError(message);
-      } finally {
-        setIsCompressing(false);
+        setError(message);
+        setPhaseProgress({ phase: 'error', percent: 0, label: 'Processing failed' });
       }
     },
     [remainingSlots, stagedFiles.length]
@@ -152,7 +237,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   };
 
   const handleClickDropzone = () => {
-    if (!isUploading && !isCompressing) {
+    if (!isUploading && phaseProgress.phase === 'idle') {
       fileInputRef.current?.click();
     }
   };
@@ -167,20 +252,41 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   const handleUpload = () => {
     if (stagedFiles.length === 0) return;
-    onUpload(stagedFiles.map((p) => p.file));
-    // Revoke object URLs immediately since we're done with them
+    // Create a fresh AbortController for this upload
+    uploadAbortRef.current?.abort(); // cancel any previous
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
+
+    setPhaseProgress({ phase: 'uploading', percent: 70, label: 'Starting upload…' });
+
+    onUpload(stagedFiles.map((p) => p.file), abortController.signal);
+    // Revoke object URLs immediately; the parent now owns the File references
     stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setStagedFiles([]);
   };
 
-  const handleCancel = () => {
+  const handleCancelCompression = () => {
+    compressionAbortRef.current?.abort();
+    setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
+    setError(null);
+  };
+
+  const handleCancelUpload = () => {
+    uploadAbortRef.current?.abort();
+    onCancelUpload?.();
+    setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
+  };
+
+  const handleCancelStaging = () => {
     // Revoke object URLs to free memory when the user cancels staging
     stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setStagedFiles([]);
-    setCompressionError(null);
+    setError(null);
+    setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
   };
 
-  const disabled = isUploading || remainingSlots <= 0;
+  const isCompressing = phaseProgress.phase === 'compressing' || phaseProgress.phase === 'verifying';
+  const disabled = isUploading || isCompressing || remainingSlots <= 0;
 
   return (
     <div className={styles.uploaderSection}>
@@ -193,6 +299,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         role="button"
         tabIndex={0}
         aria-label="Add photos"
+        aria-disabled={disabled}
         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
             e.preventDefault();
@@ -211,10 +318,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           disabled={disabled}
         />
         <div className={styles.dropzoneContent}>
-          <Upload className={styles.uploadIcon} />
+          <Upload className={styles.uploadIcon} aria-hidden="true" />
           <p className={styles.dropzoneText}>
             {isCompressing
-              ? 'Compressing & stripping metadata…'
+              ? phaseProgress.label
               : isDragging
                 ? 'Drop your photos here'
                 : 'Drag & drop photos or click to browse'}
@@ -227,12 +334,40 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         </div>
       </div>
 
-      {compressionError && (
+      {/* Compression / verification progress */}
+      {isCompressing && (
+        <div className={styles.progressContainer}>
+          <div className={styles.progressHeader}>
+            <span className={styles.progressLabel}>{phaseProgress.label}</span>
+            <button
+              type="button"
+              className={styles.cancelIconBtn}
+              onClick={handleCancelCompression}
+              aria-label="Cancel compression"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div
+            className={styles.progressBar}
+            role="progressbar"
+            aria-valuenow={phaseProgress.percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={phaseProgress.label}
+          >
+            <div className={styles.progressFill} style={{ width: `${phaseProgress.percent}%` }} />
+          </div>
+          <p className={styles.progressText}>{phaseProgress.percent}%</p>
+        </div>
+      )}
+
+      {error && (
         <div role="alert" className={styles.compressionError}>
-          <span>{compressionError}</span>
+          <span>{error}</span>
           <button
             type="button"
-            onClick={() => setCompressionError(null)}
+            onClick={() => setError(null)}
             aria-label="Dismiss error"
           >
             ×
@@ -272,7 +407,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             <button
               type="button"
               className={styles.cancelButton}
-              onClick={handleCancel}
+              onClick={handleCancelStaging}
               disabled={isUploading}
             >
               Cancel
@@ -281,17 +416,29 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         </>
       )}
 
+      {/* Upload progress with cancel button */}
       {isUploading && (
         <div className={styles.progressContainer}>
+          <div className={styles.progressHeader}>
+            <span className={styles.progressLabel}>{phaseProgress.label}</span>
+            <button
+              type="button"
+              className={styles.cancelIconBtn}
+              onClick={handleCancelUpload}
+              aria-label="Cancel upload"
+            >
+              <X size={14} />
+            </button>
+          </div>
           <div
             className={styles.progressBar}
             role="progressbar"
-            aria-valuenow={uploadProgress}
+            aria-valuenow={phaseProgress.percent}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Upload progress"
           >
-            <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }} />
+            <div className={styles.progressFill} style={{ width: `${phaseProgress.percent}%` }} />
           </div>
           <p className={styles.progressText}>{uploadProgress}%</p>
         </div>
