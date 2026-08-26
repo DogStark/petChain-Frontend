@@ -61,8 +61,19 @@ export default function ScanPage({
           emergencyContact: qr.emergencyContact,
           emergency,
         });
-      } catch {
-        setError('This QR code is invalid or no longer active.');
+      } catch (err: unknown) {
+        // Distinguish rate-limit responses from other failures so the user
+        // knows the difference between "invalid tag" and "slow down".
+        const status =
+          err && typeof err === 'object'
+            ? (err as { status?: number }).status ??
+              (err as { response?: { status?: number } }).response?.status
+            : undefined;
+        if (status === 429) {
+          setError('Too many requests. Please wait a moment and try again.');
+        } else {
+          setError('This QR code is invalid or no longer active.');
+        }
       } finally {
         setLoading(false);
       }
