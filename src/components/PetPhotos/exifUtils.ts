@@ -42,7 +42,9 @@ const XMP_SIGNATURE = 'http://ns.adobe.com/xap/1.0/\0';
 
 /**
  * Return the first N bytes of a File or Blob as a Uint8Array.
+ * @internal kept for potential future use
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function readBytes(file: Blob, length: number): Promise<Uint8Array> {
   const slice = file.slice(0, length);
   const buffer = await slice.arrayBuffer();
