@@ -410,6 +410,7 @@ class WalletService {
     const existing = this.getWallets().find((w) => w.publicKey === backup.publicKey);
     if (existing) {
       throw new Error(`This wallet is already added as "${existing.label}".`);
+    }
     const backupNetwork = backup.network as WalletNetwork;
     if (backupNetwork !== this.network) {
       console.warn(

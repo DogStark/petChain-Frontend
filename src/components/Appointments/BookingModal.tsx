@@ -59,16 +59,18 @@ const TIME_OPTIONS = [
   { value: '15:00', label: '03:00 PM' },
 ];
 
-export default function BookingModal({ onClose, initialClinicId, initialClinicName }: BookingModalProps) {
-export default function BookingModal({ onClose, initialAppointmentType }: BookingModalProps) {
+export default function BookingModal({
+  onClose,
+  initialClinicId,
+  initialClinicName,
+  initialAppointmentType,
+}: BookingModalProps) {
   const { trigger } = useHaptic();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
     petId: '',
     vetId: initialClinicId ?? '',
-    appointmentType: 'Checkup' as AppointmentType,
-    vetId: '',
     appointmentType: (initialAppointmentType ?? 'Checkup') as AppointmentType,
     date: '',
     time: '09:00',

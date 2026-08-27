@@ -18,7 +18,13 @@ while read local_ref local_oid remote_ref remote_oid; do
 
   # ── Verify commit authorship ──────────────────────────────────────────
   if [ "$remote_oid" = "$zero" ]; then
-    range="$local_oid"
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+      range="origin/main..$local_oid"
+    elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+      range="origin/master..$local_oid"
+    else
+      range="$local_oid"
+    fi
   else
     range="$remote_oid..$local_oid"
   fi

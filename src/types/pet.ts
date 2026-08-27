@@ -1,3 +1,11 @@
+export interface EmergencyFieldVisibility {
+  medicalNotes?: boolean;
+  contacts?: boolean;
+  emergencyVet?: boolean;
+  poisonControl?: boolean;
+  customMessage?: boolean;
+}
+
 export interface EmergencyContact {
   id: string;
   name: string;
@@ -5,6 +13,7 @@ export interface EmergencyContact {
   phone: string;
   email?: string;
   priority: number;
+  isPublic?: boolean;
 }
 
 export interface EmergencyVet {
@@ -13,12 +22,14 @@ export interface EmergencyVet {
   address: string;
   is24Hours: boolean;
   notes?: string;
+  isPublic?: boolean;
 }
 
 export interface PoisonControl {
   name: string;
   phone: string;
   website?: string;
+  isPublic?: boolean;
 }
 
 export interface PetEmergencyInfo {
@@ -27,6 +38,7 @@ export interface PetEmergencyInfo {
   emergencyVet?: EmergencyVet;
   poisonControl?: PoisonControl;
   medicalNotes?: string; // Critical info like "Allergic to Penicillin"
+  visibility?: EmergencyFieldVisibility;
 }
 
 export interface Pet {
