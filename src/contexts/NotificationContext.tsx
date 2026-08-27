@@ -20,11 +20,14 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
+type PreferencesSyncStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 interface NotificationState {
   notifications: AppNotification[];
   unreadCount: number;
   toasts: ToastNotification[];
   preferences: NotificationPreferences;
+  preferencesSyncStatus: PreferencesSyncStatus;
   isConnected: boolean;
   isCenterOpen: boolean;
   activeFilter: NotificationCategory | 'ALL';
@@ -40,6 +43,7 @@ type Action =
   | { type: 'ADD_TOAST'; payload: ToastNotification }
   | { type: 'REMOVE_TOAST'; id: string }
   | { type: 'SET_PREFS'; payload: NotificationPreferences }
+  | { type: 'SET_PREFS_SYNC_STATUS'; value: PreferencesSyncStatus }
   | { type: 'SET_CONNECTED'; value: boolean }
   | { type: 'TOGGLE_CENTER' }
   | { type: 'SET_FILTER'; filter: NotificationCategory | 'ALL' }
@@ -50,6 +54,7 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'SET_NOTIFICATIONS':
       return { ...state, notifications: action.payload };
     case 'ADD_NOTIFICATION':
+      if (state.notifications.some((n) => n.id === action.payload.id)) return state;
       return {
         ...state,
         notifications: [action.payload, ...state.notifications],
@@ -81,6 +86,8 @@ function reducer(state: NotificationState, action: Action): NotificationState {
       return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
     case 'SET_PREFS':
       return { ...state, preferences: action.payload };
+    case 'SET_PREFS_SYNC_STATUS':
+      return { ...state, preferencesSyncStatus: action.value };
     case 'SET_CONNECTED':
       return { ...state, isConnected: action.value };
     case 'TOGGLE_CENTER':
@@ -104,8 +111,10 @@ interface NotificationContextType extends NotificationState {
   toggleCenter: () => void;
   setFilter: (f: NotificationCategory | 'ALL') => void;
   updatePreferences: (p: Partial<NotificationPreferences>) => void;
+  syncPreferences: () => Promise<void>;
   requestBrowserPermission: () => Promise<void>;
   filteredNotifications: AppNotification[];
+  bellRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -175,20 +184,38 @@ let toastCounter = 0;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const bellRef = useRef<HTMLButtonElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(1000);
+  const intentionalClose = useRef(false);
+  const preferencesRef = useRef<NotificationPreferences>(loadPrefs());
+  const notificationsRef = useRef<AppNotification[]>([]);
 
   const [state, dispatch] = useReducer(reducer, {
     notifications: [],
     unreadCount: 0,
     toasts: [],
     preferences: loadPrefs(),
+    preferencesSyncStatus: 'idle',
     isConnected: false,
     isCenterOpen: false,
     activeFilter: 'ALL',
     isLoading: false,
   });
+
+  // Keep a ref in sync with the latest preferences so callbacks with stable
+  // deps (handleIncoming, the toast subscription) always read the current,
+  // in-memory preferences instead of re-reading localStorage.
+  useEffect(() => {
+    preferencesRef.current = state.preferences;
+  }, [state.preferences]);
+
+  // Keep a ref in sync with the current notifications list so handleIncoming
+  // (which has stable deps) can perform de-duplication without a stale closure.
+  useEffect(() => {
+    notificationsRef.current = state.notifications;
+  }, [state.notifications]);
 
   // ── Load persisted + fetch from API ────────────────────────────────────────
   useEffect(() => {
@@ -196,14 +223,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Seed from localStorage immediately (offline-first)
     const cached = loadPersisted();
-    if (cached.length) dispatch({ type: 'SET_NOTIFICATIONS', payload: cached });
+    if (cached.length) {
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: cached });
+      dispatch({ type: 'SET_UNREAD', count: cached.filter((n) => !n.isRead).length });
+    }
 
     // Then fetch fresh from API
     dispatch({ type: 'SET_LOADING', value: true });
     notificationsAPI
       .getNotifications(user.id)
       .then((res) => {
-        const ns = res.data as AppNotification[];
+        // Map API Notification → AppNotification, defaulting priority when absent
+        // (older backend responses may omit it).
+        const ns: AppNotification[] = res.data.map((n) => ({
+          ...n,
+          priority: n.priority ?? 'normal',
+          metadata: n.metadata as AppNotification['metadata'],
+        }));
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
         persistNotifications(ns);
@@ -212,11 +248,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         /* use cached */
       })
       .finally(() => dispatch({ type: 'SET_LOADING', value: false }));
+
+    // Hydrate preferences from the backend so they follow the user across
+    // devices; the localStorage cache above stays as the offline-first
+    // fallback if the request fails.
+    notificationsAPI
+      .getPreferences(user.id, loadPrefs())
+      .then((prefs) => {
+        dispatch({ type: 'SET_PREFS', payload: prefs });
+        savePrefs(prefs);
+      })
+      .catch(() => {
+        /* backend unreachable — keep local cache */
+      });
   }, [isAuthenticated, user]);
 
   // ── WebSocket ───────────────────────────────────────────────────────────────
   const connectWS = useCallback(() => {
     if (!isAuthenticated || !user) return;
+    intentionalClose.current = false;
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) return; // gracefully skip if not configured
 
@@ -224,10 +274,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!token) return;
 
     try {
-      const ws = new WebSocket(`${wsUrl}?token=${token}`);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        // Send auth token as first message in handshake frame instead of query string.
+        // This approach is more secure: tokens in query strings can leak in logs/referrer headers.
+        // Backend receives this as the first message and validates before processing notifications.
+        ws.send(JSON.stringify({ type: 'auth', token }));
         dispatch({ type: 'SET_CONNECTED', value: true });
         reconnectDelay.current = 1000;
       };
@@ -246,11 +300,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       ws.onclose = () => {
         dispatch({ type: 'SET_CONNECTED', value: false });
-        // Exponential back-off reconnect
-        reconnectTimer.current = setTimeout(() => {
-          reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
-          connectWS();
-        }, reconnectDelay.current);
+        if (!intentionalClose.current) {
+          // Exponential back-off reconnect
+          reconnectTimer.current = setTimeout(() => {
+            reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
+            connectWS();
+          }, reconnectDelay.current);
+        }
       };
 
       ws.onerror = () => ws.close();
@@ -262,6 +318,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     connectWS();
     return () => {
+      intentionalClose.current = true;
       wsRef.current?.close();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
@@ -270,7 +327,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // ── Subscribe to notificationService events ──────────────────────────────
   useEffect(() => {
     const unsub = notificationService.on('notification', (inApp) => {
-      const prefs = loadPrefs();
+      const prefs = preferencesRef.current;
       if (inApp.category && !prefs.categories[inApp.category]) return;
       dispatch({
         type: 'ADD_TOAST',
@@ -280,12 +337,44 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return unsub;
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLogoutWarning = (event: Event) => {
+      const detail = (event as CustomEvent<{ title?: string; message?: string }>).detail;
+      const title = detail?.title ?? 'Session sign-out warning';
+      const message =
+        detail?.message ??
+        'You have been signed out on this device, but we could not confirm that your session was closed on our server.';
+
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: {
+          id: `toast-${++toastCounter}`,
+          title,
+          message,
+          type: 'warning',
+          duration: 8000,
+        },
+      });
+    };
+
+    window.addEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+
+    return () => {
+      window.removeEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+    };
+  }, []);
+
   // ── Incoming notification handler ───────────────────────────────────────────
   const handleIncoming = useCallback((notif: AppNotification) => {
-    const prefs = loadPrefs();
+    const prefs = preferencesRef.current;
 
     // Category filter
     if (!prefs.categories[notif.category as NotificationCategory]) return;
+
+    // De-duplicate: skip if this notification id is already present (e.g. rapid reconnects)
+    if (notificationsRef.current.some((n) => n.id === notif.id)) return;
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: notif });
 
@@ -351,28 +440,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const markRead = useCallback(
     async (id: string) => {
+      const prev = state.notifications;
+      const prevCount = state.unreadCount;
       dispatch({ type: 'MARK_READ', id });
       if (user) {
         try {
           await notificationsAPI.markAsRead(user.id, id);
         } catch {
-          /* optimistic */
+          dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+          dispatch({ type: 'SET_UNREAD', count: prevCount });
         }
       }
     },
-    [user]
+    [user, state.notifications, state.unreadCount]
   );
 
   const markAllRead = useCallback(async () => {
+    const prev = state.notifications;
     dispatch({ type: 'MARK_ALL_READ' });
     if (user) {
       try {
         await notificationsAPI.markAllAsRead(user.id);
       } catch {
-        /* optimistic */
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+        dispatch({ type: 'SET_UNREAD', count: prev.filter((n) => !n.isRead).length });
       }
     }
-  }, [user]);
+  }, [user, state.notifications]);
 
   const toggleCenter = useCallback(() => dispatch({ type: 'TOGGLE_CENTER' }), []);
 
@@ -380,13 +474,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dispatch({ type: 'SET_FILTER', filter: f });
   }, []);
 
+  const persistPreferences = useCallback(
+    async (next: NotificationPreferences) => {
+      if (!user) return;
+      dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'saving' });
+      try {
+        await notificationsAPI.updatePreferences(user.id, next);
+        dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'saved' });
+      } catch {
+        dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'error' });
+      }
+    },
+    [user]
+  );
+
   const updatePreferences = useCallback(
     (p: Partial<NotificationPreferences>) => {
       const next = { ...state.preferences, ...p };
       dispatch({ type: 'SET_PREFS', payload: next });
-      savePrefs(next);
+      savePrefs(next); // offline-first cache; backend below is the source of truth
+      void persistPreferences(next);
     },
-    [state.preferences]
+    [state.preferences, persistPreferences]
+  );
+
+  const syncPreferences = useCallback(
+    () => persistPreferences(state.preferences),
+    [persistPreferences, state.preferences]
   );
 
   const requestBrowserPermission = useCallback(async () => {
@@ -413,8 +527,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         toggleCenter,
         setFilter,
         updatePreferences,
+        syncPreferences,
         requestBrowserPermission,
         filteredNotifications,
+        bellRef,
       }}
     >
       {children}

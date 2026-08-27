@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import type { BackupData } from '../../types/wallet';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export interface ServerWallet {
   id: string;
@@ -31,7 +30,7 @@ class WalletManagementAPI {
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/wallets`,
+      baseURL: `${getApiBaseUrl()}/wallets`,
       withCredentials: true,
     });
 

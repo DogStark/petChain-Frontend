@@ -31,19 +31,24 @@ export default function RegisterPage() {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
-  const validate = (): boolean => {
+  const validate = async (): Promise<boolean> => {
     const next: Partial<typeof formData> = {};
 
     if (!formData.firstName.trim()) next.firstName = 'First name is required';
     if (!formData.lastName.trim()) next.lastName = 'Last name is required';
-    if (!formData.email.trim()) next.email = 'Email is required';
+    if (!formData.email.trim()) {
+      next.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      next.email = 'Enter a valid email address';
+    }
     if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
       next.phone = 'Enter a valid phone number in international format';
     }
 
     const { valid, errors: pwErrors } = validatePassword(formData.password);
     if (!valid) next.password = pwErrors[0];
-    else if (isPasswordReused(formData.password)) next.password = 'This password was used recently';
+    else if (await isPasswordReused(formData.password, formData.email.trim().toLowerCase()))
+      next.password = 'This password was used recently';
 
     if (formData.password !== formData.confirmPassword) {
       next.confirmPassword = 'Passwords do not match';
@@ -57,7 +62,7 @@ export default function RegisterPage() {
     e.preventDefault();
     if (isLoading) return;
     setSubmitError('');
-    if (!validate()) return;
+    if (!(await validate())) return;
 
     setIsLoading(true);
     try {
@@ -68,7 +73,7 @@ export default function RegisterPage() {
         formData.lastName,
         formData.phone
       );
-      savePasswordToHistory(formData.password);
+      await savePasswordToHistory(formData.password, formData.email.trim().toLowerCase());
       router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Registration failed');

@@ -9,6 +9,79 @@ export type NotificationCategory =
   | 'CONSULTATION'
   | 'SYSTEM';
 
+export interface AppointmentMetadata {
+  type: 'APPOINTMENT';
+  appointmentId?: string;
+  petName?: string;
+  vetName?: string;
+  dateTime?: string;
+}
+
+export interface MedicationMetadata {
+  type: 'MEDICATION';
+  petName?: string;
+  medicationName?: string;
+  dueDate?: string;
+}
+
+export interface VaccinationMetadata {
+  type: 'VACCINATION';
+  petName?: string;
+  vaccineName?: string;
+  dueDate?: string;
+}
+
+export interface AlertMetadata {
+  type: 'ALERT';
+  alertType?: string;
+  petName?: string;
+}
+
+export interface MessageMetadata {
+  type: 'MESSAGE';
+  senderId?: string;
+  senderName?: string;
+  preview?: string;
+}
+
+export interface MedicalRecordMetadata {
+  type: 'MEDICAL_RECORD';
+  petName?: string;
+  recordType?: string;
+  doctorName?: string;
+}
+
+export interface LostPetMetadata {
+  type: 'LOST_PET';
+  petName?: string;
+  petId?: string;
+  imageUrl?: string;
+  lastSeen?: string;
+}
+
+export interface ConsultationMetadata {
+  type: 'CONSULTATION';
+  vetName?: string;
+  petName?: string;
+  scheduledAt?: string;
+}
+
+export interface SystemMetadata {
+  type: 'SYSTEM';
+  imageUrl?: string;
+}
+
+export type NotificationMetadata =
+  | AppointmentMetadata
+  | MedicationMetadata
+  | VaccinationMetadata
+  | AlertMetadata
+  | MessageMetadata
+  | MedicalRecordMetadata
+  | LostPetMetadata
+  | ConsultationMetadata
+  | SystemMetadata;
+
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface AppNotification {
@@ -21,7 +94,7 @@ export interface AppNotification {
   isRead: boolean;
   readAt: string | null;
   actionUrl: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: NotificationMetadata | null;
   createdAt: string;
   updatedAt: string;
 }

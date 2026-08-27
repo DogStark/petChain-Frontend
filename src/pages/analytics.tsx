@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
@@ -33,13 +33,20 @@ interface AnalyticsData {
 const AnalyticsPage = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchData = () => {
-    const newData = generateAnalyticsData();
-    setData(newData);
-    setLastUpdated(new Date());
-    setLoading(false);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const newData = await generateAnalyticsData();
+      setData(newData);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to fetch analytics data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -47,7 +54,7 @@ const AnalyticsPage = () => {
 
     const interval = setInterval(() => {
       fetchData();
-    }, 30000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -98,10 +105,40 @@ const AnalyticsPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Memoize each chart's data so unrelated charts skip re-renders when their
+  // slice hasn't changed between 30s polls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const engagementData = useMemo(() => data?.engagementData ?? [], [JSON.stringify(data?.engagementData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const healthData = useMemo(() => data?.healthData ?? [], [JSON.stringify(data?.healthData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vaccinationData = useMemo(() => data?.vaccinationData ?? [], [JSON.stringify(data?.vaccinationData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-xl font-medium text-gray-500">Loading Analytics...</div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-xl font-medium text-red-600 mb-4">{error}</div>
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-white font-semibold hover:bg-red-700 transition-all duration-300"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -148,23 +185,23 @@ const AnalyticsPage = () => {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <UserEngagementChart data={data.engagementData} />
+            <UserEngagementChart data={engagementData} />
           </div>
 
           <div className="lg:col-span-4">
-            <PetHealthChart data={data.healthData} />
+            <PetHealthChart data={healthData} />
           </div>
 
           <div className="lg:col-span-6">
-            <VaccinationChart data={data.vaccinationData} />
+            <VaccinationChart data={vaccinationData} />
           </div>
 
           <div className="lg:col-span-6">
-            <GeoDistributionChart data={data.geoData} />
+            <GeoDistributionChart data={geoData} />
           </div>
 
           <div className="lg:col-span-12">
-            <ApiUsageChart data={data.apiUsageData} />
+            <ApiUsageChart data={apiUsageData} />
           </div>
         </div>
       </div>

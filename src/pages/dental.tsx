@@ -1,21 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
-import {
-    MOCK_DENTAL_EXAMS,
-    MOCK_CLEANINGS,
-    MOCK_ISSUES,
-    MOCK_REMINDERS,
-    DentalExam,
-    CleaningRecord,
-    DentalIssue,
-    DentalReminder,
-    ToothRecord,
-    ToothStatus,
-    IssueSeverity,
-    IssueStatus,
-    ReminderType,
-} from '../lib/api/dentalAPI';
+// Dental Records not in scope - dentalAPI removed
+// This page needs to be updated to fetch from a real backend API or removed entirely
 
 // ─── Colour helpers ──────────────────────────────────────────────────────────
 

@@ -8,18 +8,20 @@ import {
 } from 'typeorm';
 
 @Entity('blocks')
-@Unique(['blockerId', 'blockedId'])
-@Index(['blockerId'])
-@Index(['blockedId'])
+@Unique(['blocker', 'blockedUser'])
+@Index(['blocker'])
+@Index(['blockedUser'])
 export class Block {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid' })
-  blockerId: string;
+  blocker: string;
 
   @Column({ type: 'uuid' })
-  blockedId: string;
+  blockedUser: string;
+
+  blockedUserEntity?: any;
 
   @CreateDateColumn()
   createdAt: Date;

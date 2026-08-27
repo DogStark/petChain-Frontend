@@ -68,11 +68,12 @@ export default function MultiSigSetup({
   }
 
   function validateSigners(): string | null {
+    if (!wallet) return null;
     for (const s of signers) {
       if (!s.publicKey.trim()) return 'All signers must have a public key.';
       if (!s.publicKey.startsWith('G') || s.publicKey.length !== 56)
         return `"${s.publicKey.slice(0, 12)}…" is not a valid Stellar public key (must start with G, 56 chars).`;
-      if (s.publicKey === wallet!.publicKey)
+      if (s.publicKey === wallet.publicKey)
         return "Don't add your own key as a co-signer — adjust the master weight instead.";
       if (s.weight < 0 || s.weight > 255) return 'Signer weight must be between 0 and 255.';
     }

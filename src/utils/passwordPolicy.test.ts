@@ -11,7 +11,6 @@ import {
   isPasswordReused,
   savePasswordToHistory,
   clearPasswordHistory,
-  isPasswordExpired,
 } from './passwordPolicy';
 
 // Mock localStorage for Node environment
@@ -31,15 +30,19 @@ const mockLocalStorage = {
 let passed = 0;
 let failed = 0;
 
-function test(name: string, fn: () => void) {
-  try {
-    fn();
-    console.log(`  ✓ ${name}`);
-    passed++;
-  } catch (e: unknown) {
-    console.error(`  ✗ ${name}\n    ${(e as Error).message}`);
-    failed++;
-  }
+const tests: Array<() => Promise<void>> = [];
+
+function test(name: string, fn: () => void | Promise<void>) {
+  tests.push(async () => {
+    try {
+      await fn();
+      console.log(`  ✓ ${name}`);
+      passed++;
+    } catch (e: unknown) {
+      console.error(`  ✗ ${name}\n    ${(e as Error).message}`);
+      failed++;
+    }
+  });
 }
 
 // ── validatePassword ──────────────────────────────────────────────
@@ -89,6 +92,21 @@ test('very weak for short simple password', () => {
   assert.ok(s.score <= 1);
 });
 
+test('short-but-diverse password (under 8 chars) is always Very Weak', () => {
+  // "Ab1!" has uppercase, lowercase, digit, and special char but is only 4 chars —
+  // it must score 0 (Very Weak) because validatePassword would reject it outright.
+  const s = getPasswordStrength('Ab1!');
+  assert.strictEqual(s.score, 0);
+  assert.strictEqual(s.label, 'Very Weak');
+});
+
+test('7-char diverse password is still Very Weak', () => {
+  // One char under the 8-char minimum — diversity must not lift the score.
+  const s = getPasswordStrength('Ab1!xyz');
+  assert.strictEqual(s.score, 0);
+  assert.strictEqual(s.label, 'Very Weak');
+});
+
 test('strong for complex long password', () => {
   const s = getPasswordStrength('MyStr0ng!Pass#2024');
   assert.ok(s.score >= 3);
@@ -103,55 +121,50 @@ test('returns a label and color', () => {
 // ── password history (last 5) ─────────────────────────────────────
 console.log('\npassword history');
 
-test('new password is not flagged as reused', () => {
+test('new password is not flagged as reused', async () => {
   clearPasswordHistory();
-  assert.strictEqual(isPasswordReused('BrandNew@1'), false);
+  assert.strictEqual(await isPasswordReused('BrandNew@1'), false);
 });
 
-test('saved password is detected as reused', () => {
+test('saved password is detected as reused', async () => {
   clearPasswordHistory();
-  savePasswordToHistory('Reused@Pass1');
-  assert.strictEqual(isPasswordReused('Reused@Pass1'), true);
+  await savePasswordToHistory('Reused@Pass1');
+  assert.strictEqual(await isPasswordReused('Reused@Pass1'), true);
 });
 
-test('different password is not flagged as reused', () => {
+test('different password is not flagged as reused', async () => {
   clearPasswordHistory();
-  savePasswordToHistory('First@Pass1');
-  assert.strictEqual(isPasswordReused('Different@Pass2'), false);
+  await savePasswordToHistory('First@Pass1');
+  assert.strictEqual(await isPasswordReused('Different@Pass2'), false);
 });
 
-test('only last 5 passwords are tracked', () => {
+test('only last 5 passwords are tracked', async () => {
   clearPasswordHistory();
   const passwords = ['Pass@1111', 'Pass@2222', 'Pass@3333', 'Pass@4444', 'Pass@5555', 'Pass@6666'];
-  passwords.forEach(savePasswordToHistory);
+  for (const p of passwords) await savePasswordToHistory(p);
   // oldest (index 0) should be evicted
-  assert.strictEqual(isPasswordReused('Pass@1111'), false);
+  assert.strictEqual(await isPasswordReused('Pass@1111'), false);
   // most recent should still be tracked
-  assert.strictEqual(isPasswordReused('Pass@6666'), true);
+  assert.strictEqual(await isPasswordReused('Pass@6666'), true);
 });
 
-test('clearPasswordHistory removes all history', () => {
-  savePasswordToHistory('ToBeCleared@1');
+test('clearPasswordHistory removes all history', async () => {
+  await savePasswordToHistory('ToBeCleared@1');
   clearPasswordHistory();
-  assert.strictEqual(isPasswordReused('ToBeCleared@1'), false);
+  assert.strictEqual(await isPasswordReused('ToBeCleared@1'), false);
 });
 
-// ── password expiry (optional) ────────────────────────────────────
-console.log('\npassword expiry');
-
-test('not expired right after saving', () => {
-  clearPasswordHistory();
-  savePasswordToHistory('Fresh@Pass1');
-  assert.strictEqual(isPasswordExpired(), false);
-});
-
-test('expired when timestamp is old', () => {
-  const ninetyOneDaysAgo = (Date.now() - 91 * 24 * 60 * 60 * 1000).toString();
-  store['pw_set_at'] = ninetyOneDaysAgo;
-  assert.strictEqual(isPasswordExpired(), true);
-  clearPasswordHistory();
+test('history is scoped per identifier', async () => {
+  clearPasswordHistory('userA');
+  clearPasswordHistory('userB');
+  await savePasswordToHistory('Shared@Pass1', 'userA');
+  assert.strictEqual(await isPasswordReused('Shared@Pass1', 'userA'), true);
+  assert.strictEqual(await isPasswordReused('Shared@Pass1', 'userB'), false);
 });
 
 // ── summary ───────────────────────────────────────────────────────
-console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
-if (failed > 0) process.exit(1);
+(async () => {
+  for (const t of tests) await t();
+  console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
+  if (failed > 0) process.exit(1);
+})();

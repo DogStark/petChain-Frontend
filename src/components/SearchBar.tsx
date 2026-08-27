@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { debounce } from '../utils/debounce';
 
+interface SearchResultItem {
+  query: string;
+}
+
 interface SearchBarProps {
   onSearch: (query: string, filters: SearchFilters) => void;
   placeholder?: string;
@@ -60,8 +64,8 @@ export default function SearchBar({
   const fetchPopularQueries = async () => {
     try {
       const response = await fetch('/api/v1/search/popular?limit=5');
-      const data = await response.json();
-      setPopularQueries(data.map((item: any) => item.query));
+      const data = (await response.json()) as SearchResultItem[];
+      setPopularQueries(data.map((item) => item.query));
     } catch (error) {
       console.error('Failed to fetch popular queries:', error);
     }
@@ -84,13 +88,17 @@ export default function SearchBar({
     }
   };
 
-  // Debounced autocomplete
+  // Debounced autocomplete — cancel on unmount to prevent setState after unmount
   const debouncedFetchSuggestions = useCallback(
     debounce((searchQuery: unknown) => {
       fetchSuggestions(searchQuery as string);
     }, 300),
     [searchType]
   );
+
+  useEffect(() => {
+    return () => debouncedFetchSuggestions.cancel();
+  }, [debouncedFetchSuggestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -116,8 +124,8 @@ export default function SearchBar({
     onSearch(suggestion, filters);
   };
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
-    const updatedFilters = { ...filters, [key]: value };
+  const handleFilterChange = <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+    const updatedFilters: SearchFilters = { ...filters, [key]: value };
     setFilters(updatedFilters);
   };
 

@@ -25,6 +25,16 @@ export interface SubmitOptions {
   retryAttempts?: number;
   baseFee?: string;
   memo?: StellarSdk.Memo;
+  timeoutSeconds?: number;
+  rebuild?: () => Promise<StellarSdk.Transaction | StellarSdk.FeeBumpTransaction>;
+}
+
+export interface MedicalRecord {
+  id: string;
+  petId: string;
+  type: string;
+  critical: boolean;
+  data: Record<string, unknown>;
 }
 
 export const NETWORK_CONFIGS = {

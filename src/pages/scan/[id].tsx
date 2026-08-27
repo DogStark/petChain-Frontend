@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { GetStaticProps, GetStaticPaths } from 'next';
+import { GetServerSideProps } from 'next';
 import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink, QrCode } from 'lucide-react';
 import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
 import { petAPI } from '@/lib/api/petAPI';
 import { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
 
-export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic';
 
 interface PublicProfile {
   qrCodeId: string;
@@ -17,13 +17,20 @@ interface PublicProfile {
   emergency: PetEmergencyInfo | null;
 }
 
-export default function ScanPage() {
+interface ScanPageProps {
+  profile: PublicProfile | null;
+  error: string | null;
+}
+
+export default function ScanPage({
+  profile: initialProfile,
+  error: initialError,
+}: ScanPageProps) {
   const router = useRouter();
   const { id } = router.query;
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [profile, setProfile] = useState(initialProfile);
+  const [error, setError] = useState(initialError);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
 
@@ -31,7 +38,7 @@ export default function ScanPage() {
       try {
         // Record the scan (best-effort, non-blocking)
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
-        qrcodeAPI.recordScan(id, { deviceType }).catch(() => {});
+        qrcodeAPI.recordScan(id, { deviceType }).catch(() => { });
 
         const qr = await qrcodeAPI.getOne(id);
 
@@ -44,7 +51,7 @@ export default function ScanPage() {
         try {
           emergency = await petAPI.getPetEmergencyInfo(qr.petId);
         } catch {
-          // Emergency info optional
+          // Emergency info optional — null means not configured
         }
 
         setProfile({
@@ -118,6 +125,18 @@ export default function ScanPage() {
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-4 pb-12">
+        {/* No emergency info configured */}
+        {!emergency && !emergencyContact && (
+          <div className="bg-white border-4 border-gray-300 rounded-3xl p-6 shadow-lg text-center">
+            <AlertOctagon size={40} className="text-gray-400 mx-auto mb-3" />
+            <p className="font-black text-gray-700 text-lg uppercase">No Emergency Info Set Up</p>
+            <p className="text-gray-500 text-sm mt-2">
+              The owner of this pet has not yet configured emergency contacts or vet information.
+              If this is your pet, please update your emergency info in the PetChain app.
+            </p>
+          </div>
+        )}
+
         {/* Custom message from owner */}
         {customMessage && (
           <div className="bg-white border-4 border-red-500 rounded-3xl p-6 shadow-2xl">
@@ -267,16 +286,16 @@ export default function ScanPage() {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  return {
-    paths: [],
-    fallback: 'blocking',
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+// This page's data (QR tag status, emergency contacts, medical notes) must
+// always be current — a deactivated tag or an edited emergency contact has
+// to show up on the very next scan. getServerSideProps forces a fresh
+// server render on every request instead of the static-generation +
+// revalidate:false combo this page used to have, which cached the first
+// scan's result forever. The actual data fetch still happens client-side
+// in useEffect above (via qrcodeAPI/petAPI), so this only needs to opt the
+// route out of static generation.
+export const getServerSideProps: GetServerSideProps = async () => {
   return {
     props: {},
-    revalidate: false,
   };
 };

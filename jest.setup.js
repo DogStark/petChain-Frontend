@@ -1,7 +1,6 @@
-/**
- * Jest setup file for scheduling integration tests.
- * Configures global test environment and mocks.
- */
+import '@testing-library/jest-dom';
+
+require('@testing-library/jest-dom');
 
 // Mock localStorage for tests
 const localStorageMock = (() => {

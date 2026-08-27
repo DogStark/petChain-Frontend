@@ -6,6 +6,8 @@ import { GetServerSideProps } from 'next';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI, ActivityLog } from '../lib/api/userAPI';
 import styles from '../styles/pages/ActivityLogPage.module.css';
+import { getRelativeTime } from '../utils/dateRange';
+import { formatDateTime } from '../utils/formatDate';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,20 +52,8 @@ const ACTION_ICONS: Record<string, string> = {
 
 const RETENTION_DAYS = 90;
 
-function formatRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
 function isWithinRetention(dateStr: string): boolean {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  return diff <= RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() - new Date(dateStr).getTime() <= RETENTION_DAYS * 24 * 60 * 60 * 1000;
 }
 
 export default function ActivityLogPage() {
@@ -197,14 +187,14 @@ export default function ActivityLogPage() {
                     {log.isSuspicious && (
                       <span className={styles.suspiciousBadge}>⚠ Suspicious</span>
                     )}
-                    <span className={styles.time}>{formatRelativeTime(log.createdAt)}</span>
+                    <span className={styles.time}>{getRelativeTime(log.createdAt)}</span>
                   </div>
                   {log.description && <p className={styles.description}>{log.description}</p>}
                   <div className={styles.meta}>
                     {log.ipAddress && <span>IP: {log.ipAddress}</span>}
                     {log.deviceId && <span>Device: {log.deviceId}</span>}
-                    <span title={new Date(log.createdAt).toLocaleString()}>
-                      {new Date(log.createdAt).toLocaleString()}
+                    <span title={formatDateTime(log.createdAt)}>
+                      {formatDateTime(log.createdAt)}
                     </span>
                   </div>
                 </div>

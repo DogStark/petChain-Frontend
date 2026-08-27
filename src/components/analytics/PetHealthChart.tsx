@@ -9,8 +9,16 @@ interface PetHealthChartProps {
   }[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderCustomizedLabel = (props: any) => {
+interface PieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
+const renderCustomizedLabel = (props: PieLabelProps) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;

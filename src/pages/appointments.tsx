@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { GetServerSideProps } from 'next';
 import Head from "next/head";
 import HeaderComponent from "@/components/Header";
@@ -7,43 +7,37 @@ import BookingModal from "@/components/Appointments/BookingModal";
 import AppointmentCard from "@/components/Appointments/AppointmentCard";
 import WaitlistManager from "@/components/Appointments/WaitlistManager";
 import VetAvailabilityList from "@/components/Appointments/VetAvailabilityList";
-import { Plus, Users } from "lucide-react";
-import { Appointment } from "@/types/appointments";
-
-const MOCK_UPCOMING: Appointment[] = [
-  {
-    id: "1",
-    pet_id: "1",
-    vet_id: "1",
-    appointment_type: "Checkup",
-    scheduled_at: "2023-11-15T10:00:00Z",
-    duration: 30,
-    status: "Scheduled",
-    notes: "Regular checkup for Bella",
-    reminder_sent: false,
-    created_at: "2023-11-01T00:00:00Z",
-    updated_at: "2023-11-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    pet_id: "2",
-    vet_id: "2",
-    appointment_type: "Surgery",
-    scheduled_at: "2023-11-22T14:00:00Z",
-    duration: 120,
-    status: "Scheduled",
-    notes: "Dental cleaning for Max",
-    reminder_sent: false,
-    created_at: "2023-11-05T00:00:00Z",
-    updated_at: "2023-11-05T00:00:00Z",
-  },
-];
+import { Plus, Users, Loader2 } from "lucide-react";
+import {
+  appointmentsAPI,
+  UpcomingAppointmentView,
+} from "@/lib/api/appointmentsAPI";
 
 export default function AppointmentsPage() {
   const [isBookingModalOpen, setBookingModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "availability">(
     "calendar",
   );
+  const [upcoming, setUpcoming] = useState<UpcomingAppointmentView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadUpcoming = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await appointmentsAPI.getUpcomingAppointments();
+      setUpcoming(data);
+    } catch {
+      setError("Failed to load upcoming appointments.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUpcoming();
+  }, [loadUpcoming]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
@@ -102,18 +96,37 @@ export default function AppointmentsPage() {
               <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-blue-500" /> Upcoming
               </h2>
-              <div className="space-y-4">
-                <AppointmentCard
-                  appointment={MOCK_UPCOMING[0]}
-                  petName="Bella"
-                  vetName="Dr. Sarah Miller"
-                />
-                <AppointmentCard
-                  appointment={MOCK_UPCOMING[1]}
-                  petName="Max"
-                  vetName="Dr. James Wilson"
-                />
-              </div>
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                  <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                  <p className="text-sm">Loading upcoming appointments...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-red-600 mb-3">{error}</p>
+                  <button
+                    onClick={loadUpcoming}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : upcoming.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">
+                  No upcoming appointments. Book a visit when you are ready.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {upcoming.map((item) => (
+                    <AppointmentCard
+                      key={item.appointment.id}
+                      appointment={item.appointment}
+                      petName={item.petName}
+                      vetName={item.vetName}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/40">

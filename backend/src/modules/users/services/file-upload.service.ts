@@ -94,7 +94,7 @@ export class FileUploadService {
       }
     } catch (error) {
       // Log error but don't throw - file may already be deleted
-      console.error(`Failed to delete avatar: ${error}`);
+      this.logger.error(`Failed to delete avatar: ${error}`);
     }
   }
 

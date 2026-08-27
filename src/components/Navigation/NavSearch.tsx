@@ -46,6 +46,11 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
     []
   );
 
+  // Cancel any pending debounce on unmount to prevent setState after unmount
+  useEffect(() => {
+    return () => fetchSuggestions.cancel();
+  }, [fetchSuggestions]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
     setOpen(true);

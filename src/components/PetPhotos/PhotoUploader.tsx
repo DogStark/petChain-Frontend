@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import styles from './PetPhotos.module.css';
@@ -34,6 +34,15 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const remainingSlots = maxPhotos - currentCount;
+  const stagedFilesRef = useRef(stagedFiles);
+  stagedFilesRef.current = stagedFiles;
+
+  // Revoke any remaining blob URLs when the component unmounts
+  useEffect(() => {
+    return () => {
+      stagedFilesRef.current.forEach((pf) => URL.revokeObjectURL(pf.previewUrl));
+    };
+  }, []);
 
   const compressFile = async (file: File): Promise<File> => {
     if (!file.type.startsWith('image/')) return file;

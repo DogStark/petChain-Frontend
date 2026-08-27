@@ -1,6 +1,8 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
+import { getStellarNetwork } from '../blockchain/network';
 import { randomUUID } from 'crypto';
+import { walletAPI } from '../api/walletAPI';
 import type {
   WalletAccount,
   WalletBalance,
@@ -15,8 +17,27 @@ import type {
 
 const STORAGE_KEY = 'petchain_wallets';
 
+function isValidWalletRecords(data: unknown): data is WalletAccount[] {
+  if (!Array.isArray(data)) return false;
+  return data.every(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      typeof item.id === 'string' &&
+      typeof item.publicKey === 'string' &&
+      typeof item.encryptedSecretKey === 'string' &&
+      typeof item.iv === 'string' &&
+      typeof item.salt === 'string' &&
+      typeof item.label === 'string' &&
+      (item.type === 'standard' || item.type === 'multisig') &&
+      (item.network === 'TESTNET' || item.network === 'PUBLIC') &&
+      typeof item.createdAt === 'string' &&
+      typeof item.backupVerified === 'boolean'
+  );
+}
+
 function getNetwork(): WalletNetwork {
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public' ? 'PUBLIC' : 'TESTNET';
+  return getStellarNetwork();
 }
 
 function getHorizonUrl(network: WalletNetwork): string {
@@ -29,13 +50,31 @@ function getNetworkPassphrase(network: WalletNetwork): string {
   return network === 'PUBLIC' ? StellarSdk.Networks.PUBLIC : StellarSdk.Networks.TESTNET;
 }
 
+type StellarSubmitTransactionResponse = {
+  hash: string;
+  ledger?: number;
+  successful?: boolean;
+  envelope_xdr?: string;
+  result_xdr?: string;
+};
+
 class WalletService {
   private network: WalletNetwork;
   private server: StellarSdk.Horizon.Server;
+  private pinAttempts: Map<string, { count: number; lastAttemptTime: number }> = new Map();
+  private serverCache: Map<WalletNetwork, StellarSdk.Horizon.Server> = new Map();
 
   constructor() {
     this.network = getNetwork();
     this.server = new StellarSdk.Horizon.Server(getHorizonUrl(this.network));
+    this.serverCache.set(this.network, this.server);
+  }
+
+  private getServerFor(network: WalletNetwork): StellarSdk.Horizon.Server {
+    if (!this.serverCache.has(network)) {
+      this.serverCache.set(network, new StellarSdk.Horizon.Server(getHorizonUrl(network)));
+    }
+    return this.serverCache.get(network)!;
   }
 
   // ─── Key Generation ──────────────────────────────────────────────────────────
@@ -43,6 +82,16 @@ class WalletService {
   generateKeypair(): { publicKey: string; secretKey: string } {
     const keypair = StellarSdk.Keypair.random();
     return { publicKey: keypair.publicKey(), secretKey: keypair.secret() };
+  }
+
+  private normalizeBroadcastResult(result: StellarSubmitTransactionResponse): BroadcastResult {
+    return {
+      hash: result.hash,
+      ledger: result.ledger ?? 0,
+      successful: result.successful !== false,
+      envelopeXdr: result.envelope_xdr ?? '',
+      resultXdr: result.result_xdr ?? '',
+    };
   }
 
   // ─── Wallet CRUD ─────────────────────────────────────────────────────────────
@@ -53,7 +102,7 @@ class WalletService {
 
     const wallet: WalletAccount = {
       id: `wallet_${randomUUID()}`,
-      publicKey: keypair.publicKey(),
+      publicKey,
       encryptedSecretKey: encryptedKey,
       iv,
       salt,
@@ -65,13 +114,26 @@ class WalletService {
     };
 
     this.persistWallet(wallet);
+
+    // Register the public key with the backend (fire-and-forget; never sends secret key)
+    walletAPI.registerWallet(publicKey, label, this.network).catch((err) => {
+      console.warn('Failed to register wallet with backend:', err);
+    });
+
     return wallet;
   }
 
   getWallets(): WalletAccount[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!isValidWalletRecords(parsed)) {
+        console.warn('Corrupted wallet data detected in localStorage. Clearing.');
+        localStorage.removeItem(STORAGE_KEY);
+        return [];
+      }
+      return parsed;
     } catch {
       return [];
     }
@@ -109,18 +171,35 @@ class WalletService {
   }
 
   async verifyPin(wallet: WalletAccount, pin: string): Promise<boolean> {
+    const attempts = this.pinAttempts.get(wallet.id) || { count: 0, lastAttemptTime: 0 };
+    const now = Date.now();
+    const timeSinceLastAttempt = now - attempts.lastAttemptTime;
+
+    if (attempts.count > 0) {
+      const delayMs = Math.min(1000 * Math.pow(2, Math.min(attempts.count - 1, 5)), 30000);
+      if (timeSinceLastAttempt < delayMs) {
+        await new Promise(resolve => setTimeout(resolve, delayMs - timeSinceLastAttempt));
+      }
+    }
+
     try {
       await this.decryptKey(wallet, pin);
+      this.pinAttempts.delete(wallet.id);
       return true;
     } catch {
+      attempts.count++;
+      attempts.lastAttemptTime = Date.now();
+      this.pinAttempts.set(wallet.id, attempts);
       return false;
     }
   }
 
   // ─── Balance Monitoring ───────────────────────────────────────────────────────
 
-  async fetchAccountData(publicKey: string): Promise<WalletMonitoringData> {
-    const account = await this.server.loadAccount(publicKey);
+  async fetchAccountData(publicKey: string, network?: WalletNetwork): Promise<WalletMonitoringData> {
+    const targetNetwork = network || this.network;
+    const server = this.getServerFor(targetNetwork);
+    const account = await server.loadAccount(publicKey);
     return {
       publicKey,
       balances: account.balances as WalletBalance[],
@@ -163,7 +242,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const asset =
       tx.asset === 'XLM'
@@ -188,15 +268,9 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
-    };
+    return this.normalizeBroadcastResult(result);
   }
 
   // ─── Multi-Signature Setup ────────────────────────────────────────────────────
@@ -208,7 +282,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const builder = new StellarSdk.TransactionBuilder(account, {
       fee: StellarSdk.BASE_FEE,
@@ -236,18 +311,12 @@ class WalletService {
 
     const transaction = builder.setTimeout(30).build();
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
     // Persist updated wallet type
     this.persistWallet({ ...wallet, type: 'multisig' });
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
-    };
+    return this.normalizeBroadcastResult(result);
   }
 
   async removeSigner(
@@ -257,7 +326,8 @@ class WalletService {
   ): Promise<BroadcastResult> {
     const secretKey = await this.decryptKey(wallet, pin);
     const keypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const account = await this.server.loadAccount(wallet.publicKey);
+    const server = this.getServerFor(wallet.network);
+    const account = await server.loadAccount(wallet.publicKey);
 
     const transaction = new StellarSdk.TransactionBuilder(account, {
       fee: StellarSdk.BASE_FEE,
@@ -272,15 +342,37 @@ class WalletService {
       .build();
 
     transaction.sign(keypair);
-    const result = await this.server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction) as StellarSubmitTransactionResponse;
 
-    return {
-      hash: result.hash,
-      ledger: (result as any).ledger ?? 0,
-      successful: (result as any).successful !== false,
-      envelopeXdr: (result as any).envelope_xdr ?? '',
-      resultXdr: (result as any).result_xdr ?? '',
+    return this.normalizeBroadcastResult(result);
+  }
+
+  async importWallet(secretKey: string, label: string, pin: string): Promise<WalletAccount> {
+    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    const publicKey = keypair.publicKey();
+
+    const existing = this.getWallets().find((w) => w.publicKey === publicKey);
+    if (existing) {
+      throw new Error(`This wallet is already added as "${existing.label}".`);
+    }
+
+    const { encryptedKey, iv, salt } = await encryptSecretKey(secretKey, pin);
+
+    const wallet: WalletAccount = {
+      id: `wallet_${randomUUID()}`,
+      publicKey,
+      encryptedSecretKey: encryptedKey,
+      iv,
+      salt,
+      label,
+      type: 'standard',
+      network: this.network,
+      createdAt: new Date().toISOString(),
+      backupVerified: false,
     };
+
+    this.persistWallet(wallet);
+    return wallet;
   }
 
   // ─── Backup & Recovery ────────────────────────────────────────────────────────
@@ -315,6 +407,17 @@ class WalletService {
     // Verify PIN decrypts correctly
     await decryptSecretKey(backup.encryptedKey, backup.iv, backup.salt, pin);
 
+    const existing = this.getWallets().find((w) => w.publicKey === backup.publicKey);
+    if (existing) {
+      throw new Error(`This wallet is already added as "${existing.label}".`);
+    const backupNetwork = backup.network as WalletNetwork;
+    if (backupNetwork !== this.network) {
+      console.warn(
+        `Importing wallet from ${backupNetwork} network while app is configured for ${this.network}. ` +
+        `Wallet will be routed to the correct Horizon server based on its network.`
+      );
+    }
+
     const wallet: WalletAccount = {
       id: `wallet_${randomUUID()}`,
       publicKey: backup.publicKey,
@@ -323,19 +426,26 @@ class WalletService {
       salt: backup.salt,
       label: backup.label,
       type: 'standard',
-      network: backup.network as WalletNetwork,
+      network: backupNetwork,
       createdAt: backup.createdAt,
       backupVerified: true,
     };
 
     this.persistWallet(wallet);
+
+    // Register the restored public key with the backend (fire-and-forget; never sends secret key)
+    walletAPI.registerWallet(backup.publicKey, backup.label, backupNetwork).catch((err) => {
+      console.warn('Failed to register imported wallet with backend:', err);
+    });
+
     return wallet;
   }
 
   // ─── Testnet Funding ──────────────────────────────────────────────────────────
 
-  async fundTestnetAccount(publicKey: string): Promise<void> {
-    if (this.network !== 'TESTNET') {
+  async fundTestnetAccount(publicKey: string, network?: WalletNetwork): Promise<void> {
+    const targetNetwork = network || this.network;
+    if (targetNetwork !== 'TESTNET') {
       throw new Error('Friendbot is only available on Testnet.');
     }
     const res = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`);

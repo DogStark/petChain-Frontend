@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import {
-  ConflictException,
   NotFoundException,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { GdprService } from './gdpr.service';
+import { GdprService, TooManyRequestsException } from './gdpr.service';
+import { PasswordUtil } from '../../auth/utils/password.util';
 import { UserConsent } from './entities/user-consent.entity';
 import { DataDeletionRequest, DeletionStatus } from './entities/data-deletion-request.entity';
 import { GdprRequest, GdprRequestStatus, GdprRequestType } from './entities/gdpr-request.entity';
@@ -30,7 +30,7 @@ describe('GdprService', () => {
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepo },
         { provide: getRepositoryToken(DataDeletionRequest), useValue: mockDeletionRepo },
         { provide: getRepositoryToken(GdprRequest), useValue: mockGdprRequestRepo },
-        { provide: 'DataSource', useValue: mockDataSource },
+        { provide: DataSource, useValue: mockDataSource },
         { provide: StorageService, useValue: mockStorageService },
         { provide: getQueueToken('gdpr'), useValue: mockGdprQueue },
       ],
@@ -39,7 +39,7 @@ describe('GdprService', () => {
     service = module.get<GdprService>(GdprService);
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => jest.resetAllMocks());
 
   // ── Export ────────────────────────────────────────────────────────────────
 
@@ -78,10 +78,7 @@ describe('GdprService', () => {
     it('throws UnauthorizedException on wrong password', async () => {
       mockGdprRequestRepo.findOne.mockResolvedValue(null);
       mockDataSource.query.mockResolvedValueOnce([{ password: '$2b$12$hashedpassword' }]);
-
-      jest.spyOn(require('../../auth/utils/password.util'), 'PasswordUtil', 'get').mockReturnValue({
-        comparePassword: jest.fn().mockResolvedValue(false),
-      });
+      jest.spyOn(PasswordUtil, 'comparePassword').mockResolvedValue(false);
 
       await expect(service.requestErasure('u1', 'wrongpass')).rejects.toThrow(
         UnauthorizedException,
