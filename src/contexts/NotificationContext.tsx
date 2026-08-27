@@ -17,6 +17,7 @@ import {
 import { notificationsAPI } from '@/lib/api/notificationsAPI';
 import { notificationService } from '@/services/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDeviceTimezone, isInDndWindow } from '@/utils/dndSchedule';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -135,9 +136,17 @@ function loadPrefs(): NotificationPreferences {
   if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) } : DEFAULT_PREFERENCES;
+    if (!raw) return { ...DEFAULT_PREFERENCES, timezone: getDeviceTimezone() };
+    const parsed = JSON.parse(raw) as Partial<NotificationPreferences>;
+    // Legacy prefs (saved before the timezone field existed) have no
+    // timezone; default to the device zone so quiet hours stay sensible.
+    const timezone =
+      typeof parsed.timezone === 'string' && parsed.timezone.trim()
+        ? parsed.timezone
+        : getDeviceTimezone();
+    return { ...DEFAULT_PREFERENCES, ...parsed, timezone };
   } catch {
-    return DEFAULT_PREFERENCES;
+    return { ...DEFAULT_PREFERENCES, timezone: getDeviceTimezone() };
   }
 }
 
@@ -165,17 +174,6 @@ function persistNotifications(ns: AppNotification[]) {
   } catch {
     /* noop */
   }
-}
-
-function isDND(prefs: NotificationPreferences): boolean {
-  if (!prefs.doNotDisturb) return false;
-  const now = new Date();
-  const [sh, sm] = prefs.dndStart.split(':').map(Number);
-  const [eh, em] = prefs.dndEnd.split(':').map(Number);
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const start = sh * 60 + sm;
-  const end = eh * 60 + em;
-  return start <= end ? cur >= start && cur < end : cur >= start || cur < end;
 }
 
 let toastCounter = 0;
@@ -382,8 +380,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const current = loadPersisted();
     persistNotifications([notif, ...current]);
 
-    // DND check — skip sound/vibration/toast if in DND (unless urgent)
-    const inDND = isDND(prefs) && notif.priority !== 'urgent';
+    // DND check — skip sound/vibration/toast if in DND (unless urgent).
+    // Evaluated in the user's chosen IANA timezone so quiet hours stay
+    // correct across travel and DST transitions (issue #870).
+    const inDND = isInDndWindow(prefs) && notif.priority !== 'urgent';
 
     if (!inDND) {
       // Toast
