@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Calendar, Clock, User, Heart } from "lucide-react";
 import { AppointmentType } from "@/types/appointments";
+import Dialog from "@/components/ui/Dialog";
 
 interface BookingModalProps {
   onClose: () => void;
@@ -41,22 +42,24 @@ export default function BookingModal({ onClose }: BookingModalProps) {
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="booking-modal-title"
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="booking-modal-title"
+      className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in"
     >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in" role="document">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-blue-900">Book Appointment</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6 text-gray-400" />
-          </button>
-        </div>
+      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        <h2 id="booking-modal-title" className="text-2xl font-bold text-blue-900">
+          Book Appointment
+        </h2>
+        <button
+          onClick={onClose}
+          aria-label="Close booking dialog"
+          className="touch-target hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6 text-gray-400" />
+        </button>
+      </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="space-y-4">
@@ -175,7 +178,6 @@ export default function BookingModal({ onClose }: BookingModalProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Dialog>
   );
 }

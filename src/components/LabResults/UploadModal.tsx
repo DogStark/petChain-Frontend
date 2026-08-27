@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { UploadCloud, File, X, CheckCircle2 } from "lucide-react";
+import Dialog from "@/components/ui/Dialog";
 
 interface UploadModalProps {
   onClose: () => void;
@@ -51,28 +52,27 @@ export default function UploadModal({ onClose }: UploadModalProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="upload-modal-title"
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="upload-modal-title"
+      className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in" role="document">
-        <button
-          onClick={onClose}
-          aria-label="Close upload dialog"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
-        >
-          <X className="w-6 h-6" aria-hidden="true" />
-        </button>
+      <button
+        onClick={onClose}
+        aria-label="Close upload dialog"
+        className="touch-target absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <X className="w-6 h-6" aria-hidden="true" />
+      </button>
 
-        <h2 className="text-2xl font-bold text-blue-900 mb-2">
-          Upload Results
-        </h2>
-        <p className="text-gray-600 mb-6 text-sm">
-          Upload your pet&apos;s official lab report PDF to automatically
-          extract and store results securely.
-        </p>
+      <h2 id="upload-modal-title" className="text-2xl font-bold text-blue-900 mb-2">
+        Upload Results
+      </h2>
+      <p className="text-gray-600 mb-6 text-sm">
+        Upload your pet&apos;s official lab report PDF to automatically
+        extract and store results securely.
+      </p>
 
         {success ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -148,7 +148,6 @@ export default function UploadModal({ onClose }: UploadModalProps) {
             </button>
           </>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }

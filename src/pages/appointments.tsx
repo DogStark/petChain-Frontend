@@ -56,7 +56,7 @@ export default function AppointmentsPage() {
 
       <HeaderComponent />
 
-      <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+      <main id="main-content" className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-blue-800">Appointments</h1>

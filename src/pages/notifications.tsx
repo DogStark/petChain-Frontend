@@ -48,7 +48,7 @@ export default function NotificationsPage() {
 
       <Header />
 
-      <main className={styles.main}>
+      <main id="main-content" className={styles.main}>
         {error ? (
           <div className={styles.errorContainer}>
             <p>{error}</p>

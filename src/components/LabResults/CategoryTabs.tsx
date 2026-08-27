@@ -22,7 +22,7 @@ export default function CategoryTabs({
           aria-selected={activeCategory === cat}
           aria-controls={`panel-${cat}`}
           onClick={() => onSelect(cat)}
-          className={`whitespace-nowrap px-4 py-2 rounded-full font-medium transition-all ${
+          className={`whitespace-nowrap min-h-[44px] flex items-center justify-center px-4 py-2 rounded-full font-medium transition-all ${
             activeCategory === cat
               ? "bg-blue-600 text-white shadow-md"
               : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600"

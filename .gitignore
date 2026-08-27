@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 bun.lock
