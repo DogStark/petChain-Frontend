@@ -5,15 +5,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
+import { IsNull, In, Repository, SelectQueryBuilder } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { PetShare } from './entities/pet-share.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { QueryPetsDto } from './dto/query-pets.dto';
 import { SharePetDto } from './dto/share-pet.dto';
+import { BulkPetActionDto, PetBulkAction } from './dto/bulk-pet-action.dto';
 import { PetSpecies } from './entities/pet-species.enum';
 import { UsersService } from '../users/users.service';
+import { CacheService, CacheKeys, CacheTTL } from '../cache/cache.service';
 
 export interface PaginatedPetsResult {
   data: Pet[];
@@ -34,6 +36,7 @@ export class PetsService {
     @InjectRepository(PetShare)
     private readonly petShareRepository: Repository<PetShare>,
     private readonly usersService: UsersService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async create(ownerId: string, createPetDto: CreatePetDto): Promise<Pet> {
@@ -55,11 +58,15 @@ export class PetsService {
       ? { ownerId, deletedAt: IsNull() }
       : { deletedAt: IsNull() };
 
-    return await this.petRepository.find({
-      where,
-      relations: ['breed', 'owner', 'photos'],
-      order: { createdAt: 'DESC' },
-    });
+    // Optimized: Use SelectQueryBuilder with explicit joins to avoid N+1
+    const queryBuilder = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where(where);
+
+    return await queryBuilder.getMany();
   }
 
   async findAllForOwner(
@@ -104,6 +111,7 @@ export class PetsService {
     const page = this.normalizePage(query.page);
     const limit = this.normalizeLimit(query.limit);
 
+    // Optimized: Single query with all necessary joins
     const qb = this.petRepository
       .createQueryBuilder('pet')
       .innerJoinAndSelect(
@@ -135,14 +143,28 @@ export class PetsService {
   }
 
   async findOne(id: string, withDeleted = false): Promise<Pet> {
-    const pet = await this.petRepository.findOne({
-      where: { id },
-      withDeleted,
-      relations: ['breed', 'owner', 'photos'],
-    });
+    if (!withDeleted) {
+      const cached = await this.cacheService.get<Pet>(CacheKeys.pet(id));
+      if (cached) return cached;
+    }
+
+    const qb = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where('pet.id = :id', { id });
+
+    if (withDeleted) qb.withDeleted();
+
+    const pet = await qb.getOne();
 
     if (!pet || (!withDeleted && pet.deletedAt)) {
       throw new NotFoundException(`Pet with ID ${id} not found`);
+    }
+
+    if (!withDeleted) {
+      await this.cacheService.set(CacheKeys.pet(id), pet, CacheTTL.PET_PROFILE);
     }
 
     return pet;
@@ -175,24 +197,22 @@ export class PetsService {
     await this.assertCanEdit(id, userId);
     const pet = await this.findOne(id);
 
-    const payload: Partial<Pet> = {
-      ...updatePetDto,
-    };
-
+    const payload: Partial<Pet> = { ...updatePetDto };
     if (updatePetDto.microchipId && !updatePetDto.microchipNumber) {
       payload.microchipNumber = updatePetDto.microchipId;
     }
 
     Object.assign(pet, payload);
-    return await this.petRepository.save(pet);
+    const saved = await this.petRepository.save(pet);
+    await this.cacheService.invalidatePet(id, userId);
+    return saved;
   }
 
   async softDeleteForUser(id: string, ownerId: string): Promise<void> {
     const pet = await this.findOwnedPet(id, ownerId, true);
-    if (pet.deletedAt) {
-      return;
-    }
+    if (pet.deletedAt) return;
     await this.petRepository.softRemove(pet);
+    await this.cacheService.invalidatePet(id, ownerId);
   }
 
   async restoreForUser(id: string, ownerId: string): Promise<Pet> {
@@ -219,10 +239,9 @@ export class PetsService {
 
     pet.ownerId = newOwnerId;
     const updated = await this.petRepository.save(pet);
-
-    // Ownership transfer revokes previous sharing grants.
     await this.petShareRepository.delete({ petId });
-
+    await this.cacheService.invalidatePet(petId, currentOwnerId);
+    await this.cacheService.invalidatePet(petId, newOwnerId);
     return updated;
   }
 
@@ -282,11 +301,70 @@ export class PetsService {
   async listPetShares(petId: string, ownerId: string): Promise<PetShare[]> {
     await this.findOwnedPet(petId, ownerId);
 
-    return await this.petShareRepository.find({
-      where: { petId, isActive: true },
-      relations: ['sharedWithUser', 'sharedByUser'],
-      order: { createdAt: 'DESC' },
+    // Optimized: Single query with joins instead of N+1
+    return await this.petShareRepository
+      .createQueryBuilder('share')
+      .leftJoinAndSelect('share.sharedWithUser', 'sharedWithUser')
+      .leftJoinAndSelect('share.sharedByUser', 'sharedByUser')
+      .where('share.petId = :petId', { petId })
+      .andWhere('share.isActive = :isActive', { isActive: true })
+      .orderBy('share.createdAt', 'DESC')
+      .getMany();
+  }
+
+  async bulkAction(
+    ownerId: string,
+    dto: BulkPetActionDto,
+  ): Promise<{ affected: number }> {
+    // Verify all pets belong to the requesting owner
+    const owned = await this.petRepository.find({
+      where: { id: In(dto.ids), ownerId },
+      select: ['id'],
+      withDeleted: true,
     });
+
+    if (owned.length === 0) return { affected: 0 };
+    const ownedIds = owned.map((p) => p.id);
+
+    switch (dto.action) {
+      case PetBulkAction.DELETE:
+        await this.petRepository.softDelete({ id: In(ownedIds) });
+        break;
+      case PetBulkAction.RESTORE:
+        await this.petRepository.restore({ id: In(ownedIds) });
+        break;
+      case PetBulkAction.DEACTIVATE:
+        await this.petRepository.update({ id: In(ownedIds) }, { isActive: false });
+        break;
+      case PetBulkAction.ACTIVATE:
+        await this.petRepository.update({ id: In(ownedIds) }, { isActive: true });
+        break;
+    }
+
+    return { affected: ownedIds.length };
+  }
+
+  async search(
+    query: string,
+    ownerId?: string,
+  ): Promise<Pet[]> {
+    const qb = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where('pet.deletedAt IS NULL')
+      .andWhere(
+        '(pet.name ILIKE :q OR pet.color ILIKE :q OR pet.microchip_id ILIKE :q OR breed.name ILIKE :q)',
+        { q: `%${query}%` },
+      )
+      .orderBy('pet.name', 'ASC')
+      .take(50);
+
+    if (ownerId) {
+      qb.andWhere('pet.ownerId = :ownerId', { ownerId });
+    }
+
+    return qb.getMany();
   }
 
   async verifyOwnership(petId: string, ownerId: string): Promise<boolean> {
@@ -365,10 +443,7 @@ export class PetsService {
     return value === 'true';
   }
 
-  private applyFilters(
-    qb: SelectQueryBuilder<Pet>,
-    query: QueryPetsDto,
-  ): void {
+  private applyFilters(qb: SelectQueryBuilder<Pet>, query: QueryPetsDto): void {
     if (query.species) {
       qb.andWhere('pet.species = :species', { species: query.species });
     }
@@ -397,11 +472,20 @@ export class PetsService {
     ownerId: string,
     withDeleted = false,
   ): Promise<Pet> {
-    const pet = await this.petRepository.findOne({
-      where: { id: petId, ownerId },
-      withDeleted,
-      relations: ['breed', 'owner', 'photos'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const qb = this.petRepository
+      .createQueryBuilder('pet')
+      .leftJoinAndSelect('pet.breed', 'breed')
+      .leftJoinAndSelect('pet.owner', 'owner')
+      .leftJoinAndSelect('pet.photos', 'photos')
+      .where('pet.id = :petId', { petId })
+      .andWhere('pet.ownerId = :ownerId', { ownerId });
+
+    if (withDeleted) {
+      qb.withDeleted();
+    }
+
+    const pet = await qb.getOne();
 
     if (!pet) {
       throw new NotFoundException('Pet not found for this owner');
@@ -425,7 +509,9 @@ export class PetsService {
     });
 
     if (!editableShare) {
-      throw new ForbiddenException('You do not have permission to edit this pet');
+      throw new ForbiddenException(
+        'You do not have permission to edit this pet',
+      );
     }
   }
 }

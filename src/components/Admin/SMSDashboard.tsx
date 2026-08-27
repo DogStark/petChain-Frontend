@@ -43,7 +43,11 @@ export const SMSDashboard: React.FC = () => {
       const data = await userAPI.getAdminSMSStats(month, year);
       setStats(data);
     } catch (err: any) {
-      setError(err.response?.status === 403 ? 'Admin access required' : err.message || 'Failed to load SMS stats');
+      setError(
+        err.response?.status === 403
+          ? 'Admin access required'
+          : err.message || 'Failed to load SMS stats'
+      );
     } finally {
       setLoading(false);
     }
@@ -69,7 +73,8 @@ export const SMSDashboard: React.FC = () => {
       <div className={styles.header}>
         <h1 className={styles.title}>SMS Usage & Cost</h1>
         <p className={styles.description}>
-          Monthly SMS delivery and spending. Configure Twilio and enable SMS in backend to send alerts.
+          Monthly SMS delivery and spending. Configure Twilio and enable SMS in backend to send
+          alerts.
         </p>
         <div className={styles.filters}>
           <fieldset className={styles.filterFieldset} aria-describedby={descId}>
@@ -103,7 +108,9 @@ export const SMSDashboard: React.FC = () => {
               className={styles.select}
             >
               {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
 
@@ -120,7 +127,11 @@ export const SMSDashboard: React.FC = () => {
         </div>
       </div>
 
-  {error && <div role="alert" aria-live="assertive" className={styles.error}>{error}</div>}
+      {error && (
+        <div role="alert" aria-live="assertive" className={styles.error}>
+          {error}
+        </div>
+      )}
 
       {stats && (
         <>
@@ -143,9 +154,7 @@ export const SMSDashboard: React.FC = () => {
             </div>
             <div className={styles.card}>
               <div className={styles.cardLabel}>Cost</div>
-              <div className={styles.cardValue}>
-                ${((g?.costCents ?? 0) / 100).toFixed(2)}
-              </div>
+              <div className={styles.cardValue}>${((g?.costCents ?? 0) / 100).toFixed(2)}</div>
             </div>
             <div className={styles.card}>
               <div className={styles.cardLabel}>Limit</div>
@@ -176,12 +185,18 @@ export const SMSDashboard: React.FC = () => {
                   <tbody>
                     {stats.byUser.map((u, idx) => (
                       <tr key={u.userId}>
-                        <th scope="row" className={styles.userId} aria-rowindex={idx + 1}>{u.userId}</th>
+                        <th scope="row" className={styles.userId} aria-rowindex={idx + 1}>
+                          {u.userId}
+                        </th>
                         <td>{u.sent}</td>
                         <td>{u.delivered}</td>
                         <td>{u.failed}</td>
-                        <td aria-label={`Cost ${((u.costCents ?? 0) / 100).toFixed(2)} dollars`}>${(u.costCents / 100).toFixed(2)}</td>
-                        <td>{u.limitCents != null ? `$${(u.limitCents / 100).toFixed(2)}` : '—'}</td>
+                        <td aria-label={`Cost ${((u.costCents ?? 0) / 100).toFixed(2)} dollars`}>
+                          ${(u.costCents / 100).toFixed(2)}
+                        </td>
+                        <td>
+                          {u.limitCents != null ? `$${(u.limitCents / 100).toFixed(2)}` : '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

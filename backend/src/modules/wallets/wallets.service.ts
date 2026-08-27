@@ -197,6 +197,12 @@ export class WalletsService {
   }> {
     const wallet = await this.findOneForUser(walletId, userId);
 
+    if (dto.network !== wallet.network) {
+      throw new BadRequestException(
+        `Network mismatch: request specifies '${dto.network}' but wallet is configured for '${wallet.network}'`,
+      );
+    }
+
     const network = this.stellarCfg.networks[dto.network];
     const horizonUrl = dto.horizonUrl || network.horizonUrl;
 
@@ -218,12 +224,12 @@ export class WalletsService {
     for (const op of dto.operations) {
       if (typeof op === 'string') {
         // If it's an XDR string, parse it
-        txBuilder.addOperation(Operation.fromXDRObject(op));
+        txBuilder.addOperation((Operation as any).fromXDRObject(op));
       } else if (op && typeof op === 'object') {
         // If it's an operation object, try to build it
         // Common case: payment operation
         if ('type' in op && op.type === 'payment') {
-          const paymentOp = op as {
+          const paymentOp = op as unknown as {
             destination: string;
             amount: string;
             assetCode?: string;
@@ -243,7 +249,7 @@ export class WalletsService {
           );
         } else {
           // Fallback: try to parse as XDR object
-          txBuilder.addOperation(Operation.fromXDRObject(op as any));
+          txBuilder.addOperation((Operation as any).fromXDRObject(op as any));
         }
       }
     }

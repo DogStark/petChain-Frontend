@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { GetServerSideProps } from 'next';
+import { useState, useRef } from 'react';
+import type React from 'react';
 import SearchBar, { SearchFilters } from '../components/SearchBar';
-import SearchResults from '../components/SearchResults';
+import SearchResults, { SearchEmptyState } from '../components/SearchResults';
+
+export const dynamic = 'force-dynamic';
 
 interface Pet {
   id: string;
@@ -10,10 +14,10 @@ interface Pet {
   age: number;
   location: string;
   status: string;
-  owner: {
+  owner?: {
     firstName: string;
     lastName: string;
-  };
+  } | null;
 }
 
 interface Vet {
@@ -32,10 +36,10 @@ interface MedicalRecord {
   treatment: string;
   recordDate: string;
   vetName: string;
-  pet: {
+  pet?: {
     name: string;
     breed: string;
-  };
+  } | null;
 }
 
 interface EmergencyService {
@@ -48,16 +52,38 @@ interface EmergencyService {
   phone: string;
 }
 
+interface SearchResultData {
+  results: Pet[] | Vet[] | MedicalRecord[] | EmergencyService[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  searchTime: number;
+  pets?: { results: Pet[]; total: number };
+  vets?: { results: Vet[]; total: number };
+  medicalRecords?: { results: MedicalRecord[]; total: number };
+  emergencyServices?: { results: EmergencyService[]; total: number };
+}
+
 type SearchType = 'pets' | 'vets' | 'medical-records' | 'emergency-services' | 'global';
 
 export default function SearchPage() {
   const [searchType, setSearchType] = useState<SearchType>('global');
-  const [searchResults, setSearchResults] = useState<any>(null);
+  const [searchResults, setSearchResults] = useState<SearchResultData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuery, setCurrentQuery] = useState('');
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
+  // Track the latest in-flight request so stale responses are discarded
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSearch = async (query: string, filters: SearchFilters, page = 1) => {
+    // Cancel any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setCurrentQuery(query);
     setCurrentFilters(filters);
@@ -67,26 +93,33 @@ export default function SearchPage() {
         query: query || '',
         page: page.toString(),
         limit: '10',
-        ...Object.entries(filters).reduce((acc, [key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            acc[key] = value.toString();
-          }
-          return acc;
-        }, {} as Record<string, string>),
+        ...Object.entries(filters).reduce(
+          (acc, [key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+              acc[key] = value.toString();
+            }
+            return acc;
+          },
+          {} as Record<string, string>
+        ),
       });
 
-      const endpoint = searchType === 'global' 
-        ? '/api/v1/search/global'
-        : `/api/v1/search/${searchType}`;
+      const endpoint =
+        searchType === 'global' ? '/api/v1/search/global' : `/api/v1/search/${searchType}`;
 
-      const response = await fetch(`${endpoint}?${params}`);
+      const response = await fetch(`${endpoint}?${params}`, { signal: controller.signal });
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
+      // Ignore abort errors — they are expected when a newer request supersedes this one
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       console.error('Search failed:', error);
       setSearchResults(null);
     } finally {
-      setIsLoading(false);
+      // Only clear loading state if this controller is still the active one
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -102,18 +135,22 @@ export default function SearchPage() {
           <p className="text-sm text-gray-600">
             {pet.breed} • {pet.species} • {pet.age} years old
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            📍 {pet.location}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Owner: {pet.owner.firstName} {pet.owner.lastName}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">📍 {pet.location}</p>
+          {pet.owner && (
+            <p className="text-xs text-gray-500 mt-1">
+              Owner: {pet.owner.firstName} {pet.owner.lastName}
+            </p>
+          )}
         </div>
-        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-          pet.status === 'active' ? 'bg-green-100 text-green-800' : 
-          pet.status === 'missing' ? 'bg-red-100 text-red-800' : 
-          'bg-gray-100 text-gray-800'
-        }`}>
+        <span
+          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+            pet.status === 'active'
+              ? 'bg-green-100 text-green-800'
+              : pet.status === 'missing'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-gray-100 text-gray-800'
+          }`}
+        >
           {pet.status}
         </span>
       </div>
@@ -126,15 +163,9 @@ export default function SearchPage() {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{vet.name}</h3>
           <p className="text-sm text-gray-600">{vet.specialty}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            🏥 {vet.clinicName}
-          </p>
-          <p className="text-sm text-gray-500">
-            📍 {vet.location}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {vet.yearsOfExperience} years experience
-          </p>
+          <p className="text-sm text-gray-500 mt-1">🏥 {vet.clinicName}</p>
+          <p className="text-sm text-gray-500">📍 {vet.location}</p>
+          <p className="text-xs text-gray-500 mt-1">{vet.yearsOfExperience} years experience</p>
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1">
@@ -155,15 +186,13 @@ export default function SearchPage() {
             {new Date(record.recordDate).toLocaleDateString()}
           </span>
         </div>
-        <p className="text-sm text-gray-600 mb-2">
-          Treatment: {record.treatment}
-        </p>
-        <p className="text-sm text-gray-500">
-          Pet: {record.pet.name} ({record.pet.breed})
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Vet: {record.vetName}
-        </p>
+        <p className="text-sm text-gray-600 mb-2">Treatment: {record.treatment}</p>
+        {record.pet && (
+          <p className="text-sm text-gray-500">
+            Pet: {record.pet.name} ({record.pet.breed})
+          </p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">Vet: {record.vetName}</p>
       </div>
     </div>
   );
@@ -181,12 +210,8 @@ export default function SearchPage() {
             )}
           </div>
           <p className="text-sm text-gray-600">{service.serviceType}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            📍 {service.location}
-          </p>
-          <p className="text-sm text-gray-600 mt-1">
-            📞 {service.phone}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">📍 {service.location}</p>
+          <p className="text-sm text-gray-600 mt-1">📞 {service.phone}</p>
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1">
@@ -201,9 +226,21 @@ export default function SearchPage() {
   const renderGlobalResults = () => {
     if (!searchResults) return null;
 
+    const hasResults =
+      (searchResults.pets?.results?.length ?? 0) > 0 ||
+      (searchResults.vets?.results?.length ?? 0) > 0 ||
+      (searchResults.medicalRecords?.results?.length ?? 0) > 0 ||
+      (searchResults.emergencyServices?.results?.length ?? 0) > 0;
+
+    if (!hasResults) {
+      return (
+        <SearchEmptyState message="No results found across pets, vets, medical records, or emergency services" />
+      );
+    }
+
     return (
       <div className="space-y-8">
-        {searchResults.pets?.results?.length > 0 && (
+        {searchResults.pets?.results && searchResults.pets.results.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Pets ({searchResults.pets.total})</h2>
             <div className="space-y-3">
@@ -214,7 +251,7 @@ export default function SearchPage() {
           </div>
         )}
 
-        {searchResults.vets?.results?.length > 0 && (
+        {searchResults.vets?.results && searchResults.vets.results.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Vets ({searchResults.vets.total})</h2>
             <div className="space-y-3">
@@ -225,41 +262,49 @@ export default function SearchPage() {
           </div>
         )}
 
-        {searchResults.medicalRecords?.results?.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Medical Records ({searchResults.medicalRecords.total})</h2>
-            <div className="space-y-3">
-              {searchResults.medicalRecords.results.map((record: MedicalRecord) => (
-                <div key={record.id}>{renderMedicalRecordCard(record)}</div>
-              ))}
+        {searchResults.medicalRecords?.results &&
+          searchResults.medicalRecords.results.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">
+                Medical Records ({searchResults.medicalRecords.total})
+              </h2>
+              <div className="space-y-3">
+                {searchResults.medicalRecords.results.map((record: MedicalRecord) => (
+                  <div key={record.id}>{renderMedicalRecordCard(record)}</div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {searchResults.emergencyServices?.results?.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Emergency Services ({searchResults.emergencyServices.total})</h2>
-            <div className="space-y-3">
-              {searchResults.emergencyServices.results.map((service: EmergencyService) => (
-                <div key={service.id}>{renderEmergencyServiceCard(service)}</div>
-              ))}
+        {searchResults.emergencyServices?.results &&
+          searchResults.emergencyServices.results.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">
+                Emergency Services ({searchResults.emergencyServices.total})
+              </h2>
+              <div className="space-y-3">
+                {searchResults.emergencyServices.results.map((service: EmergencyService) => (
+                  <div key={service.id}>{renderEmergencyServiceCard(service)}</div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
     );
   };
 
-  const getRenderer = () => {
+  const getRenderer = (): ((
+    item: Pet | Vet | MedicalRecord | EmergencyService
+  ) => React.ReactNode) => {
     switch (searchType) {
       case 'pets':
-        return renderPetCard;
+        return (item) => renderPetCard(item as Pet);
       case 'vets':
-        return renderVetCard;
+        return (item) => renderVetCard(item as Vet);
       case 'medical-records':
-        return renderMedicalRecordCard;
+        return (item) => renderMedicalRecordCard(item as MedicalRecord);
       case 'emergency-services':
-        return renderEmergencyServiceCard;
+        return (item) => renderEmergencyServiceCard(item as EmergencyService);
       default:
         return () => null;
     }
@@ -276,7 +321,7 @@ export default function SearchPage() {
 
         {/* Search Type Tabs */}
         <div className="mb-6">
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow--auto pb-2">
             {[
               { value: 'global', label: 'All' },
               { value: 'pets', label: 'Pets' },
@@ -289,6 +334,11 @@ export default function SearchPage() {
                 onClick={() => {
                   setSearchType(tab.value as SearchType);
                   setSearchResults(null);
+                  // Cancel any in-flight search for the previous type
+                  if (abortControllerRef.current) {
+                    abortControllerRef.current.abort();
+                    abortControllerRef.current = null;
+                  }
                 }}
                 className={`px-6 py-2 font-semibold rounded-lg whitespace-nowrap transition-colors ${
                   searchType === tab.value
@@ -340,7 +390,7 @@ export default function SearchPage() {
               </div>
             )
           ) : (
-            <SearchResults
+            <SearchResults<any>
               results={searchResults?.results || []}
               total={searchResults?.total || 0}
               page={searchResults?.page || 1}
@@ -350,7 +400,9 @@ export default function SearchPage() {
               isLoading={isLoading}
               onPageChange={handlePageChange}
               renderItem={getRenderer()}
-              emptyMessage={searchResults ? `No ${searchType} found` : 'Start searching to see results'}
+              emptyMessage={
+                searchResults ? `No ${searchType} found` : 'Start searching to see results'
+              }
             />
           )}
         </div>
@@ -358,3 +410,9 @@ export default function SearchPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

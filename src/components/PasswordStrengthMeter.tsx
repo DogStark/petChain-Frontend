@@ -39,7 +39,10 @@ export default function PasswordStrengthMeter({ password }: Props) {
       {/* Checklist */}
       <ul className="space-y-0.5">
         {checks.map(({ label, pass }) => (
-          <li key={label} className={`text-xs flex items-center gap-1 ${pass ? 'text-green-600' : 'text-gray-400'}`}>
+          <li
+            key={label}
+            className={`text-xs flex items-center gap-1 ${pass ? 'text-green-600' : 'text-gray-400'}`}
+          >
             <span>{pass ? '✓' : '○'}</span>
             {label}
           </li>

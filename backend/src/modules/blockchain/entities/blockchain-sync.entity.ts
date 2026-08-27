@@ -40,6 +40,12 @@ export class BlockchainSync {
   @Column({ nullable: true })
   ipfsHash: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  data: Record<string, unknown> | null;
+
+  @Column({ type: 'int', nullable: true, default: 0 })
+  height: number | null;
+
   @Column()
   recordHash: string;
 

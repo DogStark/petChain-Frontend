@@ -39,7 +39,8 @@ const SORT_MAP: Record<string, SortDefinition> = {
   },
   lastActive: {
     expression: 'user.lastLogin',
-    getSortValue: (u) => u.lastLogin?.toISOString() ?? new Date(0).toISOString(),
+    getSortValue: (u) =>
+      u.lastLogin?.toISOString() ?? new Date(0).toISOString(),
   },
 };
 
@@ -51,7 +52,16 @@ export class UserSearchService {
   ) {}
 
   async searchUsers(dto: SearchUsersDto) {
-    const { q, role, status, from, to, sort = 'createdAt_desc', cursor, limit = 20 } = dto;
+    const {
+      q,
+      role,
+      status,
+      from,
+      to,
+      sort = 'createdAt_desc',
+      cursor,
+      limit = 20,
+    } = dto;
 
     const sortKey = sort.substring(0, sort.lastIndexOf('_'));
     const direction = sort.substring(sort.lastIndexOf('_') + 1).toUpperCase();
@@ -144,13 +154,20 @@ export class UserSearchService {
     return parser.parse(allUsers);
   }
 
-  private applyStatusFilter(qb: SelectQueryBuilder<User>, status?: string): void {
+  private applyStatusFilter(
+    qb: SelectQueryBuilder<User>,
+    status?: string,
+  ): void {
     switch (status) {
       case 'active':
-        qb.andWhere('user.isActive = true AND user.isDeactivated = false AND user.deletedAt IS NULL');
+        qb.andWhere(
+          'user.isActive = true AND user.isDeactivated = false AND user.deletedAt IS NULL',
+        );
         break;
       case 'inactive':
-        qb.andWhere('user.isActive = false AND user.isDeactivated = false AND user.deletedAt IS NULL');
+        qb.andWhere(
+          'user.isActive = false AND user.isDeactivated = false AND user.deletedAt IS NULL',
+        );
         break;
       case 'deactivated':
         qb.andWhere('user.isDeactivated = true AND user.deletedAt IS NULL');
@@ -173,10 +190,10 @@ export class UserSearchService {
     const op = order === 'ASC' ? '>' : '<';
     const expr = sortDef.expression;
 
-    qb.andWhere(
-      `(${expr} ${op} :cv OR (${expr} = :cv AND user.id > :cid))`,
-      { cv, cid: cursor.id },
-    );
+    qb.andWhere(`(${expr} ${op} :cv OR (${expr} = :cv AND user.id > :cid))`, {
+      cv,
+      cid: cursor.id,
+    });
   }
 
   private encodeCursor(sortVal: string, id: string): string {

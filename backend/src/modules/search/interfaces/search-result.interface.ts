@@ -1,10 +1,16 @@
+export interface FacetCount {
+  value: string;
+  count: number;
+}
+
 export interface SearchResult<T = any> {
-  results: T[];
+  results: (T & { relevanceScore?: number; distance?: number })[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
   searchTime: number;
+  facets?: Record<string, FacetCount[]>;
   filters?: Record<string, any>;
 }
 

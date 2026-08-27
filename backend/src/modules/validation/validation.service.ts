@@ -61,7 +61,7 @@ export class ValidationService {
     );
     details.mimeType = mimeResult;
     if (!mimeResult.valid) {
-      errors.push(mimeResult.error!);
+      errors.push(mimeResult.error);
     }
 
     // 2. Extension validation
@@ -71,7 +71,7 @@ export class ValidationService {
     );
     details.extension = extResult;
     if (!extResult.valid) {
-      warnings.push(extResult.error!); // Warning, not error - extension mismatch is suspicious but not blocking
+      warnings.push(extResult.error); // Warning, not error - extension mismatch is suspicious but not blocking
     }
 
     // 3. Magic number validation
@@ -81,7 +81,7 @@ export class ValidationService {
     );
     details.magicNumber = magicResult;
     if (!magicResult.valid) {
-      errors.push(magicResult.error!);
+      errors.push(magicResult.error);
     }
 
     // 4. File size validation
@@ -91,7 +91,7 @@ export class ValidationService {
     );
     details.fileSize = sizeResult;
     if (!sizeResult.valid) {
-      errors.push(sizeResult.error!);
+      errors.push(sizeResult.error);
     }
 
     // 5. Security check - no executables
@@ -99,7 +99,7 @@ export class ValidationService {
       this.magicNumberValidator.validateNotExecutable(buffer);
     details.security = securityResult;
     if (!securityResult.valid) {
-      errors.push(securityResult.error!);
+      errors.push(securityResult.error);
     }
 
     const isValid = errors.length === 0;

@@ -2,25 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
+import GdprSettings from '../components/Settings/GdprSettings';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
+import { useAuth } from '../contexts/AuthContext';
+import { twoFactorAPI } from '../lib/api/twoFactorAPI';
 import styles from '../styles/pages/AccountSettingsPage.module.css';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export default function AccountSettingsPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [complianceActivities, setComplianceActivities] = useState<ActivityLog[]>([]);
+  const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const [allSessions, activity] = await Promise.all([
+        const [allSessions, activity, twoFactorStatus] = await Promise.all([
           userAPI.getAllSessions(),
           userAPI.getActivity(20, 0),
+          twoFactorAPI.getStatus(),
         ]);
         setSessions(allSessions);
         setComplianceActivities(activity);
+        setIsTwoFactorEnabled(twoFactorStatus.isEnabled);
       } catch (err: any) {
         setError(err.message || 'Failed to load sessions and compliance activities');
         if (err.response?.status === 401) {
@@ -35,18 +45,39 @@ export default function AccountSettingsPage() {
   }, [router]);
 
   const handleRevokeSession = async (sessionId: string) => {
+    const currentSession = sessions.find((s) => s.isCurrentSession);
+    if (!currentSession) {
+      setError('Unable to determine current session');
+      return;
+    }
+
+    const isSelfRevoke = sessionId === currentSession.id;
+    const confirmMsg = isSelfRevoke
+      ? 'This will log you out of this device. Continue?'
+      : 'Are you sure you want to revoke this session?';
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       await userAPI.revokeSession(sessionId);
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === sessionId ? { ...s, isActive: false } : s,
-        ),
-      );
-      setError(null);
+
+      if (isSelfRevoke) {
+        setError(null);
+        setTimeout(() => {
+          window.location.href = '/login?message=Session revoked. Please log in again.';
+        }, 500);
+      } else {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, isActive: false } : s)),
+        );
+        setError(null);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to revoke session');
-      throw err;
+      console.error('Failed to revoke session:', err);
     } finally {
       setIsLoading(false);
     }
@@ -57,9 +88,7 @@ export default function AccountSettingsPage() {
       setIsLoading(true);
       await userAPI.revokeOtherSessions(currentSessionId);
       setSessions((prev) =>
-        prev.map((s) =>
-          s.id !== currentSessionId ? { ...s, isActive: false } : s,
-        ),
+        prev.map((s) => (s.id !== currentSessionId ? { ...s, isActive: false } : s))
       );
       setError(null);
     } catch (err: any) {
@@ -70,10 +99,11 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleDeactivateAccount = async () => {
+  const handleDeactivateAccount = async (password: string, totpToken?: string) => {
     try {
       setIsLoading(true);
-      await userAPI.deactivateAccount();
+      await userAPI.deactivateAccount(password, totpToken);
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to deactivate account');
       throw err;
@@ -82,10 +112,11 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async (password: string, totpToken?: string) => {
     try {
       setIsLoading(true);
-      await userAPI.deleteAccount();
+      await userAPI.deleteAccount(password, totpToken);
+      await auth.logout();
     } catch (err: any) {
       setError(err.message || 'Failed to delete account');
       throw err;
@@ -188,12 +219,25 @@ export default function AccountSettingsPage() {
         onRequestErasure={handleRequestErasure}
         onAcceptPolicy={handleAcceptPolicy}
         complianceActivities={complianceActivities}
+        isTwoFactorEnabled={isTwoFactorEnabled}
         isLoading={isLoading}
       />
-      
+
       <div className={styles.section}>
         <TwoFactorSettings />
       </div>
+
+      {auth.user && (
+        <div className={styles.section}>
+          <GdprSettings userId={auth.user.id} />
+        </div>
+      )}
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

@@ -40,6 +40,15 @@ export class WalletAuditLog {
   @Column({ type: 'jsonb', nullable: true })
   details: Record<string, unknown> | null;
 
+  @Column({ type: 'timestamp', nullable: true })
+  confirmedAt: Date | null;
+
+  @Column({ type: 'int', nullable: true })
+  ledger: number | null;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  feeCharged: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

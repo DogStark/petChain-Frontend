@@ -9,15 +9,29 @@ interface TwoFactorVerifyProps {
   onCancel: () => void;
 }
 
-export default function TwoFactorVerify({ email, password, onVerify, onRecover, onCancel }: TwoFactorVerifyProps) {
+export default function TwoFactorVerify({
+  email,
+  password,
+  onVerify,
+  onRecover,
+  onCancel,
+}: TwoFactorVerifyProps) {
   const [mode, setMode] = useState<'totp' | 'backup'>('totp');
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isTokenValid = () => {
+    if (mode === 'totp') {
+      return twoFactorUtils.validateTOTPToken(token);
+    } else {
+      return twoFactorUtils.validateBackupCode(token);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!isTokenValid()) return;
 
     setIsLoading(true);
     setError('');
@@ -30,10 +44,13 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Verification failed';
-      setError(errorMessage === 'Invalid 2FA token' ? 
-        'Invalid code. Please check your authenticator app and try again.' : 
-        errorMessage === 'Invalid backup code' ?
-        'Invalid backup code. Please check and try again.' : errorMessage);
+      setError(
+        errorMessage === 'Invalid 2FA token'
+          ? 'Invalid code. Please check your authenticator app and try again.'
+          : errorMessage === 'Invalid backup code'
+            ? 'Invalid backup code. Please check and try again.'
+            : errorMessage
+      );
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +59,7 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">Two-Factor Authentication</h2>
-      
+
       <div className="flex mb-4 bg-gray-100 rounded p-1">
         <button
           onClick={() => setMode('totp')}
@@ -71,9 +88,10 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
             type="text"
             value={token}
             onChange={(e) => {
-              const formatted = mode === 'totp' 
-                ? twoFactorUtils.formatTOTPToken(e.target.value)
-                : twoFactorUtils.formatBackupCode(e.target.value);
+              const formatted =
+                mode === 'totp'
+                  ? twoFactorUtils.formatTOTPToken(e.target.value)
+                  : twoFactorUtils.formatBackupCode(e.target.value);
               setToken(formatted);
             }}
             placeholder={mode === 'totp' ? '000000' : 'XXXXXXXX'}
@@ -81,6 +99,11 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
             maxLength={mode === 'totp' ? 6 : 8}
             required
           />
+          {token && !isTokenValid() && (
+            <p className="mt-2 text-sm text-gray-600">
+              {mode === 'totp' ? 'Enter all 6 digits' : 'Enter all 8 characters'}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -92,7 +115,7 @@ export default function TwoFactorVerify({ email, password, onVerify, onRecover, 
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={isLoading || !token}
+            disabled={isLoading || !isTokenValid()}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {isLoading ? 'Verifying...' : 'Verify'}

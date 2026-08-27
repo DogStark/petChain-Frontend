@@ -1,0 +1,260 @@
+{
+  "app": {
+    "title": "Wata-Board",
+    "tagline": "Decentralized utility payments on Stellar blockchain",
+    "description": "Pay your utility bills using cryptocurrency on the Stellar network",
+    "footer": {
+      "tagline": "Modern payment solutions for the decentralized web"
+    }
+  },
+  "navigation": {
+    "home": "Pay Bill",
+    "about": "About",
+    "contact": "Contact",
+    "rate": "Rate Us",
+    "language": "Language"
+  },
+  "payment": {
+    "form": {
+      "title": "Payment Information",
+      "meterNumber": "Meter number",
+      "meterPlaceholder": "e.g. METER-123",
+      "meterDescription": "Enter your utility meter number as shown on your bill",
+      "amount": "Amount",
+      "amountPlaceholder": "Whole number",
+      "amountDescription": "Enter the payment amount in whole XLM",
+      "payButton": "Pay bill",
+      "processing": "Processing...",
+      "rateLimited": "Rate Limited",
+      "requiresExtension": "Requires Freighter extension. 5 transactions per minute limit."
+    },
+    "status": {
+      "title": "Status",
+      "ready": "Ready.",
+      "installWallet": "Please install Freighter Wallet extension!",
+      "enterMeter": "Please enter a meter number.",
+      "enterValidAmount": "Please enter a valid amount greater than 0.",
+      "wholeNumber": "Amount must be a whole number.",
+      "amountTooLarge": "Amount is too large.",
+      "insufficientBalance": "Insufficient balance. Please add more XLM to your wallet.",
+      "estimatingFees": "Estimating transaction fees... Please wait.",
+      "paymentSuccess": "Payment successful! Transaction ID: {{id}}...",
+      "paymentFailed": "Payment failed: {{error}}"
+    },
+    "feeEstimation": {
+      "title": "Transaction Fee Estimation",
+      "calculating": "(Calculating...)",
+      "calculatingFees": "Calculating estimated fees...",
+      "paymentAmount": "Payment Amount",
+      "estimatedNetworkFee": "Estimated Network Fee",
+      "totalCost": "Total Cost",
+      "unableToEstimate": "Unable to estimate fees at this time"
+    },
+    "rateLimit": {
+      "title": "Rate Limit Status",
+      "requestsAvailable": "{{count}}/5 requests available",
+      "rateLimited": "Rate limited. Reset in {{time}}",
+      "queue": "Queue: {{count}}"
+    }
+  },
+  "wallet": {
+    "balance": {
+      "title": "Wallet Balance",
+      "available": "Available Balance",
+      "total": "Total Balance",
+      "loading": "Loading balance...",
+      "error": "Failed to load balance",
+      "reconnect": "Please reconnect your wallet",
+      "insufficient": "Insufficient balance for this transaction",
+      "lowBalance": "Low balance warning"
+    },
+    "connection": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting...",
+      "connectWallet": "Connect Wallet",
+      "switchWallet": "Switch Wallet"
+    }
+  },
+  "network": {
+    "mainnet": "MAINNET",
+    "testnet": "TESTNET",
+    "switchNetwork": "Switch Network",
+    "currentNetwork": "Current Network"
+  },
+  "offline": {
+    "banner": {
+      "title": "You're offline",
+      "description": "Some features may be unavailable. Actions will be queued and processed when you're back online.",
+      "retry": "Retry Connection",
+      "details": "Connection Details"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "connecting": "Connecting...",
+      "queueStatus": "{{count}} queued action",
+      "queueStatus_plural": "{{count}} queued actions"
+    },
+    "queue": {
+      "title": "Offline Queue",
+      "description": "{{count}} action will be processed when you're back online",
+      "description_plural": "{{count}} actions will be processed when you're back online"
+    },
+    "error": {
+      "paymentOffline": "Payment queued for when you're back online",
+      "generalOffline": "Action queued for when you're back online"
+    }
+  },
+  "about": {
+    "title": "About Wata-Board",
+    "description": "Wata-Board is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
+    "features": {
+      "title": "Key Features",
+      "secure": "Secure Transactions",
+      "secureDescription": "Built on Stellar blockchain with enterprise-grade security",
+      "fast": "Fast Payments",
+      "fastDescription": "Near-instant settlement with low transaction fees",
+      "transparent": "Transparent Records",
+      "transparentDescription": "All transactions are recorded on the public blockchain",
+      "decentralized": "Decentralized",
+      "decentralizedDescription": "No single point of failure or control"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": "Connect your wallet",
+      "step2": "Enter meter details",
+      "step3": "Confirm payment",
+      "step4": "Payment processed"
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "description": "Get in touch with our team for support, questions, or feedback.",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "Enter your name",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "subject": "Subject",
+      "subjectPlaceholder": "Enter subject",
+      "message": "Message",
+      "messagePlaceholder": "Enter your message",
+      "sendButton": "Send Message",
+      "sending": "Sending..."
+    },
+    "info": {
+      "email": "Email",
+      "support": "Support",
+      "website": "Website"
+    }
+  },
+  "rate": {
+    "title": "Rate Your Experience",
+    "description": "Help us improve by rating your experience with Wata-Board.",
+    "rating": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "poor": "Poor",
+      "terrible": "Terrible"
+    },
+    "review": {
+      "title": "Write a Review",
+      "placeholder": "Share your experience with Wata-Board...",
+      "submit": "Submit Review",
+      "thankYou": "Thank you for your feedback!"
+    }
+  },
+  "errors": {
+    "general": {
+      "title": "Error",
+      "unknown": "An unknown error occurred",
+      "tryAgain": "Please try again",
+      "contactSupport": "Contact support if the problem persists"
+    },
+    "network": {
+      "title": "Network Error",
+      "description": "Unable to connect to the network",
+      "checkConnection": "Please check your internet connection"
+    },
+    "wallet": {
+      "title": "Wallet Error",
+      "notConnected": "Wallet not connected",
+      "notInstalled": "Freighter wallet not installed",
+      "installFreighter": "Please install Freighter wallet extension"
+    }
+  },
+  "accessibility": {
+    "skipToMain": "Skip to main content",
+    "skipToNavigation": "Skip to navigation",
+    "menuToggle": "Toggle navigation menu",
+    "closeMenu": "Close menu",
+    "openMenu": "Open menu",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "learnMore": "Learn More",
+    "viewDetails": "View Details",
+    "hideDetails": "Hide Details"
+  },
+  "time": {
+    "seconds": "second",
+    "seconds_plural": "seconds",
+    "minutes": "minute",
+    "minutes_plural": "minutes",
+    "hours": "hour",
+    "hours_plural": "hours",
+    "days": "day",
+    "days_plural": "days",
+    "weeks": "week",
+    "weeks_plural": "weeks",
+    "months": "month",
+    "months_plural": "months",
+    "years": "year",
+    "years_plural": "years",
+    "ago": "{{time}} ago",
+    "in": "in {{time}}"
+  },
+  "currency": {
+    "xlm": "XLM",
+    "usd": "USD",
+    "eur": "EUR"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalid": "Invalid format",
+    "tooShort": "Must be at least {{min}} characters",
+    "tooLong": "Must be no more than {{max}} characters",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidNumber": "Please enter a valid number",
+    "minValue": "Must be at least {{min}}",
+    "maxValue": "Must be no more than {{max}}"
+  }
+}

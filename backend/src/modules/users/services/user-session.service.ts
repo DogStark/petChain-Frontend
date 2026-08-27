@@ -23,7 +23,9 @@ export class UserSessionService {
   /**
    * Create a new session
    */
-  async createSession(createSessionDto: CreateSessionDto): Promise<UserSession> {
+  async createSession(
+    createSessionDto: CreateSessionDto,
+  ): Promise<UserSession> {
     const session = this.sessionRepository.create(createSessionDto);
     return await this.sessionRepository.save(session);
   }

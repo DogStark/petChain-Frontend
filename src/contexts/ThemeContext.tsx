@@ -24,7 +24,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const prefersHighContrast = window.matchMedia('(prefers-contrast: more)').matches;
-      const systemTheme: Theme = prefersHighContrast ? 'high-contrast' : prefersDark ? 'dark' : 'light';
+      const systemTheme: Theme = prefersHighContrast
+        ? 'high-contrast'
+        : prefersDark
+          ? 'dark'
+          : 'light';
       applyTheme(systemTheme);
       setThemeState(systemTheme);
     }

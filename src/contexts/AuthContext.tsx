@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
+import { twoFactorAPI } from '../lib/api/twoFactorAPI';
+
+export type UserRole = 'user' | 'admin' | 'moderator';
 
 export interface User {
   id: string;
@@ -12,6 +15,7 @@ export interface User {
   phoneVerified: boolean;
   isVerified: boolean;
   isActive: boolean;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,7 +37,13 @@ export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWith2FA: (email: string, password: string, totpToken: string) => Promise<void>;
   recoverWith2FA: (email: string, password: string, backupCode: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
   clearError: () => void;
@@ -46,7 +56,10 @@ export interface AuthContextType extends AuthState {
     phoneVerified: boolean;
     isVerified: boolean;
   }>;
-  verifyPhone: (email: string, code: string) => Promise<{
+  verifyPhone: (
+    email: string,
+    code: string
+  ) => Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -82,65 +95,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load tokens from localStorage on mount
   useEffect(() => {
     const loadStoredAuth = () => {
       try {
         const storedTokens = localStorage.getItem('auth_tokens');
         const storedUser = localStorage.getItem('auth_user');
-        
+
         if (storedTokens && storedUser) {
           const tokens = JSON.parse(storedTokens);
           const user = JSON.parse(storedUser);
-          
-          setState(prev => ({
+
+          setState((prev) => ({
             ...prev,
             user,
             tokens,
             isAuthenticated: true,
             isLoading: false,
           }));
-          
+
           // Set up automatic token refresh
           setupTokenRefresh();
         } else {
-          setState(prev => ({ ...prev, isLoading: false }));
+          setState((prev) => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
         console.error('Error loading auth state:', error);
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
       }
     };
 
     loadStoredAuth();
+
+    return () => {
+      clearTokenRefresh();
+    };
   }, []);
 
   const setAuth = (user: User, tokens: AuthTokens) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       user,
       tokens,
       isAuthenticated: true,
       error: null,
     }));
-    
+
     // Store in localStorage
     localStorage.setItem('auth_tokens', JSON.stringify(tokens));
     localStorage.setItem('auth_user', JSON.stringify(user));
     localStorage.setItem('authToken', tokens.accessToken);
-    
+
     setupTokenRefresh();
   };
 
   const clearAuth = () => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       user: null,
       tokens: null,
       isAuthenticated: false,
       error: null,
     }));
-    
+
     localStorage.removeItem('auth_tokens');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('authToken');
@@ -148,40 +167,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const setError = (error: string) => {
-    setState(prev => ({ ...prev, error }));
+    setState((prev) => ({ ...prev, error }));
   };
 
   const clearError = () => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   };
 
   const setLoading = (isLoading: boolean) => {
-    setState(prev => ({ ...prev, isLoading }));
+    setState((prev) => ({ ...prev, isLoading }));
   };
 
-  let refreshTimer: NodeJS.Timeout | null = null;
+  const showLogoutWarning = (message: string) => {
+    if (typeof window === 'undefined') {
+      console.warn(message);
+      return;
+    }
+
+    const bannerId = 'auth-logout-warning-banner';
+    const existingBanner = document.getElementById(bannerId);
+    existingBanner?.remove();
+
+    const banner = document.createElement('div');
+    banner.id = bannerId;
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.style.position = 'fixed';
+    banner.style.bottom = '1rem';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.maxWidth = 'min(92vw, 32rem)';
+    banner.style.padding = '0.875rem 1rem';
+    banner.style.borderRadius = '0.75rem';
+    banner.style.backgroundColor = '#fef3c7';
+    banner.style.color = '#92400e';
+    banner.style.border = '1px solid #f59e0b';
+    banner.style.boxShadow = '0 12px 32px rgba(15, 23, 42, 0.16)';
+    banner.style.zIndex = '99999';
+    banner.style.fontSize = '0.95rem';
+    banner.style.lineHeight = '1.4';
+    banner.textContent = message;
+
+    document.body.appendChild(banner);
+    window.setTimeout(() => banner.remove(), 8000);
+  };
 
   const setupTokenRefresh = () => {
     clearTokenRefresh();
-    
+
     // Refresh token 2 minutes before expiry (access token expires in 15 minutes)
     const refreshInterval = 13 * 60 * 1000; // 13 minutes
-    
-    refreshTimer = setInterval(() => {
+
+    refreshTimerRef.current = setInterval(() => {
       refreshTokens();
     }, refreshInterval);
   };
 
   const clearTokenRefresh = () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer);
-      refreshTimer = null;
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
     }
   };
 
   const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (state.tokens?.accessToken) {
       config.headers = {
         ...config.headers,
-        'Authorization': `Bearer ${state.tokens.accessToken}`,
+        Authorization: `Bearer ${state.tokens.accessToken}`,
       };
     }
 
@@ -227,23 +278,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshToken: data.refreshToken,
       });
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
+      const message = error instanceof Error ? error.message : 'Login failed';
+      // Preserve the 2FA sentinel so the caller can branch on it; normalise everything else
+      // to avoid leaking account-state details (user enumeration).
+      setError(message === '2FA_REQUIRED' ? message : 'Invalid email or password. Please try again.');
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const loginWith2FA = async (email: string, password: string, totpToken: string): Promise<void> => {
+  const loginWith2FA = async (
+    email: string,
+    password: string,
+    totpToken: string
+  ): Promise<void> => {
     setLoading(true);
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/verify', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, token: totpToken }),
-      });
-
+      const data = await twoFactorAPI.verify(email, password, totpToken);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -256,16 +310,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const recoverWith2FA = async (email: string, password: string, backupCode: string): Promise<void> => {
+  const recoverWith2FA = async (
+    email: string,
+    password: string,
+    backupCode: string
+  ): Promise<void> => {
     setLoading(true);
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/recover', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, backupCode }),
-      });
-
+      const data = await twoFactorAPI.recover(email, password, backupCode);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -283,7 +337,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     firstName: string,
     lastName: string,
-    phone: string,
+    phone: string
   ): Promise<void> => {
     setLoading(true);
     clearError();
@@ -296,7 +350,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Registration doesn't return tokens, just user data
       // User needs to verify email before logging in
-      setState(prev => ({ ...prev, error: null }));
+      setState((prev) => ({ ...prev, error: null }));
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
       throw error;
@@ -307,19 +361,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     setLoading(true);
-    
-    try {
-      if (state.tokens?.refreshToken) {
-        await makeRequest('/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
-        });
+
+    const refreshToken = state.tokens?.refreshToken;
+    let serverLogoutSucceeded = !refreshToken; // no token = nothing to revoke
+
+    if (refreshToken) {
+      // Attempt server-side revocation with one retry
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await makeRequest('/auth/logout', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken }),
+          });
+          serverLogoutSucceeded = true;
+          break;
+        } catch (error) {
+          console.error(`Logout attempt ${attempt + 1} failed:`, error);
+        }
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      clearAuth();
-      setLoading(false);
+    }
+
+    clearAuth();
+    setLoading(false);
+
+    if (!serverLogoutSucceeded) {
+      showLogoutWarning(
+        "You've been signed out on this device, but we couldn't confirm the session was closed on our server. If this device may be compromised, consider changing your password."
+      );
     }
   };
 
@@ -382,7 +450,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (token: string): Promise<{
+  const verifyEmail = async (
+    token: string
+  ): Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -405,7 +475,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyPhone = async (email: string, code: string): Promise<{
+  const verifyPhone = async (
+    email: string,
+    code: string
+  ): Promise<{
     message: string;
     email?: string;
     emailVerified: boolean;
@@ -459,9 +532,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendPhoneVerification,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -11,16 +11,16 @@ import { EmailPreferenceService } from './email-preference.service';
 import { EmailController } from './email.controller';
 
 @Module({
-    imports: [
-        ConfigModule.forFeature(emailConfig),
-        TypeOrmModule.forFeature([EmailLog, EmailPreference, EmailUnsubscribe]),
-    ],
-    controllers: [EmailController],
-    providers: [EmailService, EmailPreferenceService],
-    /**
-     * Export both services so other modules (VaccinationsModule, RemindersModule, etc.)
-     * can inject EmailService directly without re-importing the whole module.
-     */
-    exports: [EmailService, EmailPreferenceService],
+  imports: [
+    ConfigModule.forFeature(emailConfig),
+    TypeOrmModule.forFeature([EmailLog, EmailPreference, EmailUnsubscribe]),
+  ],
+  controllers: [EmailController],
+  providers: [EmailService, EmailPreferenceService],
+  /**
+   * Export both services so other modules (VaccinationsModule, RemindersModule, etc.)
+   * can inject EmailService directly without re-importing the whole module.
+   */
+  exports: [EmailService, EmailPreferenceService],
 })
-export class EmailModule { }
+export class EmailModule {}

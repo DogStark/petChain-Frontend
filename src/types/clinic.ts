@@ -12,14 +12,7 @@ export interface ClinicLocation {
 }
 
 export interface OperatingHours {
-  day:
-    | "Monday"
-    | "Tuesday"
-    | "Wednesday"
-    | "Thursday"
-    | "Friday"
-    | "Saturday"
-    | "Sunday";
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
   open: string; // HH:mm
   close: string; // HH:mm
   isClosed: boolean;

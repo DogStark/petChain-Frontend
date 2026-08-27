@@ -1,0 +1,561 @@
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useReducer,
+} from 'react';
+import {
+  AppNotification,
+  ToastNotification,
+  NotificationPreferences,
+  DEFAULT_PREFERENCES,
+  NotificationCategory,
+} from '@/types/notification';
+import { notificationsAPI } from '@/lib/api/notificationsAPI';
+import { notificationService } from '@/services/notificationService';
+import { useAuth } from '@/contexts/AuthContext';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+type PreferencesSyncStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+interface NotificationState {
+  notifications: AppNotification[];
+  unreadCount: number;
+  toasts: ToastNotification[];
+  preferences: NotificationPreferences;
+  preferencesSyncStatus: PreferencesSyncStatus;
+  isConnected: boolean;
+  isCenterOpen: boolean;
+  activeFilter: NotificationCategory | 'ALL';
+  isLoading: boolean;
+}
+
+type Action =
+  | { type: 'SET_NOTIFICATIONS'; payload: AppNotification[] }
+  | { type: 'ADD_NOTIFICATION'; payload: AppNotification }
+  | { type: 'MARK_READ'; id: string }
+  | { type: 'MARK_ALL_READ' }
+  | { type: 'SET_UNREAD'; count: number }
+  | { type: 'ADD_TOAST'; payload: ToastNotification }
+  | { type: 'REMOVE_TOAST'; id: string }
+  | { type: 'SET_PREFS'; payload: NotificationPreferences }
+  | { type: 'SET_PREFS_SYNC_STATUS'; value: PreferencesSyncStatus }
+  | { type: 'SET_CONNECTED'; value: boolean }
+  | { type: 'TOGGLE_CENTER' }
+  | { type: 'SET_FILTER'; filter: NotificationCategory | 'ALL' }
+  | { type: 'SET_LOADING'; value: boolean };
+
+function reducer(state: NotificationState, action: Action): NotificationState {
+  switch (action.type) {
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.payload };
+    case 'ADD_NOTIFICATION':
+      if (state.notifications.some((n) => n.id === action.payload.id)) return state;
+      return {
+        ...state,
+        notifications: [action.payload, ...state.notifications],
+        unreadCount: state.unreadCount + 1,
+      };
+    case 'MARK_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map((n) =>
+          n.id === action.id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+        ),
+        unreadCount: Math.max(0, state.unreadCount - 1),
+      };
+    case 'MARK_ALL_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map((n) => ({
+          ...n,
+          isRead: true,
+          readAt: new Date().toISOString(),
+        })),
+        unreadCount: 0,
+      };
+    case 'SET_UNREAD':
+      return { ...state, unreadCount: action.count };
+    case 'ADD_TOAST':
+      return { ...state, toasts: [...state.toasts, action.payload] };
+    case 'REMOVE_TOAST':
+      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
+    case 'SET_PREFS':
+      return { ...state, preferences: action.payload };
+    case 'SET_PREFS_SYNC_STATUS':
+      return { ...state, preferencesSyncStatus: action.value };
+    case 'SET_CONNECTED':
+      return { ...state, isConnected: action.value };
+    case 'TOGGLE_CENTER':
+      return { ...state, isCenterOpen: !state.isCenterOpen };
+    case 'SET_FILTER':
+      return { ...state, activeFilter: action.filter };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.value };
+    default:
+      return state;
+  }
+}
+
+// ─── Context ──────────────────────────────────────────────────────────────────
+
+interface NotificationContextType extends NotificationState {
+  toast: (n: Omit<ToastNotification, 'id'>) => void;
+  dismissToast: (id: string) => void;
+  markRead: (id: string) => void;
+  markAllRead: () => void;
+  toggleCenter: () => void;
+  setFilter: (f: NotificationCategory | 'ALL') => void;
+  updatePreferences: (p: Partial<NotificationPreferences>) => void;
+  syncPreferences: () => Promise<void>;
+  requestBrowserPermission: () => Promise<void>;
+  filteredNotifications: AppNotification[];
+  bellRef: React.RefObject<HTMLButtonElement | null>;
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+export const useNotifications = () => {
+  const ctx = useContext(NotificationContext);
+  if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
+  return ctx;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const PREFS_KEY = 'petchain-notif-prefs';
+const PERSIST_KEY = 'petchain-notifications';
+const MAX_PERSISTED = 100;
+
+function loadPrefs(): NotificationPreferences {
+  if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) } : DEFAULT_PREFERENCES;
+  } catch {
+    return DEFAULT_PREFERENCES;
+  }
+}
+
+function savePrefs(p: NotificationPreferences) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* noop */
+  }
+}
+
+function loadPersisted(): AppNotification[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistNotifications(ns: AppNotification[]) {
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(ns.slice(0, MAX_PERSISTED)));
+  } catch {
+    /* noop */
+  }
+}
+
+function isDND(prefs: NotificationPreferences): boolean {
+  if (!prefs.doNotDisturb) return false;
+  const now = new Date();
+  const [sh, sm] = prefs.dndStart.split(':').map(Number);
+  const [eh, em] = prefs.dndEnd.split(':').map(Number);
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const start = sh * 60 + sm;
+  const end = eh * 60 + em;
+  return start <= end ? cur >= start && cur < end : cur >= start || cur < end;
+}
+
+let toastCounter = 0;
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelay = useRef(1000);
+  const intentionalClose = useRef(false);
+  const preferencesRef = useRef<NotificationPreferences>(loadPrefs());
+  const notificationsRef = useRef<AppNotification[]>([]);
+
+  const [state, dispatch] = useReducer(reducer, {
+    notifications: [],
+    unreadCount: 0,
+    toasts: [],
+    preferences: loadPrefs(),
+    preferencesSyncStatus: 'idle',
+    isConnected: false,
+    isCenterOpen: false,
+    activeFilter: 'ALL',
+    isLoading: false,
+  });
+
+  // Keep a ref in sync with the latest preferences so callbacks with stable
+  // deps (handleIncoming, the toast subscription) always read the current,
+  // in-memory preferences instead of re-reading localStorage.
+  useEffect(() => {
+    preferencesRef.current = state.preferences;
+  }, [state.preferences]);
+
+  // Keep a ref in sync with the current notifications list so handleIncoming
+  // (which has stable deps) can perform de-duplication without a stale closure.
+  useEffect(() => {
+    notificationsRef.current = state.notifications;
+  }, [state.notifications]);
+
+  // ── Load persisted + fetch from API ────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    // Seed from localStorage immediately (offline-first)
+    const cached = loadPersisted();
+    if (cached.length) {
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: cached });
+      dispatch({ type: 'SET_UNREAD', count: cached.filter((n) => !n.isRead).length });
+    }
+
+    // Then fetch fresh from API
+    dispatch({ type: 'SET_LOADING', value: true });
+    notificationsAPI
+      .getNotifications(user.id)
+      .then((res) => {
+        // Map API Notification → AppNotification, defaulting priority when absent
+        // (older backend responses may omit it).
+        const ns: AppNotification[] = res.data.map((n) => ({
+          ...n,
+          priority: n.priority ?? 'normal',
+          metadata: n.metadata as AppNotification['metadata'],
+        }));
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
+        dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
+        persistNotifications(ns);
+      })
+      .catch(() => {
+        /* use cached */
+      })
+      .finally(() => dispatch({ type: 'SET_LOADING', value: false }));
+
+    // Hydrate preferences from the backend so they follow the user across
+    // devices; the localStorage cache above stays as the offline-first
+    // fallback if the request fails.
+    notificationsAPI
+      .getPreferences(user.id, loadPrefs())
+      .then((prefs) => {
+        dispatch({ type: 'SET_PREFS', payload: prefs });
+        savePrefs(prefs);
+      })
+      .catch(() => {
+        /* backend unreachable — keep local cache */
+      });
+  }, [isAuthenticated, user]);
+
+  // ── WebSocket ───────────────────────────────────────────────────────────────
+  const connectWS = useCallback(() => {
+    if (!isAuthenticated || !user) return;
+    intentionalClose.current = false;
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    if (!wsUrl) return; // gracefully skip if not configured
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) return;
+
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        // Send auth token as first message in handshake frame instead of query string.
+        // This approach is more secure: tokens in query strings can leak in logs/referrer headers.
+        // Backend receives this as the first message and validates before processing notifications.
+        ws.send(JSON.stringify({ type: 'auth', token }));
+        dispatch({ type: 'SET_CONNECTED', value: true });
+        reconnectDelay.current = 1000;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'notification') {
+            const notif: AppNotification = msg.payload;
+            handleIncoming(notif);
+          }
+        } catch {
+          /* ignore malformed */
+        }
+      };
+
+      ws.onclose = () => {
+        dispatch({ type: 'SET_CONNECTED', value: false });
+        if (!intentionalClose.current) {
+          // Exponential back-off reconnect
+          reconnectTimer.current = setTimeout(() => {
+            reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
+            connectWS();
+          }, reconnectDelay.current);
+        }
+      };
+
+      ws.onerror = () => ws.close();
+    } catch {
+      /* WS not available */
+    }
+  }, [isAuthenticated, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    connectWS();
+    return () => {
+      intentionalClose.current = true;
+      wsRef.current?.close();
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    };
+  }, [connectWS]);
+
+  // ── Subscribe to notificationService events ──────────────────────────────
+  useEffect(() => {
+    const unsub = notificationService.on('notification', (inApp) => {
+      const prefs = preferencesRef.current;
+      if (inApp.category && !prefs.categories[inApp.category]) return;
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: { id: `toast-${++toastCounter}`, ...notificationService.toToast(inApp) },
+      });
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLogoutWarning = (event: Event) => {
+      const detail = (event as CustomEvent<{ title?: string; message?: string }>).detail;
+      const title = detail?.title ?? 'Session sign-out warning';
+      const message =
+        detail?.message ??
+        'You have been signed out on this device, but we could not confirm that your session was closed on our server.';
+
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: {
+          id: `toast-${++toastCounter}`,
+          title,
+          message,
+          type: 'warning',
+          duration: 8000,
+        },
+      });
+    };
+
+    window.addEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+
+    return () => {
+      window.removeEventListener('auth:logout-warning', handleLogoutWarning as EventListener);
+    };
+  }, []);
+
+  // ── Incoming notification handler ───────────────────────────────────────────
+  const handleIncoming = useCallback((notif: AppNotification) => {
+    const prefs = preferencesRef.current;
+
+    // Category filter
+    if (!prefs.categories[notif.category as NotificationCategory]) return;
+
+    // De-duplicate: skip if this notification id is already present (e.g. rapid reconnects)
+    if (notificationsRef.current.some((n) => n.id === notif.id)) return;
+
+    dispatch({ type: 'ADD_NOTIFICATION', payload: notif });
+
+    // Persist
+    const current = loadPersisted();
+    persistNotifications([notif, ...current]);
+
+    // DND check — skip sound/vibration/toast if in DND (unless urgent)
+    const inDND = isDND(prefs) && notif.priority !== 'urgent';
+
+    if (!inDND) {
+      // Toast
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: {
+          id: `toast-${++toastCounter}`,
+          title: notif.title,
+          message: notif.message,
+          type:
+            notif.priority === 'urgent' ? 'error' : notif.category === 'ALERT' ? 'warning' : 'info',
+          duration: notif.priority === 'urgent' ? 0 : 5000,
+          actionLabel: notif.actionUrl ? 'View' : undefined,
+          onAction: notif.actionUrl
+            ? () => {
+                window.location.href = notif.actionUrl!;
+              }
+            : undefined,
+        },
+      });
+
+      // Sound
+      if (prefs.sound) playNotificationSound(notif.priority);
+
+      // Vibration
+      if (prefs.vibration && 'vibrate' in navigator) {
+        navigator.vibrate(notif.priority === 'urgent' ? [100, 50, 100] : [50]);
+      }
+
+      // Browser push (if already granted)
+      if (
+        prefs.browserPush &&
+        typeof window !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
+        new Notification(notif.title, {
+          body: notif.message,
+          icon: '/icons/icon-192x192.svg',
+          tag: notif.id,
+        });
+      }
+    }
+  }, []);
+
+  // ── Public API ──────────────────────────────────────────────────────────────
+  const toast = useCallback((n: Omit<ToastNotification, 'id'>) => {
+    const id = `toast-${++toastCounter}`;
+    dispatch({ type: 'ADD_TOAST', payload: { ...n, id } });
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    dispatch({ type: 'REMOVE_TOAST', id });
+  }, []);
+
+  const markRead = useCallback(
+    async (id: string) => {
+      const prev = state.notifications;
+      const prevCount = state.unreadCount;
+      dispatch({ type: 'MARK_READ', id });
+      if (user) {
+        try {
+          await notificationsAPI.markAsRead(user.id, id);
+        } catch {
+          dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+          dispatch({ type: 'SET_UNREAD', count: prevCount });
+        }
+      }
+    },
+    [user, state.notifications, state.unreadCount]
+  );
+
+  const markAllRead = useCallback(async () => {
+    const prev = state.notifications;
+    dispatch({ type: 'MARK_ALL_READ' });
+    if (user) {
+      try {
+        await notificationsAPI.markAllAsRead(user.id);
+      } catch {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: prev });
+        dispatch({ type: 'SET_UNREAD', count: prev.filter((n) => !n.isRead).length });
+      }
+    }
+  }, [user, state.notifications]);
+
+  const toggleCenter = useCallback(() => dispatch({ type: 'TOGGLE_CENTER' }), []);
+
+  const setFilter = useCallback((f: NotificationCategory | 'ALL') => {
+    dispatch({ type: 'SET_FILTER', filter: f });
+  }, []);
+
+  const persistPreferences = useCallback(
+    async (next: NotificationPreferences) => {
+      if (!user) return;
+      dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'saving' });
+      try {
+        await notificationsAPI.updatePreferences(user.id, next);
+        dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'saved' });
+      } catch {
+        dispatch({ type: 'SET_PREFS_SYNC_STATUS', value: 'error' });
+      }
+    },
+    [user]
+  );
+
+  const updatePreferences = useCallback(
+    (p: Partial<NotificationPreferences>) => {
+      const next = { ...state.preferences, ...p };
+      dispatch({ type: 'SET_PREFS', payload: next });
+      savePrefs(next); // offline-first cache; backend below is the source of truth
+      void persistPreferences(next);
+    },
+    [state.preferences, persistPreferences]
+  );
+
+  const syncPreferences = useCallback(
+    () => persistPreferences(state.preferences),
+    [persistPreferences, state.preferences]
+  );
+
+  const requestBrowserPermission = useCallback(async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      updatePreferences({ browserPush: true });
+    }
+  }, [updatePreferences]);
+
+  const filteredNotifications =
+    state.activeFilter === 'ALL'
+      ? state.notifications
+      : state.notifications.filter((n) => n.category === state.activeFilter);
+
+  return (
+    <NotificationContext.Provider
+      value={{
+        ...state,
+        toast,
+        dismissToast,
+        markRead,
+        markAllRead,
+        toggleCenter,
+        setFilter,
+        updatePreferences,
+        syncPreferences,
+        requestBrowserPermission,
+        filteredNotifications,
+        bellRef,
+      }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  );
+}
+
+// ─── Sound ────────────────────────────────────────────────────────────────────
+function playNotificationSound(priority: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = priority === 'urgent' ? 880 : 440;
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {
+    /* audio not available */
+  }
+}

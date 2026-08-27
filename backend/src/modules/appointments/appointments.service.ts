@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
-import { Appointment, AppointmentStatus } from './entities/appointment.entity';
+import { Repository, Not } from 'typeorm';
+
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 
 @Injectable()
 export class AppointmentsService {
@@ -12,82 +17,131 @@ export class AppointmentsService {
     private readonly appointmentRepository: Repository<Appointment>,
   ) {}
 
-  async create(
-    createAppointmentDto: CreateAppointmentDto,
-  ): Promise<Appointment> {
-    const appointment =
-      this.appointmentRepository.create(createAppointmentDto);
-    return await this.appointmentRepository.save(appointment);
+  // ---------------- CREATE ----------------
+  async create(dto: CreateAppointmentDto) {
+    // Basic validation
+    if (!dto.vetId) {
+      throw new BadRequestException('Invalid appointment data');
+    }
+
+    // Conflict prevention — check for overlapping date/time with the same vet
+    const existing = await this.appointmentRepository.findOne({
+      where: {
+        vetId: dto.vetId,
+        appointmentDate: dto.appointmentDate as any,
+        appointmentTime: dto.appointmentTime,
+        status: AppointmentStatus.SCHEDULED,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Vet already has a scheduled appointment at this date and time',
+      );
+    }
+
+    const appointment = this.appointmentRepository.create({
+      ...dto,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    return this.appointmentRepository.save(appointment);
   }
 
-  async findAll(
-    petId?: string,
-    vetId?: string,
-    status?: AppointmentStatus,
-  ): Promise<Appointment[]> {
-    const where: any = {};
+  // ---------------- FIND ALL ----------------
+  async findAll(petId?: string, vetId?: string, status?: AppointmentStatus) {
+    const query = this.appointmentRepository.createQueryBuilder('appointment');
 
     if (petId) {
-      where.petId = petId;
+      query.andWhere('appointment.petId = :petId', { petId });
     }
 
     if (vetId) {
-      where.vetId = vetId;
+      query.andWhere('appointment.vetId = :vetId', { vetId });
     }
 
     if (status) {
-      where.status = status;
+      query.andWhere('appointment.status = :status', { status });
     }
 
-    return await this.appointmentRepository.find({
-      where,
-      relations: ['pet', 'vet'],
-      order: { appointmentDate: 'ASC', appointmentTime: 'ASC' },
-    });
+    return query.getMany();
   }
 
-  async findOne(id: string): Promise<Appointment> {
+  // ---------------- FIND ONE ----------------
+  async findOne(id: string) {
     const appointment = await this.appointmentRepository.findOne({
       where: { id },
-      relations: ['pet', 'vet'],
     });
 
     if (!appointment) {
-      throw new NotFoundException(`Appointment with ID ${id} not found`);
+      throw new NotFoundException('Appointment not found');
     }
 
     return appointment;
   }
 
-  async update(
-    id: string,
-    updateAppointmentDto: UpdateAppointmentDto,
-  ): Promise<Appointment> {
-    const appointment = await this.findOne(id);
-    Object.assign(appointment, updateAppointmentDto);
-    return await this.appointmentRepository.save(appointment);
-  }
-
-  async remove(id: string): Promise<void> {
-    const appointment = await this.findOne(id);
-    await this.appointmentRepository.remove(appointment);
-  }
-
-  async getUpcomingAppointments(petId?: string): Promise<Appointment[]> {
+  // ---------------- UPCOMING ----------------
+  async getUpcomingAppointments(petId?: string) {
     const today = new Date();
-    const where: any = {
-      appointmentDate: MoreThanOrEqual(today),
-      status: AppointmentStatus.SCHEDULED,
-    };
+    today.setHours(0, 0, 0, 0);
+
+    const query = this.appointmentRepository
+      .createQueryBuilder('appointment')
+      .where('appointment.appointmentDate >= :today', { today })
+      .andWhere('appointment.status = :status', {
+        status: AppointmentStatus.SCHEDULED,
+      });
 
     if (petId) {
-      where.petId = petId;
+      query.andWhere('appointment.petId = :petId', { petId });
     }
 
-    return await this.appointmentRepository.find({
-      where,
-      relations: ['pet', 'vet'],
-      order: { appointmentDate: 'ASC', appointmentTime: 'ASC' },
+    return query.getMany();
+  }
+
+  // ---------------- UPDATE ----------------
+  async update(id: string, dto: UpdateAppointmentDto) {
+    const existingAppointment = await this.findOne(id);
+
+    // Conflict prevention — check for overlapping date/time with the same vet
+    const vetId = (dto as any).vetId ?? existingAppointment.vetId;
+    const appointmentDate = (dto as any).appointmentDate ?? existingAppointment.appointmentDate;
+    const appointmentTime = (dto as any).appointmentTime ?? existingAppointment.appointmentTime;
+
+    if (vetId) {
+      const conflict = await this.appointmentRepository.findOne({
+        where: {
+          vetId,
+          appointmentDate: appointmentDate as any,
+          appointmentTime,
+          status: AppointmentStatus.SCHEDULED,
+          id: Not(id),
+        },
+      });
+
+      if (conflict) {
+        throw new BadRequestException(
+          'Vet already has another scheduled appointment at this date and time',
+        );
+      }
+    }
+
+    await this.appointmentRepository.update(id, dto);
+    return this.findOne(id);
+  }
+
+  // ---------------- CANCEL ----------------
+  async remove(id: string) {
+    const appointment = await this.findOne(id);
+
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw new BadRequestException('Appointment already cancelled');
+    }
+
+    await this.appointmentRepository.update(id, {
+      status: AppointmentStatus.CANCELLED,
     });
+
+    return { message: 'Appointment cancelled successfully' };
   }
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { GetServerSideProps } from 'next';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,8 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Prevent double-submit
+    if (isLoading) return;
     setIsLoading(true);
     setError('');
 
@@ -114,3 +117,9 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

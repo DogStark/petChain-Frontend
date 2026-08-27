@@ -113,7 +113,9 @@ export class PetsSchemaAndSharing1739000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_pet_shares_shared_with_user_id"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_pet_shares_shared_with_user_id"`,
+    );
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_pet_shares_pet_id"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "pet_shares"`);
   }

@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getMessaging, Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
@@ -10,17 +10,36 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+function getFirebaseApp(): FirebaseApp {
+  return getApps().length ? getApp() : initializeApp(firebaseConfig);
+}
 
+/**
+ * Returns a Firebase Messaging instance, or null when:
+ * - running server-side (no `window`)
+ * - the browser doesn't support the Push API
+ * - required env vars are missing
+ */
 export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
+  if (typeof window === 'undefined') return null;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return null;
+
+  const requiredVars = [
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  ];
+  if (requiredVars.some((v) => !v)) {
+    console.warn('Firebase: missing required env vars — push notifications disabled');
+    return null;
+  }
+
   try {
-    const isSupported = await import('firebase/messaging').then(({ isSupported }) => isSupported());
-    if (!isSupported) return null;
+    const app = getFirebaseApp();
     return getMessaging(app);
-  } catch (err) {
-    console.error('Firebase tagging not supported', err);
+  } catch (error) {
+    console.error('Firebase messaging initialisation failed:', error);
     return null;
   }
 };
-
-export default app;

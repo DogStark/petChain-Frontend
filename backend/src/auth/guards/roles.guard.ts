@@ -22,17 +22,15 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermissions =
-      this.reflector.getAllAndOverride<Permission[]>(
-        PERMISSIONS_KEY,
-        [context.getHandler(), context.getClass()],
-      );
+    const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
-    const requiredRoles =
-      this.reflector.getAllAndOverride<RoleName[]>(
-        ROLES_KEY,
-        [context.getHandler(), context.getClass()],
-      );
+    const requiredRoles = this.reflector.getAllAndOverride<RoleName[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // If nothing required → allow
     if (!requiredPermissions?.length && !requiredRoles?.length) {
@@ -52,8 +50,9 @@ export class RolesGuard implements CanActivate {
      |--------------------------------------------------------------------------
      */
     if (requiredPermissions?.length) {
-      const userPermissions =
-        await this.rolesService.getUserPermissions(user.id);
+      const userPermissions = await this.rolesService.getUserPermissions(
+        user.id,
+      );
 
       const hasAllPermissions = requiredPermissions.every((permission) =>
         this.permissionsService.checkPermissionAccess(

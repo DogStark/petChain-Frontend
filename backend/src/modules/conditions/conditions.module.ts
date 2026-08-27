@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConditionsService } from './conditions.service';
 import { ConditionsController } from './conditions.controller';
 import { Condition } from './entities/condition.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Condition])],
+  imports: [TypeOrmModule.forFeature([Condition]), NotificationsModule],
   controllers: [ConditionsController],
   providers: [ConditionsService],
   exports: [ConditionsService],

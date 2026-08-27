@@ -1,6 +1,6 @@
-import React from "react";
-import { Clock, User, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { Appointment } from "@/types/appointments";
+import React from 'react';
+import { Clock, User, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Appointment } from '@/types/appointments';
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -8,23 +8,19 @@ interface AppointmentCardProps {
   petName: string;
 }
 
-export default function AppointmentCard({
-  appointment,
-  vetName,
-  petName,
-}: AppointmentCardProps) {
+export default function AppointmentCard({ appointment, vetName, petName }: AppointmentCardProps) {
   const statusColors = {
-    Scheduled: "bg-blue-100 text-blue-700",
-    Completed: "bg-green-100 text-green-700",
-    Cancelled: "bg-red-100 text-red-700",
-    "No-Show": "bg-gray-100 text-gray-700",
+    Scheduled: 'bg-blue-100 text-blue-700',
+    Completed: 'bg-green-100 text-green-700',
+    Cancelled: 'bg-red-100 text-red-700',
+    'No-Show': 'bg-gray-100 text-gray-700',
   };
 
   const StatusIcon = {
     Scheduled: Clock,
     Completed: CheckCircle2,
     Cancelled: XCircle,
-    "No-Show": AlertCircle,
+    'No-Show': AlertCircle,
   }[appointment.status];
 
   return (
@@ -32,7 +28,7 @@ export default function AppointmentCard({
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-bold text-blue-900 group-hover:text-blue-600 transition-colors uppercase text-xs tracking-wider">
-            {appointment.appointment_type}
+            {appointment.appointmentType}
           </h3>
           <p className="text-sm font-semibold text-gray-800">{petName}</p>
         </div>
@@ -47,10 +43,10 @@ export default function AppointmentCard({
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Clock className="w-3.5 h-3.5" />
-          {new Date(appointment.scheduled_at).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}{" "}
+          {new Date(appointment.scheduledAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}{' '}
           ({appointment.duration} min)
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">

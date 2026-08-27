@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import NextImage from 'next/image';
 import styles from './AvatarUpload.module.css';
 
 interface AvatarUploadProps {
@@ -94,10 +95,14 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
         {preview ? (
           <div className={styles.previewContainer}>
-            <img
+            <NextImage
               src={preview}
               alt="Avatar preview"
+              width={96}
+              height={96}
               className={styles.preview}
+              style={{ objectFit: 'cover' }}
+              unoptimized={preview.startsWith('blob:')}
             />
             {isLoading && <div className={styles.loader} />}
           </div>
@@ -113,13 +118,9 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
               />
             </svg>
             <p className={styles.text}>
-              {isDragging
-                ? 'Drop your image here'
-                : 'Drag and drop or click to upload'}
+              {isDragging ? 'Drop your image here' : 'Drag and drop or click to upload'}
             </p>
-            <p className={styles.subtext}>
-              JPEG, PNG, WebP or GIF (Max 5MB)
-            </p>
+            <p className={styles.subtext}>JPEG, PNG, WebP or GIF (Max 5MB)</p>
           </div>
         )}
       </div>

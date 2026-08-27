@@ -1,21 +1,21 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Patch,
-    Delete,
-    Body,
-    Param,
-    Query,
-    HttpCode,
-    HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import {
-    CreateNotificationDto,
-    NotificationQueryDto,
-    BulkActionDto,
-    UpdateNotificationSettingDto,
+  CreateNotificationDto,
+  NotificationQueryDto,
+  BulkActionDto,
+  UpdateNotificationSettingDto,
 } from './dto/notifications.dto';
 
 /**
@@ -40,98 +40,95 @@ import {
  */
 @Controller('notifications')
 export class NotificationsController {
-    constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
-    // ── Create ──────────────────────────────────────────────────────────────────
+  // ── Create ──────────────────────────────────────────────────────────────────
 
-    @Post()
-    create(@Body() dto: CreateNotificationDto) {
-        return this.notificationsService.create(dto);
-    }
+  @Post()
+  create(@Body() dto: CreateNotificationDto) {
+    return this.notificationsService.create(dto);
+  }
 
-    // ── List ────────────────────────────────────────────────────────────────────
+  // ── List ────────────────────────────────────────────────────────────────────
 
-    @Get(':userId')
-    findAll(
-        @Param('userId') userId: string,
-        @Query() query: NotificationQueryDto,
-    ) {
-        return this.notificationsService.findAll(userId, query);
-    }
+  @Get(':userId')
+  findAll(
+    @Param('userId') userId: string,
+    @Query() query: NotificationQueryDto,
+  ) {
+    return this.notificationsService.findAll(userId, query);
+  }
 
-    // ── Bulk actions ────────────────────────────────────────────────────────────
+  // ── Bulk actions ────────────────────────────────────────────────────────────
 
-    @Patch(':userId/bulk')
-    @HttpCode(HttpStatus.OK)
-    bulkAction(
-        @Param('userId') userId: string,
-        @Body() dto: BulkActionDto,
-    ) {
-        return this.notificationsService.bulkAction(userId, dto);
-    }
+  @Patch(':userId/bulk')
+  @HttpCode(HttpStatus.OK)
+  bulkAction(@Param('userId') userId: string, @Body() dto: BulkActionDto) {
+    return this.notificationsService.bulkAction(userId, dto);
+  }
 
-    // ── Mark all read ───────────────────────────────────────────────────────────
+  // ── Mark all read ───────────────────────────────────────────────────────────
 
-    @Patch(':userId/read-all')
-    @HttpCode(HttpStatus.OK)
-    markAllAsRead(@Param('userId') userId: string) {
-        return this.notificationsService.markAllAsRead(userId);
-    }
+  @Patch(':userId/read-all')
+  @HttpCode(HttpStatus.OK)
+  markAllAsRead(@Param('userId') userId: string) {
+    return this.notificationsService.markAllAsRead(userId);
+  }
 
-    // ── Settings ────────────────────────────────────────────────────────────────
+  // ── Settings ────────────────────────────────────────────────────────────────
 
-    @Get(':userId/settings')
-    getSettings(@Param('userId') userId: string) {
-        return this.notificationsService.getSettings(userId);
-    }
+  @Get(':userId/settings')
+  getSettings(@Param('userId') userId: string) {
+    return this.notificationsService.getSettings(userId);
+  }
 
-    @Patch(':userId/settings')
-    updateSettings(
-        @Param('userId') userId: string,
-        @Body() dto: UpdateNotificationSettingDto,
-    ) {
-        return this.notificationsService.updateSettings(userId, dto);
-    }
+  @Patch(':userId/settings')
+  updateSettings(
+    @Param('userId') userId: string,
+    @Body() dto: UpdateNotificationSettingDto,
+  ) {
+    return this.notificationsService.updateSettings(userId, dto);
+  }
 
-    // ── Single notification ──────────────────────────────────────────────────────
+  // ── Single notification ──────────────────────────────────────────────────────
 
-    @Get(':userId/:id')
-    findOne(@Param('id') id: string, @Param('userId') userId: string) {
-        return this.notificationsService.findOne(id, userId);
-    }
+  @Get(':userId/:id')
+  findOne(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.notificationsService.findOne(id, userId);
+  }
 
-    @Patch(':userId/:id/read')
-    markAsRead(@Param('id') id: string, @Param('userId') userId: string) {
-        return this.notificationsService.markAsRead(id, userId);
-    }
+  @Patch(':userId/:id/read')
+  markAsRead(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.notificationsService.markAsRead(id, userId);
+  }
 
-    @Patch(':userId/:id/unread')
-    markAsUnread(@Param('id') id: string, @Param('userId') userId: string) {
-        return this.notificationsService.markAsUnread(id, userId);
-    }
+  @Patch(':userId/:id/unread')
+  markAsUnread(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.notificationsService.markAsUnread(id, userId);
+  }
 
-    @Delete(':userId/:id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    remove(@Param('id') id: string, @Param('userId') userId: string) {
-        return this.notificationsService.remove(id, userId);
-    }
+  @Delete(':userId/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.notificationsService.remove(id, userId);
+  }
 
-    // ── Device Tokens ────────────────────────────────────────────────────────────
+  // ── Device Tokens ────────────────────────────────────────────────────────────
 
-    @Post(':userId/device-tokens')
-    registerDeviceToken(
-        @Param('userId') userId: string,
-        @Body() dto: import('./dto/device-token.dto').RegisterDeviceTokenDto,
-    ) {
-        return this.notificationsService.registerDeviceToken(userId, dto);
-    }
+  @Post(':userId/device-tokens')
+  registerDeviceToken(
+    @Param('userId') userId: string,
+    @Body() dto: import('./dto/device-token.dto').RegisterDeviceTokenDto,
+  ) {
+    return this.notificationsService.registerDeviceToken(userId, dto);
+  }
 
-    @Delete(':userId/device-tokens/:token')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    removeDeviceToken(
-        @Param('userId') userId: string,
-        @Param('token') token: string,
-    ) {
-        return this.notificationsService.removeDeviceToken(userId, token);
-    }
+  @Delete(':userId/device-tokens/:token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeDeviceToken(
+    @Param('userId') userId: string,
+    @Param('token') token: string,
+  ) {
+    return this.notificationsService.removeDeviceToken(userId, token);
+  }
 }

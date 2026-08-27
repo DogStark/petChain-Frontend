@@ -83,6 +83,18 @@ describe('LostPetsController', () => {
     });
   });
 
+  describe('access control', () => {
+    it('findAll is protected by JwtAuthGuard', () => {
+      const guards: any[] = Reflect.getMetadata('__guards__', LostPetsController.prototype.findAll) ?? [];
+      expect(guards).toContain(JwtAuthGuard);
+    });
+
+    it('findNearby is protected by JwtAuthGuard', () => {
+      const guards: any[] = Reflect.getMetadata('__guards__', LostPetsController.prototype.findNearby) ?? [];
+      expect(guards).toContain(JwtAuthGuard);
+    });
+  });
+
   describe('updateMyLocation', () => {
     it('should update user location for lost pet alerts', async () => {
       const dto = {
@@ -96,7 +108,10 @@ describe('LostPetsController', () => {
 
       const result = await controller.updateMyLocation(dto, user);
 
-      expect(mockLostPetsService.updateUserLocation).toHaveBeenCalledWith('u1', dto);
+      expect(mockLostPetsService.updateUserLocation).toHaveBeenCalledWith(
+        'u1',
+        dto,
+      );
       expect(result).toEqual(saved);
     });
   });

@@ -64,7 +64,10 @@ export class VaccinationsService {
     const saved = await this.vaccinationRepository.save(vaccination);
 
     if (createVaccinationDto.adverseReactions?.length) {
-      await this.addAdverseReactions(saved.id, createVaccinationDto.adverseReactions);
+      await this.addAdverseReactions(
+        saved.id,
+        createVaccinationDto.adverseReactions,
+      );
     }
 
     await this.ensureReminder(saved, pet);
@@ -75,31 +78,46 @@ export class VaccinationsService {
    * Get all vaccinations
    */
   async findAll(): Promise<Vaccination[]> {
-    return await this.vaccinationRepository.find({
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-      order: { administeredDate: 'DESC' },
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    return await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .orderBy('vaccination.administeredDate', 'DESC')
+      .getMany();
   }
 
   /**
    * Get vaccinations by pet ID
    */
   async findByPet(petId: string): Promise<Vaccination[]> {
-    return await this.vaccinationRepository.find({
-      where: { petId },
-      relations: ['vet', 'vetClinic', 'adverseReactions'],
-      order: { administeredDate: 'DESC' },
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    return await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.petId = :petId', { petId })
+      .orderBy('vaccination.administeredDate', 'DESC')
+      .getMany();
   }
 
   /**
    * Get a single vaccination by ID
    */
   async findOne(id: string): Promise<Vaccination> {
-    const vaccination = await this.vaccinationRepository.findOne({
-      where: { id },
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const vaccination = await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.id = :id', { id })
+      .getOne();
+
     if (!vaccination) {
       throw new NotFoundException(`Vaccination with ID ${id} not found`);
     }
@@ -110,10 +128,16 @@ export class VaccinationsService {
    * Find vaccination by certificate code
    */
   async findByCertificateCode(code: string): Promise<Vaccination> {
-    const vaccination = await this.vaccinationRepository.findOne({
-      where: { certificateCode: code },
-      relations: ['pet', 'vet', 'vetClinic', 'adverseReactions'],
-    });
+    // Optimized: Use QueryBuilder with explicit joins
+    const vaccination = await this.vaccinationRepository
+      .createQueryBuilder('vaccination')
+      .leftJoinAndSelect('vaccination.pet', 'pet')
+      .leftJoinAndSelect('vaccination.vet', 'vet')
+      .leftJoinAndSelect('vaccination.vetClinic', 'vetClinic')
+      .leftJoinAndSelect('vaccination.adverseReactions', 'adverseReactions')
+      .where('vaccination.certificateCode = :code', { code })
+      .getOne();
+
     if (!vaccination) {
       throw new NotFoundException(
         `Vaccination with certificate code ${code} not found`,
@@ -133,7 +157,8 @@ export class VaccinationsService {
     Object.assign(vaccination, updateVaccinationDto);
     if (
       updateVaccinationDto.nextDueDate === undefined &&
-      (updateVaccinationDto.vaccineName || updateVaccinationDto.administeredDate)
+      (updateVaccinationDto.vaccineName ||
+        updateVaccinationDto.administeredDate)
     ) {
       const pet = await this.petRepository.findOne({
         where: { id: vaccination.petId },
@@ -254,7 +279,10 @@ export class VaccinationsService {
     };
   }
 
-  private async ensureReminder(vaccination: Vaccination, pet: Pet): Promise<void> {
+  private async ensureReminder(
+    vaccination: Vaccination,
+    pet: Pet,
+  ): Promise<void> {
     if (!vaccination.nextDueDate) {
       return;
     }
@@ -263,15 +291,9 @@ export class VaccinationsService {
       .createQueryBuilder('reminder')
       .where('reminder.type = :type', { type: ReminderType.VACCINATION })
       .andWhere('reminder.petId = :petId', { petId: vaccination.petId })
-      .andWhere(
-        'reminder.status NOT IN (:...excludedStatuses)',
-        {
-          excludedStatuses: [
-            ReminderStatus.COMPLETED,
-            ReminderStatus.CANCELLED,
-          ],
-        },
-      )
+      .andWhere('reminder.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [ReminderStatus.COMPLETED, ReminderStatus.CANCELLED],
+      })
       .andWhere(`reminder.metadata ->> 'vaccinationId' = :vaccinationId`, {
         vaccinationId: vaccination.id,
       })

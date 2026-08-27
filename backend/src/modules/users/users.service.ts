@@ -2,13 +2,23 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as crypto from 'crypto';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { RedisService } from '../../auth/services/redis.service';
+import { SmsService } from '../sms/sms.service';
+
+const OTP_TTL_SECONDS = 600; // 10 minutes
+const RATE_LIMIT_TTL_SECONDS = 900; // 15 minutes
+const MAX_OTP_SENDS = 3;
+const MAX_OTP_ATTEMPTS = 5;
 
 export type SafeUserProfile = Omit<
   User,
@@ -18,7 +28,8 @@ export type SafeUserProfile = Omit<
   | 'phoneVerificationCode'
   | 'phoneVerificationExpires'
   | 'passwordResetToken'
-  | 'passwordResetExpires'
+  | 'passwordResetTokenExpiresAt'
+  | 'passwordChangedAt'
   | 'getActiveRoles'
   | 'getProfileCompletionScore'
 > & { isVerified: boolean };
@@ -28,6 +39,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly redisService: RedisService,
+    private readonly smsService: SmsService,
   ) {}
 
   /**
@@ -42,14 +55,23 @@ export class UsersService {
    * Get all users
    */
   async findAll(): Promise<User[]> {
-    return await this.userRepository.find();
+    // Optimized: Use QueryBuilder with explicit column selection
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .orderBy('user.createdAt', 'DESC')
+      .getMany();
   }
 
   /**
    * Get a single user by ID
    */
   async findOne(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    // Optimized: Use QueryBuilder
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .getOne();
+
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -60,7 +82,11 @@ export class UsersService {
    * Get a user by email
    */
   async findByEmail(email: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { email } });
+    // Optimized: Use QueryBuilder with indexed column
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   /**
@@ -80,7 +106,8 @@ export class UsersService {
       phoneVerificationCode,
       phoneVerificationExpires,
       passwordResetToken,
-      passwordResetExpires,
+      passwordResetTokenExpiresAt,
+      passwordChangedAt,
       getActiveRoles,
       getProfileCompletionScore,
       ...safeUser
@@ -280,5 +307,75 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
     await this.userRepository.remove(user);
+  }
+
+  // ─── Phone OTP ────────────────────────────────────────────────────────────────
+
+  async sendPhoneOtp(userId: string, phone: string): Promise<void> {
+    const rateLimitKey = `phone_otp_rate:${userId}`;
+    const countRaw = await this.redisService.get(rateLimitKey);
+    const count = countRaw ? parseInt(countRaw, 10) : 0;
+
+    if (count >= MAX_OTP_SENDS) {
+      throw new ForbiddenException('Too many OTP requests. Try again in 15 minutes.');
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const hash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    await this.redisService.set(`phone_otp:${userId}`, hash, OTP_TTL_SECONDS);
+    await this.redisService.set(rateLimitKey, String(count + 1), RATE_LIMIT_TTL_SECONDS);
+
+    const user = await this.findOne(userId);
+    await this.userRepository.save({ ...user, phone });
+
+    await this.smsService.sendSms(
+      userId,
+      phone,
+      `Your PetChain verification code is: ${otp}. It expires in 10 minutes.`,
+    );
+  }
+
+  async verifyPhoneOtp(userId: string, otp: string): Promise<void> {
+    const lockKey = `phone_otp_lock:${userId}`;
+    const isLocked = await this.redisService.exists(lockKey);
+    if (isLocked) {
+      throw new ForbiddenException('Account locked due to too many failed OTP attempts.');
+    }
+
+    const storedHash = await this.redisService.get(`phone_otp:${userId}`);
+    if (!storedHash) {
+      throw new BadRequestException('OTP expired or not found. Please request a new one.');
+    }
+
+    const submittedHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    // Timing-safe comparison
+    const stored = Buffer.from(storedHash, 'hex');
+    const submitted = Buffer.from(submittedHash, 'hex');
+    const match =
+      stored.length === submitted.length &&
+      crypto.timingSafeEqual(stored, submitted);
+
+    if (!match) {
+      const attemptsKey = `phone_otp_attempts:${userId}`;
+      const attemptsRaw = await this.redisService.get(attemptsKey);
+      const attempts = attemptsRaw ? parseInt(attemptsRaw, 10) : 0;
+
+      if (attempts + 1 >= MAX_OTP_ATTEMPTS) {
+        await this.redisService.set(lockKey, '1', OTP_TTL_SECONDS);
+        await this.redisService.del(`phone_otp:${userId}`);
+        throw new ForbiddenException('Too many failed attempts. Account locked for 10 minutes.');
+      }
+
+      await this.redisService.set(attemptsKey, String(attempts + 1), OTP_TTL_SECONDS);
+      throw new BadRequestException('Invalid OTP.');
+    }
+
+    await this.redisService.del(`phone_otp:${userId}`);
+    await this.redisService.del(`phone_otp_attempts:${userId}`);
+
+    const user = await this.findOne(userId);
+    await this.userRepository.save({ ...user, phoneVerified: true });
   }
 }

@@ -1,9 +1,38 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+
+async function parseBlobError(error: AxiosError): Promise<never> {
+  const data = error.response?.data;
+  const contentType = (error.response?.headers?.['content-type'] as string) ?? '';
+  if (data instanceof Blob && contentType.includes('application/json')) {
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      error.message = parsed?.message ?? error.message;
+      (error.response as any).data = parsed;
+    } catch {
+      // leave error as-is if parsing fails
+    }
+  }
+  return Promise.reject(error);
+}
 
 const API_BASE_URL = getApiBaseUrl();
 
-export type OnboardingStepId = 'welcome' | 'profile_setup' | 'add_pet' | 'notifications' | 'explore';
+export type OnboardingStepId =
+  | 'welcome'
+  | 'profile_setup'
+  | 'add_pet'
+  | 'notifications'
+  | 'explore';
+
+export const ONBOARDING_STEP_IDS: OnboardingStepId[] = [
+  'welcome',
+  'profile_setup',
+  'add_pet',
+  'notifications',
+  'explore',
+];
 
 export interface OnboardingStep {
   id: OnboardingStepId;
@@ -100,6 +129,10 @@ export interface UserSession {
   expiresAt: string;
   lastActivityAt?: string;
   isActive: boolean;
+  /** True when this session corresponds to the browser making the current request.
+   *  Populated server-side by comparing the session id embedded in the access token
+   *  against each listed session, or derived client-side when the backend cannot provide it. */
+  isCurrentSession: boolean;
   createdAt: string;
 }
 
@@ -133,6 +166,8 @@ class UserManagementAPI {
       }
       return config;
     });
+
+    this.api.interceptors.response.use((r) => r, parseBlobError);
   }
 
   private getAccessToken(): string | null {
@@ -165,9 +200,7 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async updateProfile(
-    data: UpdateUserProfileDto,
-  ): Promise<UserProfile> {
+  async updateProfile(data: UpdateUserProfileDto): Promise<UserProfile> {
     const response = await this.api.patch('/me/profile', data);
     return response.data;
   }
@@ -215,9 +248,7 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async updatePreferences(
-    data: UpdateUserPreferencesDto,
-  ) {
+  async updatePreferences(data: UpdateUserPreferencesDto) {
     const response = await this.api.patch('/me/preferences', data);
     return response.data;
   }
@@ -234,14 +265,14 @@ class UserManagementAPI {
     smsReminderAlerts?: boolean;
     pushNotifications?: boolean;
   }) {
-    const response = await this.api.patch(
-      '/me/preferences/notifications',
-      settings,
-    );
+    const response = await this.api.patch('/me/preferences/notifications', settings);
     return response.data;
   }
 
-  async getSMSUsage(month?: number, year?: number): Promise<{
+  async getSMSUsage(
+    month?: number,
+    year?: number
+  ): Promise<{
     sent: number;
     delivered: number;
     failed: number;
@@ -256,9 +287,25 @@ class UserManagementAPI {
     return response.data;
   }
 
-  async getAdminSMSStats(month?: number, year?: number): Promise<{
-    global: { sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null };
-    byUser: Array<{ userId: string; sent: number; delivered: number; failed: number; costCents: number; limitCents: number | null }>;
+  async getAdminSMSStats(
+    month?: number,
+    year?: number
+  ): Promise<{
+    global: {
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    };
+    byUser: Array<{
+      userId: string;
+      sent: number;
+      delivered: number;
+      failed: number;
+      costCents: number;
+      limitCents: number | null;
+    }>;
   }> {
     const params = new URLSearchParams();
     if (month != null) params.set('month', String(month));
@@ -278,10 +325,7 @@ class UserManagementAPI {
     showPhone?: boolean;
     showActivity?: boolean;
   }) {
-    const response = await this.api.patch(
-      '/me/preferences/privacy',
-      settings,
-    );
+    const response = await this.api.patch('/me/preferences/privacy', settings);
     return response.data;
   }
 
@@ -292,8 +336,36 @@ class UserManagementAPI {
   }
 
   async getAllSessions(): Promise<UserSession[]> {
-    const response = await this.api.get('/me/sessions/all');
-    return response.data;
+    const response = await this.api.get<UserSession[]>('/me/sessions/all');
+    const sessions: UserSession[] = response.data;
+
+    // If the backend already populates isCurrentSession, use it as-is.
+    // Otherwise, derive it client-side from the session id embedded in the access token.
+    const alreadyFlagged = sessions.some((s) => s.isCurrentSession === true);
+    if (!alreadyFlagged) {
+      const currentSessionId = this.extractSessionIdFromToken();
+      return sessions.map((s) => ({
+        ...s,
+        isCurrentSession: currentSessionId ? s.id === currentSessionId : false,
+      }));
+    }
+
+    return sessions;
+  }
+
+  /** Decode the access token (without verifying signature) to extract the session id claim. */
+  private extractSessionIdFromToken(): string | null {
+    const token = this.getAccessToken();
+    if (!token) return null;
+    try {
+      const payloadBase64 = token.split('.')[1];
+      if (!payloadBase64) return null;
+      const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+      // Common JWT claim names for session id
+      return payload.sessionId ?? payload.session_id ?? payload.sid ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async revokeSession(sessionId: string): Promise<void> {
@@ -310,7 +382,7 @@ class UserManagementAPI {
   async getActivity(
     limit: number = 50,
     offset: number = 0,
-    actionType?: string,
+    actionType?: string
   ): Promise<ActivityLog[]> {
     const response = await this.api.get('/me/activity', {
       params: { limit, offset, ...(actionType ? { activityType: actionType } : {}) },
@@ -340,16 +412,24 @@ class UserManagementAPI {
   }
 
   // Account endpoints
-  async deactivateAccount(): Promise<void> {
-    await this.api.post('/me/deactivate');
+  async deactivateAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.post('/me/deactivate', body);
   }
 
   async reactivateAccount(): Promise<void> {
     await this.api.post('/me/reactivate');
   }
 
-  async deleteAccount(): Promise<void> {
-    await this.api.delete('/me');
+  async deleteAccount(password: string, totpToken?: string): Promise<void> {
+    const body: { password: string; totpToken?: string } = { password };
+    if (totpToken) {
+      body.totpToken = totpToken;
+    }
+    await this.api.delete('/me', { data: body });
   }
 
   async exportData(): Promise<any> {

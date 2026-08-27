@@ -99,9 +99,13 @@ export class BlockService {
     // Strip sensitive info from blocked user entity
     data.forEach((block) => {
       if (block.blockedUserEntity) {
-        delete block.blockedUserEntity.password;
-        delete block.blockedUserEntity.passwordResetToken;
-        delete block.blockedUserEntity.emailVerificationToken;
+        const {
+          password: _omitPw,
+          passwordResetToken: _omitReset,
+          emailVerificationToken: _omitEv,
+          ...safeUser
+        } = block.blockedUserEntity;
+        block.blockedUserEntity = safeUser as typeof block.blockedUserEntity;
       }
     });
 

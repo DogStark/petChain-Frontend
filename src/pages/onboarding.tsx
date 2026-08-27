@@ -6,8 +6,12 @@ import {
   OnboardingStatus,
   OnboardingAnalytics,
   OnboardingStepId,
+  ONBOARDING_STEP_IDS,
 } from '../lib/api/userAPI';
 import styles from '../styles/pages/OnboardingPage.module.css';
+import { GetServerSideProps } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 const DEFAULT_STATUS: OnboardingStatus = {
   userId: '',
@@ -78,12 +82,13 @@ export default function OnboardingPage() {
     } catch (err: any) {
       if (is404(err)) {
         // Backend not yet implemented — update state locally
+        const totalSteps = status?.steps?.length || ONBOARDING_STEP_IDS.length;
+        const completedCount = (status?.completedSteps.length ?? 0) + 1;
         const updated: OnboardingStatus = {
           ...(status ?? DEFAULT_STATUS),
           completedSteps: [...(status?.completedSteps ?? []), stepId],
-          progressPercent: Math.round(
-            (((status?.completedSteps.length ?? 0) + 1) / 5) * 100,
-          ),
+          progressPercent:
+            totalSteps > 0 ? Math.min(100, Math.round((completedCount / totalSteps) * 100)) : 0,
         };
         setStatus(updated);
         return updated;
@@ -145,3 +150,9 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};

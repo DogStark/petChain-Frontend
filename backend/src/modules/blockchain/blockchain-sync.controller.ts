@@ -1,6 +1,15 @@
-import { Controller, Get, Post, Param, Query, Body, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Body,
+  NotFoundException,
+} from '@nestjs/common';
 import { BlockchainSyncService } from './blockchain-sync.service';
 import { StellarService } from './stellar.service';
+import { IPFSService } from './ipfs.service';
 import { RecordType } from './entities/blockchain-sync.entity';
 import { xdr } from '@stellar/stellar-sdk';
 
@@ -9,6 +18,7 @@ export class BlockchainSyncController {
   constructor(
     private readonly syncService: BlockchainSyncService,
     private readonly stellarService: StellarService,
+    private readonly ipfsService: IPFSService,
   ) {}
 
   @Get('status/:recordId')
@@ -63,5 +73,10 @@ export class BlockchainSyncController {
     @Body('params') params?: any[],
   ) {
     return this.stellarService.estimateGas(contractId, method, params);
+  }
+
+  @Get('ipfs/health')
+  async ipfsHealth() {
+    return this.ipfsService.health();
   }
 }

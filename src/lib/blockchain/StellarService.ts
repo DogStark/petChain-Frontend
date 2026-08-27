@@ -1,10 +1,5 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { 
-  StellarConfig, 
-  TransactionResult, 
-  AccountDetails, 
-  SubmitOptions 
-} from './types';
+import { StellarConfig, TransactionResult, AccountDetails, SubmitOptions } from './types';
 
 export class StellarService {
   private server: StellarSdk.Horizon.Server;
@@ -35,7 +30,9 @@ export class StellarService {
         subentryCount: account.subentry_count,
       };
     } catch (error) {
-      throw new Error(`Failed to load account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -55,7 +52,9 @@ export class StellarService {
       const data = await response.json();
       throw new Error(data.detail || 'Friendbot request failed');
     } catch (error) {
-      throw new Error(`Failed to fund account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to fund account ${publicKey}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -63,12 +62,14 @@ export class StellarService {
    * Builds a transaction with optimal fee and timeout
    */
   async buildTransaction(
-    sourcePublicKey: string, 
-    operations: StellarSdk.xdr.Operation<StellarSdk.Operation> | StellarSdk.Operation[],
+    sourcePublicKey: string,
+    operations:
+      | StellarSdk.xdr.Operation<StellarSdk.Operation>
+      | StellarSdk.xdr.Operation<StellarSdk.Operation>[],
     options?: SubmitOptions
   ): Promise<StellarSdk.Transaction> {
     const account = await this.server.loadAccount(sourcePublicKey);
-    const fee = options?.baseFee || await this.getOptimalFee();
+    const fee = options?.baseFee || (await this.getOptimalFee());
 
     const builder = new StellarSdk.TransactionBuilder(account, {
       fee,
@@ -77,12 +78,13 @@ export class StellarService {
     });
 
     if (Array.isArray(operations)) {
-      operations.forEach(op => builder.addOperation(op));
+      operations.forEach((op) => builder.addOperation(op));
     } else {
-      builder.addOperation(operations as any); // Handle single operation
+      builder.addOperation(operations);
     }
 
-    return builder.setTimeout(StellarSdk.TimeoutInfinite).build();
+    const timeout = options?.timeoutSeconds ?? 30;
+    return builder.setTimeout(timeout).build();
   }
 
   /**
@@ -94,33 +96,41 @@ export class StellarService {
   ): Promise<TransactionResult> {
     const maxAttempts = options?.retryAttempts ?? 3;
     let attempt = 0;
+    let currentTx = transaction;
 
     while (attempt < maxAttempts) {
       try {
-        const response = await this.server.submitTransaction(transaction);
+        const response = await this.server.submitTransaction(currentTx);
         return {
           success: true,
           hash: response.hash,
           ledger: response.ledger,
-          feeCharged: response.fee_charged,
+          feeCharged: (response as unknown as { fee_charged?: string }).fee_charged,
         };
       } catch (error: any) {
         attempt++;
         const status = error?.response?.status;
         const resultXdr = error?.response?.data?.extras?.result_codes?.transaction;
 
-        // Common retryable errors: Timeout, bad sequence (if we update it), or network hiccups
-        const isRetryable = status === 504 || resultXdr === 'tx_bad_seq';
+        if (resultXdr === 'tx_bad_seq') {
+          if (!options?.rebuild) {
+            return {
+              success: false,
+              error: 'Transaction sequence number is stale. The account may have newer pending transactions or an existing sequence was already submitted.',
+            };
+          }
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+            currentTx = await options.rebuild();
+            continue;
+          }
+        }
+
+        // Common retryable errors: network timeouts
+        const isRetryable = status === 504;
 
         if (isRetryable && attempt < maxAttempts) {
-          // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-          
-          if (resultXdr === 'tx_bad_seq') {
-             // If sequence is bad, we'd ideally rebuild the tx with fresh sequence.
-             // For simplicity here, we notice it and let the caller handle higher-level retries if needed.
-             // Or we could reload the account and rebuild if we had the original builder info.
-          }
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
           continue;
         }
 
@@ -135,6 +145,10 @@ export class StellarService {
       success: false,
       error: 'Max retry attempts reached',
     };
+  }
+
+  getServer(): StellarSdk.Horizon.Server {
+    return this.server;
   }
 
   /**

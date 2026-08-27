@@ -11,7 +11,10 @@ import { Repository } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { RolePermission } from '../entities/role-permission.entity';
-import { RoleAuditLog, RoleAuditAction } from '../entities/role-audit-log.entity';
+import {
+  RoleAuditLog,
+  RoleAuditAction,
+} from '../entities/role-audit-log.entity';
 import { Permission } from '../constants/permissions.enum';
 import { AssignRoleDto, RemoveRoleDto } from '../dto/role.dto';
 

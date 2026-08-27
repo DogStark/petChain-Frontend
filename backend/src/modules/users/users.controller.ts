@@ -31,6 +31,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { SendPhoneOtpDto, VerifyPhoneOtpDto } from './dto/phone-otp.dto';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -371,8 +372,13 @@ export class UsersController {
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="activity-log.csv"')
   async exportActivityLogs(@CurrentUser() user: User): Promise<StreamableFile> {
-    const logs = await this.activityLogService.getUserActivity(user.id, 10000, 0);
-    const header = 'id,activityType,description,ipAddress,deviceId,isSuspicious,createdAt\n';
+    const logs = await this.activityLogService.getUserActivity(
+      user.id,
+      10000,
+      0,
+    );
+    const header =
+      'id,activityType,description,ipAddress,deviceId,isSuspicious,createdAt\n';
     const rows = logs
       .map((l) =>
         [
@@ -402,9 +408,17 @@ export class UsersController {
     @Query('activityType') activityType?: ActivityType,
   ) {
     if (activityType) {
-      return await this.activityLogService.getActivityByType(user.id, activityType, limit);
+      return await this.activityLogService.getActivityByType(
+        user.id,
+        activityType,
+        limit,
+      );
     }
-    return await this.activityLogService.getUserActivity(user.id, limit, offset);
+    return await this.activityLogService.getUserActivity(
+      user.id,
+      limit,
+      offset,
+    );
   }
 
   /**
@@ -442,10 +456,7 @@ export class UsersController {
     if (!this.fileUploadService) {
       throw new Error('FileUploadService not available');
     }
-    const avatarUrl = await this.fileUploadService.uploadAvatar(
-      file,
-      user.id,
-    );
+    const avatarUrl = await this.fileUploadService.uploadAvatar(file, user.id);
 
     // Update user profile with new avatar
     const updated = await this.usersService.updateAvatar(user.id, avatarUrl);
@@ -628,5 +639,35 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
     return await this.usersService.remove(id);
+  }
+
+  /**
+   * Send a 6-digit OTP to the user's phone number via SMS
+   * POST /users/phone/send-otp
+   */
+  @Post('phone/send-otp')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async sendPhoneOtp(
+    @CurrentUser() user: User,
+    @Body() dto: SendPhoneOtpDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.sendPhoneOtp(user.id, dto.phone);
+    return { message: 'OTP sent successfully.' };
+  }
+
+  /**
+   * Verify the OTP and mark the user's phone as verified
+   * POST /users/phone/verify-otp
+   */
+  @Post('phone/verify-otp')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyPhoneOtp(
+    @CurrentUser() user: User,
+    @Body() dto: VerifyPhoneOtpDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.verifyPhoneOtp(user.id, dto.otp);
+    return { message: 'Phone number verified successfully.' };
   }
 }

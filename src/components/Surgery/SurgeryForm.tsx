@@ -37,22 +37,28 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.field}>
-        <label>Surgery Type</label>
+        <label htmlFor="surgeryType">Surgery Type</label>
         <input
+          id="surgeryType"
           type="text"
           value={formData.surgeryType}
           onChange={(e) => setFormData({ ...formData, surgeryType: e.target.value })}
           required
+          aria-required="true"
+          aria-invalid={!formData.surgeryType ? 'true' : 'false'}
         />
       </div>
 
       <div className={styles.field}>
-        <label>Surgery Date</label>
+        <label htmlFor="surgeryDate">Surgery Date</label>
         <input
+          id="surgeryDate"
           type="date"
           value={formData.surgeryDate}
           onChange={(e) => setFormData({ ...formData, surgeryDate: e.target.value })}
           required
+          aria-required="true"
+          aria-invalid={!formData.surgeryDate ? 'true' : 'false'}
         />
       </div>
 
@@ -63,7 +69,9 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
           onChange={(e) => setFormData({ ...formData, status: e.target.value as SurgeryStatus })}
         >
           {Object.values(SurgeryStatus).map((status) => (
-            <option key={status} value={status}>{status}</option>
+            <option key={status} value={status}>
+              {status}
+            </option>
           ))}
         </select>
       </div>
@@ -93,10 +101,12 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
           <input
             type="text"
             value={formData.anesthesiaDetails?.type || ''}
-            onChange={(e) => setFormData({
-              ...formData,
-              anesthesiaDetails: { ...formData.anesthesiaDetails, type: e.target.value }
-            })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                anesthesiaDetails: { ...formData.anesthesiaDetails, type: e.target.value },
+              })
+            }
           />
         </div>
         <div className={styles.field}>
@@ -104,10 +114,12 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
           <input
             type="text"
             value={formData.anesthesiaDetails?.dosage || ''}
-            onChange={(e) => setFormData({
-              ...formData,
-              anesthesiaDetails: { ...formData.anesthesiaDetails, dosage: e.target.value }
-            })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                anesthesiaDetails: { ...formData.anesthesiaDetails, dosage: e.target.value },
+              })
+            }
           />
         </div>
         <div className={styles.field}>
@@ -115,10 +127,15 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
           <input
             type="number"
             value={formData.anesthesiaDetails?.duration || ''}
-            onChange={(e) => setFormData({
-              ...formData,
-              anesthesiaDetails: { ...formData.anesthesiaDetails, duration: parseInt(e.target.value) }
-            })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                anesthesiaDetails: {
+                  ...formData.anesthesiaDetails,
+                  duration: parseInt(e.target.value),
+                },
+              })
+            }
           />
         </div>
       </div>
@@ -134,8 +151,12 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
       </div>
 
       <div className={styles.actions}>
-        <button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Saving...' : 'Save'}
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
       </div>
     </form>
   );

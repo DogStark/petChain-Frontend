@@ -42,7 +42,11 @@ export class Surgery {
   @Column({ type: 'date' })
   surgeryDate: Date;
 
-  @Column({ type: 'enum', enum: SurgeryStatus, default: SurgeryStatus.SCHEDULED })
+  @Column({
+    type: 'enum',
+    enum: SurgeryStatus,
+    default: SurgeryStatus.SCHEDULED,
+  })
   status: SurgeryStatus;
 
   @Column({ type: 'text', nullable: true })
@@ -65,7 +69,11 @@ export class Surgery {
   @Column({ type: 'simple-json', nullable: true })
   recoveryTimeline: {
     expectedDays?: number;
-    milestones?: Array<{ date: string; description: string; completed: boolean }>;
+    milestones?: Array<{
+      date: string;
+      description: string;
+      completed: boolean;
+    }>;
   };
 
   @Column({ type: 'simple-json', nullable: true })

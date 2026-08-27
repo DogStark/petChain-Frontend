@@ -5,11 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LostPetReport, LostPetStatus } from './entities/lost-pet-report.entity';
+import {
+  LostPetReport,
+  LostPetStatus,
+} from './entities/lost-pet-report.entity';
+import { PetSighting } from './entities/pet-sighting.entity';
 import { ReportLostPetDto } from './dto/report-lost-pet.dto';
 import { ReportFoundPetDto } from './dto/report-found-pet.dto';
 import { UpdateLostMessageDto } from './dto/update-lost-message.dto';
 import { UpdateUserLocationDto } from './dto/update-user-location.dto';
+import { CreateSightingDto } from './dto/create-sighting.dto';
 import { PetsService } from '../pets/pets.service';
 import { QRCodesService } from '../qrcodes/qrcodes.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -25,6 +30,8 @@ export class LostPetsService {
     private readonly lostPetReportRepository: Repository<LostPetReport>,
     @InjectRepository(UserLocation)
     private readonly userLocationRepository: Repository<UserLocation>,
+    @InjectRepository(PetSighting)
+    private readonly sightingRepository: Repository<PetSighting>,
     private readonly petsService: PetsService,
     private readonly qrcodesService: QRCodesService,
     private readonly notificationsService: NotificationsService,
@@ -57,7 +64,11 @@ export class LostPetsService {
 
     const saved = await this.lostPetReportRepository.save(report);
 
-    await this.updateQRCodeLostMessage(petId, dto.customMessage, dto.contactInfo);
+    await this.updateQRCodeLostMessage(
+      petId,
+      dto.customMessage,
+      dto.contactInfo,
+    );
     await this.notifyNearbyUsers(petId, saved, ownerId);
 
     return this.findOneWithRelations(saved.id);
@@ -104,7 +115,8 @@ export class LostPetsService {
       throw new NotFoundException('No active lost report found for this pet');
     }
 
-    if (dto.customMessage !== undefined) report.customMessage = dto.customMessage;
+    if (dto.customMessage !== undefined)
+      report.customMessage = dto.customMessage;
     if (dto.contactInfo !== undefined) report.contactInfo = dto.contactInfo;
 
     await this.lostPetReportRepository.save(report);
@@ -115,6 +127,45 @@ export class LostPetsService {
     );
 
     return this.findOneWithRelations(report.id);
+  }
+
+  async createSighting(
+    reportId: string,
+    reportedByUserId: string,
+    dto: CreateSightingDto,
+  ): Promise<PetSighting> {
+    const report = await this.lostPetReportRepository.findOne({
+      where: { id: reportId },
+      relations: ['pet'],
+    });
+    if (!report) throw new NotFoundException('Lost pet report not found');
+
+    const sighting = this.sightingRepository.create({
+      lostPetReportId: reportId,
+      reportedByUserId,
+      lat: dto.lat,
+      lng: dto.lng,
+      description: dto.description ?? null,
+      photoUrl: dto.photoUrl ?? null,
+    });
+    const saved = await this.sightingRepository.save(sighting);
+
+    const ownerId = report.pet?.ownerId;
+    if (ownerId) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      await this.notificationsService
+        .create({
+          userId: ownerId,
+          title: `Sighting reported for ${report.pet.name}`,
+          message: `Someone spotted ${report.pet.name} near (${dto.lat.toFixed(4)}, ${dto.lng.toFixed(4)}).${dto.description ? ' ' + dto.description : ''}`,
+          category: NotificationCategory.LOST_PET,
+          actionUrl: `${frontendUrl}/lost-pets/${reportId}`,
+          metadata: { reportId, sightingId: saved.id, lat: dto.lat, lng: dto.lng },
+        })
+        .catch(() => {});
+    }
+
+    return saved;
   }
 
   async findAllLost(): Promise<LostPetReport[]> {
@@ -239,7 +290,9 @@ export class LostPetsService {
     if (lat == null || lng == null) return;
 
     const pet = await this.petsService.findOne(petId);
-    const message = report.customMessage || `${pet.name} has been reported lost. Please help spread the word!`;
+    const message =
+      report.customMessage ||
+      `${pet.name} has been reported lost. Please help spread the word!`;
 
     const nearbyUserIds = await this.findUserIdsWithinRadius(
       Number(lat),

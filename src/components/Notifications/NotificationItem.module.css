@@ -33,14 +33,38 @@
   color: #666;
 }
 
-.appointment { background-color: #e6f7ff; color: #1890ff; }
-.medication { background-color: #f6ffed; color: #52c41a; }
-.consultation { background-color: #fff7e6; color: #fa8c16; }
-.alert { background-color: #fff1f0; color: #f5222d; }
-.message { background-color: #f9f0ff; color: #722ed1; }
-.vaccination { background-color: #e6fffb; color: #13c2c2; }
-.lost_pet { background-color: #fffbe6; color: #faad14; }
-.medical_record { background-color: #f0f5ff; color: #2f54eb; }
+.appointment {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+.medication {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+.consultation {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+.alert {
+  background-color: #fff1f0;
+  color: #f5222d;
+}
+.message {
+  background-color: #f9f0ff;
+  color: #722ed1;
+}
+.vaccination {
+  background-color: #e6fffb;
+  color: #13c2c2;
+}
+.lost_pet {
+  background-color: #fffbe6;
+  color: #faad14;
+}
+.medical_record {
+  background-color: #f0f5ff;
+  color: #2f54eb;
+}
 
 .content {
   flex-grow: 1;
@@ -96,7 +120,8 @@
   gap: 0.75rem;
 }
 
-.actionBtn, .markReadBtn {
+.actionBtn,
+.markReadBtn {
   display: flex;
   align-items: center;
   gap: 0.35rem;

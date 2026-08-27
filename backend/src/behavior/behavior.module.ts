@@ -6,12 +6,9 @@ import { BehaviorController } from './behavior.controller';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([BehaviorLog]),
-        AuthModule,
-    ],
-    controllers: [BehaviorController],
-    providers: [BehaviorService],
-    exports: [BehaviorService],
+  imports: [TypeOrmModule.forFeature([BehaviorLog]), AuthModule],
+  controllers: [BehaviorController],
+  providers: [BehaviorService],
+  exports: [BehaviorService],
 })
-export class BehaviorModule { }
+export class BehaviorModule {}

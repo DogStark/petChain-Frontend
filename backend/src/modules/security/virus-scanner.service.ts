@@ -297,9 +297,10 @@ export class VirusScannerService implements IVirusScanner, OnModuleInit {
 
     // Check for common malicious patterns
     const suspiciousPatterns = [
-      /<script[^>]*>.*?eval\s*\(/is,
+      // Fixed: avoid polynomial backtracking by using non-backtracking patterns
+      /<script\b[^>]*>[^<]*eval\s*\(/i,
       /document\.write\s*\(\s*unescape/i,
-      /fromCharCode.*?fromCharCode.*?fromCharCode/i,
+      /fromCharCode[^)]{0,200}fromCharCode[^)]{0,200}fromCharCode/i,
       /ActiveXObject/i,
       /WScript\.Shell/i,
       /powershell\s+-[eE]nc/i,

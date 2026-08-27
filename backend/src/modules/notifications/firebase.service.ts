@@ -1,6 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
+
+let admin: any;
+try {
+  admin = require('firebase-admin');
+} catch {
+  admin = null;
+}
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -14,6 +20,13 @@ export class FirebaseService implements OnModuleInit {
   }
 
   private initializeFirebase() {
+    if (!admin) {
+      this.logger.warn(
+        'firebase-admin package not installed. Firebase messaging will be disabled.',
+      );
+      return;
+    }
+
     if (admin.apps.length > 0) {
       this.initialized = true;
       return;
@@ -24,11 +37,13 @@ export class FirebaseService implements OnModuleInit {
     // Handle newlines in private key
     let privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
     if (privateKey) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
+      privateKey = privateKey.replace(/\\n/g, '\n');
     }
 
     if (!projectId || !clientEmail || !privateKey) {
-      this.logger.warn('Firebase credentials not fully provided in env (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY). Firebase messaging will be disabled.');
+      this.logger.warn(
+        'Firebase credentials not fully provided in env (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY). Firebase messaging will be disabled.',
+      );
       return;
     }
 
@@ -61,7 +76,7 @@ export class FirebaseService implements OnModuleInit {
     }
 
     try {
-      const message: admin.messaging.Message = {
+      const message: any = {
         token,
         notification: {
           title: notification.title,
@@ -75,7 +90,10 @@ export class FirebaseService implements OnModuleInit {
       this.logger.debug(`Successfully sent FCM message: ${response}`);
       return true;
     } catch (error) {
-      this.logger.error(`Error sending FCM message to token ${token}`, error.stack);
+      this.logger.error(
+        `Error sending FCM message to token ${token}`,
+        error.stack,
+      );
       return false;
     }
   }
@@ -87,31 +105,33 @@ export class FirebaseService implements OnModuleInit {
     tokens: string[],
     notification: { title: string; body: string; imageUrl?: string },
     data?: Record<string, string>,
-  ): Promise<admin.messaging.BatchResponse | null> {
-      if (!this.initialized) {
-          this.logger.warn('FCM multicast send aborted: Firebase not initialized.');
-          return null;
-      }
-      
-      if (!tokens || tokens.length === 0) return null;
+  ): Promise<any | null> {
+    if (!this.initialized) {
+      this.logger.warn('FCM multicast send aborted: Firebase not initialized.');
+      return null;
+    }
 
-      try {
-          const message: admin.messaging.MulticastMessage = {
-              tokens,
-              notification: {
-                title: notification.title,
-                body: notification.body,
-                ...(notification.imageUrl && { imageUrl: notification.imageUrl }),
-              },
-              data: data || {},
-          };
+    if (!tokens || tokens.length === 0) return null;
 
-          const response = await admin.messaging().sendEachForMulticast(message);
-          this.logger.debug(`Bulk FCM send result: ${response.successCount} successful, ${response.failureCount} failed out of ${tokens.length}`);
-          return response;
-      } catch (error) {
-          this.logger.error(`Error sending multicultural FCM message`, error.stack);
-          return null;
-      }
+    try {
+      const message: any = {
+        tokens,
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          ...(notification.imageUrl && { imageUrl: notification.imageUrl }),
+        },
+        data: data || {},
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(message);
+      this.logger.debug(
+        `Bulk FCM send result: ${response.successCount} successful, ${response.failureCount} failed out of ${tokens.length}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(`Error sending multicultural FCM message`, error.stack);
+      return null;
+    }
   }
 }

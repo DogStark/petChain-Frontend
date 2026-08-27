@@ -4,106 +4,146 @@ import {
   IsNumber,
   IsArray,
   IsBoolean,
+  IsInt,
+  IsEnum,
+  IsIn,
+  IsDateString,
+  MaxLength,
   Min,
   Max,
-  IsIn,
 } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { PetSpecies } from '../../pets/entities/pet-species.enum';
+import { PetGender } from '../../pets/entities/pet-gender.enum';
+import { RecordType } from '../../medical-records/entities/medical-record.entity';
 
 export class SearchQueryDto {
-  @IsString()
   @IsOptional()
+  @IsString()
+  @MaxLength(500)
   query?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   @IsIn(['pets', 'vets', 'medical-records', 'emergency-services', 'global'])
   type?: string;
 
   // Pagination
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
-  page?: number;
+  page?: number = 1;
 
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number;
+  limit?: number = 10;
 
-  // Filters
-  @IsString()
+  // Pet filters
   @IsOptional()
+  @IsString()
   breed?: string;
 
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   minAge?: number;
 
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   maxAge?: number;
 
-  @IsString()
   @IsOptional()
-  location?: string;
+  @IsEnum(PetSpecies)
+  species?: PetSpecies;
 
-  @IsString()
   @IsOptional()
+  @IsEnum(PetGender)
+  gender?: PetGender;
+
+  // Vet filters
+  @IsOptional()
+  @IsString()
   specialty?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  location?: string;
+
+  // Medical record filters
+  @IsOptional()
+  @IsString()
   condition?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   treatment?: string;
 
-  @IsString()
   @IsOptional()
-  serviceType?: string;
+  @IsEnum(RecordType)
+  recordType?: RecordType;
 
-  @IsBoolean()
   @IsOptional()
-  is24Hours?: boolean;
+  @IsDateString()
+  dateFrom?: string;
 
-  // Geolocation
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
+
+  // Geospatial
+  @IsOptional()
+  @Type(() => Number)
   @IsNumber()
-  @IsOptional()
   @Min(-90)
   @Max(90)
   latitude?: number;
 
-  @IsNumber()
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   @Min(-180)
   @Max(180)
   longitude?: number;
 
-  @IsNumber()
   @IsOptional()
-  @Min(1)
-  radius?: number; // in kilometers
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.1)
+  radius?: number;
 
   // Sorting
-  @IsString()
   @IsOptional()
-  @IsIn(['relevance', 'date', 'distance', 'rating', 'name'])
+  @IsIn(['relevance', 'name', 'createdAt', 'visitDate', 'distance'])
   sortBy?: string;
 
-  @IsString()
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
-  sortOrder?: string;
+  sortOrder?: 'ASC' | 'DESC';
 
-  // Additional filters
+  // Backward-compatible fields
+  @IsOptional()
+  @IsString()
+  serviceType?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is24Hours?: boolean;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
   tags?: string[];
 
-  @IsBoolean()
+  // Misc
   @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
   includeInactive?: boolean;
 }

@@ -1,0 +1,295 @@
+version: '3.8'
+
+services:
+  # Primary PostgreSQL with replication
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: petchain_postgres_primary
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: petchain_db
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./scripts/postgres-primary.conf:/etc/postgresql/postgresql.conf
+      - ./scripts/postgres-primary-init.sh:/docker-entrypoint-initdb.d/01-primary.sh
+    networks:
+      - petchain_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d petchain_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Standby PostgreSQL for failover
+  postgres-standby:
+    image: postgres:16-alpine
+    container_name: petchain_postgres_standby
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: petchain_db
+      POSTGRES_PRIMARY_HOST: postgres-primary
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_standby_data:/var/lib/postgresql/data
+      - ./scripts/postgres-standby.conf:/etc/postgresql/postgresql.conf
+      - ./scripts/postgres-standby-init.sh:/docker-entrypoint-initdb.d/01-standby.sh
+    networks:
+      - petchain_network
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d petchain_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cluster with Sentinel for high availability
+  redis-master:
+    image: redis:7-alpine
+    container_name: petchain_redis_master
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_master_data:/data
+      - ./scripts/redis-master.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - petchain_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-slave:
+    image: redis:7-alpine
+    container_name: petchain_redis_slave
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_slave_data:/data
+      - ./scripts/redis-slave.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - petchain_network
+    depends_on:
+      - redis-master
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-sentinel:
+    image: redis:7-alpine
+    container_name: petchain_redis_sentinel
+    restart: unless-stopped
+    ports:
+      - '26379:26379'
+    volumes:
+      - ./scripts/redis-sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    networks:
+      - petchain_network
+    depends_on:
+      - redis-master
+      - redis-slave
+
+  # Backend application with load balancing
+  backend-primary:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petchain_backend_primary
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_HOST: postgres-primary
+      DATABASE_PORT: 5432
+      DATABASE_NAME: petchain_db
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis-master
+      REDIS_PORT: 6379
+      INSTANCE_ID: primary
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - petchain_network
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  backend-secondary:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petchain_backend_secondary
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_HOST: postgres-primary
+      DATABASE_PORT: 5432
+      DATABASE_NAME: petchain_db
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis-master
+      REDIS_PORT: 6379
+      INSTANCE_ID: secondary
+    ports:
+      - '3001:3000'
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - petchain_network
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # NGINX Load Balancer
+  nginx-lb:
+    image: nginx:alpine
+    container_name: petchain_nginx_lb
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx-ha.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - petchain_network
+    depends_on:
+      - backend-primary
+      - backend-secondary
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Health monitoring service
+  health-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: petchain_health_monitor
+    restart: unless-stopped
+    environment:
+      MONITOR_INTERVAL: 30
+      NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
+      SLACK_WEBHOOK: ${SLACK_WEBHOOK}
+      DATABASE_HOST: postgres-primary
+      REDIS_HOST: redis-master
+    volumes:
+      - ./scripts/health-check.sh:/app/health-check.sh
+      - ./logs/monitor:/app/logs
+    networks:
+      - petchain_network
+    depends_on:
+      - postgres-primary
+      - redis-master
+      - backend-primary
+      - backend-secondary
+
+  # Failover manager
+  failover-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.failover
+    container_name: petchain_failover_manager
+    restart: unless-stopped
+    environment:
+      FAILOVER_CHECK_INTERVAL: 60
+      AUTO_FAILOVER_ENABLED: "true"
+      DATABASE_PRIMARY: postgres-primary
+      DATABASE_STANDBY: postgres-standby
+      BACKEND_PRIMARY: backend-primary
+      BACKEND_SECONDARY: backend-secondary
+      NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
+    volumes:
+      - ./scripts/failover-manager.sh:/app/failover-manager.sh
+      - ./scripts/promote-standby.sh:/app/promote-standby.sh
+      - ./logs/failover:/app/logs
+    networks:
+      - petchain_network
+    depends_on:
+      - postgres-primary
+      - postgres-standby
+      - backend-primary
+      - backend-secondary
+    privileged: true
+
+  # Backup service for HA setup
+  backup-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: petchain_backup_service
+    restart: unless-stopped
+    environment:
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      BACKUP_DIR: /backups
+      S3_BUCKET: ${S3_BUCKET}
+      DATABASE_HOST: postgres-primary
+      REDIS_HOST: redis-master
+    volumes:
+      - ./scripts:/app/scripts
+      - /backups:/backups
+      - ./uploads:/app/uploads
+      - ./logs/backup:/app/logs
+    networks:
+      - petchain_network
+    depends_on:
+      - postgres-primary
+      - redis-master
+
+volumes:
+  postgres_primary_data:
+  postgres_standby_data:
+  redis_master_data:
+  redis_slave_data:
+
+networks:
+  petchain_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

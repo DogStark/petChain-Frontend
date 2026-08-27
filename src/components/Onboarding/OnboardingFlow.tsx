@@ -13,7 +13,12 @@ import {
   Search,
   Shield,
 } from 'lucide-react';
-import { OnboardingStatus, OnboardingStepId, OnboardingAnalytics } from '../../lib/api/userAPI';
+import {
+  OnboardingStatus,
+  OnboardingStepId,
+  OnboardingAnalytics,
+  ONBOARDING_STEP_IDS,
+} from '../../lib/api/userAPI';
 import styles from './OnboardingFlow.module.css';
 
 interface OnboardingFlowProps {
@@ -24,13 +29,25 @@ interface OnboardingFlowProps {
   onFinish: () => void;
 }
 
-const STEPS: { id: OnboardingStepId; label: string }[] = [
-  { id: 'welcome', label: 'Welcome' },
-  { id: 'profile_setup', label: 'Profile' },
-  { id: 'add_pet', label: 'Your Pet' },
-  { id: 'notifications', label: 'Alerts' },
-  { id: 'explore', label: 'Explore' },
-];
+const STEP_LABELS: Record<OnboardingStepId, string> = {
+  welcome: 'Welcome',
+  profile_setup: 'Profile',
+  add_pet: 'Your Pet',
+  notifications: 'Alerts',
+  explore: 'Explore',
+};
+
+const STEPS: { id: OnboardingStepId; label: string }[] = ONBOARDING_STEP_IDS.map((id) => ({
+  id,
+  label: STEP_LABELS[id],
+}));
+
+/** Pulls a human-readable message out of an unknown error, falling back to a default. */
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'string' && err) return err;
+  return fallback;
+}
 
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   status,
@@ -41,12 +58,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 }) => {
   const initialIndex = Math.max(
     0,
-    STEPS.findIndex((s) => s.id === status.currentStep),
+    STEPS.findIndex((s) => s.id === status.currentStep)
   );
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [completedSteps, setCompletedSteps] = useState<OnboardingStepId[]>(
-    status.completedSteps,
-  );
+  const [completedSteps, setCompletedSteps] = useState<OnboardingStepId[]>(status.completedSteps);
   const [completing, setCompleting] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,15 +82,20 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       } else {
         setCurrentIndex((i) => i + 1);
       }
-    } catch {
-      setError('Failed to save progress. Please try again.');
+    } catch (err) {
+      setError(
+        getErrorMessage(err, 'Failed to save progress. Please check your connection and try again.')
+      );
     } finally {
       setCompleting(false);
     }
   };
 
   const handleBack = () => {
-    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
+    if (currentIndex > 0) {
+      setError(null);
+      setCurrentIndex((i) => i - 1);
+    }
   };
 
   const handleSkip = async () => {
@@ -83,8 +103,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     setError(null);
     try {
       await onSkip();
-    } catch {
-      setError('Failed to skip. Please try again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to skip setup. Please try again.'));
       setSkipping(false);
     }
   };
@@ -203,7 +223,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         {currentStep.id === 'explore' && <ExploreStep />}
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && (
+        <div className={styles.error} role="alert">
+          {error}
+        </div>
+      )}
 
       {/* Navigation */}
       <div className={styles.navigation}>
@@ -239,13 +263,22 @@ function WelcomeStep() {
       </div>
       <h2 className={styles.stepTitle}>Welcome to PetChain</h2>
       <p className={styles.stepDescription}>
-        Secure your pet&apos;s medical records on the blockchain. Let&apos;s get you set up in
-        just a few steps.
+        Secure your pet&apos;s medical records on the blockchain. Let&apos;s get you set up in just
+        a few steps.
       </p>
       <div className={styles.featureList}>
-        <FeatureItem icon={<Shield size={18} color="#2563eb" />} text="Tamper-proof health records" />
-        <FeatureItem icon={<Search size={18} color="#2563eb" />} text="Find vets &amp; emergency services" />
-        <FeatureItem icon={<BarChart2 size={18} color="#2563eb" />} text="Track vaccination compliance" />
+        <FeatureItem
+          icon={<Shield size={18} color="#2563eb" />}
+          text="Tamper-proof health records"
+        />
+        <FeatureItem
+          icon={<Search size={18} color="#2563eb" />}
+          text="Find vets & emergency services"
+        />
+        <FeatureItem
+          icon={<BarChart2 size={18} color="#2563eb" />}
+          text="Track vaccination compliance"
+        />
       </div>
     </div>
   );
@@ -294,8 +327,8 @@ function NotificationsStep() {
       </div>
       <h2 className={styles.stepTitle}>Stay Informed</h2>
       <p className={styles.stepDescription}>
-        Get reminders for vaccinations, vet appointments, and health alerts via email, SMS, or
-        push notifications.
+        Get reminders for vaccinations, vet appointments, and health alerts via email, SMS, or push
+        notifications.
       </p>
       <a href="/preferences" className={styles.ctaLink}>
         Set Preferences <ArrowRight size={14} />
@@ -311,33 +344,41 @@ function ExploreStep() {
         <Compass size={32} color="#e11d48" />
       </div>
       <h2 className={styles.stepTitle}>Explore PetChain</h2>
-      <p className={styles.stepDescription}>
-        You&apos;re ready! Here&apos;s what you can do next.
-      </p>
+      <p className={styles.stepDescription}>You&apos;re ready! Here&apos;s what you can do next.</p>
       <div className={styles.featureList}>
-        <FeatureItem icon={<Search size={18} color="#2563eb" />} text="Search pets, vets &amp; records" link="/search" />
-        <FeatureItem icon={<BarChart2 size={18} color="#2563eb" />} text="View health analytics" link="/analytics" />
-        <FeatureItem icon={<User size={18} color="#2563eb" />} text="Manage your account" link="/account-settings" />
+        <FeatureItem
+          icon={<Search size={18} color="#2563eb" />}
+          text="Search pets, vets & records"
+          link="/search"
+        />
+        <FeatureItem
+          icon={<BarChart2 size={18} color="#2563eb" />}
+          text="View health analytics"
+          link="/analytics"
+        />
+        <FeatureItem
+          icon={<User size={18} color="#2563eb" />}
+          text="Manage your account"
+          link="/account-settings"
+        />
       </div>
     </div>
   );
 }
 
-function FeatureItem({
-  icon,
-  text,
-  link,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  link?: string;
-}) {
+function FeatureItem({ icon, text, link }: { icon: React.ReactNode; text: string; link?: string }) {
   const content = (
     <div className={styles.featureItem}>
       <span className={styles.featureIcon}>{icon}</span>
-      <span className={styles.featureText} dangerouslySetInnerHTML={{ __html: text }} />
+      <span className={styles.featureText}>{text}</span>
       {link && <ArrowRight size={12} className={styles.featureArrow} />}
     </div>
   );
-  return link ? <a href={link} className={styles.featureLink}>{content}</a> : content;
+  return link ? (
+    <a href={link} className={styles.featureLink}>
+      {content}
+    </a>
+  ) : (
+    content
+  );
 }

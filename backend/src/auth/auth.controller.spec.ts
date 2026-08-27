@@ -19,6 +19,9 @@ describe('AuthController', () => {
     verifyPhone: jest.fn(),
     resendPhoneVerification: jest.fn(),
     forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
+    requestPasswordReset: jest.fn(),
+    confirmPasswordReset: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -256,16 +259,62 @@ describe('AuthController', () => {
         email: 'test@example.com',
       };
 
+      const mockRequest = { ip: '192.168.1.2' };
+      (DeviceFingerprintUtil.extractFromRequest as jest.Mock).mockReturnValue({
+        ipAddress: '192.168.1.2',
+        userAgent: 'Mozilla/5.0',
+      });
       mockAuthService.forgotPassword.mockResolvedValue(undefined);
 
-      const result = await controller.forgotPassword(forgotPasswordDto);
+      const result = await controller.forgotPassword(
+        forgotPasswordDto,
+        mockRequest as any,
+      );
 
       expect(authService.forgotPassword).toHaveBeenCalledWith(
         forgotPasswordDto,
+        '192.168.1.2',
       );
       expect(result).toEqual({
         message: 'If the email exists, a password reset link has been sent',
       });
+    });
+  });
+
+  describe('password-reset (Issue #145)', () => {
+    it('should request password reset', async () => {
+      const mockRequest = { ip: '10.0.0.1' };
+      (DeviceFingerprintUtil.extractFromRequest as jest.Mock).mockReturnValue({
+        ipAddress: '10.0.0.1',
+        userAgent: 'Mozilla/5.0',
+      });
+      mockAuthService.requestPasswordReset.mockResolvedValue(undefined);
+
+      const res = await controller.passwordResetRequest(
+        { email: 'a@b.com' },
+        mockRequest as any,
+      );
+
+      expect(authService.requestPasswordReset).toHaveBeenCalledWith(
+        'a@b.com',
+        '10.0.0.1',
+      );
+      expect(res.message).toContain('password reset');
+    });
+
+    it('should confirm password reset', async () => {
+      mockAuthService.confirmPasswordReset.mockResolvedValue(undefined);
+
+      const res = await controller.passwordResetConfirm({
+        token: 'tok',
+        newPassword: 'Password123!',
+      });
+
+      expect(authService.confirmPasswordReset).toHaveBeenCalledWith(
+        'tok',
+        'Password123!',
+      );
+      expect(res.message).toContain('success');
     });
   });
 });

@@ -9,7 +9,10 @@ export interface BaseTemplateOptions {
  * Wraps any email body in a clean, responsive HTML shell.
  * Works in all major email clients including Outlook.
  */
-export function baseTemplate(body: string, options: BaseTemplateOptions = {}): string {
+export function baseTemplate(
+  body: string,
+  options: BaseTemplateOptions = {},
+): string {
   const { previewText = '', unsubscribeUrl, emailTypeLabel } = options;
 
   return `<!DOCTYPE html>
@@ -99,7 +102,11 @@ export function baseTemplate(body: string, options: BaseTemplateOptions = {}): s
 }
 
 /** Reusable button component for templates */
-export function emailButton(text: string, url: string, color = '#4f46e5'): string {
+export function emailButton(
+  text: string,
+  url: string,
+  color = '#4f46e5',
+): string {
   return `
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:24px 0;">
       <tr>
@@ -115,7 +122,11 @@ export function emailButton(text: string, url: string, color = '#4f46e5'): strin
 }
 
 /** Reusable info box (light background callout) */
-export function emailInfoBox(content: string, color = '#eff6ff', borderColor = '#bfdbfe'): string {
+export function emailInfoBox(
+  content: string,
+  color = '#eff6ff',
+  borderColor = '#bfdbfe',
+): string {
   return `
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;">
       <tr>

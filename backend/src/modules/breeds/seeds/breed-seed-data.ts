@@ -28,7 +28,8 @@ export const breedSeedData = [
       recommended_vaccines: ['Lyme Disease', 'Canine Influenza'],
       schedule_notes: 'Puppy series at 6, 9, 12 weeks, then annually',
     },
-    description: 'A friendly, intelligent breed that is great with families and children.',
+    description:
+      'A friendly, intelligent breed that is great with families and children.',
     origin_country: 'Scotland',
     physical_characteristics: {
       weight_range: { min: 55, max: 75, unit: 'lbs' },
@@ -66,7 +67,8 @@ export const breedSeedData = [
       recommended_vaccines: ['Lyme Disease', 'Canine Influenza'],
       schedule_notes: 'Puppy series at 6, 9, 12 weeks, then annually',
     },
-    description: 'Americas most popular dog breed. Labs are friendly, outgoing, and active companions.',
+    description:
+      'Americas most popular dog breed. Labs are friendly, outgoing, and active companions.',
     origin_country: 'Canada',
     physical_characteristics: {
       weight_range: { min: 55, max: 80, unit: 'lbs' },
@@ -104,7 +106,8 @@ export const breedSeedData = [
       recommended_vaccines: ['Lyme Disease', 'Canine Influenza'],
       schedule_notes: 'Puppy series at 6, 9, 12 weeks, then annually',
     },
-    description: 'Large, athletic dogs known for their loyalty, courage, and versatility.',
+    description:
+      'Large, athletic dogs known for their loyalty, courage, and versatility.',
     origin_country: 'Germany',
     physical_characteristics: {
       weight_range: { min: 50, max: 90, unit: 'lbs' },
@@ -144,7 +147,8 @@ export const breedSeedData = [
       recommended_vaccines: ['Canine Influenza'],
       schedule_notes: 'Puppy series at 6, 9, 12 weeks, then annually',
     },
-    description: 'Small, muscular dogs with characteristic bat ears and squashed face.',
+    description:
+      'Small, muscular dogs with characteristic bat ears and squashed face.',
     origin_country: 'France',
     physical_characteristics: {
       weight_range: { min: 20, max: 28, unit: 'lbs' },
@@ -260,7 +264,8 @@ export const breedSeedData = [
       recommended_vaccines: ['FeLV'],
       schedule_notes: 'Kitten series at 6, 9, 12 weeks, then annually',
     },
-    description: 'Vocal, social cats with distinctive color points and blue eyes.',
+    description:
+      'Vocal, social cats with distinctive color points and blue eyes.',
     origin_country: 'Thailand',
     physical_characteristics: {
       weight_range: { min: 6, max: 14, unit: 'lbs' },

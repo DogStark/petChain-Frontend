@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { VetClinic } from './entities/vet-clinic.entity';
 import { Appointment } from './entities/appointment.entity';
+import { ClinicSchedule } from './entities/clinic-schedule.entity';
 import { VetClinicsService } from './vet-clinics.service';
 import { AppointmentsService } from './appointments.service';
 import { VetClinicsController } from './vet-clinics.controller';
@@ -10,7 +11,7 @@ import { AppointmentWaitlistModule } from '../appointment-waitlist/appointment-w
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([VetClinic, Appointment]),
+    TypeOrmModule.forFeature([VetClinic, Appointment, ClinicSchedule]),
     forwardRef(() => AppointmentWaitlistModule),
   ],
   controllers: [VetClinicsController, AppointmentsController],

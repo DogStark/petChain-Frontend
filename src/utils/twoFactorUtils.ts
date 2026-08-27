@@ -16,7 +16,10 @@ export const twoFactorUtils = {
 
   // Format backup code input (uppercase, remove non-alphanumeric, limit to 8 chars)
   formatBackupCode: (input: string): string => {
-    return input.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    return input
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 8);
   },
 
   // Generate QR code URL for TOTP setup
@@ -26,8 +29,8 @@ export const twoFactorUtils = {
       issuer,
       algorithm: 'SHA1',
       digits: '6',
-      period: '30'
+      period: '30',
     });
     return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?${params}`;
-  }
+  },
 };

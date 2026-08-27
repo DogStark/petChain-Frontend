@@ -18,6 +18,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { QueryPetsDto } from './dto/query-pets.dto';
 import { SharePetDto } from './dto/share-pet.dto';
 import { TransferPetOwnershipDto } from './dto/transfer-pet-ownership.dto';
+import { BulkPetActionDto } from './dto/bulk-pet-action.dto';
 import { ReportLostPetDto } from '../lost-pets/dto/report-lost-pet.dto';
 import { ReportFoundPetDto } from '../lost-pets/dto/report-found-pet.dto';
 import { UpdateLostMessageDto } from '../lost-pets/dto/update-lost-message.dto';
@@ -32,6 +33,17 @@ export class PetsController {
     private readonly petsService: PetsService,
     private readonly lostPetsService: LostPetsService,
   ) {}
+
+  @Get('search')
+  search(@Query('q') q: string, @CurrentUser() user: User) {
+    return this.petsService.search(q ?? '', user.id);
+  }
+
+  @Post('bulk')
+  @HttpCode(HttpStatus.OK)
+  bulkAction(@Body() dto: BulkPetActionDto, @CurrentUser() user: User) {
+    return this.petsService.bulkAction(user.id, dto);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -120,7 +132,10 @@ export class PetsController {
   async getHealthSummary(@Param('id') id: string, @CurrentUser() user: User) {
     const pet = await this.petsService.findOneForUser(id, user.id);
     const age = this.petsService.calculateAge(pet.dateOfBirth);
-    const lifeStage = this.petsService.getLifeStage(pet.dateOfBirth, pet.species);
+    const lifeStage = this.petsService.getLifeStage(
+      pet.dateOfBirth,
+      pet.species,
+    );
 
     return {
       petId: id,
@@ -148,7 +163,10 @@ export class PetsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string, @CurrentUser() user: User): Promise<void> {
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<void> {
     await this.petsService.softDeleteForUser(id, user.id);
   }
 }

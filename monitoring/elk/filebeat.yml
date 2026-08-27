@@ -1,0 +1,13 @@
+input:
+  - type: log
+    paths:
+      - /var/log/petchain/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "petchain-logs-%{+yyyy.MM.dd}"
+
+setup.kibana:
+  host: "kibana:5601"

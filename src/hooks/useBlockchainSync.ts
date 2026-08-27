@@ -5,6 +5,7 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 export const useBlockchainSync = () => {
   const [syncStatuses, setSyncStatuses] = useState<SyncResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -13,17 +14,19 @@ export const useBlockchainSync = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const syncRecord = async (
-    record: MedicalRecord,
-    secretKey: string,
-    encryptionKey: string
-  ) => {
+  const syncRecord = async (record: MedicalRecord, secretKey: string, encryptionKey: string) => {
     setIsLoading(true);
+    setSyncError(null);
+
     try {
       const keypair = StellarSdk.Keypair.fromSecret(secretKey);
       const result = await stellarSync.syncRecord(record, keypair, encryptionKey);
       setSyncStatuses(stellarSync.getAllSyncStatuses());
       return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown blockchain sync error';
+      setSyncError(message);
+      return undefined;
     } finally {
       setIsLoading(false);
     }
@@ -43,5 +46,6 @@ export const useBlockchainSync = () => {
     getStatus,
     syncStatuses,
     isLoading,
+    syncError,
   };
 };

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { transactionAPI, Transaction, TransactionFilters, TransactionStatus, TransactionType } from '@/lib/api/transactionAPI';
+import {
+  transactionAPI,
+  Transaction,
+  TransactionFilters,
+  TransactionStatus,
+  TransactionType,
+} from '@/lib/api/transactionAPI';
+import { formatDateTime } from '@/utils/formatDate';
 
 const statusColors: Record<TransactionStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -9,30 +16,17 @@ const statusColors: Record<TransactionStatus, string> = {
 };
 
 export default function TransactionHistory() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { transactions, loading, fetchTransactions, retryTransaction } = useTransactions();
   const [filters, setFilters] = useState<TransactionFilters>({});
 
   useEffect(() => {
-    loadTransactions();
-  }, [filters]);
-
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-      const data = await transactionAPI.getTransactionHistory(filters);
-      setTransactions(data);
-    } catch (error) {
-      console.error('Failed to load transactions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchTransactions(filters);
+  }, [filters, fetchTransactions]);
 
   const handleRetry = async (id: string) => {
     try {
-      await transactionAPI.retryFailedTransaction(id);
-      loadTransactions();
+      await retryTransaction(id);
+      await fetchTransactions(filters);
     } catch (error) {
       console.error('Failed to retry transaction:', error);
     }
@@ -43,10 +37,12 @@ export default function TransactionHistory() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Transaction History</h2>
-      
+
       <div className="mb-4 flex gap-2">
         <select
-          onChange={(e) => setFilters({ ...filters, status: e.target.value as TransactionStatus || undefined })}
+          onChange={(e) =>
+            setFilters({ ...filters, status: (e.target.value as TransactionStatus) || undefined })
+          }
           className="border rounded px-3 py-2"
         >
           <option value="">All Status</option>
@@ -54,9 +50,11 @@ export default function TransactionHistory() {
           <option value="confirmed">Confirmed</option>
           <option value="failed">Failed</option>
         </select>
-        
+
         <select
-          onChange={(e) => setFilters({ ...filters, type: e.target.value as TransactionType || undefined })}
+          onChange={(e) =>
+            setFilters({ ...filters, type: (e.target.value as TransactionType) || undefined })
+          }
           className="border rounded px-3 py-2"
         >
           <option value="">All Types</option>
@@ -66,7 +64,7 @@ export default function TransactionHistory() {
         </select>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow--auto">
         <table className="min-w-full bg-white border">
           <thead>
             <tr className="bg-gray-100">
@@ -91,9 +89,7 @@ export default function TransactionHistory() {
                   </span>
                 </td>
                 <td className="px-4 py-2 border">{tx.fee} XLM</td>
-                <td className="px-4 py-2 border">
-                  {new Date(tx.timestamp).toLocaleString()}
-                </td>
+                <td className="px-4 py-2 border">{formatDateTime(tx.timestamp)}</td>
                 <td className="px-4 py-2 border">
                   {tx.status === 'failed' && (
                     <button

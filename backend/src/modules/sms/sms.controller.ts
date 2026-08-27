@@ -104,7 +104,14 @@ export class SmsController {
    */
   @Post('webhook/status')
   async webhookStatus(
-    @Body() body: { MessageSid?: string; MessageStatus?: string; ErrorCode?: string; ErrorMessage?: string; MessagePrice?: string },
+    @Body()
+    body: {
+      MessageSid?: string;
+      MessageStatus?: string;
+      ErrorCode?: string;
+      ErrorMessage?: string;
+      MessagePrice?: string;
+    },
     @Req() req: Request,
   ) {
     const authToken = this.configService.get<string>('sms.twilioAuthToken');
@@ -125,7 +132,9 @@ export class SmsController {
     if (!body.MessageSid || !body.MessageStatus) {
       return { success: false, error: 'Missing MessageSid or MessageStatus' };
     }
-    const costCents = body.MessagePrice ? parseFloat(body.MessagePrice) * 100 : undefined;
+    const costCents = body.MessagePrice
+      ? parseFloat(body.MessagePrice) * 100
+      : undefined;
     await this.smsService.updateDeliveryStatus(
       body.MessageSid,
       body.MessageStatus,

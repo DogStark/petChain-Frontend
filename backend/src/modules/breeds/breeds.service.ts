@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, ILike, In, Not } from 'typeorm';
 import { Breed, SpeciesType } from './entities/breed.entity';
@@ -106,13 +110,13 @@ export class BreedsService {
 
     // Breed group filters
     if (akc_group) {
-      queryBuilder.andWhere('breed.breed_group ->> \'akc_group\' = :akc_group', {
+      queryBuilder.andWhere("breed.breed_group ->> 'akc_group' = :akc_group", {
         akc_group,
       });
     }
 
     if (cfa_group) {
-      queryBuilder.andWhere('breed.breed_group ->> \'cfa_group\' = :cfa_group', {
+      queryBuilder.andWhere("breed.breed_group ->> 'cfa_group' = :cfa_group", {
         cfa_group,
       });
     }
@@ -120,35 +124,35 @@ export class BreedsService {
     // Care requirements filters
     if (exercise_level) {
       queryBuilder.andWhere(
-        'breed.care_requirements ->> \'exercise_level\' = :exercise_level',
+        "breed.care_requirements ->> 'exercise_level' = :exercise_level",
         { exercise_level },
       );
     }
 
     if (grooming_needs) {
       queryBuilder.andWhere(
-        'breed.care_requirements ->> \'grooming_needs\' = :grooming_needs',
+        "breed.care_requirements ->> 'grooming_needs' = :grooming_needs",
         { grooming_needs },
       );
     }
 
     if (good_with_kids !== undefined) {
       queryBuilder.andWhere(
-        'breed.care_requirements ->> \'good_with_kids\' = :good_with_kids',
+        "breed.care_requirements ->> 'good_with_kids' = :good_with_kids",
         { good_with_kids: good_with_kids.toString() },
       );
     }
 
     if (good_with_pets !== undefined) {
       queryBuilder.andWhere(
-        'breed.care_requirements ->> \'good_with_pets\' = :good_with_pets',
+        "breed.care_requirements ->> 'good_with_pets' = :good_with_pets",
         { good_with_pets: good_with_pets.toString() },
       );
     }
 
     if (apartment_friendly !== undefined) {
       queryBuilder.andWhere(
-        'breed.care_requirements ->> \'apartment_friendly\' = :apartment_friendly',
+        "breed.care_requirements ->> 'apartment_friendly' = :apartment_friendly",
         { apartment_friendly: apartment_friendly.toString() },
       );
     }
@@ -156,14 +160,14 @@ export class BreedsService {
     // Life expectancy filters
     if (min_life_expectancy) {
       queryBuilder.andWhere(
-        'CAST(breed.life_expectancy ->> \'average\' AS INTEGER) >= :min_life_expectancy',
+        "CAST(breed.life_expectancy ->> 'average' AS INTEGER) >= :min_life_expectancy",
         { min_life_expectancy },
       );
     }
 
     if (max_life_expectancy) {
       queryBuilder.andWhere(
-        'CAST(breed.life_expectancy ->> \'average\' AS INTEGER) <= :max_life_expectancy',
+        "CAST(breed.life_expectancy ->> 'average' AS INTEGER) <= :max_life_expectancy",
         { max_life_expectancy },
       );
     }
@@ -230,7 +234,10 @@ export class BreedsService {
   /**
    * Get popular breeds (most searched/viewed)
    */
-  async getPopularBreeds(species?: SpeciesType, limit: number = 10): Promise<Breed[]> {
+  async getPopularBreeds(
+    species?: SpeciesType,
+    limit: number = 10,
+  ): Promise<Breed[]> {
     const queryBuilder = this.breedRepository
       .createQueryBuilder('breed')
       .where('breed.is_active = :isActive', { isActive: true });
@@ -298,11 +305,11 @@ export class BreedsService {
   }> {
     const [total, dogs, cats] = await Promise.all([
       this.breedRepository.count({ where: { is_active: true } }),
-      this.breedRepository.count({ 
-        where: { species: SpeciesType.DOG, is_active: true } 
+      this.breedRepository.count({
+        where: { species: SpeciesType.DOG, is_active: true },
       }),
-      this.breedRepository.count({ 
-        where: { species: SpeciesType.CAT, is_active: true } 
+      this.breedRepository.count({
+        where: { species: SpeciesType.CAT, is_active: true },
       }),
     ]);
 

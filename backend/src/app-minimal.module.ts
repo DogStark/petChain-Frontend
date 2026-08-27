@@ -8,17 +8,14 @@ import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { VetVerificationModule } from './vet-verification/vet-verification.module';
 
 @Module({
   imports: [
     // Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [
-        appConfig,
-        authConfig,
-        databaseConfig,
-      ],
+      load: [appConfig, authConfig, databaseConfig],
       envFilePath: '.env',
     }),
 
@@ -38,6 +35,7 @@ import { UsersModule } from './modules/users/users.module';
     // Core Modules for Auth Testing
     AuthModule,
     UsersModule,
+    VetVerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

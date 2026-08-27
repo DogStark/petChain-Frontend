@@ -8,9 +8,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiKey } from './entities/api-key.entity';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+
+const API_KEY_SALT = process.env.API_KEY_HMAC_SECRET;
+if (!API_KEY_SALT) {
+  throw new Error(
+    'API_KEY_HMAC_SECRET environment variable is required but not set. ' +
+      'Set it to a long random string before starting the server.',
+  );
+}
 
 export interface CreateApiKeyOptions {
   userId: string;
@@ -107,7 +115,9 @@ export class ApiKeysService {
   }
 
   private hashKey(plaintext: string): string {
-    return createHash('sha256').update(plaintext).digest('hex');
+    // scrypt: memory-hard, sufficient computational effort for API key hashing
+    const derived = scryptSync(plaintext, API_KEY_SALT, 32);
+    return derived.toString('hex');
   }
 
   private async enforceRateLimit(apiKey: ApiKey): Promise<void> {

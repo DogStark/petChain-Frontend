@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { RedisService } from '../../auth/services/redis.service';
+import { SmsService } from '../sms/sms.service';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -15,6 +17,23 @@ describe('UsersService', () => {
     find: jest.fn(),
     findOne: jest.fn(),
     remove: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  const makeUserQb = (result: any) => ({
+    where: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(result),
+  });
+
+  const mockRedisService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    exists: jest.fn().mockResolvedValue(false),
+  };
+
+  const mockSmsService = {
+    sendSms: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -24,6 +43,14 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockRepo,
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
+        {
+          provide: SmsService,
+          useValue: mockSmsService,
         },
       ],
     }).compile();
@@ -36,7 +63,12 @@ describe('UsersService', () => {
 
   describe('create', () => {
     it('should create and save a user', async () => {
-      const dto = { email: 'a@b.com', firstName: 'A', lastName: 'B', password: 'pw' };
+      const dto = {
+        email: 'a@b.com',
+        firstName: 'A',
+        lastName: 'B',
+        password: 'pw',
+      };
       const created = { id: '1', ...dto } as any;
       mockRepo.create.mockReturnValue(created);
       mockRepo.save.mockResolvedValue(created);
@@ -51,7 +83,10 @@ describe('UsersService', () => {
   describe('findAll', () => {
     it('should return list of users', async () => {
       const users = [{ id: '1' }];
-      mockRepo.find.mockResolvedValue(users as any);
+      mockRepo.createQueryBuilder.mockReturnValue({
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(users),
+      } as any);
       const result = await service.findAll();
       expect(result).toEqual(users);
     });
@@ -60,13 +95,19 @@ describe('UsersService', () => {
   describe('findOne', () => {
     it('should return user when found', async () => {
       const user = { id: '1' } as any;
-      mockRepo.findOne.mockResolvedValue(user);
+      mockRepo.createQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(user),
+      } as any);
       const result = await service.findOne('1');
       expect(result).toEqual(user);
     });
 
     it('should throw if not found', async () => {
-      mockRepo.findOne.mockResolvedValue(null);
+      mockRepo.createQueryBuilder.mockReturnValue({
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      } as any);
       await expect(service.findOne('x')).rejects.toThrow(NotFoundException);
     });
   });
@@ -74,23 +115,21 @@ describe('UsersService', () => {
   describe('updateProfile', () => {
     const existing = { id: '1', email: 'old@x.com' } as any;
     it('updates basic fields', async () => {
-      mockRepo.findOne.mockResolvedValue(existing);
       mockRepo.save.mockImplementation((u) => Promise.resolve(u));
       const dto = { email: 'new@x.com', firstName: 'New' };
-      mockRepo.findOne.mockResolvedValueOnce(existing);
-      // when checking email conflict return null
-      mockRepo.findOne.mockResolvedValueOnce(null);
+      mockRepo.createQueryBuilder
+        .mockReturnValueOnce(makeUserQb(existing) as any)
+        .mockReturnValueOnce(makeUserQb(null) as any);
       const out = await service.updateProfile('1', dto as any);
       expect(out.email).toBe(dto.email);
       expect(out.firstName).toBe(dto.firstName);
     });
 
     it('throws conflict when email taken', async () => {
-      mockRepo.findOne.mockResolvedValue(existing);
       const other = { id: '2', email: 'taken@x.com' } as any;
-      mockRepo.findOne
-        .mockResolvedValueOnce(existing) // fetch self
-        .mockResolvedValueOnce(other); // email check
+      mockRepo.createQueryBuilder
+        .mockReturnValueOnce(makeUserQb(existing) as any)
+        .mockReturnValueOnce(makeUserQb(other) as any);
       await expect(
         service.updateProfile('1', { email: 'taken@x.com' } as any),
       ).rejects.toThrow(ConflictException);
@@ -111,20 +150,34 @@ describe('UsersService', () => {
         city: '',
         country: null,
       } as any;
-      mockRepo.findOne.mockResolvedValue(user);
+      mockRepo.createQueryBuilder.mockReturnValue(makeUserQb(user) as any);
 
-      const { missingFields, completionScore } = await service.getProfileCompletion('1');
+      const { missingFields, completionScore } =
+        await service.getProfileCompletion('1');
       expect(missingFields).toEqual(
-        expect.arrayContaining(['lastName', 'phone', 'avatarUrl', 'dateOfBirth', 'city', 'country']),
+        expect.arrayContaining([
+          'lastName',
+          'phone',
+          'avatarUrl',
+          'dateOfBirth',
+          'city',
+          'country',
+        ]),
       );
       expect(completionScore).toBeLessThan(100);
     });
   });
 
   describe('deactivate/reactivate/softDelete', () => {
-    const user = { id: '1', isDeactivated: false, isActive: true, deletedAt: null, email: 'a@b' } as any;
+    const user = {
+      id: '1',
+      isDeactivated: false,
+      isActive: true,
+      deletedAt: null,
+      email: 'a@b',
+    } as any;
     it('deactivates account', async () => {
-      mockRepo.findOne.mockResolvedValue(user);
+      mockRepo.createQueryBuilder.mockReturnValue(makeUserQb(user) as any);
       await service.deactivateAccount('1');
       expect(user.isDeactivated).toBe(true);
       expect(user.isActive).toBe(false);
@@ -132,7 +185,7 @@ describe('UsersService', () => {
     it('reactivates account', async () => {
       user.isDeactivated = true;
       user.isActive = false;
-      mockRepo.findOne.mockResolvedValue(user);
+      mockRepo.createQueryBuilder.mockReturnValue(makeUserQb(user) as any);
       await service.reactivateAccount('1');
       expect(user.isDeactivated).toBe(false);
       expect(user.isActive).toBe(true);
@@ -140,7 +193,7 @@ describe('UsersService', () => {
     it('soft deletes', async () => {
       user.deletedAt = null;
       user.isActive = true;
-      mockRepo.findOne.mockResolvedValue(user);
+      mockRepo.createQueryBuilder.mockReturnValue(makeUserQb(user) as any);
       const out = await service.softDeleteUser('1');
       expect(out.deletedAt).toBeInstanceOf(Date);
       expect(out.isActive).toBe(false);

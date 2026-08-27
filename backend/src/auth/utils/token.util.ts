@@ -1,29 +1,30 @@
 import * as crypto from 'crypto';
 
+// Fixed salt derived from env secret — scrypt provides sufficient computational effort
+const TOKEN_SALT = crypto
+  .createHash('sha256')
+  .update(process.env.TOKEN_HMAC_SECRET || 'change-me-in-production')
+  .digest('hex')
+  .slice(0, 16);
+
 export class TokenUtil {
-  /**
-   * Generate a random token
-   */
   static generateToken(length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
 
-  /**
-   * Hash a token for storage
-   */
+  /** Hash a token using scrypt (memory-hard, sufficient computational effort) */
   static hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
+    const derived = crypto.scryptSync(token, TOKEN_SALT, 32);
+    return derived.toString('hex');
   }
 
-  /**
-   * Verify a token against a hash
-   */
   static verifyToken(token: string, hash: string): boolean {
-    const tokenHash = this.hashToken(token);
-    // Ensure buffers are the same length for timingSafeEqual
-    if (tokenHash.length !== hash.length) {
+    try {
+      const tokenHash = this.hashToken(token);
+      if (tokenHash.length !== hash.length) return false;
+      return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
+    } catch {
       return false;
     }
-    return crypto.timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
   }
 }

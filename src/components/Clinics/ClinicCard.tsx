@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import { Star, MapPin, Clock, ArrowRight } from "lucide-react";
 import { Clinic } from "@/types/clinic";
 
@@ -12,10 +13,12 @@ export default function ClinicCard({ clinic }: ClinicCardProps) {
     <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-xl border border-white/40 hover:shadow-2xl transition-all group flex flex-col h-full">
       <div className="relative h-40 w-full mb-4 overflow-hidden rounded-2xl">
         {clinic.mainImage ? (
-          <img
+          <SafeImage
             src={clinic.mainImage}
             alt={clinic.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full bg-blue-100 flex items-center justify-center">
@@ -37,9 +40,14 @@ export default function ClinicCard({ clinic }: ClinicCardProps) {
 
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
           <MapPin className="w-3.5 h-3.5 text-pink-500" />
-          <span className="truncate">
-            {clinic.locations[0].city} (plus {clinic.locations.length - 1} more)
-          </span>
+          {clinic.locations.length > 0 ? (
+            <span className="truncate">
+              {clinic.locations[0].city}
+              {clinic.locations.length > 1 && ` (plus ${clinic.locations.length - 1} more)`}
+            </span>
+          ) : (
+            <span className="truncate text-gray-400">Location unavailable</span>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">

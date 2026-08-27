@@ -172,7 +172,11 @@ describe('BlockService', () => {
     const blockedUserId = 'blocked-uuid';
 
     it('should successfully unblock a user', async () => {
-      const existingBlock = { id: 'block-uuid', blocker: blockerId, blockedUser: blockedUserId };
+      const existingBlock = {
+        id: 'block-uuid',
+        blocker: blockerId,
+        blockedUser: blockedUserId,
+      };
       mockBlockRepository.findOne.mockResolvedValue(existingBlock);
 
       await service.unblockUser(blockerId, blockedUserId);
@@ -192,9 +196,9 @@ describe('BlockService', () => {
     it('should throw BadRequestException if block record not found', async () => {
       mockBlockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.unblockUser(blockerId, blockedUserId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.unblockUser(blockerId, blockedUserId),
+      ).rejects.toThrow(BadRequestException);
       expect(mockBlockRepository.remove).not.toHaveBeenCalled();
       expect(mockAuditService.log).not.toHaveBeenCalled();
     });
@@ -209,7 +213,11 @@ describe('BlockService', () => {
           id: 'block-1',
           blocker: blockerId,
           blockedUser: 'user-1',
-          blockedUserEntity: { id: 'user-1', password: 'pwd', firstName: 'John' },
+          blockedUserEntity: {
+            id: 'user-1',
+            password: 'pwd',
+            firstName: 'John',
+          },
         },
       ];
       mockBlockRepository.findAndCount.mockResolvedValue([mockedData, 1]);
@@ -220,7 +228,10 @@ describe('BlockService', () => {
       expect(result.page).toBe(1);
       expect(result.limit).toBe(10);
       expect(result.data[0].blockedUserEntity).not.toHaveProperty('password');
-      expect(result.data[0].blockedUserEntity).toHaveProperty('firstName', 'John');
+      expect(result.data[0].blockedUserEntity).toHaveProperty(
+        'firstName',
+        'John',
+      );
       expect(mockBlockRepository.findAndCount).toHaveBeenCalledWith({
         where: { blocker: blockerId },
         relations: ['blockedUserEntity'],

@@ -2,24 +2,11 @@ import React, { useState, useEffect } from 'react';
 import styles from './ProfileEditForm.module.css';
 import { AvatarUpload } from './AvatarUpload';
 import { ProfileCompletion } from './ProfileCompletion';
+import { isValidEmail, isValidPhone } from '@/utils/validation';
 
 interface ProfileEditFormProps {
-  user?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    avatarUrl?: string;
-    emailVerified?: boolean;
-    phoneVerified?: boolean;
-    isVerified?: boolean;
-    dateOfBirth?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-  };
-  onSubmit: (data: any) => Promise<void>;
+  user?: UserProfile;
+  onSubmit: (data: UserProfileData) => Promise<void>;
   onAvatarUpload: (file: File) => Promise<void>;
   isLoading?: boolean;
 }
@@ -45,7 +32,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState<any>(null);
+  const [profileCompletion, setProfileCompletion] = useState<ProfileCompletionState | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -72,7 +59,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
   }, [user]);
 
-  const calculateCompletion = (userData: any) => {
+  const calculateCompletion = (userData: UserProfileData): number => {
     let score = 0;
     const fields = [
       userData.firstName,
@@ -91,7 +78,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     return score;
   };
 
-  const calculateMissingFields = (userData: any) => {
+  const calculateMissingFields = (userData: UserProfileData): string[] => {
     const missing = [];
     if (!userData.firstName) missing.push('firstName');
     if (!userData.lastName) missing.push('lastName');
@@ -116,17 +103,14 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!isValidEmail(formData.email)) {
       newErrors.email = 'Invalid email address';
     }
-    if (formData.phone && !/^[\d\s\-+()]+$/.test(formData.phone)) {
+    if (formData.phone && !isValidPhone(formData.phone)) {
       newErrors.phone = 'Invalid phone number';
     }
     // date of birth validation
-    if (
-      formData.dateOfBirth &&
-      !/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)
-    ) {
+    if (formData.dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
       newErrors.dateOfBirth = 'Invalid date (YYYY-MM-DD)';
     }
 
@@ -183,9 +167,9 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         missingFields: calculateMissingFields(formData),
       };
       setProfileCompletion(completion);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErrors({
-        submit: error.message || 'Failed to update profile',
+        submit: error instanceof Error ? error.message : 'Failed to update profile',
       });
     } finally {
       setIsSubmitting(false);
@@ -211,11 +195,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                 New accounts need both email and phone verification before sign-in is fully enabled.
               </p>
             </div>
-            <span
-              className={
-                user.isVerified ? styles.verifiedBadge : styles.pendingBadge
-              }
-            >
+            <span className={user.isVerified ? styles.verifiedBadge : styles.pendingBadge}>
               {user.isVerified ? 'Verified' : 'Pending'}
             </span>
           </div>
@@ -238,14 +218,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           <AvatarUpload
             currentAvatar={formData.avatarUrl}
             onUploadSuccess={handleAvatarUploadSuccess}
-            onUploadError={(error) =>
-              setErrors((prev) => ({ ...prev, avatar: error }))
-            }
+            onUploadError={(error) => setErrors((prev) => ({ ...prev, avatar: error }))}
             isLoading={isLoading}
           />
-          {errors.avatar && (
-            <p className={styles.error}>{errors.avatar}</p>
-          )}
+          {errors.avatar && <p className={styles.error}>{errors.avatar}</p>}
         </div>
 
         <div className={styles.section}>
@@ -261,15 +237,11 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="firstName"
               value={formData.firstName}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.firstName ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.firstName ? styles.inputError : ''}`}
               placeholder="John"
               disabled={isSubmitting || isLoading}
             />
-            {errors.firstName && (
-              <p className={styles.error}>{errors.firstName}</p>
-            )}
+            {errors.firstName && <p className={styles.error}>{errors.firstName}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -282,15 +254,11 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="lastName"
               value={formData.lastName}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.lastName ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.lastName ? styles.inputError : ''}`}
               placeholder="Doe"
               disabled={isSubmitting || isLoading}
             />
-            {errors.lastName && (
-              <p className={styles.error}>{errors.lastName}</p>
-            )}
+            {errors.lastName && <p className={styles.error}>{errors.lastName}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -303,15 +271,11 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.email ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
               placeholder="john@example.com"
               disabled={isSubmitting || isLoading}
             />
-            {errors.email && (
-              <p className={styles.error}>{errors.email}</p>
-            )}
+            {errors.email && <p className={styles.error}>{errors.email}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -324,15 +288,11 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.phone ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
               placeholder="+1 (555) 000-0000"
               disabled={isSubmitting || isLoading}
             />
-            {errors.phone && (
-              <p className={styles.error}>{errors.phone}</p>
-            )}
+            {errors.phone && <p className={styles.error}>{errors.phone}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -345,14 +305,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="dateOfBirth"
               value={formData.dateOfBirth}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.dateOfBirth ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.dateOfBirth ? styles.inputError : ''}`}
               disabled={isSubmitting || isLoading}
             />
-            {errors.dateOfBirth && (
-              <p className={styles.error}>{errors.dateOfBirth}</p>
-            )}
+            {errors.dateOfBirth && <p className={styles.error}>{errors.dateOfBirth}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -365,15 +321,11 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="address"
               value={formData.address}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.address ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.address ? styles.inputError : ''}`}
               placeholder="123 Main St"
               disabled={isSubmitting || isLoading}
             />
-            {errors.address && (
-              <p className={styles.error}>{errors.address}</p>
-            )}
+            {errors.address && <p className={styles.error}>{errors.address}</p>}
           </div>
 
           <div className={styles.formGroup}>
@@ -386,9 +338,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="city"
               value={formData.city}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.city ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.city ? styles.inputError : ''}`}
               placeholder="New York"
               disabled={isSubmitting || isLoading}
             />
@@ -405,31 +355,19 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
               name="country"
               value={formData.country}
               onChange={handleChange}
-              className={`${styles.input} ${
-                errors.country ? styles.inputError : ''
-              }`}
+              className={`${styles.input} ${errors.country ? styles.inputError : ''}`}
               placeholder="USA"
               disabled={isSubmitting || isLoading}
             />
-            {errors.country && (
-              <p className={styles.error}>{errors.country}</p>
-            )}
+            {errors.country && <p className={styles.error}>{errors.country}</p>}
           </div>
         </div>
 
-        {successMessage && (
-          <div className={styles.success}>{successMessage}</div>
-        )}
-        {errors.submit && (
-          <div className={styles.submitError}>{errors.submit}</div>
-        )}
+        {successMessage && <div className={styles.success}>{successMessage}</div>}
+        {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
 
         <div className={styles.actions}>
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={isSubmitting || isLoading}
-          >
+          <button type="submit" className={styles.submitBtn} disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
