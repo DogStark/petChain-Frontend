@@ -58,7 +58,10 @@ export const gdprService = {
   },
 
   async exportData(userId: string): Promise<void> {
-    const res = await fetch(`/api/gdpr/${userId}/export`);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const res = await fetch(`/api/gdpr/${userId}/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) throw new Error(await res.text());
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

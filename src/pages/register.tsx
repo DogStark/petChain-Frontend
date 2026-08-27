@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
 import { TouchInput, TouchButton } from '../components/TouchUI';
+import { useTranslation } from '../i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const [submitError, setSubmitError] = useState('');
   const { register } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const set = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -34,19 +36,19 @@ export default function RegisterPage() {
   const validate = (): boolean => {
     const next: Partial<typeof formData> = {};
 
-    if (!formData.firstName.trim()) next.firstName = 'First name is required';
-    if (!formData.lastName.trim()) next.lastName = 'Last name is required';
-    if (!formData.email.trim()) next.email = 'Email is required';
+    if (!formData.firstName.trim()) next.firstName = t('validation.required');
+    if (!formData.lastName.trim()) next.lastName = t('validation.required');
+    if (!formData.email.trim()) next.email = t('validation.required');
     if (!/^\+?[1-9]\d{7,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
-      next.phone = 'Enter a valid phone number in international format';
+      next.phone = t('validation.invalidPhone');
     }
 
     const { valid, errors: pwErrors } = validatePassword(formData.password);
-    if (!valid) next.password = pwErrors[0];
-    else if (isPasswordReused(formData.password)) next.password = 'This password was used recently';
+    if (!valid) next.password = t(pwErrors[0]);
+    else if (isPasswordReused(formData.password)) next.password = t('validation.password.reused');
 
     if (formData.password !== formData.confirmPassword) {
-      next.confirmPassword = 'Passwords do not match';
+      next.confirmPassword = t('validation.passwordMismatch');
     }
 
     setErrors(next);
@@ -70,8 +72,8 @@ export default function RegisterPage() {
       );
       savePasswordToHistory(formData.password);
       router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Registration failed');
+    } catch {
+      setSubmitError(t('errors.auth.registrationFailed'));
     } finally {
       setIsLoading(false);
     }

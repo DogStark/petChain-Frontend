@@ -192,4 +192,28 @@ body {
   /* Aspect ratio helpers */
   .aspect-hero { aspect-ratio: 1 / 1; }
   .aspect-card { aspect-ratio: 16 / 10; }
+
+  /*
+   * Force left-to-right rendering for values that must never mirror inside
+   * an RTL page (wallet addresses, transaction hashes, emails, phone
+   * numbers). Use `unicode-bidi: isolate` (not `-plaintext`) so the
+   * identifier is direction-isolated but still positioned correctly by its
+   * bidi-neutral surroundings.
+   */
+  .ltr-embed {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  /* Mirror purely directional icons (chevrons/arrows that imply
+   * next/previous or forward/back) when the page is RTL. Do not apply to
+   * icons with fixed real-world meaning (e.g. play, external-link). */
+  [dir='rtl'] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+/* Logo/brand marquee should scroll toward the reading start in RTL too. */
+[dir='rtl'] .animate-marquee {
+  animation-direction: reverse;
 }

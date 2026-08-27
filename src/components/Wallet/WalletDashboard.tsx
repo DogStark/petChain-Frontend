@@ -160,13 +160,13 @@ export default function WalletDashboard({
             </div>
 
             <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
-              <code className="text-sm text-gray-700 break-all">
+              <code className="ltr-embed text-sm text-gray-700 break-all">
                 <span className="hidden sm:inline">{selectedWallet.publicKey}</span>
                 <span className="sm:hidden">{truncate(selectedWallet.publicKey)}</span>
               </code>
               <button
                 onClick={copyAddress}
-                className="ml-3 flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                className="ms-3 flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
                 title="Copy address"
               >
                 {copied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -259,8 +259,8 @@ export default function WalletDashboard({
               <div className="space-y-2">
                 {accountData.signers.map((s) => (
                   <div key={s.publicKey} className="flex items-center justify-between text-sm">
-                    <code className="text-gray-600 text-xs truncate max-w-xs">{s.publicKey}</code>
-                    <span className="ml-4 flex-shrink-0 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                    <code className="ltr-embed text-gray-600 text-xs truncate max-w-xs">{s.publicKey}</code>
+                    <span className="ms-4 flex-shrink-0 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
                       Weight {s.weight}
                     </span>
                   </div>

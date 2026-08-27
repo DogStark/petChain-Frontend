@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from './apiBaseUrl';
+import { ApiError } from '../apiError';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -24,7 +25,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get 2FA status');
+      throw new ApiError('errors.twoFactor.statusFailed', 'Failed to get 2FA status');
     }
 
     return response.json();
@@ -41,7 +42,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to setup 2FA');
+      throw new ApiError('errors.twoFactor.setupFailed', 'Failed to setup 2FA');
     }
 
     return response.json();
@@ -59,7 +60,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to enable 2FA');
+      throw new ApiError('errors.twoFactor.enableFailed', 'Failed to enable 2FA');
     }
 
     return response.json();
@@ -77,7 +78,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to disable 2FA');
+      throw new ApiError('errors.twoFactor.disableFailed', 'Failed to disable 2FA');
     }
   },
 
@@ -92,7 +93,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Invalid 2FA token');
+      throw new ApiError('errors.twoFactor.invalidToken', 'Invalid 2FA token');
     }
 
     return response.json();
@@ -109,7 +110,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to generate backup codes');
+      throw new ApiError('errors.twoFactor.backupCodesFailed', 'Failed to generate backup codes');
     }
 
     return response.json();
@@ -126,7 +127,7 @@ export const twoFactorAPI = {
     });
 
     if (!response.ok) {
-      throw new Error('Invalid backup code');
+      throw new ApiError('errors.twoFactor.invalidBackupCode', 'Invalid backup code');
     }
 
     return response.json();

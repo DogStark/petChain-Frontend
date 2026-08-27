@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { validatePassword, isPasswordReused, savePasswordToHistory } from '../utils/passwordPolicy';
+import { useTranslation } from '../i18n';
 import { GetServerSideProps } from 'next';
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // `error` holds an i18n key (or '') rather than literal text, and is
+  // resolved via t() at render time so it stays in sync with the active language.
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState('');
@@ -25,7 +29,7 @@ export default function ResetPasswordPage() {
 
   const validateForm = () => {
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('validation.passwordMismatch');
       return false;
     }
 
@@ -36,12 +40,12 @@ export default function ResetPasswordPage() {
     }
 
     if (isPasswordReused(password)) {
-      setError('This password was used recently. Please choose a different one.');
+      setError('validation.password.reused');
       return false;
     }
 
     if (!token) {
-      setError('Invalid reset token');
+      setError('errors.auth.invalidResetToken');
       return false;
     }
 
@@ -62,8 +66,8 @@ export default function ResetPasswordPage() {
       await resetPassword(token, password);
       savePasswordToHistory(password);
       setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Password reset failed');
+    } catch {
+      setError('errors.auth.resetFailed');
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +172,7 @@ export default function ResetPasswordPage() {
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
+              <span className="block sm:inline">{t(error)}</span>
             </div>
           )}
 

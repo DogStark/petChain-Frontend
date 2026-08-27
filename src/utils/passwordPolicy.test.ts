@@ -48,31 +48,31 @@ console.log('\nvalidatePassword');
 test('rejects password shorter than 8 chars', () => {
   const { valid, errors } = validatePassword('Ab1!');
   assert.strictEqual(valid, false);
-  assert.ok(errors.some((e) => e.includes('8 characters')));
+  assert.ok(errors.includes('validation.password.tooShort'));
 });
 
 test('rejects password with no uppercase', () => {
   const { valid, errors } = validatePassword('abcdef1!');
   assert.strictEqual(valid, false);
-  assert.ok(errors.some((e) => e.includes('uppercase')));
+  assert.ok(errors.includes('validation.password.needsUppercase'));
 });
 
 test('rejects password with no lowercase', () => {
   const { valid, errors } = validatePassword('ABCDEF1!');
   assert.strictEqual(valid, false);
-  assert.ok(errors.some((e) => e.includes('lowercase')));
+  assert.ok(errors.includes('validation.password.needsLowercase'));
 });
 
 test('rejects password with no number', () => {
   const { valid, errors } = validatePassword('Abcdefg!');
   assert.strictEqual(valid, false);
-  assert.ok(errors.some((e) => e.includes('number')));
+  assert.ok(errors.includes('validation.password.needsNumber'));
 });
 
 test('rejects password with no special character', () => {
   const { valid, errors } = validatePassword('Abcdef12');
   assert.strictEqual(valid, false);
-  assert.ok(errors.some((e) => e.includes('special')));
+  assert.ok(errors.includes('validation.password.needsSpecial'));
 });
 
 test('accepts strong password', () => {

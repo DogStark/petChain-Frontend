@@ -14,14 +14,19 @@ const HISTORY_LIMIT = 5;
 const EXPIRY_DAYS = 90;
 const EXPIRY_KEY = 'pw_set_at';
 
+/**
+ * Returns i18n key(s) (from the `validation.password` namespace) rather than
+ * literal English text, so callers can render them via `t(key)` and keep
+ * error copy localized. See src/i18n/locales/en.json.
+ */
 export function validatePassword(password: string): PasswordValidationResult {
   const errors: string[] = [];
 
-  if (password.length < 8) errors.push('At least 8 characters required');
-  if (!/[A-Z]/.test(password)) errors.push('At least one uppercase letter required');
-  if (!/[a-z]/.test(password)) errors.push('At least one lowercase letter required');
-  if (!/[0-9]/.test(password)) errors.push('At least one number required');
-  if (!/[^A-Za-z0-9]/.test(password)) errors.push('At least one special character required');
+  if (password.length < 8) errors.push('validation.password.tooShort');
+  if (!/[A-Z]/.test(password)) errors.push('validation.password.needsUppercase');
+  if (!/[a-z]/.test(password)) errors.push('validation.password.needsLowercase');
+  if (!/[0-9]/.test(password)) errors.push('validation.password.needsNumber');
+  if (!/[^A-Za-z0-9]/.test(password)) errors.push('validation.password.needsSpecial');
 
   return { valid: errors.length === 0, errors };
 }
