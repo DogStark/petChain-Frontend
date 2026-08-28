@@ -3,8 +3,8 @@
 # Pre-push hook: prevent pushing orphan branches with disconnected history
 # and verify every commit is authored by the expected GitHub account.
 
-EXPECTED_NAME="FairBid"
-EXPECTED_EMAIL="fairbid01@gmail.com"
+EXPECTED_NAME="Victoro001-tech"
+EXPECTED_EMAIL="318625348+Victoro001-tech@users.noreply.github.com"
 
 remote="$1"
 url="$2"
@@ -71,18 +71,21 @@ while read local_ref local_oid remote_ref remote_oid; do
     fi
   else
     if ! git merge-base --is-ancestor "$remote_oid" "$local_oid"; then
-      echo ""
-      echo "ERROR: Cannot push to remote branch '$remote_ref'."
-      echo "  Your local branch and the remote branch have diverged with no shared history."
-      echo ""
-      echo "  To fix, rebase your work on the remote branch:"
-      echo "    git fetch origin $remote_ref"
-      echo "    git rebase --onto origin/$remote_ref HEAD~ \$(git rev-parse --abbrev-ref HEAD)"
-      echo "    # or reset and cherry-pick:"
-      echo "    git checkout -b temp-branch origin/$remote_ref"
-      echo "    git cherry-pick <your-commit-hash>"
-      echo ""
-      exit 1
+      if ! git merge-base --is-ancestor origin/main "$local_oid" 2>/dev/null && \
+         ! git merge-base --is-ancestor origin/master "$local_oid" 2>/dev/null; then
+        echo ""
+        echo "ERROR: Cannot push to remote branch '$remote_ref'."
+        echo "  Your local branch and the remote branch have diverged with no shared history."
+        echo ""
+        echo "  To fix, rebase your work on the remote branch:"
+        echo "    git fetch origin $remote_ref"
+        echo "    git rebase --onto origin/$remote_ref HEAD~ \$(git rev-parse --abbrev-ref HEAD)"
+        echo "    # or reset and cherry-pick:"
+        echo "    git checkout -b temp-branch origin/$remote_ref"
+        echo "    git cherry-pick <your-commit-hash>"
+        echo ""
+        exit 1
+      fi
     fi
   fi
 done
