@@ -36,9 +36,9 @@ export default function ScanPage({
 
     const load = async () => {
       try {
-        // Record the scan (best-effort, non-blocking)
+        // Record the scan without collecting precise identity or location data.
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
-        qrcodeAPI.recordScan(id, { deviceType }).catch(() => { });
+        qrcodeAPI.recordScan(id, { deviceType, locationConsent: false }).catch(() => {});
 
         const qr = await qrcodeAPI.getOne(id);
 
