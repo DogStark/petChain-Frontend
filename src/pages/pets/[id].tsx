@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, PawPrint } from 'lucide-react';
+import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import SafeImage from '@/components/SafeImage';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
