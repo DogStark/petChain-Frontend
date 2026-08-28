@@ -1,8 +1,11 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "基于Stellar区块链的去中心化公用事业支付",
-    "description": "在Stellar网络上使用加密货币支付您的公用事业账单"
+    "description": "在Stellar网络上使用加密货币支付您的公用事业账单",
+    "footer": {
+      "tagline": "Modern payment solutions for the decentralized web"
+    }
   },
   "navigation": {
     "home": "支付账单",
@@ -104,8 +107,8 @@
     }
   },
   "about": {
-    "title": "关于Wata-Board",
-    "description": "Wata-Board是一个基于Stellar区块链构建的去中心化公用事业支付平台。我们使用加密货币实现安全、透明和高效的公用事业账单支付。",
+    "title": "关于PetChain",
+    "description": "PetChain是一个基于Stellar区块链构建的去中心化公用事业支付平台。我们使用加密货币实现安全、透明和高效的公用事业账单支付。",
     "features": {
       "title": "主要功能",
       "secure": "安全交易",
@@ -148,7 +151,7 @@
   },
   "rate": {
     "title": "评价您的体验",
-    "description": "通过评价您使用Wata-Board的体验来帮助我们改进。",
+    "description": "通过评价您使用PetChain的体验来帮助我们改进。",
     "rating": {
       "excellent": "优秀",
       "good": "良好",
@@ -158,7 +161,7 @@
     },
     "review": {
       "title": "写评论",
-      "placeholder": "分享您使用Wata-Board的体验...",
+      "placeholder": "分享您使用PetChain的体验...",
       "submit": "提交评论",
       "thankYou": "感谢您的反馈！"
     }

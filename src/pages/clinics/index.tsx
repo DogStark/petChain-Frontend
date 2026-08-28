@@ -84,7 +84,7 @@ export default function ClinicDirectory() {
 
       <HeaderComponent />
 
-      <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+      <main id="main-content" className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-12 text-center max-w-2xl mx-auto">
           <h1 className="text-4xl font-extrabold text-blue-900 mb-4 tracking-tight">
             Find Your Pet&apos;s Next Doctor
