@@ -1,3 +1,6 @@
+import React, { useState } from "react";
+import { Share2, Link, Mail, CheckCircle2, X } from "lucide-react";
+import Dialog from "@/components/ui/Dialog";
 import React, { useState } from 'react';
 import { Share2, Link, Mail, CheckCircle2, X } from 'lucide-react';
 
@@ -29,12 +32,31 @@ export default function ShareModal({ onClose }: ShareModalProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="share-modal-title"
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="share-modal-title"
+      className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
     >
+      <button
+        onClick={onClose}
+        aria-label="Close share dialog"
+        className="touch-target absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <X className="w-6 h-6" aria-hidden="true" />
+      </button>
+
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-pink-100 text-pink-600 rounded-full">
+          <Share2 className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 id="share-modal-title" className="text-2xl font-bold text-blue-900">
+            Share Results
+          </h2>
+            <p className="text-sm text-gray-500">
+              Securely send these lab results to a vet.
+            </p>
       <div
         className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
         role="document"
@@ -124,7 +146,6 @@ export default function ShareModal({ onClose }: ShareModalProps) {
             </button>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }
