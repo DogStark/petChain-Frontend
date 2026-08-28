@@ -83,6 +83,17 @@ export default function BookingModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [conflictSlots, setConflictSlots] = useState<string[]>([]);
+
+  const dynamicTimeOptions = React.useMemo(() => {
+    const options = [...TIME_OPTIONS];
+    conflictSlots.forEach(slot => {
+      if (!options.find(opt => opt.value === slot)) {
+        options.push({ value: slot, label: slot });
+      }
+    });
+    return options.sort((a, b) => a.value.localeCompare(b.value));
+  }, [conflictSlots]);
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -115,9 +126,15 @@ export default function BookingModal({
       trigger('success');
       onClose();
     } catch (err) {
-      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
-      const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
-      setSubmitError(errorMessage);
+      const apiErr = err as { response?: { status?: number; data?: { message?: string; availableSlots?: string[] } }; message?: string };
+      if (apiErr.response?.status === 409 && apiErr.response.data?.availableSlots) {
+        setConflictSlots(apiErr.response.data.availableSlots);
+        setSubmitError(apiErr.response.data.message || 'The selected time slot is no longer available.');
+      } else {
+        const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
+        setSubmitError(errorMessage);
+        setConflictSlots([]);
+      }
       trigger('error');
     } finally {
       setIsSubmitting(false);
@@ -256,7 +273,28 @@ export default function BookingModal({
         >
           {submitError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {submitError}
+              <p>{submitError}</p>
+              {conflictSlots.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold mb-2">Available alternate slots:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {conflictSlots.map((slot) => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => {
+                          setFormData((f) => ({ ...f, time: slot }));
+                          setConflictSlots([]);
+                          setSubmitError(null);
+                        }}
+                        className="px-3 py-1.5 bg-white border border-red-200 rounded-md text-red-700 text-xs font-medium hover:bg-red-50 transition-colors"
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <TouchSelect
@@ -289,9 +327,13 @@ export default function BookingModal({
             />
             <TouchSelect
               label="Time"
-              options={TIME_OPTIONS}
+              options={dynamicTimeOptions}
               value={formData.time}
-              onChange={(e) => setFormData((f) => ({ ...f, time: e.target.value }))}
+              onChange={(e) => {
+                setFormData((f) => ({ ...f, time: e.target.value }));
+                setConflictSlots([]);
+                setSubmitError(null);
+              }}
             />
           </div>
 
