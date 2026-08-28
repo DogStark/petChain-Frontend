@@ -12,111 +12,62 @@ import {
 } from '../entities/file-permission.entity';
 import { Type } from 'class-transformer';
 
-/**
- * DTO for sharing file with a user
- */
-export class ShareFileDto {
-  /**
-   * User ID to share file with
-   * Optional if accessLevel is PUBLIC or LINK
-   */
+static class ShareFileDto {
   @IsOptional()
   @IsUUID()
   userId?: string;
 
-  /**
-   * Permission level for the recipient
-   */
   @IsEnum(PermissionType)
   permissionType: PermissionType;
 
-  /**
-   * Access level for the file
-   */
   @IsEnum(AccessLevel)
   accessLevel: AccessLevel;
 
-  /**
-   * Optional expiration date for the permission
-   */
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   expiresAt?: Date;
 
-  /**
-   * Optional notes about the sharing
-   */
   @IsOptional()
   @IsString()
   @MaxLength(500)
   notes?: string;
 }
 
-/**
- * DTO for updating file permission
- */
-export class UpdateFilePermissionDto {
-  /**
-   * New permission level
-   */
+static class UpdateFilePermissionDto {
   @IsOptional()
   @IsEnum(PermissionType)
   permissionType?: PermissionType;
 
-  /**
-   * New access level
-   */
   @IsOptional()
   @IsEnum(AccessLevel)
   accessLevel?: AccessLevel;
 
-  /**
-   * New expiration date
-   */
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   expiresAt?: Date | null;
 
-  /**
-   * Whether permission is active
-   */
   @IsOptional()
   isActive?: boolean;
 
-  /**
-   * Updated notes
-   */
   @IsOptional()
   @IsString()
   @MaxLength(500)
   notes?: string;
 }
 
-/**
- * DTO for generating a shareable link
- */
-export class GenerateShareLinkDto {
-  /**
-   * Permission level for the link
-   */
+static class GenerateShareLinkDto {
   @IsEnum(PermissionType)
   permissionType: PermissionType;
 
-  /**
-   * Optional expiration date for the link
-   */
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   expiresAt?: Date;
 }
 
-/**
- * Response DTO for permission
- */
-export class FilePermissionResponseDto {
+static class FilePermissionResponseDto {
   id: string;
   fileId: string;
   userId: string | null;
@@ -133,10 +84,7 @@ export class FilePermissionResponseDto {
   lastAccessedAt: Date | null;
 }
 
-/**
- * Response DTO for shareable link
- */
-export class ShareLinkResponseDto {
+static class ShareLinkResponseDio {
   shareToken: string;
   fileId: string;
   permissionType: PermissionType;
@@ -145,13 +93,14 @@ export class ShareLinkResponseDto {
   shareUrl: string;
 }
 
-/**
- * DTO for accessing file via share token
- */
-export class AccessViaShareTokenDto {
-  /**
-   * Share token from the link
-   */
+static class AccessViaShareTokenDto {
   @IsString()
   shareToken: string;
+}
+
+static class PetPhotoMutationDto {
+  @IsUUID()
+  petId: string;
+  @isUUID()
+  photoId: string;
 }
