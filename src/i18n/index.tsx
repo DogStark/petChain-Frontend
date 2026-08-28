@@ -62,6 +62,23 @@ function interpolate(template: string, params?: Record<string, string | number>)
   );
 }
 
+// ─── Fallback usage reporting ─────────────────────────────────────────────────
+// Tracks which (language, key) pairs have already been reported this session so
+// a missing translation only logs once instead of spamming the console on every
+// render, then warns in development so gaps in a locale catalog surface early.
+const reportedFallbacks = new Set<string>();
+
+function reportFallbackUsage(language: LanguageCode, key: string) {
+  const id = `${language}:${key}`;
+  if (reportedFallbacks.has(id)) return;
+  reportedFallbacks.add(id);
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(`[i18n] Missing "${key}" for locale "${language}" — falling back to "${FALLBACK}".`);
+  }
+}
+
 // ─── Deep-get a dot-path key from a nested object ────────────────────────────
 function deepGet(obj: TranslationDict, path: string): string | undefined {
   const parts = path.split('.');
@@ -132,10 +149,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       };
 
       const resolvedKey = resolveKey(language, key);
+      const directValue = deepGet(resources[language] as TranslationDict, resolvedKey);
       const value =
-        deepGet(resources[language] as TranslationDict, resolvedKey) ??
+        directValue ??
         deepGet(resources[FALLBACK] as TranslationDict, resolveKey(FALLBACK, key)) ??
         key;
+
+      if (directValue === undefined && language !== FALLBACK) {
+        reportFallbackUsage(language, key);
+      }
+
       return interpolate(value, params);
     },
     [language],

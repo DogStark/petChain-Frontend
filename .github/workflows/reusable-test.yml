@@ -51,6 +51,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check locale catalog parity
+        run: npm run check:locales
+
       - name: Run frontend tests
         run: npm test -- --passWithNoTests --ci
 
