@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Plus,
   AlertCircle,
+  Printer,
 } from 'lucide-react';
 import type { GetServerSideProps } from 'next';
 import Head from 'next/head';
@@ -69,19 +70,20 @@ function QRCard({
         </span>
       </div>
 
-      <div className="flex justify-center">
-        <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-inner">
+      <div className="flex justify-center print:block">
+        <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-inner print:border-none print:shadow-none print:p-0">
           <QRCodeSVG
             id={`qr-svg-${qr.qrCodeId}`}
             value={scanUrl}
             size={140}
             level="H"
             includeMargin
+            className="print:w-[2in] print:h-[2in]"
           />
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap print:hidden">
         <button
           onClick={() => onToggle(qr)}
           className="flex items-center gap-1 text-xs px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
@@ -312,27 +314,60 @@ export default function QRCodePage() {
     <ProtectedRoute>
       <Head>
         <title>QR Code Tags — PetChain</title>
+        <style type="text/css" media="print">
+          {`
+            @page { size: auto;  margin: 10mm; }
+            body { background: white !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .print-only { display: none; }
+            @media print {
+              .no-print { display: none !important; }
+              .print-only { display: block !important; }
+              .qr-grid-print {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 20px !important;
+                background: white !important;
+              }
+              .qr-card-print {
+                page-break-inside: avoid;
+                border: 2px dashed #ccc !important;
+                box-shadow: none !important;
+                padding: 20px !important;
+              }
+            }
+          `}
+        </style>
       </Head>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gray-50 print:bg-white">
+        <div className="max-w-2xl mx-auto px-4 py-8 print:max-w-none print:p-0">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-all"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-all no-print"
           >
             <ArrowLeft size={16} /> Back
           </button>
 
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 no-print">
             <h1 className="text-2xl font-black flex items-center gap-2">
               <QrCode size={24} /> QR Code Tags
             </h1>
-            <button
-              onClick={handleCreate}
-              disabled={creating || !petId}
-              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-700 disabled:opacity-50 transition-all"
-            >
-              <Plus size={16} /> {creating ? 'Creating…' : 'New QR Code'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.print()}
+                disabled={qrcodes.length === 0}
+                className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-50 disabled:opacity-50 transition-all"
+              >
+                <Printer size={16} /> Print Tags
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={creating || !petId}
+                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-700 disabled:opacity-50 transition-all"
+              >
+                <Plus size={16} /> {creating ? 'Creating…' : 'New QR Code'}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -372,18 +407,25 @@ export default function QRCodePage() {
               <p className="text-sm mt-1">Create one to generate a scannable pet tag</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {qrcodes.map((qr) => (
-                <QRCard
-                  key={qr.qrCodeId}
-                  qr={qr}
-                  onToggle={handleToggle}
-                  onRegenerate={handleRegenerate}
-                  onSelect={(q) => setSelectedQR(q.qrCodeId)}
-                  isRotating={rotatingQR === qr.qrCodeId}
-                />
-              ))}
-            </div>
+            <>
+              <div className="print-only text-center mb-8">
+                <h1 className="text-3xl font-black">Pet Identity Tags</h1>
+                <p className="text-gray-600 mt-2">Cut along the dotted lines and attach to pet collar</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 qr-grid-print">
+                {qrcodes.map((qr) => (
+                  <div key={qr.qrCodeId} className="qr-card-print">
+                    <QRCard
+                      qr={qr}
+                      onToggle={handleToggle}
+                      onRegenerate={handleRegenerate}
+                      onSelect={(q) => setSelectedQR(q.qrCodeId)}
+                      isRotating={rotatingQR === qr.qrCodeId}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

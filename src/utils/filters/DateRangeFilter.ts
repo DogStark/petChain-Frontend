@@ -100,7 +100,7 @@ export class DateRangeFilter {
       const itemDate =
         typeof timestamp === 'number'
           ? new Date(timestamp * 1000)
-          : new Date(timestamp);
+          : new Date(timestamp as string | number | Date);
       return itemDate >= range.start && itemDate <= range.end;
     });
   }
