@@ -366,6 +366,13 @@ export default function ClinicProfile() {
         </div>
       </section>
 
+      {/* Main Content Info */}
+      <main id="main-content" className="container mx-auto px-4 py-8 max-w-7xl -mt-4 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Tabs Navigation */}
+            <nav className="flex flex-wrap gap-2 p-1 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/40 shadow-sm overflow-x-auto">
       {/* ── Main content ── */}
       <main className="container mx-auto px-4 py-10 max-w-7xl flex flex-col lg:flex-row gap-10">
         {/* Left — tabbed content */}

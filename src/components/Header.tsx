@@ -14,12 +14,17 @@ export default function HeaderComponent() {
 
   return (
     <header className="bg-blue-600 text-white p-4">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <div className="container mx-auto flex justify-between items-center">
         <h1 className="text-2xl font-bold">
           <Link href="/" className="hover:text-blue-200">
             PetChain
           </Link>
         </h1>
+        <nav aria-label="Main navigation">
+          <ul className="flex space-x-4 items-center">
         <nav>
           <ul className="flex space--4 items-center">
             <li><Link href="/" className="hover:text-blue-200">Home</Link></li>

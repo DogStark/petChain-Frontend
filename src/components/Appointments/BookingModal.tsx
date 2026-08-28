@@ -1,3 +1,7 @@
+import React, { useState } from "react";
+import { X, Calendar, Clock, User, Heart } from "lucide-react";
+import { AppointmentType } from "@/types/appointments";
+import Dialog from "@/components/ui/Dialog";
 import { X } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -188,6 +192,24 @@ export default function BookingModal({
   }, [onClose]);
 
   return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="booking-modal-title"
+      className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in"
+    >
+      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        <h2 id="booking-modal-title" className="text-2xl font-bold text-blue-900">
+          Book Appointment
+        </h2>
+        <button
+          onClick={onClose}
+          aria-label="Close booking dialog"
+          className="touch-target hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6 text-gray-400" />
+        </button>
+      </div>
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
       role="dialog"
@@ -305,6 +327,7 @@ export default function BookingModal({
             rows={3}
           />
         </form>
+    </Dialog>
 
         {/* Footer actions */}
         <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">

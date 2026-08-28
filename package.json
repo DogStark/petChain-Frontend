@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "test:e2e": "playwright test"
     "type-check": "tsc --noEmit",
     "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
@@ -58,6 +60,8 @@
     "prettier": "^3.8.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "typescript": "^5",
+    "@playwright/test": "^1.48.0"
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^5"
