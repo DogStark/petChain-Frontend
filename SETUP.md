@@ -71,8 +71,13 @@
 - `npm run format:check` - Check code formatting
 - `npm run type-check` - Run TypeScript type checking
 - `npm run validate` - Run all checks (type-check, lint, format)
-- `npm run clean` - Clean build artifacts
-- `npm run clean:all` - Clean everything including node_modules
+- `npm run test` - Run the standalone password-policy unit tests
+- `npm run test:unit` - Run all Jest unit tests (single discovery convention)
+- `npm run test:coverage` - Run Jest unit tests with coverage report
+- `npm run clean` - Remove build artifacts (`.next`, `coverage`, `dist`, `build`, `.turbo`, `out`) using a cross-platform node utility
+- `npm run clean:all` - Also remove `node_modules`, caches, and performance results
+- `npm run bundle:check` - Validate route-level JS bundle budgets for wallet, analytics, and clinic routes; fails CI on threshold violations
+- `npm run analyze` - Build with bundle analyzer artifact
 - `npm run audit:fix` - Fix security vulnerabilities
 
 ### Backend Scripts
