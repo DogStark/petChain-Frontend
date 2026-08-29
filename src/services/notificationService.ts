@@ -114,7 +114,7 @@ export class NotificationService {
 
   on<K extends keyof ServiceEventMap>(event: K, listener: ServiceListener<K>): () => void {
     if (!this.listeners[event]) {
-      (this.listeners[event] as Set<ServiceListener<K>>) = new Set();
+      this.listeners[event] = new Set() as any;
     }
     (this.listeners[event] as Set<ServiceListener<K>>).add(listener);
     return () => this.off(event, listener);

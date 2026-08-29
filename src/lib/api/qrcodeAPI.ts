@@ -27,8 +27,51 @@ export interface ScanAnalytics {
   }>;
 }
 
+export interface ScanEventMeta {
+  deviceType?: string;
+  locationConsent?: boolean;
+  region?: string;
+  country?: string;
+  city?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  latitude?: number;
+  longitude?: number;
+  emergencyContact?: string;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QRID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+const ALLOWED_DEVICE_TYPES = new Set(['mobile', 'desktop', 'tablet', 'unknown']);
+
+/**
+ * Scan analytics intentionally record only minimal, consented metadata.
+ * Raw IPs, exact coordinates, and contact details are never sent.
+ */
+function sanitizeScanEvent(meta?: ScanEventMeta): Record<string, string | boolean> {
+  if (!meta) return {};
+
+  const sanitized: Record<string, string | boolean> = {};
+
+  const deviceType = typeof meta.deviceType === 'string' ? meta.deviceType.toLowerCase() : '';
+  if (deviceType && ALLOWED_DEVICE_TYPES.has(deviceType)) {
+    sanitized.deviceType = deviceType;
+  }
+
+  if (meta.locationConsent === true) {
+    const country = typeof meta.country === 'string' ? meta.country.trim().toUpperCase() : '';
+    if (/^[A-Z]{2}$/.test(country)) {
+      sanitized.country = country;
+    }
+
+    const region = typeof meta.region === 'string' ? meta.region.trim() : '';
+    if (region && region.length <= 64) {
+      sanitized.region = region;
+    }
+  }
+
+  return sanitized;
+}
 
 /** Returns a sanitized, URL-safe copy — breaks taint flow for CodeQL */
 function safeUuid(id: string): string {
@@ -41,7 +84,7 @@ function safeQrId(id: string): string {
   return id.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
-class QRCodeAPI {
+export class QRCodeAPI {
   private api: AxiosInstance;
 
   constructor() {
@@ -95,10 +138,11 @@ class QRCodeAPI {
 
   async recordScan(
     qrCodeId: string,
-    meta?: { deviceType?: string; city?: string; country?: string }
+    meta?: ScanEventMeta
   ): Promise<void> {
     const safe = safeQrId(qrCodeId);
-    await this.api.post(`/${safe}/scan`, meta ?? {});
+    const payload = sanitizeScanEvent(meta);
+    await this.api.post(`/${safe}/scan`, payload);
   }
 
   getImageUrl(qrCodeId: string): string {

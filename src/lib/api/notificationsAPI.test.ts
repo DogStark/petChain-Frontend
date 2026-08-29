@@ -40,6 +40,9 @@ describe('notificationsAPI preferences persistence', () => {
     expect(result.categories.SYSTEM).toBe(DEFAULT_PREFERENCES.categories.SYSTEM);
     expect(result.sound).toBe(DEFAULT_PREFERENCES.sound);
     expect(result.dndStart).toBe(DEFAULT_PREFERENCES.dndStart);
+    // DND fields (including the IANA timezone) stay client-side and are
+    // preserved from the cached fallback.
+    expect(result.timezone).toBe(DEFAULT_PREFERENCES.timezone);
   });
 
   it('sends the category booleans to the settings endpoint on update', async () => {

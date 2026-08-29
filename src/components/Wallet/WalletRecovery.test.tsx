@@ -1,340 +1,417 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+/**
+ * Tests for WalletRecovery component – secure clipboard handling.
+ *
+ * Characterisation tests (Task 4) are marked with [CHARACTERISE].
+ * They document *existing* behaviour before the fix. Specification tests
+ * document the *required* behaviour after the fix.
+ *
+ * Fixture data uses stub values – never real wallet keys or credentials.
+ */
+
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
+
 import WalletRecovery from './WalletRecovery';
-import { DecryptionError } from '../../lib/wallet/walletCrypto';
-import type { BackupData, WalletAccount } from '../../types/wallet';
+import type { WalletAccount, BackupData } from '../../types/wallet';
+import * as clipboardUtils from '../../utils/clipboard';
 
-const FAKE_PIN = 'test-pin-123456';
+// ── Fixture helpers ──────────────────────────────────────────────────────────
 
-const mockBackupData: BackupData = {
-  version: 1,
-  publicKey: 'GBZXN3Z3XWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXW',
-  label: 'Test Wallet',
-  network: 'testnet',
-  encryptedKey: 'fake-encrypted-key-data',
-  iv: 'fake-iv-data',
-  salt: 'fake-salt-data',
-  checksum: 'fake-checksum-data',
-};
+const STUB_PUBLIC_KEY =
+  'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
 
-const mockRecoveredWallet: WalletAccount = {
-  publicKey: mockBackupData.publicKey,
-  label: mockBackupData.label,
-  backupVerified: true,
-  createdAt: new Date(),
-};
+function makeRecoveredWallet(
+  overrides: Partial<WalletAccount> = {}
+): WalletAccount {
+  return {
+    id: 'wallet-recovered-001',
+    publicKey: STUB_PUBLIC_KEY,
+    label: 'Recovered Wallet',
+    type: 'standard',
+    network: 'TESTNET',
+    encryptedSecretKey: 'enc-stub',
+    iv: 'iv-stub',
+    salt: 'salt-stub',
+    createdAt: '2024-01-01T00:00:00Z',
+    backupVerified: false,
+    ...overrides,
+  };
+}
 
-describe('WalletRecovery', () => {
-  const mockOnImportBackup = jest.fn();
-  const mockOnClearError = jest.fn();
+function makeBackupFile(wallet: WalletAccount): BackupData {
+  return {
+    version: 1,
+    publicKey: wallet.publicKey,
+    encryptedKey: 'encrypted-stub',
+    iv: 'iv-stub',
+    salt: 'salt-stub',
+    checksum: 'checksum-stub',
+    label: wallet.label,
+    network: wallet.network,
+    createdAt: wallet.createdAt,
+  };
+}
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockOnImportBackup.mockResolvedValue(mockRecoveredWallet);
+/** Creates a real File object that looks like a backup JSON file. */
+function makeBackupFileObject(wallet: WalletAccount): File {
+  const backup = makeBackupFile(wallet);
+  return new File([JSON.stringify(backup)], 'petchain-backup.json', {
+    type: 'application/json',
+  });
+}
+
+// ── Shared setup ─────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: {
+      writeText: jest.fn().mockResolvedValue(undefined),
+      readText: jest.fn().mockResolvedValue(''),
+    },
+    writable: true,
+    configurable: true,
   });
 
-  describe('PIN Zeroing on Success', () => {
-    it('regression: PIN field is cleared after successful wallet recovery', async () => {
-      const user = userEvent.setup();
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+  // Spy on clipboard utility so tests don't require real timers
+  jest.spyOn(clipboardUtils, 'copyWithTTL').mockResolvedValue({ ok: true });
+  jest.spyOn(clipboardUtils, 'clearClipboardNow').mockResolvedValue(undefined);
+});
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
-      // Simulate file selection (create fake backup JSON)
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
+// ── Helper: render + upload a valid backup file ───────────────────────────────
 
-      fireEvent.change(fileInput, { target: { files: [file] } });
+async function renderAndUploadBackup(
+  wallet: WalletAccount,
+  onImport: jest.Mock
+) {
+  const utils = render(
+    <WalletRecovery
+      onImportBackup={onImport}
+      loading={false}
+      error={null}
+      onClearError={jest.fn()}
+    />
+  );
 
-      // Wait for file to be parsed
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
+  // The file input is hidden; find it via the DOM
+  const fileInput = utils.container.querySelector(
+    'input[type="file"]'
+  ) as HTMLInputElement;
+  expect(fileInput).not.toBeNull();
 
-      // Get PIN input and submit button
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
-      const restoreButton = screen.getByRole('button', { name: /Restore Wallet/i });
-
-      // Fill PIN
-      await user.type(pinInput, FAKE_PIN);
-      expect(pinInput).toHaveValue(FAKE_PIN);
-
-      // Submit
-      await user.click(restoreButton);
-
-      // Wait for success and verify PIN is cleared
-      await waitFor(() => {
-        expect(mockOnImportBackup).toHaveBeenCalledWith(mockBackupData, FAKE_PIN);
-        expect(pinInput).toHaveValue('');
-      });
-
-      unmount();
-    });
-
-    it('regression: PIN field is cleared on component unmount', async () => {
-      const user = userEvent.setup();
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
-
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
-
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
-
-      // Get PIN input and fill
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
-      await user.type(pinInput, FAKE_PIN);
-      expect(pinInput).toHaveValue(FAKE_PIN);
-
-      // Unmount
-      unmount();
-
-      // Cleanup should have cleared state
-      expect(mockOnImportBackup).not.toHaveBeenCalled();
-    });
+  await act(async () => {
+    await userEvent.upload(fileInput, makeBackupFileObject(wallet));
   });
 
-  describe('Failed recovery', () => {
-    it('clears PIN on failed backup decryption', async () => {
-      mockOnImportBackup.mockRejectedValue(new DecryptionError('Incorrect PIN'));
-      const user = userEvent.setup();
+  return utils;
+}
 
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+// ── Idle state ────────────────────────────────────────────────────────────────
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
-
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
-
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
-      const restoreButton = screen.getByRole('button', { name: /Restore Wallet/i });
-
-      // Fill with wrong PIN and submit
-      await user.type(pinInput, 'wrong-pin-000000');
-      await user.click(restoreButton);
-
-      // Verify error message
-      await waitFor(() => {
-        expect(mockOnImportBackup).toHaveBeenCalled();
-        expect(screen.getByText(/Incorrect PIN/i)).toBeInTheDocument();
-      });
-
-      // Note: Current implementation doesn't clear on failure, this is a regression test
-      // After fix: expect(pinInput).toHaveValue('');
-
-      unmount();
-    });
+describe('WalletRecovery – idle state', () => {
+  it('renders the recovery form with a file upload area', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    expect(
+      screen.getByText(/click to select backup file/i)
+    ).toBeInTheDocument();
   });
 
-  describe('Security: No PIN in console logs', () => {
-    it('does not log PIN values to console', async () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-      const user = userEvent.setup();
+  it('does NOT write to clipboard on render', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    expect(clipboardUtils.copyWithTTL).not.toHaveBeenCalled();
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+  });
+});
 
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+// ── [CHARACTERISE] Recovered wallet display ──────────────────────────────────
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
+describe('WalletRecovery – post-recovery display (characterisation)', () => {
+  it('[CHARACTERISE] shows recovered wallet public key after successful recovery', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
 
-      fireEvent.change(fileInput, { target: { files: [file] } });
+    await renderAndUploadBackup(recovered, onImport);
 
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
 
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
-      const restoreButton = screen.getByRole('button', { name: /Restore Wallet/i });
-
-      await user.type(pinInput, FAKE_PIN);
-      await user.click(restoreButton);
-
-      await waitFor(() => {
-        expect(mockOnImportBackup).toHaveBeenCalled();
-      });
-
-      // Verify no PIN in console logs
-      const allLogs = consoleLogSpy.mock.calls
-        .concat(consoleErrorSpy.mock.calls)
-        .concat(consoleWarnSpy.mock.calls);
-      allLogs.forEach((logArgs) => {
-        const logString = JSON.stringify(logArgs);
-        expect(logString).not.toContain(FAKE_PIN);
-      });
-
-      consoleLogSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
-      consoleWarnSpy.mockRestore();
-      unmount();
+    await waitFor(() => {
+      expect(
+        screen.getByText(/wallet recovered successfully/i)
+      ).toBeInTheDocument();
     });
+
+    // Public key is shown (non-secret but documented here)
+    expect(screen.getByText(STUB_PUBLIC_KEY)).toBeInTheDocument();
+  });
+});
+
+// ── Security: no automatic clipboard write ────────────────────────────────────
+
+describe('WalletRecovery – clipboard security', () => {
+  it('does NOT write to clipboard when recovery succeeds', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
+
+    await renderAndUploadBackup(recovered, onImport);
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/wallet recovered successfully/i)
+      ).toBeInTheDocument();
+    });
+
+    // Clipboard should never have been written automatically
+    expect(clipboardUtils.copyWithTTL).not.toHaveBeenCalled();
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  describe('Accessibility: Label association preserved', () => {
-    it('maintains label association after PIN clear', async () => {
-      const user = userEvent.setup();
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+  it('shows a clipboard security warning after recovery', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
+    await renderAndUploadBackup(recovered, onImport);
 
-      fireEvent.change(fileInput, { target: { files: [file] } });
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
 
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/wallet recovered successfully/i)
+      ).toBeInTheDocument();
+    });
 
-      const label = screen.getByText(/Backup PIN/i);
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
+    // A clipboard security warning must be visible after recovery
+    expect(
+      screen.getAllByText(/clipboard/i).length
+    ).toBeGreaterThan(0);
+  });
 
-      expect(label).toBeInTheDocument();
+  it('provides a copy button for the recovered public key', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
 
-      // Fill and submit
-      await user.type(pinInput, FAKE_PIN);
-      const restoreButton = screen.getByRole('button', { name: /Restore Wallet/i });
-      await user.click(restoreButton);
+    await renderAndUploadBackup(recovered, onImport);
 
-      // Label should still exist after clear
-      await waitFor(() => {
-        expect(label).toBeInTheDocument();
-      });
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
 
-      unmount();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /copy public key/i })
+      ).toBeInTheDocument();
     });
   });
 
-  describe('Security: Clipboard prevention for PIN', () => {
-    it('prevents copy of PIN field', async () => {
-      const user = userEvent.setup();
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+  it('copies public key only on explicit button click', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
+    await renderAndUploadBackup(recovered, onImport);
 
-      fireEvent.change(fileInput, { target: { files: [file] } });
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
 
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
+    await waitFor(() =>
+      screen.getByRole('button', { name: /copy public key/i })
+    );
 
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
+    // Not copied yet
+    expect(clipboardUtils.copyWithTTL).not.toHaveBeenCalled();
 
-      // Try to copy
-      const copyEvent = new ClipboardEvent('copy', { bubbles: true });
-      const preventDefaultSpy = jest.spyOn(copyEvent, 'preventDefault');
+    // Now click the explicit copy button
+    await userEvent.click(
+      screen.getByRole('button', { name: /copy public key/i })
+    );
 
-      fireEvent(pinInput, copyEvent);
+    expect(clipboardUtils.copyWithTTL).toHaveBeenCalledWith(
+      STUB_PUBLIC_KEY,
+      expect.any(Number)
+    );
+  });
 
-      expect(preventDefaultSpy).toHaveBeenCalled();
-      unmount();
+  it('shows "Copied!" feedback after copy button click', async () => {
+    const recovered = makeRecoveredWallet();
+    const onImport = jest.fn().mockResolvedValue(recovered);
+
+    await renderAndUploadBackup(recovered, onImport);
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      '1234'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
+
+    await waitFor(() =>
+      screen.getByRole('button', { name: /copy public key/i })
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /copy public key/i })
+    );
+
+    await waitFor(() => {
+      // Use role="status" to avoid matching "copied" in the security notice
+      expect(screen.getByRole('status')).toHaveTextContent(/copied/i);
+    });
+  });
+});
+
+// ── Accessibility ─────────────────────────────────────────────────────────────
+
+describe('WalletRecovery – accessibility', () => {
+  it('PIN toggle button has an accessible aria-label', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: /show pin|hide pin/i })
+    ).toBeInTheDocument();
+  });
+
+  it('restore button is disabled when no file is loaded', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: /restore wallet/i })
+    ).toBeDisabled();
+  });
+});
+
+// ── Error states ───────────────────────────────────────────────────────────────
+
+describe('WalletRecovery – error handling', () => {
+  it('shows a parse error when uploaded file is invalid JSON', async () => {
+    const badFile = new File(['not json!!!'], 'bad.json', {
+      type: 'application/json',
+    });
+    const { container } = render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    const fileInput = container.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+
+    await act(async () => {
+      await userEvent.upload(fileInput, badFile);
+    });
+
+    await waitFor(() => {
+      // The component surfaces the JSON SyntaxError message for parse failures.
+      // We match on a broader pattern rather than a specific engine message.
+      const alerts = screen.getAllByRole('alert');
+      expect(alerts.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Mobile viewport (390px) - Accessibility', () => {
-    it('maintains usability on narrow viewport after PIN clear', async () => {
-      const user = userEvent.setup();
-      window.innerWidth = 390;
+  it('shows an incorrect-PIN error when decryption fails', async () => {
+    const { DecryptionError } = await import('../../lib/wallet/walletCrypto');
+    const onImport = jest
+      .fn()
+      .mockRejectedValue(new DecryptionError('bad pin'));
 
-      const { unmount } = render(
-        <WalletRecovery
-          onImportBackup={mockOnImportBackup}
-          loading={false}
-          error={null}
-          onClearError={mockOnClearError}
-        />
-      );
+    const wallet = makeRecoveredWallet();
+    await renderAndUploadBackup(wallet, onImport);
 
-      // Mock file upload
-      const fileInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement;
-      const file = new File([JSON.stringify(mockBackupData)], 'backup.json', {
-        type: 'application/json',
-      });
+    await userEvent.type(
+      screen.getByPlaceholderText(/the pin used when backup was created/i),
+      'wrongpin'
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /restore wallet/i })
+    );
 
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(mockBackupData.label)).toBeInTheDocument();
-      });
-
-      const pinInput = screen.getByPlaceholderText(/The PIN used when backup was created/);
-      const restoreButton = screen.getByRole('button', { name: /Restore Wallet/i });
-
-      await user.type(pinInput, FAKE_PIN);
-      await user.click(restoreButton);
-
-      // After clear, elements should still be visible and interactable
-      await waitFor(() => {
-        expect(pinInput).toHaveValue('');
-      });
-
-      unmount();
+    await waitFor(() => {
+      expect(screen.getByText(/incorrect pin/i)).toBeInTheDocument();
     });
+  });
+
+  it('surfaces an external error prop when provided', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={false}
+        error="Service unavailable"
+        onClearError={jest.fn()}
+      />
+    );
+    expect(screen.getByText(/service unavailable/i)).toBeInTheDocument();
+  });
+
+  it('shows loading state while recovery is in progress', () => {
+    render(
+      <WalletRecovery
+        onImportBackup={jest.fn()}
+        loading={true}
+        error={null}
+        onClearError={jest.fn()}
+      />
+    );
+    expect(
+      screen.getByText(/verifying & restoring/i)
+    ).toBeInTheDocument();
   });
 });

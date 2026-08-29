@@ -18,27 +18,27 @@ interface PublicProfile {
 }
 
 interface ScanPageProps {
-  profile: PublicProfile | null;
-  error: string | null;
+  profile?: PublicProfile | null;
+  error?: string | null;
 }
 
 export default function ScanPage({
   profile: initialProfile,
   error: initialError,
-}: ScanPageProps) {
+}: ScanPageProps = {}) {
   const router = useRouter();
   const { id } = router.query;
-  const [profile, setProfile] = useState(initialProfile);
-  const [error, setError] = useState(initialError);
+  const [profile, setProfile] = useState(initialProfile ?? null);
+  const [error, setError] = useState(initialError ?? null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
 
     const load = async () => {
       try {
-        // Record the scan (best-effort, non-blocking)
+        // Record the scan without collecting precise identity or location data.
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
-        qrcodeAPI.recordScan(id, { deviceType }).catch(() => { });
+        qrcodeAPI.recordScan(id, { deviceType, locationConsent: false }).catch(() => {});
 
         const qr = await qrcodeAPI.getOne(id);
 
@@ -49,7 +49,7 @@ export default function ScanPage({
 
         let emergency: PetEmergencyInfo | null = null;
         try {
-          emergency = await petAPI.getPetEmergencyInfo(qr.petId);
+          emergency = await petAPI.getPetEmergencyInfoProjection(qr.petId);
         } catch {
           // Emergency info optional — null means not configured
         }
