@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
 
 require('@testing-library/jest-dom');
+
+expect.extend(toHaveNoViolations);
 
 // Mock localStorage for tests
 const localStorageMock = (() => {
