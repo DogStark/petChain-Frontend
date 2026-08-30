@@ -1,8 +1,11 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Paiements de services publics décentralisés sur la blockchain Stellar",
-    "description": "Payez vos factures de services publics en utilisant la cryptomonnaie sur le réseau Stellar"
+    "description": "Payez vos factures de services publics en utilisant la cryptomonnaie sur le réseau Stellar",
+    "footer": {
+      "tagline": "Modern payment solutions for the decentralized web"
+    }
   },
   "navigation": {
     "home": "Payer Facture",
@@ -104,8 +107,8 @@
     }
   },
   "about": {
-    "title": "À Propos de Wata-Board",
-    "description": "Wata-Board est une plateforme de paiement de services publics décentralisée construite sur la blockchain Stellar. Nous permettons des paiements de factures de services sécurisés, transparents et efficaces en utilisant la cryptomonnaie.",
+    "title": "À Propos de PetChain",
+    "description": "PetChain est une plateforme de paiement de services publics décentralisée construite sur la blockchain Stellar. Nous permettons des paiements de factures de services sécurisés, transparents et efficaces en utilisant la cryptomonnaie.",
     "features": {
       "title": "Caractéristiques Clés",
       "secure": "Transactions Sécurisées",
@@ -148,7 +151,7 @@
   },
   "rate": {
     "title": "Notez Votre Expérience",
-    "description": "Aidez-nous à nous améliorer en notant votre expérience avec Wata-Board.",
+    "description": "Aidez-nous à nous améliorer en notant votre expérience avec PetChain.",
     "rating": {
       "excellent": "Excellent",
       "good": "Bon",
@@ -158,7 +161,7 @@
     },
     "review": {
       "title": "Écrire un Avis",
-      "placeholder": "Partagez votre expérience avec Wata-Board...",
+      "placeholder": "Partagez votre expérience avec PetChain...",
       "submit": "Soumettre Avis",
       "thankYou": "Merci pour vos commentaires !"
     }

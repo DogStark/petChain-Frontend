@@ -1,3 +1,7 @@
+import React, { useState } from "react";
+import { UploadCloud, File, X, CheckCircle2 } from "lucide-react";
+import Dialog from "@/components/ui/Dialog";
+import React, { useState, useCallback } from 'react';
 import { UploadCloud, File, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import React, { useState, useCallback, useId } from 'react';
 
@@ -117,7 +121,27 @@ export default function UploadModal({ onClose }: UploadModalProps) {
       aria-modal="true"
       aria-labelledby="upload-modal-title"
       aria-describedby={error ? errorId : undefined}
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="upload-modal-title"
+      className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
     >
+      <button
+        onClick={onClose}
+        aria-label="Close upload dialog"
+        className="touch-target absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <X className="w-6 h-6" aria-hidden="true" />
+      </button>
+
+      <h2 id="upload-modal-title" className="text-2xl font-bold text-blue-900 mb-2">
+        Upload Results
+      </h2>
+      <p className="text-gray-600 mb-6 text-sm">
+        Upload your pet&apos;s official lab report PDF to automatically
+        extract and store results securely.
+      </p>
       <div
         className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-md relative animate-fade-in"
         role="document"
@@ -264,7 +288,6 @@ export default function UploadModal({ onClose }: UploadModalProps) {
             </button>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }

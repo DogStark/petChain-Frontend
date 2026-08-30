@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { Pet, PetEmergencyInfo } from '@/types/pet';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { projectEmergencyProfile } from '@/utils/emergencyProjection';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class PetAPI {
@@ -38,6 +40,27 @@ class PetAPI {
         return null;
       }
       throw error;
+    }
+  }
+
+  /**
+   * Fetches the projected emergency info for anonymous scanners,
+   * containing only fields that the owner has explicitly set to public.
+   */
+  async getPetEmergencyInfoProjection(petId: string): Promise<PetEmergencyInfo | null> {
+    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
+    try {
+      // Best effort to call projection endpoint if available, fallback to client-side projection
+      const response = await this.api.get(`/${petId}/emergency/projection`);
+      return projectEmergencyProfile(response.data);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        // Fall back to getPetEmergencyInfo + client-side projection
+        const full = await this.getPetEmergencyInfo(petId);
+        return projectEmergencyProfile(full);
+      }
+      const full = await this.getPetEmergencyInfo(petId);
+      return projectEmergencyProfile(full);
     }
   }
 
