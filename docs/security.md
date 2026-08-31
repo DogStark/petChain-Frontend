@@ -122,3 +122,23 @@ Document findings with severity, reproduction steps, owner, and remediation targ
 - treat exports, admin tooling, and notification integrations as high-risk paths
 - add tests for regressions whenever fixing a security issue
 - update this document when the security workflow changes
+
+## Stellar Network & Offline Storage Guards
+
+- **Single network configuration.** `src/lib/blockchain/network.ts` is the only
+  place that derives the active Stellar network (`NEXT_PUBLIC_STELLAR_NETWORK`,
+  accepting both `public` and `mainnet` spellings). Horizon URL, network
+  passphrase, explorer URL, and friendbot URL all come from the same validated
+  `StellarConfig`. `validateNetworkConfig` rejects any config that mixes testnet
+  and mainnet endpoints, and wallet payments refuse to sign when a wallet's
+  stored network differs from the app's active network. Do not add ad-hoc
+  Horizon/explorer URLs elsewhere.
+- **Stroop-safe amounts.** Payment arithmetic must not use JavaScript `number`
+  math. Convert validated decimal strings to integer stroops with
+  `src/utils/stellarAmounts.ts`; reject amounts with more than 7 decimal places
+  or beyond the safe integer stroop range.
+- **Offline storage quota.** Offline writes in `src/lib/offline/indexedDB.ts`
+  handle `QuotaExceededError` by evicting non-essential data (cache first, then
+  offline record snapshots) before retrying. Queued mutations in the sync queue
+  are essential and are never evicted. `src/components/StoragePressureBanner.tsx`
+  surfaces recovery feedback (role="alert") when quota pressure occurs.

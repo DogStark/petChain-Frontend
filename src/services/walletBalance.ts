@@ -1,29 +1,8 @@
-/**
- * WalletBalanceService
- *
- * Responsibility: standalone balance-polling service for Stellar accounts.
- * Fetches account balance data directly from the Horizon REST API (not via
- * walletService) and maintains an in-memory TTL cache to avoid rate-limiting.
- *
- * Boundary contract:
- *   - This service owns the balance-polling concern only.
- *   - It does NOT manage key material, wallet lifecycle, or transaction signing
- *     — those belong to walletService (src/lib/wallet/walletService.ts).
- *   - It does NOT perform server-side wallet registration — that belongs to
- *     walletAPI (src/lib/api/walletAPI.ts).
- *
- * Type naming note:
- *   `AccountBalance` (this file) — account-level aggregate: publicKey, list of
- *   per-asset balances, native XLM total, and USD equivalent.
- *
- *   `WalletBalance` (src/types/wallet.ts) — Stellar per-asset balance record
- *   returned verbatim from the Horizon API (asset_type, asset_code, etc.).
- *   The two types serve different purposes and must not be confused.
- */
+import { getNetworkConfig, getStellarNetwork } from '../lib/blockchain/network';
+import { amountToStroopsOrNull, stroopsToXlm, toStroops } from '../utils/stellarAmounts';
 
-const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
-const HORIZON_MAINNET = 'https://horizon.stellar.org';
 const XLM_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd';
+const STROOPS_PER_XLM = 10_000_000;
 
 /** A single asset balance entry parsed from the Horizon accounts response. */
 export interface BalanceInfo {
@@ -45,6 +24,8 @@ export interface AccountBalance {
   publicKey: string;
   balances: BalanceInfo[];
   nativeBalance: number;
+  /** Native balance in integer stroops — safe for comparisons and fee math. */
+  nativeBalanceStroops: number;
   nativeBalanceUSD?: number;
   lastUpdated: Date;
   network: string;
@@ -53,7 +34,8 @@ export interface AccountBalance {
 export type BalanceUpdateCallback = (balance: AccountBalance) => void;
 
 function getHorizonUrl(): string {
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? HORIZON_MAINNET : HORIZON_TESTNET;
+  // Single validated source of truth for the network (see lib/blockchain/network).
+  return getNetworkConfig().horizonUrl;
 }
 
 function parseBalances(stellarBalances: Array<{
@@ -107,15 +89,24 @@ class WalletBalanceService {
     const balances = parseBalances(account.balances ?? []);
     const nativeInfo = balances.find((b) => b.isNative);
     const nativeBalance = nativeInfo ? parseFloat(nativeInfo.balance) : 0;
+    let nativeBalanceStroops = 0;
+    if (nativeInfo) {
+      try {
+        nativeBalanceStroops = toStroops(nativeInfo.balance);
+      } catch {
+        nativeBalanceStroops = 0;
+      }
+    }
     const xlmPriceUSD = await fetchXlmPriceUSD();
 
     const accountBalance: AccountBalance = {
       publicKey,
       balances,
       nativeBalance,
+      nativeBalanceStroops,
       nativeBalanceUSD: nativeBalance * xlmPriceUSD,
       lastUpdated: new Date(),
-      network: process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? 'mainnet' : 'testnet',
+      network: getStellarNetwork() === 'PUBLIC' ? 'mainnet' : 'testnet',
     };
 
     this.cache.set(publicKey, { balance: accountBalance, timestamp: Date.now() });
@@ -152,17 +143,39 @@ class WalletBalanceService {
   }
 
   formatBalance(balance: string, decimals = 2): string {
-    const num = parseFloat(balance);
-    if (isNaN(num)) return '0.00';
-    return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    const stroops = amountToStroopsOrNull(balance);
+    if (stroops === null) {
+      const num = parseFloat(balance);
+      if (isNaN(num)) return '0.00';
+      return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    // Convert via integer stroops to avoid float rounding in display math.
+    const xlm = Number(stroopsToXlm(stroops));
+    return xlm.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   }
 
-  isSufficientBalance(balance: AccountBalance, amount: number, includeReserve = true): boolean {
-    return balance.nativeBalance >= amount + (includeReserve ? 1 : 0);
+  isSufficientBalance(balance: WalletBalance, amount: string | number, includeReserve = true): boolean {
+    const amountStroops = toStroopsOrNull(amount);
+    if (amountStroops === null) return false;
+    const reserveStroops = includeReserve ? STROOPS_PER_XLM : 0;
+    return balance.nativeBalanceStroops >= amountStroops + reserveStroops;
   }
 
-  isLowBalance(balance: AccountBalance): boolean {
-    return balance.nativeBalance < 5;
+  isLowBalance(balance: WalletBalance): boolean {
+    return balance.nativeBalanceStroops < 5 * STROOPS_PER_XLM;
+  }
+}
+
+function toStroopsOrNull(amount: string | number): number | null {
+  if (typeof amount === 'number') {
+    if (!Number.isFinite(amount) || amount < 0) return null;
+    const result = Math.round(amount * STROOPS_PER_XLM);
+    return Number.isSafeInteger(result) ? result : null;
+  }
+  try {
+    return toStroops(amount);
+  } catch {
+    return null;
   }
 }
 
