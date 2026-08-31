@@ -7,6 +7,10 @@ module.exports = {
     '/node_modules/',
     '/dist/',
     'passwordPolicy.test.ts',
+    // useWallet.test.ts uses top-level `await` and plain Node `assert` — it is
+    // a ts-node script, not a Jest test. Run it with:
+    //   npx ts-node --project tsconfig.test.json src/hooks/useWallet.test.ts
+    'src/hooks/useWallet.test.ts',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {

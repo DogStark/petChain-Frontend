@@ -23,6 +23,8 @@ export default function HeaderComponent() {
             PetChain
           </Link>
         </h1>
+        <nav aria-label="Main navigation">
+          <ul className="flex space-x-4 items-center">
         <nav>
           <ul className="flex space--4 items-center">
             <li><Link href="/" className="hover:text-blue-200">Home</Link></li>

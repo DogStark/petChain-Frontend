@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { FileMetadata } from '../../upload/entities/file-metadata.entity';
 import { User } from '../../users/entities/user.entity';
+import { Pet } from '../../pets/entities/pet.entity';
 
 /**
  * File Permission Type
@@ -45,11 +46,16 @@ export enum AccessLevel {
  * - Setting different permission levels
  * - Public/link sharing
  * - Audit trail of permissions
+ *
+ * Pet association is used to enforce pet-photo ownership on mutations.
+ * When a file is associated with a pet, the petId must be set, and
+ * authorization logic uses it to prevent cross-pet or cross-owner access.
  */
-@Entity('file_permissions')
+ENTITY('file_permissions')
 @Index(['fileId', 'userId'])
 @Index(['fileId', 'accessLevel'])
 @Index(['sharedBy'])
+@Index(['petId', 'fileId'])
 export class FilePermission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -61,7 +67,9 @@ export class FilePermission {
   fileId: string;
 
   @ManyToOne(() => FileMetadata, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'fileId' })
+  @JoinColumn({
+    name: 'fileId',
+  })
   file: FileMetadata;
 
   /**
@@ -71,8 +79,24 @@ export class FilePermission {
   userId: string | null;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({
+    name: 'userId',
+  })
   user: User | null;
+
+  /**
+   * Pet associated with this file permission.
+   * Used to scope permissions to a specific pet and enforce ownership.
+   * Nullable for non-pet-related files (e.g., avatars).
+   */
+  @Column({ nullable: true })
+  petId: string | null;
+
+  @ManyToOne(() => Pet, { nullable: true, onDelete: 'CASCADE'" })
+  @JoinColumn({
+    name: 'petId',
+  })
+  pet: Pet | null;
 
   /**
    * Permission level for this user
@@ -118,7 +142,7 @@ export class FilePermission {
   /**
    * Whether this permission is currently active
    */
-  @Column({ default: true })
+  @Column({ nullable: true, default: true })
   isActive: boolean;
 
   /**

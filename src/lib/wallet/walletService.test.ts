@@ -224,12 +224,20 @@ describe('WalletService', () => {
         }),
         submitTransaction: jest.fn().mockRejectedValue(new Error('network error')),
         feeStats: jest.fn(),
-      }));
+      };
+      // Patch the server cache on the singleton to use our failing server for TESTNET
+      const svc = walletService as unknown as {
+        serverCache: Map<string, typeof mockServer>;
+      };
+      svc.serverCache.set('TESTNET', mockServer);
 
       const ws = new WalletService();
       await expect(
-        ws.sendPayment(mockWallet, 'pin', { destination: 'G...', asset: 'XLM', amount: '1' })
-      ).rejects.toThrow();
+        walletService.sendPayment(mockWallet, 'pin', { destination: 'G...', asset: 'XLM', amount: '1' })
+      ).rejects.toThrow('network error');
+
+      // Restore original mock server so subsequent tests aren't affected
+      svc.serverCache.delete('TESTNET');
     });
 
     it('rejects sending from a wallet on a different network (no testnet/mainnet mixing)', async () => {

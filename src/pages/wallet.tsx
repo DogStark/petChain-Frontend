@@ -223,7 +223,9 @@ export default function WalletPage() {
                     wallet={selectedWallet}
                     balances={balances}
                     feeEstimate={feeEstimate}
-                    onSendPayment={sendPayment}
+                    onSendPayment={(pin, tx, idempotencyKey) =>
+                      sendPayment(pin, tx, idempotencyKey)
+                    }
                     onRefreshFee={async () => {
                       const { walletService } = await import('../lib/wallet/walletService');
                       return walletService.estimateFee();

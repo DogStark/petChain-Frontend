@@ -1,3 +1,7 @@
+import React, { useState } from "react";
+import { X, Calendar, Clock, User, Heart } from "lucide-react";
+import { AppointmentType } from "@/types/appointments";
+import Dialog from "@/components/ui/Dialog";
 import { X } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -59,16 +63,18 @@ const TIME_OPTIONS = [
   { value: '15:00', label: '03:00 PM' },
 ];
 
-export default function BookingModal({ onClose, initialClinicId, initialClinicName }: BookingModalProps) {
-export default function BookingModal({ onClose, initialAppointmentType }: BookingModalProps) {
+export default function BookingModal({
+  onClose,
+  initialClinicId,
+  initialClinicName,
+  initialAppointmentType,
+}: BookingModalProps) {
   const { trigger } = useHaptic();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
     petId: '',
     vetId: initialClinicId ?? '',
-    appointmentType: 'Checkup' as AppointmentType,
-    vetId: '',
     appointmentType: (initialAppointmentType ?? 'Checkup') as AppointmentType,
     date: '',
     time: '09:00',
@@ -77,6 +83,17 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [conflictSlots, setConflictSlots] = useState<string[]>([]);
+
+  const dynamicTimeOptions = React.useMemo(() => {
+    const options = [...TIME_OPTIONS];
+    conflictSlots.forEach(slot => {
+      if (!options.find(opt => opt.value === slot)) {
+        options.push({ value: slot, label: slot });
+      }
+    });
+    return options.sort((a, b) => a.value.localeCompare(b.value));
+  }, [conflictSlots]);
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -109,9 +126,15 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
       trigger('success');
       onClose();
     } catch (err) {
-      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
-      const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
-      setSubmitError(errorMessage);
+      const apiErr = err as { response?: { status?: number; data?: { message?: string; availableSlots?: string[] } }; message?: string };
+      if (apiErr.response?.status === 409 && apiErr.response.data?.availableSlots) {
+        setConflictSlots(apiErr.response.data.availableSlots);
+        setSubmitError(apiErr.response.data.message || 'The selected time slot is no longer available.');
+      } else {
+        const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
+        setSubmitError(errorMessage);
+        setConflictSlots([]);
+      }
       trigger('error');
     } finally {
       setIsSubmitting(false);
@@ -186,6 +209,24 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
   }, [onClose]);
 
   return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      titleId="booking-modal-title"
+      className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in"
+    >
+      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        <h2 id="booking-modal-title" className="text-2xl font-bold text-blue-900">
+          Book Appointment
+        </h2>
+        <button
+          onClick={onClose}
+          aria-label="Close booking dialog"
+          className="touch-target hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6 text-gray-400" />
+        </button>
+      </div>
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
       role="dialog"
@@ -232,7 +273,28 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
         >
           {submitError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {submitError}
+              <p>{submitError}</p>
+              {conflictSlots.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold mb-2">Available alternate slots:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {conflictSlots.map((slot) => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => {
+                          setFormData((f) => ({ ...f, time: slot }));
+                          setConflictSlots([]);
+                          setSubmitError(null);
+                        }}
+                        className="px-3 py-1.5 bg-white border border-red-200 rounded-md text-red-700 text-xs font-medium hover:bg-red-50 transition-colors"
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <TouchSelect
@@ -265,9 +327,13 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
             />
             <TouchSelect
               label="Time"
-              options={TIME_OPTIONS}
+              options={dynamicTimeOptions}
               value={formData.time}
-              onChange={(e) => setFormData((f) => ({ ...f, time: e.target.value }))}
+              onChange={(e) => {
+                setFormData((f) => ({ ...f, time: e.target.value }));
+                setConflictSlots([]);
+                setSubmitError(null);
+              }}
             />
           </div>
 
@@ -303,6 +369,7 @@ export default function BookingModal({ onClose, initialAppointmentType }: Bookin
             rows={3}
           />
         </form>
+    </Dialog>
 
         {/* Footer actions */}
         <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
