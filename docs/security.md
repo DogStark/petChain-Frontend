@@ -26,6 +26,10 @@ Reviewers should verify:
 - export, sharing, and admin features respect least privilege
 - rate limiting, audit logging, and monitoring behavior are preserved where applicable
 
+### Data handling rules
+
+Any change that reads, stores, transports, or logs medical, contact, wallet, analytics, or public QR data must follow the field-level rules in [**data-classification.md**](./data-classification.md). The review should confirm classification levels and that no restricted data reaches logs, third parties, or public endpoints.
+
 ## Penetration Testing Checklist
 
 Use this checklist before major releases and at least once per quarter:
