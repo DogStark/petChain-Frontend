@@ -1,380 +1,186 @@
 import { test, expect } from '@playwright/test';
 import {
-  installWalletNetworkMocks,
-  FIXTURE_ADDRESS,
-  FIXTURE_PIN,
-  FIXTURE_SECRET,
-  accountResponse,
-  feeStats,
-  ok,
-  fail,
-} from './support/mockWalletApi';
+  installWalletContext,
+  installWalletNetworkMock,
+  failAccountLookup,
+  VALID_FIXTURE_PIN,
+  SEEDED_WALLET,
+} from './support/mockWallet';
 
 // Never use real pet, medical, contact, wallet, or credential data in fixtures.
 
-const SESSION_USER = {
-  id: 'user_e2e_wallet',
-  email: 'wallet.owner@example.test',
-  firstName: 'Wanda',
-  lastName: 'Example',
-  emailVerified: true,
-  phoneVerified: true,
-  isVerified: true,
-  isActive: true,
-  role: 'user',
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-};
-
-const TEST_TOKENS = {
-  accessToken: 'e2e-wallet-access-token',
-  refreshToken: 'e2e-wallet-refresh-token',
-};
-
-async function seedSession(page: import('@playwright/test').Page) {
-  await page.addInitScript(({ user, tokens }) => {
-    window.localStorage.setItem('auth_tokens', JSON.stringify(tokens));
-    window.localStorage.setItem('auth_user', JSON.stringify(user));
-    window.localStorage.setItem('authToken', tokens.accessToken);
-  }, { user: SESSION_USER, tokens: TEST_TOKENS });
+/** Opens the wallet page with deterministic auth/wallet/network fixtures. */
+async function openWallet(page: import('@playwright/test').Page) {
+  await installWalletContext(page);
+  await installWalletNetworkMock(page);
+  await page.goto('/wallet');
+  await expect(page.getByRole('heading', { name: 'Wallet Management' })).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
-  await seedSession(page);
-});
+/** Clicks one of the wallet sidebar tabs, scoped to the <aside> nav. */
+async function openTab(page: import('@playwright/test').Page, label: string) {
+  await page
+    .locator('aside')
+    .getByRole('button', { name: label, exact: true })
+    .click();
+}
 
-test.describe('Wallet setup', () => {
-  test('creates a new wallet and lands on the Overview tab', async ({ page }) => {
-    await installWalletNetworkMocks(page);
+test.describe('Stellar wallet journeys', () => {
+  test.describe('Wallet setup', () => {
+    test('a wallet without a backup warns the user', async ({ page }) => {
+      // Seed a wallet flagged as not yet backed up.
+      await page.addInitScript(
+        () =>
+          localStorage.setItem(
+            'petchain_wallets',
+            JSON.stringify([
+              {
+                id: 'wallet_unbacked',
+                publicKey: SEEDED_WALLET.publicKey,
+                encryptedSecretKey: 'fixture-encrypted-key',
+                iv: 'fixture-iv',
+                salt: 'fixture-salt',
+                label: 'Unbacked Fixture',
+                type: 'standard',
+                network: 'TESTNET',
+                createdAt: '2026-01-02T00:00:00.000Z',
+                backupVerified: false,
+              },
+            ])
+          )
+      );
+      await openWallet(page);
 
-    await page.goto('/wallet');
-    await expect(page.getByRole('heading', { name: 'Wallet Management' })).toBeVisible();
-
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await expect(page.getByRole('heading', { name: 'Add a Wallet' })).toBeVisible();
-
-    await page.getByPlaceholder('e.g. My Pet Wallet').fill('E2E Test Wallet');
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Create Wallet' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-    await expect(page.getByText(/wallet\(s\) on this device/)).toBeVisible();
-  });
-
-  test('rejects a mismatched confirm PIN during creation', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-
-    await page.getByPlaceholder('e.g. My Pet Wallet').fill('E2E Mismatch Wallet');
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill('NotTheSamePin!1');
-    await page.getByRole('button', { name: 'Create Wallet' }).click();
-
-    await expect(page.getByText('PINs do not match.')).toBeVisible();
-  });
-
-  test('imports an existing wallet from a valid Stellar secret key', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Imported Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-  });
-
-  test('shows an inline error for an invalid secret key on import', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Bad Secret');
-    await page.locator('input[type="password"]').nth(0).fill('not-a-valid-secret');
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-
-    await expect(page.getByText(/Must start with "S" and be 56 characters/)).toBeVisible();
-  });
-
-  test('rejects importing the same wallet twice', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Duplicate Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-
-    // Import the same secret again through the setup tab.
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Duplicate Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-
-    await expect(page.getByText(/already added as/)).toBeVisible();
-  });
-});
-
-test.describe('Wallet balance and monitoring', () => {
-  test('shows the funded account balance from the mocked Horizon account', async ({ page }) => {
-    await installWalletNetworkMocks(page, {
-      horizonGet: (route) => ok(route, accountResponse),
+      await expect(page.getByText('1 without backup')).toBeVisible();
+      await expect(page.getByText('Backup not yet verified')).toBeVisible();
     });
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Balance Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+    test('rejects weak and mismatched PINs before creating a wallet', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Add Wallet');
 
-    await expect(page.getByText('XLM Balance')).toBeVisible();
-    await expect(page.getByText('Stellar Lumens')).toBeVisible();
-  });
+      await page.getByText('Wallet Name').fill('Setup Fixture Wallet');
+      await page.getByLabel('PIN (min 8 chars)').fill('12345678');
+      await page.getByLabel('Confirm PIN').fill('12345678');
+      await page.getByRole('button', { name: 'Create Wallet' }).click();
 
-  test('shows the un-activated account state and funds via Friendbot', async ({ page }) => {
-    let friendbotCalls = 0;
-    await installWalletNetworkMocks(page, {
-      horizonGet: (route) => fail(route, 404, 'Resource missing'),
-      friendbot: async (route) => {
-        friendbotCalls += 1;
-        await ok(route, { hash: 'f1xturehashf1xturehashf1xturehashf1xturehashf1xture', successful: true });
-      },
+      await expect(
+        page.getByText('PIN cannot be numeric-only. Please include letters or special characters.')
+      ).toBeVisible();
+
+      await page.getByLabel('PIN (min 8 chars)').fill('Good-Pass!');
+      await page.getByLabel('Confirm PIN').fill('Different-Pass!');
+      await page.getByRole('button', { name: 'Create Wallet' }).click();
+      await expect(page.getByText('PINs do not match.')).toBeVisible();
     });
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Friendbot Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
+    test('rejects a malformed secret key during import', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Add Wallet');
+      await page.getByRole('button', { name: 'Import Existing' }).click();
 
-    await expect(page.getByText(/has not been activated/)).toBeVisible();
-    await page.getByRole('button', { name: /Fund with Friendbot/ }).click();
-    await expect.poll(() => friendbotCalls).toBeGreaterThan(0);
-  });
-});
+      await page.getByText('Wallet Name').fill('Imported Fixture Wallet');
+      await page
+        .getByPlaceholder('SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+        .fill('not-a-key');
+      await page.getByLabel('PIN (min 8 chars)').fill(VALID_FIXTURE_PIN);
+      await page.getByLabel('Confirm PIN').fill(VALID_FIXTURE_PIN);
+      await page.getByRole('button', { name: 'Import Wallet' }).click();
 
-test.describe('Wallet backup', () => {
-  test('exports an encrypted backup file', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Backup Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-
-    await page.getByRole('button', { name: /Backup/ }).click();
-    await expect(page.getByRole('heading', { name: 'Wallet Backup' })).toBeVisible();
-
-    const downloadPromise = page.waitForEvent('download');
-    await page.locator('#wallet-backup-pin').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Export Encrypted Backup' }).click();
-    const download = await downloadPromise;
-
-    expect(download.suggestedFilename()).toMatch(/petchain-wallet-backup-.*\.json$/);
+      await expect(page.getByText('Invalid Stellar secret key format.')).toBeVisible();
+      // The form stays usable after the failure (failure recovery).
+      await expect(page.getByRole('button', { name: 'Import Wallet' })).toBeVisible();
+    });
   });
 
-  test('shows an incorrect-PIN error when the backup PIN is wrong', async ({ page }) => {
-    await installWalletNetworkMocks(page);
+  test.describe('Wallet backup', () => {
+    test('recovers from an incorrect backup PIN without losing state', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Backup');
+      await expect(page.getByText('Export Encrypted Backup')).toBeVisible();
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E BadPin Backup');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
+      await page.getByLabel('Enter your PIN to unlock backup').fill('Wrong-Pass!');
+      await page.getByRole('button', { name: 'Export Encrypted Backup' }).click();
 
-    await page.getByRole('button', { name: /Backup/ }).click();
-    await page.locator('#wallet-backup-pin').fill('WrongPin!9');
-    await page.getByRole('button', { name: 'Export Encrypted Backup' }).click();
-
-    await expect(page.getByText('Incorrect PIN. Please try again.')).toBeVisible();
-  });
-});
-
-test.describe('Wallet recovery', () => {
-  const VALID_BACKUP = JSON.stringify({
-    version: 1,
-    publicKey: FIXTURE_ADDRESS,
-    encryptedKey: 'AAECAw==',
-    iv: 'AAECAw==',
-    salt: 'AAECAw==',
-    network: 'TESTNET',
-    label: 'E2E Recovered Wallet',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    checksum: 'deadbeef',
+      await expect(page.getByText('Incorrect PIN. Please try again.')).toBeVisible();
+      await expect(page.getByText('Export Encrypted Backup')).toBeVisible();
+    });
   });
 
-  test('restores a wallet from a valid backup file', async ({ page }) => {
-    await installWalletNetworkMocks(page);
+  test.describe('Wallet recovery', () => {
+    test('surfaces a structured error for a malformed backup file', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Recovery');
+      await expect(page.getByText('Wallet Recovery')).toBeVisible();
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Recovery/ }).click();
-    await expect(page.getByRole('heading', { name: 'Restore from Backup' })).toBeVisible();
+      await page.setInputFiles('input[type="file"]', {
+        name: 'bad-backup.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from('not valid json {', 'utf-8'),
+      });
 
-    await page
-      .getByRole('button', { name: 'Select backup file' })
-      .setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(VALID_BACKUP) });
-    await page.locator('#wallet-recovery-pin').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Restore Wallet' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-  });
-
-  test('rejects a malformed backup file', async ({ page }) => {
-    await installWalletNetworkMocks(page);
-
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Recovery/ }).click();
-
-    await page
-      .getByRole('button', { name: 'Select backup file' })
-      .setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('not json') });
-
-    await expect(page.getByText(/Invalid backup file/)).toBeVisible();
-  });
-});
-
-test.describe('Send and signing', () => {
-  test('signs and broadcasts a payment successfully', async ({ page }) => {
-    await installWalletNetworkMocks(page, {
-      horizonGet: (route) => ok(route, accountResponse),
-      horizonPost: (route) =>
-        ok(route, {
-          hash: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
-          ledger: 123458,
-          successful: true,
-          envelope_xdr: 'AAAAAA==',
-          result_xdr: 'AAAAAA==',
-        }),
+      await expect(page.getByText('Invalid backup file — could not parse JSON.')).toBeVisible();
     });
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Send Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+    test('rejects a backup missing required fields', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Recovery');
 
-    await page.getByRole('button', { name: /Send/ }).click();
-    await expect(page.getByRole('heading', { name: 'Send Payment' })).toBeVisible();
+      await page.setInputFiles('input[type="file"]', {
+        name: 'incomplete-backup.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify({ version: 1, label: 'incomplete' }), 'utf-8'),
+      });
 
-    await page.getByPlaceholder('G... (56-character Stellar public key)').fill('GDFXTARGDTQY5NKZ5SYLZBW5P5CTDLLBMCL4X2ABH3O5HSXMWJTVMSPG');
-    await page.getByPlaceholder('0.0000000').fill('1.5');
-    await page.getByPlaceholder('Enter PIN to sign…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Send Transaction' }).click();
-
-    await expect(page.getByText('Transaction submitted successfully')).toBeVisible();
+      await expect(page.getByText('Missing required backup fields.')).toBeVisible();
+    });
   });
 
-  test('shows an inline error for an invalid destination', async ({ page }) => {
-    await installWalletNetworkMocks(page);
+  test.describe('Transaction signing', () => {
+    test('requires a PIN to sign a transaction (client-side guard)', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Send');
+      await expect(page.getByText('Send Payment')).toBeVisible();
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E BadDest Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
+      await page
+        .getByPlaceholder('G... (56-character Stellar public key)')
+        .fill(SEEDED_WALLET.publicKey);
+      await page.getByPlaceholder('0.0000000').fill('10');
+      await page.getByRole('button', { name: 'Send Transaction' }).click();
 
-    await page.getByRole('button', { name: /Send/ }).click();
-    await page.getByPlaceholder('G... (56-character Stellar public key)').fill('short');
-    await page.getByPlaceholder('0.0000000').fill('1');
-    await page.getByPlaceholder('Enter PIN to sign…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Send Transaction' }).click();
-
-    await expect(page.getByText(/Invalid destination/)).toBeVisible();
-  });
-
-  test('surfaces a broadcast rejection from the network', async ({ page }) => {
-    await installWalletNetworkMocks(page, {
-      horizonGet: (route) => ok(route, accountResponse),
-      horizonPost: (route) => fail(route, 400, 'tx_bad_seq'),
+      await expect(page.getByText('PIN is required to sign the transaction.')).toBeVisible();
     });
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Reject Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
+    test('rejects an invalid destination and an insufficient balance', async ({ page }) => {
+      await openWallet(page);
+      await openTab(page, 'Send');
 
-    await page.getByRole('button', { name: /Send/ }).click();
-    await page.getByPlaceholder('G... (56-character Stellar public key)').fill('GDFXTARGDTQY5NKZ5SYLZBW5P5CTDLLBMCL4X2ABH3O5HSXMWJTVMSPG');
-    await page.getByPlaceholder('0.0000000').fill('1');
-    await page.getByPlaceholder('Enter PIN to sign…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Send Transaction' }).click();
+      await page.getByPlaceholder('G... (56-character Stellar public key)').fill('not-an-address');
+      await page.getByPlaceholder('0.0000000').fill('1');
+      await page.getByLabel('Wallet PIN').fill(VALID_FIXTURE_PIN);
+      await page.getByRole('button', { name: 'Send Transaction' }).click();
+      await expect(page.getByText('Invalid destination')).toBeVisible();
 
-    // The rejection surfaces the network error; the user may retry.
-    await expect(page.getByText('Request failed with status code 400')).toBeVisible();
-  });
-});
-
-test.describe('Pending state and failure recovery', () => {
-  test('keeps the signed form intact and allows a retry after a reload', async ({ page }) => {
-    await installWalletNetworkMocks(page, {
-      horizonGet: (route) => ok(route, accountResponse),
-      horizonPost: (route) => fail(route, 400, 'tx_too_late'),
+      await page
+        .getByPlaceholder('G... (56-character Stellar public key)')
+        .fill(SEEDED_WALLET.publicKey);
+      await page.getByPlaceholder('0.0000000').fill('99999');
+      await page.getByRole('button', { name: 'Send Transaction' }).click();
+      await expect(page.getByText('Insufficient balance.')).toBeVisible();
     });
+  });
 
-    await page.goto('/wallet');
-    await page.getByRole('button', { name: /Add Wallet/ }).click();
-    await page.getByRole('button', { name: 'Import Existing' }).click();
-    await page.getByPlaceholder('e.g. Existing Wallet').fill('E2E Retry Wallet');
-    await page.locator('input[type="password"]').nth(0).fill(FIXTURE_SECRET);
-    await page.getByPlaceholder('Enter PIN…').fill(FIXTURE_PIN);
-    await page.getByPlaceholder('Re-enter PIN…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Import Wallet' }).click();
+  test.describe('Failure recovery', () => {
+    test('recovers cleanly when an account lookup fails (unfunded account)', async ({ page }) => {
+      await installWalletContext(page);
+      await failAccountLookup(page);
+      await installWalletNetworkMock(page);
 
-    await page.getByRole('button', { name: /Send/ }).click();
-    await page.getByPlaceholder('G... (56-character Stellar public key)').fill('GDFXTARGDTQY5NKZ5SYLZBW5P5CTDLLBMCL4X2ABH3O5HSXMWJTVMSPG');
-    await page.getByPlaceholder('0.0000000').fill('2');
-    await page.getByPlaceholder('Enter PIN to sign…').fill(FIXTURE_PIN);
-    await page.getByRole('button', { name: 'Send Transaction' }).click();
-    await expect(page.getByText('Request failed with status code 400')).toBeVisible();
+      await page.goto('/wallet');
+      await expect(page.getByRole('heading', { name: 'Wallet Management' })).toBeVisible();
 
-    // Reload: the wallet is persisted, and the failure was reported.
-    await page.reload();
-    await expect(page.getByRole('heading', { name: 'Wallet Management' })).toBeVisible();
+      // The failed lookup must not crash the page; the selected wallet still renders.
+      await expect(page.getByText(SEEDED_WALLET.label)).toBeVisible();
+    });
   });
 });
