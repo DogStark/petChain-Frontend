@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallets: WalletAccount[];
@@ -58,6 +59,8 @@ export default function WalletDashboard({
   const [deletePin, setDeletePin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [deleteAckUnverified, setDeleteAckUnverified] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   function copyAddress() {
     if (!selectedWallet) return;
@@ -392,13 +395,7 @@ export default function WalletDashboard({
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      onDeleteWallet(selectedWallet.id, deletePin);
-                      setDeleteStep('initial');
-                      setDeletePin('');
-                      setDeleteAckUnverified(false);
-                      setShowPin(false);
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
                   >
                     Confirm Deletion
@@ -420,6 +417,55 @@ export default function WalletDashboard({
           </div>
         </>
       )}
+
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        title="Delete Wallet"
+        description={`You are about to permanently delete "${selectedWallet?.label}". This action cannot be undone and all funds will be lost if not backed up.`}
+        confirmLabel={loading ? 'Deleting...' : 'Delete Wallet'}
+        cancelLabel="Go Back"
+        onConfirm={() => {
+          if (selectedWallet) {
+            onDeleteWallet(selectedWallet.id, deletePin);
+            setDeleteStep('initial');
+            setDeletePin('');
+            setDeleteAckUnverified(false);
+            setShowPin(false);
+          }
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        loading={loading}
+        variant="danger"
+        details={[
+          { label: 'Wallet', value: selectedWallet?.label || '' },
+          {
+            label: 'Public Key',
+            value: selectedWallet
+              ? `${selectedWallet.publicKey.slice(0, 10)}…${selectedWallet.publicKey.slice(-6)}`
+              : '',
+          },
+          {
+            label: 'Network',
+            value: isTestnet ? 'Testnet' : 'Mainnet',
+          },
+          ...(accountData?.balances
+            .filter((b) => parseFloat(b.balance) > 0)
+            .map((b) => ({
+              label: `Balance (${b.asset_code || 'XLM'})`,
+              value: formatBalance(b.balance),
+              highlight: true,
+            })) || []),
+        ]}
+        riskCues={[
+          'This will remove the wallet from this device permanently.',
+          ...(selectedWallet && !selectedWallet.backupVerified
+            ? ['This wallet has NO verified backup. All funds will be lost.']
+            : []),
+          'You will need your backup to restore this wallet later.',
+          'Any pending transactions may still be processed on-chain.',
+        ]}
+      />
     </div>
   );
 }
