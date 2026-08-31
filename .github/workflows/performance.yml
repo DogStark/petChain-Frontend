@@ -282,6 +282,9 @@ jobs:
         run: |
           ANALYZE=true npx next build 2>&1 | tee build-output.txt
 
+      - name: Enforce route-level bundle budgets
+        run: npm run bundle:check
+
       - name: Report bundle size
         run: |
           echo "### 📦 Bundle Size Report" >> "$GITHUB_STEP_SUMMARY"

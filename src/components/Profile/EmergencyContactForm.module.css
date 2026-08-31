@@ -185,3 +185,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Issue #880: keyboard reorder additions ── */
+
+/* Visually-hidden element for live-region announcements */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Up / Down buttons column shown before the drag handle */
+.reorderButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+/* Priority badge (#1, #2, …) */
+.priorityBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

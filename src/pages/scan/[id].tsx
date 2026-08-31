@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink } from 'lucide-react';
+import type { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { GetServerSideProps } from 'next';
-import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink, QrCode } from 'lucide-react';
-import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
+import React, { useEffect, useState } from 'react';
+
 import { petAPI } from '@/lib/api/petAPI';
-import { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
+import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
+import type { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
 
 // export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,8 @@ export default function ScanPage({
     if (!id || typeof id !== 'string') return;
 
     const load = async () => {
+      setLoading(true);
+      setError(null);
       try {
         // Record the scan without collecting precise identity or location data.
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
@@ -43,7 +46,10 @@ export default function ScanPage({
         const qr = await qrcodeAPI.getOne(id);
 
         if (!qr.isActive) {
-          setError('This QR code tag has been deactivated by the owner.');
+          setProfile(null);
+          setError(
+            'This QR tag has been revoked or replaced by the owner. Use the newest active tag for emergency details.',
+          );
           return;
         }
 
@@ -62,7 +68,10 @@ export default function ScanPage({
           emergency,
         });
       } catch {
-        setError('This QR code is invalid or no longer active.');
+        setProfile(null);
+        setError(
+          'This QR tag is invalid, revoked, or no longer active. No private pet details are available from this tag.',
+        );
       } finally {
         setLoading(false);
       }
@@ -74,7 +83,13 @@ export default function ScanPage({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-red-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent" />
+        <div role="status" aria-live="polite">
+          <div
+            className="animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent"
+            aria-hidden="true"
+          />
+          <span className="sr-only">Loading current tag status</span>
+        </div>
       </div>
     );
   }

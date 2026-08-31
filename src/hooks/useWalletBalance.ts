@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { walletBalanceService } from '../services/walletBalance';
-import type { WalletBalance, BalanceInfo } from '../services/walletBalance';
+import type { AccountBalance, BalanceInfo } from '../services/walletBalance';
 
 export interface UseWalletBalanceReturn {
-  balance: WalletBalance | null;
+  balance: AccountBalance | null;
   isLoading: boolean;
   error: string | null;
   isLowBalance: boolean;
@@ -20,7 +21,7 @@ export function useWalletBalance(
 ): UseWalletBalanceReturn {
   const { autoRefresh = true, refreshIntervalMs = 30_000 } = options;
 
-  const [balance, setBalance] = useState<WalletBalance | null>(null);
+  const [balance, setBalance] = useState<AccountBalance | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

@@ -18,6 +18,10 @@
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
     "analyze": "ANALYZE=true next build",
+    "analyze:browser": "ANALYZE=both next build",
+    "clean": "node ./scripts/clean.mjs",
+    "clean:all": "node ./scripts/clean.mjs --all",
+    "bundle:check": "node ./scripts/bundle-budget-check.mjs ./performance-budgets.json",
     "perf:smoke": "bash ./performance/scripts/run-k6.sh smoke",
     "perf:load": "bash ./performance/scripts/run-k6.sh load",
     "perf:benchmark": "node ./performance/scripts/benchmark-report.mjs ./performance/results/load-summary.json",
@@ -42,8 +46,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.7.0",
-    "web-vitals": "^5.3.0",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "web-vitals": "^5.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -67,7 +71,6 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "ts-node": "^10.9.2"
   }
 }
