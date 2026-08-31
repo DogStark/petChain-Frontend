@@ -1,12 +1,9 @@
 import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
 
 require('@testing-library/jest-dom');
 
-// jsdom does not provide TextEncoder/TextDecoder; the Stellar SDK and memo
-// byte-counting rely on them.
-const { TextEncoder, TextDecoder } = require('util');
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+expect.extend(toHaveNoViolations);
 
 // Mock localStorage for tests
 const localStorageMock = (() => {
