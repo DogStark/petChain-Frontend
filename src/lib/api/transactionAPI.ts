@@ -66,6 +66,17 @@ export interface TransactionFilters {
   offset?: number;
 }
 
+/**
+ * Options accepted by mutating transaction calls.
+ *
+ * `idempotencyKey` is forwarded as the `Idempotency-Key` HTTP header so the
+ * server can safely de-duplicate retries and rapid double-submits.  The field
+ * is optional so callers that haven't migrated yet keep working unchanged.
+ */
+export interface TransactionRequestOptions {
+  idempotencyKey?: string;
+}
+
 class TransactionAPI {
   private api: AxiosInstance;
 
@@ -83,6 +94,19 @@ class TransactionAPI {
       return config;
     });
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /** Build the per-request headers object, adding `Idempotency-Key` when provided. */
+  private buildHeaders(opts?: TransactionRequestOptions): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (opts?.idempotencyKey) {
+      headers['Idempotency-Key'] = opts.idempotencyKey;
+    }
+    return headers;
+  }
+
+  // ── Read operations (no idempotency header needed) ─────────────────────
 
   async getTransactionHistory(filters?: TransactionFilters): Promise<Transaction[]> {
     const response = await this.api.get('/history', { params: filters });
@@ -109,18 +133,42 @@ class TransactionAPI {
     return response.data;
   }
 
-  async estimateTransactionCost(type: TransactionType, data?: EstimateData): Promise<TransactionCost> {
-    const response = await this.api.post('/estimate', { type, data });
+  // ── Write operations (accept optional idempotency key) ─────────────────
+
+  async estimateTransactionCost(
+    type: TransactionType,
+    data?: EstimateData,
+    opts?: TransactionRequestOptions
+  ): Promise<TransactionCost> {
+    const response = await this.api.post(
+      '/estimate',
+      { type, data },
+      { headers: this.buildHeaders(opts) }
+    );
     return response.data;
   }
 
-  async retryFailedTransaction(id: string): Promise<Transaction> {
-    const response = await this.api.post(`/${id}/retry`);
+  async retryFailedTransaction(
+    id: string,
+    opts?: TransactionRequestOptions
+  ): Promise<Transaction> {
+    const response = await this.api.post(
+      `/${id}/retry`,
+      {},
+      { headers: this.buildHeaders(opts) }
+    );
     return response.data;
   }
 
-  async cancelPendingTransaction(id: string): Promise<void> {
-    await this.api.post(`/${id}/cancel`);
+  async cancelPendingTransaction(
+    id: string,
+    opts?: TransactionRequestOptions
+  ): Promise<void> {
+    await this.api.post(
+      `/${id}/cancel`,
+      {},
+      { headers: this.buildHeaders(opts) }
+    );
   }
 
   async getFailedTransactions(): Promise<Transaction[]> {
