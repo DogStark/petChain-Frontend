@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { RedisService } from '../../auth/services/redis.service';
+import { SmsService } from '../sms/sms.service';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -23,6 +25,17 @@ describe('UsersService', () => {
     getOne: jest.fn().mockResolvedValue(result),
   });
 
+  const mockRedisService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    exists: jest.fn().mockResolvedValue(false),
+  };
+
+  const mockSmsService = {
+    sendSms: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +43,14 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockRepo,
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
+        {
+          provide: SmsService,
+          useValue: mockSmsService,
         },
       ],
     }).compile();

@@ -83,6 +83,18 @@ describe('LostPetsController', () => {
     });
   });
 
+  describe('access control', () => {
+    it('findAll is protected by JwtAuthGuard', () => {
+      const guards: any[] = Reflect.getMetadata('__guards__', LostPetsController.prototype.findAll) ?? [];
+      expect(guards).toContain(JwtAuthGuard);
+    });
+
+    it('findNearby is protected by JwtAuthGuard', () => {
+      const guards: any[] = Reflect.getMetadata('__guards__', LostPetsController.prototype.findNearby) ?? [];
+      expect(guards).toContain(JwtAuthGuard);
+    });
+  });
+
   describe('updateMyLocation', () => {
     it('should update user location for lost pet alerts', async () => {
       const dto = {

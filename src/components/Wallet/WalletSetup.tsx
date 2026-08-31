@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface Props {
@@ -11,7 +12,11 @@ interface Props {
 
 type Tab = 'create' | 'import';
 
-const PIN_MIN_LENGTH = 6;
+const PIN_MIN_LENGTH = 8;
+
+function isNumericOnly(pin: string): boolean {
+  return /^\d+$/.test(pin);
+}
 
 function PinInput({
   value,
@@ -33,7 +38,13 @@ function PinInput({
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onPaste={(e) => e.preventDefault()}
           placeholder={placeholder ?? 'Enter PIN…'}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
@@ -60,7 +71,12 @@ function SecretKeyInput({ value, onChange }: { value: string; onChange: (v: stri
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value.trim())}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onPaste={(e) => e.preventDefault()}
           placeholder="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          autoComplete="off"
+          spellCheck={false}
           className={`w-full px-3 py-2 pr-16 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             value && !isValid ? 'border-red-400' : 'border-gray-300 focus:border-blue-500'
           }`}
@@ -98,6 +114,7 @@ export default function WalletSetup({
   onClearError,
 }: Props) {
   const [tab, setTab] = useState<Tab>('create');
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Create form
   const [createLabel, setCreateLabel] = useState('');
@@ -112,11 +129,23 @@ export default function WalletSetup({
   const [importPinConfirm, setImportPinConfirm] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
 
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setCreatePin('');
+      setCreatePinConfirm('');
+      setImportPin('');
+      setImportPinConfirm('');
+      setImportSecretKey('');
+    };
+  }, []);
+
   function validateCreate(): string | null {
     if (!createLabel.trim()) return 'Please enter a wallet name.';
     if (createPin.length < PIN_MIN_LENGTH)
       return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (createPin !== createPinConfirm) return 'PINs do not match.';
+    if (isNumericOnly(createPin)) return 'PIN cannot be numeric-only. Please include letters or special characters.';
     return null;
   }
 
@@ -127,39 +156,55 @@ export default function WalletSetup({
     if (importPin.length < PIN_MIN_LENGTH)
       return `PIN must be at least ${PIN_MIN_LENGTH} characters.`;
     if (importPin !== importPinConfirm) return 'PINs do not match.';
+    if (isNumericOnly(importPin)) return 'PIN cannot be numeric-only. Please include letters or special characters.';
     return null;
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
+    setFormError(null);
     const err = validateCreate();
-    if (err) return;
+    if (err) {
+      setFormError(err);
+      return;
+    }
     try {
       await onCreateWallet(createLabel.trim(), createPin);
       setCreateSuccess(true);
+      // Zero sensitive state immediately after success
       setCreateLabel('');
       setCreatePin('');
       setCreatePinConfirm('');
     } catch {
-      // error is set by hook
+      // error is set by hook, also zero sensitive state on failure
+      setCreatePin('');
+      setCreatePinConfirm('');
     }
   }
 
   async function handleImport(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
+    setFormError(null);
     const err = validateImport();
-    if (err) return;
+    if (err) {
+      setFormError(err);
+      return;
+    }
     try {
       await onImportWallet(importSecretKey, importLabel.trim(), importPin);
       setImportSuccess(true);
+      // Zero sensitive state immediately after success
       setImportLabel('');
       setImportSecretKey('');
       setImportPin('');
       setImportPinConfirm('');
     } catch {
-      // error is set by hook
+      // error is set by hook, also zero sensitive state on failure
+      setImportSecretKey('');
+      setImportPin('');
+      setImportPinConfirm('');
     }
   }
 
@@ -183,18 +228,18 @@ export default function WalletSetup({
         ))}
       </div>
 
-      {error && (
+      {(error || formError) && (
         <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
           <AlertTriangle size={16} className="flex-shrink-0" />
-          {error}
+          {formError || error}
         </div>
       )}
 
       {/* Security Notice */}
       <div className="mb-5 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
         <strong>Security:</strong> Your secret key is encrypted with AES-256-GCM using your PIN
-        before being stored. The PIN is never stored — if you forget it, your key cannot be
-        recovered.
+        (600,000-round PBKDF2-SHA256) before being stored. Your PIN is never stored — if you forget it, your key cannot be
+        recovered. Choose a strong PIN with at least 8 characters including letters, numbers, or symbols. The strength of your secret key depends entirely on PIN entropy.
       </div>
 
       {/* ── Create Form ─────────────────────────────────────── */}
@@ -227,9 +272,6 @@ export default function WalletSetup({
             label="Confirm PIN"
             placeholder="Re-enter PIN…"
           />
-          {createPin && createPinConfirm && createPin !== createPinConfirm && (
-            <p className="text-xs text-red-500">PINs do not match.</p>
-          )}
           <button
             type="submit"
             disabled={loading}
@@ -271,9 +313,6 @@ export default function WalletSetup({
             label="Confirm PIN"
             placeholder="Re-enter PIN…"
           />
-          {importPin && importPinConfirm && importPin !== importPinConfirm && (
-            <p className="text-xs text-red-500">PINs do not match.</p>
-          )}
           <button
             type="submit"
             disabled={loading}

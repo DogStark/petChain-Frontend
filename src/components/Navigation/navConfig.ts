@@ -42,6 +42,8 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     ],
   },
   { label: 'Analytics', href: '/analytics', icon: 'chart', authRequired: true },
+  { label: 'Exchange Rates', href: '/rate', icon: 'trending-up', authRequired: true },
+  { label: 'Rate Us', href: '/review', icon: 'star', authRequired: true },
   { label: 'Notifications', href: '/notifications', icon: 'bell', authRequired: true },
   { label: 'Search', href: '/search', icon: 'search' },
   {

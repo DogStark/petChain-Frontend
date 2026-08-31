@@ -1,13 +1,9 @@
 import { StellarService } from './StellarService';
-import { NETWORK_CONFIGS } from './types';
+import { getNetworkConfig } from './network';
 
-// Declare process to fix linting errors if types are not properly picked up
-declare const process: any;
-
-// Detect network from environment
-const isTestnet =
-  typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_STELLAR_NETWORK !== 'public' : true;
-const defaultConfig = isTestnet ? NETWORK_CONFIGS.TESTNET : NETWORK_CONFIGS.PUBLIC;
+// Detect network from environment and validate it once at startup so the
+// Horizon, passphrase, explorer, and friendbot settings always move together.
+const defaultConfig = getNetworkConfig();
 
 // Export shared instance (Singleton pattern for common use cases)
 export const stellarService = new StellarService(defaultConfig);

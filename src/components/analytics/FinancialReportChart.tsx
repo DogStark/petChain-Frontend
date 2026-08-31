@@ -9,6 +9,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 interface FinancialReportChartProps {
     data: {
@@ -39,7 +40,7 @@ const FinancialReportChart: React.FC<FinancialReportChartProps> = ({ data }) => 
                         <YAxis stroke="#6b7280" axisLine={false} tickLine={false} tickFormatter={(value) => `$${value}`} />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
-                            formatter={(value: any) => [`$${Number(value).toLocaleString()}`, undefined]}
+                            formatter={(value: any) => [`$${formatCurrency(value)}`, undefined]}
                             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />

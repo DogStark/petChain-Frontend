@@ -112,6 +112,15 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const uploadAbortRef = useRef<AbortController | null>(null);
 
   const remainingSlots = maxPhotos - currentCount;
+  const stagedFilesRef = useRef(stagedFiles);
+  stagedFilesRef.current = stagedFiles;
+
+  // Revoke any remaining blob URLs when the component unmounts
+  useEffect(() => {
+    return () => {
+      stagedFilesRef.current.forEach((pf) => URL.revokeObjectURL(pf.previewUrl));
+    };
+  }, []);
 
   // Revoke all staged preview URLs on unmount to prevent memory leaks.
   useEffect(() => {

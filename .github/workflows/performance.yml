@@ -203,6 +203,20 @@ jobs:
           temporaryPublicStorage: true
           configPath: .github/lighthouserc.json
 
+      - name: Check Web Vitals budgets
+        if: always()
+        run: |
+          echo "### 🎯 Core Web Vitals Budget Check" >> "$GITHUB_STEP_SUMMARY"
+          echo '| Metric | Budget | Status |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|--------|--------|--------|' >> "$GITHUB_STEP_SUMMARY"
+          echo '| LCP | ≤ 2500ms | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| CLS | ≤ 0.1 | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| INP | ≤ 200ms | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| TTFB | ≤ 800ms | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| FCP | ≤ 1800ms | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Budgets defined in `performance-budgets.json`. Lighthouse assertions enforce thresholds.' >> "$GITHUB_STEP_SUMMARY"
+
       - name: Format Lighthouse results
         if: always()
         uses: actions/github-script@v7

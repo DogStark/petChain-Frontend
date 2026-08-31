@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import SafeImage from "@/components/SafeImage";
 import { StaffMember } from "@/types/clinic";
 
 interface StaffListProps {
@@ -16,7 +16,7 @@ export default function StaffList({ staff }: StaffListProps) {
         >
           <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-50 shrink-0 border-2 border-white shadow-sm relative">
             {member.avatar ? (
-              <Image
+              <SafeImage
                 src={member.avatar}
                 alt={member.name}
                 fill

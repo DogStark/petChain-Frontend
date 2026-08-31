@@ -1,7 +1,3 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import { QRCodeSVG } from 'qrcode.react';
 import {
   QrCode,
   RefreshCw,
@@ -12,25 +8,33 @@ import {
   ArrowLeft,
   Plus,
   AlertCircle,
+  Printer,
 } from 'lucide-react';
+import type { GetServerSideProps } from 'next';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { QRCodeSVG } from 'qrcode.react';
+import React, { useState, useEffect, useCallback } from 'react';
+
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { qrcodeAPI, QRCodeRecord, ScanAnalytics } from '@/lib/api/qrcodeAPI';
-import { GetServerSideProps } from 'next';
+import type { QRCodeRecord, ScanAnalytics } from '@/lib/api/qrcodeAPI';
+import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
+
 
 export const dynamic = 'force-dynamic';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 function QRCard({
   qr,
   onToggle,
   onRegenerate,
   onSelect,
+  isRotating,
 }: {
   qr: QRCodeRecord;
   onToggle: (qr: QRCodeRecord) => void;
   onRegenerate: (qr: QRCodeRecord) => void;
   onSelect: (qr: QRCodeRecord) => void;
+  isRotating: boolean;
 }) {
   const scanUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/scan/${qr.qrCodeId}`;
 
@@ -38,10 +42,14 @@ function QRCard({
     const svg = document.getElementById(`qr-svg-${qr.qrCodeId}`);
     if (!svg) return;
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `petchain-qr-${qr.qrCodeId}.svg`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -62,19 +70,20 @@ function QRCard({
         </span>
       </div>
 
-      <div className="flex justify-center">
-        <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-inner">
+      <div className="flex justify-center print:block">
+        <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-inner print:border-none print:shadow-none print:p-0">
           <QRCodeSVG
             id={`qr-svg-${qr.qrCodeId}`}
             value={scanUrl}
             size={140}
             level="H"
             includeMargin
+            className="print:w-[2in] print:h-[2in]"
           />
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap print:hidden">
         <button
           onClick={() => onToggle(qr)}
           className="flex items-center gap-1 text-xs px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
@@ -84,14 +93,19 @@ function QRCard({
           ) : (
             <ToggleLeft size={14} />
           )}
-          {qr.isActive ? 'Deactivate' : 'Activate'}
+          {qr.isActive ? 'Revoke tag' : 'Reactivate'}
         </button>
         <button
           onClick={() => onRegenerate(qr)}
-          className="flex items-center gap-1 text-xs px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
+          disabled={isRotating}
+          aria-describedby={`replace-help-${qr.qrCodeId}`}
+          className="flex items-center gap-1 text-xs px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-all"
         >
-          <RefreshCw size={14} /> Regenerate
+          <RefreshCw size={14} /> {isRotating ? 'Replacing...' : 'Replace tag'}
         </button>
+        <p id={`replace-help-${qr.qrCodeId}`} className="sr-only">
+          Replaces this QR tag with a new active code and makes the old tag unavailable.
+        </p>
         <button
           onClick={download}
           className="flex items-center gap-1 text-xs px-3 py-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
@@ -211,7 +225,9 @@ export default function QRCodePage() {
   const [qrcodes, setQrcodes] = useState<QRCodeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [rotatingQR, setRotatingQR] = useState<string | null>(null);
   const [selectedQR, setSelectedQR] = useState<string | null>(null);
 
   const load = useCallback(async (pid: string) => {
@@ -234,8 +250,11 @@ export default function QRCodePage() {
     if (!petId || typeof petId !== 'string') return;
     setCreating(true);
     try {
+      setError(null);
+      setStatus(null);
       const qr = await qrcodeAPI.create(petId);
       setQrcodes((prev) => [qr, ...prev]);
+      setStatus(`New tag ${qr.qrCodeId} is active and ready to use.`);
     } catch {
       setError('Failed to create QR code');
     } finally {
@@ -245,20 +264,49 @@ export default function QRCodePage() {
 
   const handleToggle = async (qr: QRCodeRecord) => {
     try {
+      setError(null);
+      setStatus(null);
       const updated = await qrcodeAPI.update(qr.qrCodeId, { isActive: !qr.isActive });
       setQrcodes((prev) => prev.map((q) => (q.qrCodeId === qr.qrCodeId ? updated : q)));
+      setStatus(
+        updated.isActive
+          ? `Tag ${updated.qrCodeId} is active again.`
+          : `Tag ${updated.qrCodeId} has been revoked and will not show emergency details.`,
+      );
     } catch {
       setError('Failed to update QR code');
     }
   };
 
   const handleRegenerate = async (qr: QRCodeRecord) => {
-    if (!confirm('Regenerate this QR code? The old code will stop working.')) return;
+    if (
+      !confirm(
+        'Replace this QR tag? The old tag will stop working and you will need to download or print the new active tag.',
+      )
+    ) {
+      return;
+    }
+    const oldQrCodeId = qr.qrCodeId;
+    setRotatingQR(oldQrCodeId);
     try {
-      const updated = await qrcodeAPI.regenerate(qr.qrCodeId);
-      setQrcodes((prev) => prev.map((q) => (q.qrCodeId === qr.qrCodeId ? updated : q)));
+      setError(null);
+      setStatus(null);
+      const updated = await qrcodeAPI.regenerate(oldQrCodeId);
+      setQrcodes((prev) => {
+        const replaced = prev.map((q) =>
+          q.qrCodeId === oldQrCodeId || q.id === qr.id ? updated : q,
+        );
+        return replaced.some((q) => q.qrCodeId === updated.qrCodeId)
+          ? replaced
+          : [updated, ...prev.filter((q) => q.qrCodeId !== oldQrCodeId)];
+      });
+      setStatus(
+        `Replacement tag ${updated.qrCodeId} is active. The old tag ${oldQrCodeId} is no longer valid.`,
+      );
     } catch {
-      setError('Failed to regenerate QR code');
+      setError('Failed to replace QR tag');
+    } finally {
+      setRotatingQR(null);
     }
   };
 
@@ -266,35 +314,85 @@ export default function QRCodePage() {
     <ProtectedRoute>
       <Head>
         <title>QR Code Tags — PetChain</title>
+        <style type="text/css" media="print">
+          {`
+            @page { size: auto;  margin: 10mm; }
+            body { background: white !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .print-only { display: none; }
+            @media print {
+              .no-print { display: none !important; }
+              .print-only { display: block !important; }
+              .qr-grid-print {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 20px !important;
+                background: white !important;
+              }
+              .qr-card-print {
+                page-break-inside: avoid;
+                border: 2px dashed #ccc !important;
+                box-shadow: none !important;
+                padding: 20px !important;
+              }
+            }
+          `}
+        </style>
       </Head>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gray-50 print:bg-white">
+        <div className="max-w-2xl mx-auto px-4 py-8 print:max-w-none print:p-0">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-all"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-all no-print"
           >
             <ArrowLeft size={16} /> Back
           </button>
 
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 no-print">
             <h1 className="text-2xl font-black flex items-center gap-2">
               <QrCode size={24} /> QR Code Tags
             </h1>
-            <button
-              onClick={handleCreate}
-              disabled={creating || !petId}
-              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-700 disabled:opacity-50 transition-all"
-            >
-              <Plus size={16} /> {creating ? 'Creating…' : 'New QR Code'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.print()}
+                disabled={qrcodes.length === 0}
+                className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-50 disabled:opacity-50 transition-all"
+              >
+                <Printer size={16} /> Print Tags
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={creating || !petId}
+                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-700 disabled:opacity-50 transition-all"
+              >
+                <Plus size={16} /> {creating ? 'Creating…' : 'New QR Code'}
+              </button>
+            </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm">
+            <div
+              role="alert"
+              className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm"
+            >
               <AlertCircle size={16} /> {error}
-              <button onClick={() => setError(null)} className="ml-auto font-bold">
+              <button
+                onClick={() => setError(null)}
+                aria-label="Dismiss error"
+                className="ml-auto font-bold"
+              >
                 ×
               </button>
+            </div>
+          )}
+
+          {status && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 mb-4 text-sm font-semibold"
+            >
+              {status}
             </div>
           )}
 
@@ -309,17 +407,25 @@ export default function QRCodePage() {
               <p className="text-sm mt-1">Create one to generate a scannable pet tag</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {qrcodes.map((qr) => (
-                <QRCard
-                  key={qr.qrCodeId}
-                  qr={qr}
-                  onToggle={handleToggle}
-                  onRegenerate={handleRegenerate}
-                  onSelect={(q) => setSelectedQR(q.qrCodeId)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="print-only text-center mb-8">
+                <h1 className="text-3xl font-black">Pet Identity Tags</h1>
+                <p className="text-gray-600 mt-2">Cut along the dotted lines and attach to pet collar</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 qr-grid-print">
+                {qrcodes.map((qr) => (
+                  <div key={qr.qrCodeId} className="qr-card-print">
+                    <QRCard
+                      qr={qr}
+                      onToggle={handleToggle}
+                      onRegenerate={handleRegenerate}
+                      onSelect={(q) => setSelectedQR(q.qrCodeId)}
+                      isRotating={rotatingQR === qr.qrCodeId}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

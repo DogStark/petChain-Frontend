@@ -37,22 +37,28 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.field}>
-        <label>Surgery Type</label>
+        <label htmlFor="surgeryType">Surgery Type</label>
         <input
+          id="surgeryType"
           type="text"
           value={formData.surgeryType}
           onChange={(e) => setFormData({ ...formData, surgeryType: e.target.value })}
           required
+          aria-required="true"
+          aria-invalid={!formData.surgeryType ? 'true' : 'false'}
         />
       </div>
 
       <div className={styles.field}>
-        <label>Surgery Date</label>
+        <label htmlFor="surgeryDate">Surgery Date</label>
         <input
+          id="surgeryDate"
           type="date"
           value={formData.surgeryDate}
           onChange={(e) => setFormData({ ...formData, surgeryDate: e.target.value })}
           required
+          aria-required="true"
+          aria-invalid={!formData.surgeryDate ? 'true' : 'false'}
         />
       </div>
 

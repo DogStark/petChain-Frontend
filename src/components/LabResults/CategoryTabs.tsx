@@ -36,6 +36,24 @@ export default function CategoryTabs({
   };
 
   return (
+    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto" role="tablist" aria-label="Lab result categories">
+      {categories.map((cat) => (
+        <button
+          key={cat}
+          type="button"
+          role="tab"
+          aria-selected={activeCategory === cat}
+          aria-controls={`panel-${cat}`}
+          onClick={() => onSelect(cat)}
+          className={`whitespace-nowrap min-h-[44px] flex items-center justify-center px-4 py-2 rounded-full font-medium transition-all ${
+            activeCategory === cat
+              ? "bg-blue-600 text-white shadow-md"
+              : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+          }`}
+        >
+          {cat}
+        </button>
+      ))}
     <div
       role="tablist"
       aria-label="Lab result categories"

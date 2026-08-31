@@ -5,6 +5,7 @@ import { PetsService } from './pets.service';
 import { Pet } from './entities/pet.entity';
 import { PetShare } from './entities/pet-share.entity';
 import { UsersService } from '../users/users.service';
+import { CacheService } from '../cache/cache.service';
 
 describe('PetsService', () => {
   let service: PetsService;
@@ -41,6 +42,14 @@ describe('PetsService', () => {
     findOne: jest.fn(),
   };
 
+  const mockCacheService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    invalidatePet: jest.fn().mockResolvedValue(undefined),
+    invalidateVetVerification: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +60,7 @@ describe('PetsService', () => {
           useValue: mockPetShareRepository,
         },
         { provide: UsersService, useValue: mockUsersService },
+        { provide: CacheService, useValue: mockCacheService },
       ],
     }).compile();
 

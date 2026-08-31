@@ -7,8 +7,12 @@ import {
   CheckCircle,
   Wallet,
   Plus,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
+import { formatBalance } from '../../utils/formatCurrency';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallets: WalletAccount[];
@@ -20,7 +24,7 @@ interface Props {
   onRefreshBalance: () => void;
   onFundTestnet: () => void;
   onAddWallet: () => void;
-  onDeleteWallet: (id: string) => void;
+  onDeleteWallet: (id: string, pin: string) => Promise<void>;
   isTestnet: boolean;
   loading: boolean;
 }
@@ -51,7 +55,33 @@ export default function WalletDashboard({
   loading,
 }: Props) {
   const [copied, setCopied] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState<'initial' | 'pin' | 'confirm'>('initial');
+  const [deletePin, setDeletePin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [deleteAckUnverified, setDeleteAckUnverified] = useState(false);
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (deletePin) {
+      timeoutId = setTimeout(() => {
+        setDeletePin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && deletePin) {
+        setDeletePin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [deletePin]);
 
   function copyAddress() {
     if (!selectedWallet) return;
@@ -215,11 +245,7 @@ export default function WalletDashboard({
                   XLM Balance
                 </p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {xlmBalance
-                    ? parseFloat(xlmBalance.balance).toLocaleString(undefined, {
-                        maximumFractionDigits: 7,
-                      })
-                    : '0'}
+                  {xlmBalance ? formatBalance(xlmBalance.balance) : '0'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">Stellar Lumens</p>
               </div>
@@ -231,7 +257,7 @@ export default function WalletDashboard({
                     {b.asset_code ?? 'Unknown'}
                   </p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                    {formatBalance(b.balance)}
                   </p>
                   {b.limit && <p className="text-sm text-gray-400 mt-1">Limit: {b.limit}</p>}
                 </div>
@@ -291,39 +317,176 @@ export default function WalletDashboard({
 
           {/* Danger Zone */}
           <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6">
-            <h3 className="font-semibold text-red-700 mb-2 text-sm">Danger Zone</h3>
-            {confirmDelete === selectedWallet.id ? (
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-red-600">
-                  Remove &quot;{selectedWallet.label}&quot; from this device?
-                </p>
+            <h3 className="font-semibold text-red-700 mb-4 text-sm">Danger Zone</h3>
+
+            {deleteStep === 'initial' && (
+              <>
+                {!selectedWallet.backupVerified && (
+                  <div className="mb-4 flex items-start gap-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Warning:</strong> This wallet has no verified backup. Deleting it will permanently destroy access to these funds.
+                    </span>
+                  </div>
+                )}
+                {accountData && xlmBalance && parseFloat(xlmBalance.balance) > 0 && (
+                  <div className="mb-4 flex items-start gap-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Balance:</strong> This wallet holds {formatBalance(xlmBalance.balance)} XLM.
+                    </span>
+                  </div>
+                )}
                 <button
-                  onClick={() => {
-                    onDeleteWallet(selectedWallet.id);
-                    setConfirmDelete(null);
-                  }}
-                  className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                  onClick={() => setDeleteStep('pin')}
+                  className="text-sm text-red-600 hover:underline"
                 >
-                  Confirm
+                  Remove wallet from this device
                 </button>
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="px-3 py-1.5 text-gray-600 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+              </>
+            )}
+
+            {deleteStep === 'pin' && (
+              <div className="space-y-3">
+                {!selectedWallet.backupVerified && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      id="ack-unverified"
+                      checked={deleteAckUnverified}
+                      onChange={(e) => setDeleteAckUnverified(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <label htmlFor="ack-unverified" className="text-red-700">
+                      I understand this wallet has no verified backup and I will lose access to all funds.
+                    </label>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Enter PIN to confirm deletion
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPin ? 'text' : 'password'}
+                      value={deletePin}
+                      onChange={(e) => setDeletePin(e.target.value)}
+                      placeholder="Enter PIN…"
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin((s) => !s)}
+                      className="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!selectedWallet.backupVerified && !deleteAckUnverified) return;
+                      setDeleteStep('confirm');
+                    }}
+                    disabled={!selectedWallet.backupVerified && !deleteAckUnverified}
+                    className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteStep('initial');
+                      setDeletePin('');
+                      setDeleteAckUnverified(false);
+                      setShowPin(false);
+                    }}
+                    className="px-3 py-2 text-gray-600 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(selectedWallet.id)}
-                className="text-sm text-red-600 hover:underline"
-              >
-                Remove wallet from this device
-              </button>
+            )}
+
+            {deleteStep === 'confirm' && (
+              <div className="space-y-3">
+                <p className="text-sm text-red-600">
+                  Really remove &quot;{selectedWallet.label}&quot;? This cannot be undone.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
+                  >
+                    Confirm Deletion
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteStep('initial');
+                      setDeletePin('');
+                      setDeleteAckUnverified(false);
+                      setShowPin(false);
+                    }}
+                    className="px-3 py-2 text-gray-600 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </>
       )}
+
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        title="Delete Wallet"
+        description={`You are about to permanently delete "${selectedWallet?.label}". This action cannot be undone and all funds will be lost if not backed up.`}
+        confirmLabel={loading ? 'Deleting...' : 'Delete Wallet'}
+        cancelLabel="Go Back"
+        onConfirm={() => {
+          if (selectedWallet) {
+            onDeleteWallet(selectedWallet.id, deletePin);
+            setDeleteStep('initial');
+            setDeletePin('');
+            setDeleteAckUnverified(false);
+            setShowPin(false);
+          }
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        loading={loading}
+        variant="danger"
+        details={[
+          { label: 'Wallet', value: selectedWallet?.label || '' },
+          {
+            label: 'Public Key',
+            value: selectedWallet
+              ? `${selectedWallet.publicKey.slice(0, 10)}…${selectedWallet.publicKey.slice(-6)}`
+              : '',
+          },
+          {
+            label: 'Network',
+            value: isTestnet ? 'Testnet' : 'Mainnet',
+          },
+          ...(accountData?.balances
+            .filter((b) => parseFloat(b.balance) > 0)
+            .map((b) => ({
+              label: `Balance (${b.asset_code || 'XLM'})`,
+              value: formatBalance(b.balance),
+              highlight: true,
+            })) || []),
+        ]}
+        riskCues={[
+          'This will remove the wallet from this device permanently.',
+          ...(selectedWallet && !selectedWallet.backupVerified
+            ? ['This wallet has NO verified backup. All funds will be lost.']
+            : []),
+          'You will need your backup to restore this wallet later.',
+          'Any pending transactions may still be processed on-chain.',
+        ]}
+      />
     </div>
   );
 }

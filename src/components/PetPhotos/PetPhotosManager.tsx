@@ -6,6 +6,15 @@ import styles from './PetPhotos.module.css';
 
 const MAX_PHOTOS = 10;
 
+function getApiError(err: unknown, fallback: string): string {
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+    if (typeof msg === 'string') return msg;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 interface PetPhotosManagerProps {
   petId: string;
 }

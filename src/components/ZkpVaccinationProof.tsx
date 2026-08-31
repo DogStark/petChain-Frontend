@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useZkp } from '@/hooks/useZkp';
 import { ZkpProof, VerifyResult } from '@/lib/zkp';
+import { formatDate } from '@/utils/formatDate';
 
 interface Props {
   vaccinationId: string;
@@ -10,23 +11,36 @@ interface Props {
 }
 
 export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Props) {
-  const { generateProof, verifyProof, loading, error } = useZkp();
+  const { generateProof, verifyProof, isGenerating, isVerifying, error } = useZkp();
   const [proof, setProof] = useState<ZkpProof | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [handlerError, setHandlerError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    const result = await generateProof(vaccinationId);
-    if (result) {
-      setProof(result);
-      setVerifyResult(null);
+    setHandlerError(null);
+    try {
+      const result = await generateProof(vaccinationId);
+      if (result) {
+        setProof(result);
+        setVerifyResult(null);
+      }
+    } catch (e) {
+      setHandlerError(e instanceof Error ? e.message : 'Failed to generate proof');
     }
   };
 
   const handleVerify = async () => {
     if (!proof) return;
-    const result = await verifyProof(proof.id);
-    if (result) setVerifyResult(result);
+    setHandlerError(null);
+    try {
+      const result = await verifyProof(proof.id);
+      if (result) setVerifyResult(result);
+    } catch (e) {
+      setHandlerError(e instanceof Error ? e.message : 'Failed to verify proof');
+    }
   };
+
+  const displayError = handlerError ?? error;
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
@@ -40,9 +54,12 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
         medical details.
       </p>
 
-      {error && (
-        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2">
-          {error}
+      {displayError && (
+        <div
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2"
+        >
+          {displayError}
         </div>
       )}
 
@@ -67,7 +84,7 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
             <p className="text-gray-500 dark:text-gray-400">
               Expires:{' '}
               <span className="text-gray-800 dark:text-gray-200">
-                {new Date(proof.expiresAt).toLocaleDateString()}
+                {formatDate(proof.expiresAt)}
               </span>
             </p>
           )}
@@ -91,18 +108,18 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
       <div className="flex gap-2">
         <button
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={isGenerating || isVerifying}
           className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
         >
-          {loading ? 'Generating…' : 'Generate Proof'}
+          {isGenerating ? 'Generating…' : 'Generate Proof'}
         </button>
         {proof && (
           <button
             onClick={handleVerify}
-            disabled={loading}
+            disabled={isGenerating || isVerifying}
             className="flex-1 py-2 px-3 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Verifying…' : 'Verify Proof'}
+            {isVerifying ? 'Verifying…' : 'Verify Proof'}
           </button>
         )}
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import NextImage from 'next/image';
 import styles from './AvatarUpload.module.css';
 
@@ -18,6 +18,21 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const [preview, setPreview] = useState<string | undefined>(currentAvatar);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the next `currentAvatar` change was caused by our own
+  // local file selection (via onUploadSuccess bubbling back up), so that
+  // sync effect below doesn't clobber the just-picked local preview.
+  const hasLocalSelectionRef = useRef(false);
+
+  // Keep the preview in sync with the currentAvatar prop, which may arrive
+  // asynchronously (e.g. after the user's profile finishes loading) or
+  // change when switching between different users/profiles.
+  useEffect(() => {
+    if (hasLocalSelectionRef.current) {
+      hasLocalSelectionRef.current = false;
+      return;
+    }
+    setPreview(currentAvatar);
+  }, [currentAvatar]);
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
@@ -37,6 +52,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
+      hasLocalSelectionRef.current = true;
       setPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);

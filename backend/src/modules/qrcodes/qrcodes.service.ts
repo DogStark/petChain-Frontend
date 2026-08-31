@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,10 +25,13 @@ export class QRCodesService {
     @InjectRepository(QRCodeScan)
     private scanRepository: Repository<QRCodeScan>,
   ) {
-    // In production, use environment variable for encryption key
-    this.encryptionKey =
-      process.env.QR_ENCRYPTION_KEY ||
-      'default-encryption-key-change-in-production';
+    const key = process.env.QR_ENCRYPTION_KEY;
+    if (!key) {
+      throw new InternalServerErrorException(
+        'QR_ENCRYPTION_KEY environment variable must be set',
+      );
+    }
+    this.encryptionKey = key;
   }
 
   /**
