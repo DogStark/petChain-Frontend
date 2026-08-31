@@ -101,6 +101,18 @@ self.addEventListener('message', (event) => {
       })
     );
   }
+
+  if (event.data?.type === "EMERGENCY_RESET") {
+    // Clear all caches and unregister
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => caches.delete(key)))
+    ).then(() => {
+      self.registration.unregister();
+    }).then(() => {
+      // Notify clients the reset is complete
+      event.source.postMessage({ type: "EMERGENCY_RESET_COMPLETE" });
+    });
+  }
 });
 
 // ── Fetch: route requests by type ─────────────────────────────────────────────
