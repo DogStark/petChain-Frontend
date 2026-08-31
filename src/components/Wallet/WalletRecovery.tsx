@@ -95,12 +95,15 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
       setRecovered(wallet);
       setBackup(null);
       setFileName('');
+      // Zero sensitive state immediately after success
       setPin('');
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
       if (err instanceof DecryptionError) {
         setParseError('Incorrect PIN. The backup cannot be decrypted with this PIN.');
       }
+      // Zero sensitive state on failure
+      setPin('');
     }
   }
 
@@ -290,8 +293,14 @@ export default function WalletRecovery({ onImportBackup, loading, error, onClear
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="The PIN used when backup was created…"
               disabled={!backup}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
               autoComplete="current-password"
             />

@@ -7,11 +7,7 @@ import type {
   BroadcastResult,
   WalletMonitoringData,
 } from '../../types/wallet';
-import {
-  validateMultisigConfig,
-  buildConfigSummary,
-  type ValidationWarning,
-} from '../../utils/multisigValidation';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -46,7 +42,16 @@ export default function MultiSigSetup({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [removePin, setRemovePin] = useState('');
   const [removingKey, setRemovingKey] = useState<string | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSetupConfirm, setShowSetupConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
+
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setPin('');
+      setRemovePin('');
+    };
+  }, []);
 
   React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -133,13 +138,19 @@ export default function MultiSigSetup({
   function handleInitiateSetup(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
-    if (validation.errors.length > 0 || !pin) return;
-    setShowConfirm(true);
+    const err = validateSigners();
+    if (err) {
+      setResult(null);
+      alert(err);
+      return;
+    }
+    setShowSetupConfirm(true);
   }
 
-  async function handleConfirmSetup() {
+  async function handleSetup(e: React.FormEvent) {
+    e.preventDefault();
     onClearError();
-    setShowConfirm(false);
+    setShowSetupConfirm(false);
     try {
       const res = await onSetupMultiSig(pin, {
         signers: signers.filter((s) => s.publicKey.trim()),
@@ -149,21 +160,31 @@ export default function MultiSigSetup({
         highThreshold,
       });
       setResult(res);
+      // Zero sensitive state immediately after success
       setPin('');
     } catch {
-      // error shown via hook
+      // error shown via hook, also zero sensitive state on failure
+      setPin('');
     }
   }
 
-  async function handleRemoveSigner(signerKey: string) {
+  function handleInitiateRemoveSigner(signerKey: string) {
     if (!removePin) return;
+    setShowRemoveConfirm(signerKey);
+  }
+
+  async function handleRemoveSigner(signerKey: string) {
     setRemovingKey(signerKey);
+    setShowRemoveConfirm(null);
     onClearError();
     try {
       await onRemoveSigner(removePin, signerKey);
+      // Zero sensitive state immediately after success
       setRemovePin('');
       setRemovingKey(null);
     } catch {
+      // error shown via hook, also zero sensitive state on failure
+      setRemovePin('');
       setRemovingKey(null);
     }
   }
@@ -224,7 +245,7 @@ export default function MultiSigSetup({
                   w={s.weight}
                 </span>
                 <button
-                  onClick={() => handleRemoveSigner(s.publicKey)}
+                  onClick={() => handleInitiateRemoveSigner(s.publicKey)}
                   disabled={loading || removingKey === s.publicKey}
                   className="text-red-400 hover:text-red-600 flex-shrink-0 disabled:opacity-40"
                   title="Remove signer"
@@ -243,7 +264,13 @@ export default function MultiSigSetup({
                 type="password"
                 value={removePin}
                 onChange={(e) => setRemovePin(e.target.value)}
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
                 placeholder="Your wallet PIN…"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -402,7 +429,13 @@ export default function MultiSigSetup({
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Enter PIN to sign setup transaction…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
@@ -424,74 +457,63 @@ export default function MultiSigSetup({
         </button>
       </form>
 
-      {/* Confirmation Dialog */}
-      {showConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
-        >
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
-            <h2 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900">
-              Confirm Multi-Sig Configuration
-            </h2>
-            <p className="text-sm text-gray-600">
-              You are about to change the multi-signature configuration for this wallet. This will
-              modify the signing requirements on-chain.
-            </p>
+      <ConfirmationDialog
+        open={showSetupConfirm}
+        title="Confirm Multi-Sig Configuration"
+        description="You are about to change the multi-signature configuration for this wallet. This will modify the signing requirements on-chain."
+        confirmLabel={loading ? 'Applying...' : 'Apply Configuration'}
+        cancelLabel="Go Back"
+        onConfirm={(e) => handleSetup(e as unknown as React.FormEvent)}
+        onCancel={() => setShowSetupConfirm(false)}
+        loading={loading}
+        variant="warning"
+        details={[
+          {
+            label: 'Co-signers',
+            value: `${signers.filter((s) => s.publicKey.trim()).length} signer(s)`,
+          },
+          { label: 'Master Weight', value: String(masterWeight) },
+          { label: 'Low Threshold', value: String(lowThreshold) },
+          {
+            label: 'Medium Threshold',
+            value: String(medThreshold),
+            highlight: true,
+          },
+          {
+            label: 'High Threshold',
+            value: String(highThreshold),
+            highlight: true,
+          },
+          { label: 'Total Weight', value: String(totalWeight) },
+        ]}
+        riskCues={[
+          'This will change your wallet\'s signing requirements on-chain.',
+          'Existing co-signers will be affected immediately.',
+          'Ensure your signing parties can meet the new thresholds.',
+        ]}
+      />
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              {configSummary.map((item) => (
-                <div key={item.label} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{item.label}</span>
-                  <span className={`font-medium ${item.highlight ? 'text-purple-700' : 'text-gray-900'}`}>
-                    {item.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {validation.warnings.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
-                <p className="font-medium mb-1">Warnings:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {validation.warnings.map((w: ValidationWarning, i: number) => (
-                    <li key={i}>{w.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 space-y-1">
-              <p className="font-medium">Risk reminders:</p>
-              <ol className="list-decimal list-inside space-y-0.5">
-                <li>This will change your wallet's signing requirements on-chain.</li>
-                <li>Existing co-signers will be affected immediately.</li>
-                <li>Ensure your signing parties can meet the new thresholds.</li>
-              </ol>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmSetup}
-                disabled={loading}
-                className="flex-1 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'Applying...' : 'Apply Configuration'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationDialog
+        open={showRemoveConfirm !== null}
+        title="Remove Co-Signer"
+        description="You are about to remove a co-signer from this wallet. The removed party will no longer be able to authorize transactions."
+        confirmLabel={loading ? 'Removing...' : 'Remove Signer'}
+        cancelLabel="Go Back"
+        onConfirm={() => showRemoveConfirm && handleRemoveSigner(showRemoveConfirm)}
+        onCancel={() => setShowRemoveConfirm(null)}
+        loading={loading}
+        variant="danger"
+        details={
+          showRemoveConfirm
+            ? [{ label: 'Signer', value: `${showRemoveConfirm.slice(0, 12)}…${showRemoveConfirm.slice(-6)}` }]
+            : []
+        }
+        riskCues={[
+          'This signer will no longer be able to approve transactions.',
+          'The change takes effect immediately on the Stellar network.',
+          'You may need other signers to re-authorize operations.',
+        ]}
+      />
     </div>
   );
 }

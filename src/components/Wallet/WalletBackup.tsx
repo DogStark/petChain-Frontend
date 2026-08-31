@@ -80,11 +80,12 @@ export default function WalletBackup({ wallet, serverWalletId, onExportBackup }:
         try {
           await walletAPI.storeBackup(serverWalletId, backup);
           setServerBackupDone(true);
-        } catch (serverErr) {
-          console.warn('Server-side backup failed (local backup was still saved):', serverErr);
+        } catch {
+          // Silently fail server backup, local backup was still saved
         }
       }
 
+      // Zero sensitive state immediately after success
       setPin('');
     } catch (err) {
       setError(
@@ -94,6 +95,8 @@ export default function WalletBackup({ wallet, serverWalletId, onExportBackup }:
             : err.message
           : 'Export failed.'
       );
+      // Zero sensitive state on failure
+      setPin('');
     } finally {
       setLoading(false);
     }
@@ -223,7 +226,13 @@ export default function WalletBackup({ wallet, serverWalletId, onExportBackup }:
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Your wallet PIN…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               autoComplete="current-password"
             />
