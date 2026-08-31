@@ -384,6 +384,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearAuth();
     setLoading(false);
 
+    // Tell the service worker to purge its user-scoped cache so that
+    // authenticated API responses (health, wallet, account) cannot bleed
+    // into the next session on this device.
+    if (typeof window !== 'undefined' && navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SW_LOGOUT' });
+    }
+
     if (!serverLogoutSucceeded) {
       showLogoutWarning(
         "You've been signed out on this device, but we couldn't confirm the session was closed on our server. If this device may be compromised, consider changing your password."

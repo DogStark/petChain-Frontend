@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, PawPrint } from 'lucide-react';
+import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import SafeImage from '@/components/SafeImage';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
@@ -54,12 +54,16 @@ export default function PetDetailPage() {
     // Use sanitized copy to break taint flow
     const safeId = id.replace(/[^0-9a-f-]/gi, '');
 
+    const controller = new AbortController();
+    let cancelled = false;
+
     const fetchPet = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem('authToken');
         const res = await fetch(`${API_BASE_URL}/pets/${safeId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -67,15 +71,22 @@ export default function PetDetailPage() {
         }
 
         const data = await res.json();
+        if (cancelled) return;
         setPet(data);
       } catch (err: any) {
+        if (cancelled || err?.name === 'AbortError') return;
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchPet();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [id]);
 
   if (isLoading) {

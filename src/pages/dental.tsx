@@ -1,8 +1,154 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
-// Dental Records not in scope - dentalAPI removed
-// This page needs to be updated to fetch from a real backend API or removed entirely
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export type ToothStatus = 'healthy' | 'cavity' | 'missing' | 'treated' | 'fractured' | 'tartar';
+export type IssueSeverity = 'mild' | 'moderate' | 'severe';
+export type IssueStatus = 'active' | 'monitoring' | 'resolved';
+export type ReminderType = 'cleaning' | 'exam' | 'follow_up' | 'medication';
+
+export interface ToothRecord {
+  toothId: number; // 1–42 for dogs, 1–30 for cats
+  label: string;
+  status: ToothStatus;
+  notes?: string;
+  lastUpdated: string;
+}
+
+export interface DentalExam {
+  id: string;
+  petId: string;
+  date: string;
+  vetName: string;
+  clinic: string;
+  overallScore: number; // 1-10
+  plaqueLevel: 'none' | 'mild' | 'moderate' | 'severe';
+  tartarLevel: 'none' | 'mild' | 'moderate' | 'severe';
+  gingivitisLevel: 'none' | 'mild' | 'moderate' | 'severe';
+  notes: string;
+  toothChart: ToothRecord[];
+  nextExamDate: string;
+}
+
+export interface CleaningRecord {
+  id: string;
+  petId: string;
+  date: string;
+  vetName: string;
+  clinic: string;
+  type: 'professional' | 'home';
+  anesthesiaUsed: boolean;
+  teethExtracted: number[];
+  notes: string;
+  cost?: number;
+}
+
+export interface DentalIssue {
+  id: string;
+  petId: string;
+  toothId?: number;
+  issueType: string;
+  severity: IssueSeverity;
+  status: IssueStatus;
+  diagnosedDate: string;
+  resolvedDate?: string;
+  treatment?: string;
+  notes: string;
+}
+
+export interface DentalReminder {
+  id: string;
+  petId: string;
+  type: ReminderType;
+  title: string;
+  description: string;
+  dueDate: string;
+  isCompleted: boolean;
+  completedDate?: string;
+}
+
+const buildDefaultToothChart = (): ToothRecord[] => {
+  const statuses: ToothStatus[] = [
+    'healthy',
+    'healthy',
+    'healthy',
+    'tartar',
+    'healthy',
+    'cavity',
+    'healthy',
+    'healthy',
+    'healthy',
+    'missing',
+    'healthy',
+    'treated',
+  ];
+  return Array.from({ length: 42 }, (_, i) => ({
+    toothId: i + 1,
+    label: `T${i + 1}`,
+    status: i < statuses.length ? statuses[i] : 'healthy',
+    lastUpdated: '2024-12-15',
+  }));
+};
+
+const MOCK_DENTAL_EXAMS: DentalExam[] = [
+  {
+    id: 'exam-001',
+    petId: 'pet-001',
+    date: '2025-01-15',
+    vetName: 'Dr. Sarah Chen',
+    clinic: 'PawsCare Veterinary Clinic',
+    overallScore: 7,
+    plaqueLevel: 'mild',
+    tartarLevel: 'moderate',
+    gingivitisLevel: 'none',
+    notes:
+      'Good overall dental health. Some tartar buildup on molars. Professional cleaning recommended within 3 months.',
+    toothChart: buildDefaultToothChart(),
+    nextExamDate: '2025-07-15',
+  },
+];
+
+const MOCK_CLEANINGS: CleaningRecord[] = [
+  {
+    id: 'clean-001',
+    petId: 'pet-001',
+    date: '2025-02-01',
+    vetName: 'Dr. Sarah Chen',
+    clinic: 'PawsCare Veterinary Clinic',
+    type: 'professional',
+    anesthesiaUsed: true,
+    teethExtracted: [],
+    notes: 'Full scaling and polishing performed. No extractions needed. Healing well.',
+    cost: 420,
+  },
+];
+
+const MOCK_ISSUES: DentalIssue[] = [
+  {
+    id: 'issue-001',
+    petId: 'pet-001',
+    toothId: 6,
+    issueType: 'Cavity',
+    severity: 'moderate',
+    status: 'active',
+    diagnosedDate: '2025-01-15',
+    treatment: 'Dental filling scheduled for next visit',
+    notes: 'Small cavity on tooth #6. Monitor closely. Scheduled for treatment.',
+  },
+];
+
+const MOCK_REMINDERS: DentalReminder[] = [
+  {
+    id: 'rem-001',
+    petId: 'pet-001',
+    type: 'exam',
+    title: '6-Month Dental Exam Due',
+    description: 'Schedule annual dental exam with Dr. Sarah Chen at PawsCare.',
+    dueDate: '2025-07-15',
+    isCompleted: false,
+  },
+];
 
 // ─── Colour helpers ──────────────────────────────────────────────────────────
 
@@ -451,7 +597,7 @@ export default function DentalHealthPage() {
                             <h3 className="text-lg font-bold text-gray-800 mb-4">Jaw Summary</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {Object.entries(TOOTH_STATUS_CONFIG).map(([status, cfg]) => {
-                                    const count = selectedExam.toothChart.filter(t => t.status === status).length;
+                                    const count = selectedExam.toothChart.filter((t: ToothRecord) => t.status === status).length;
                                     return (
                                         <div key={status} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
                                             <div className="w-4 h-4 rounded-sm flex-shrink-0 shadow-sm"

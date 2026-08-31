@@ -435,8 +435,9 @@ export default function SecurityDashboard() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
-  );
+    </div>
+  </ProtectedRoute>
+);
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
