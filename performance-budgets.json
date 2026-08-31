@@ -51,6 +51,20 @@
     "scriptSize": 300000,
     "stylesheetSize": 50000
   },
+  "routes": {
+    "wallet": {
+      "warnBytes": 260000,
+      "maxBytes": 320000
+    },
+    "analytics": {
+      "warnBytes": 220000,
+      "maxBytes": 280000
+    },
+    "clinics": {
+      "warnBytes": 150000,
+      "maxBytes": 200000
+    }
+  },
   "alerts": {
     "budgetViolationThreshold": 3,
     "alertChannels": ["github-check", "github-pr"]

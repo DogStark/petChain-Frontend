@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { petPhotosAPI, type PetPhoto } from '@/lib/api/petPhotosAPI';
 import { PhotoUploader } from './PhotoUploader';
 import { PhotoGallery } from './PhotoGallery';
@@ -26,6 +26,12 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Keep a reference to the active upload AbortController so we can cancel
+   * from the parent's handleCancelUpload callback.
+   */
+  const uploadAbortRef = useRef<AbortController | null>(null);
+
   const fetchPhotos = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -33,7 +39,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
       setPhotos(data);
       setError(null);
     } catch (err: unknown) {
-      setError(getApiError(err, 'Failed to load photos'));
+      const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to load photos';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -43,23 +50,41 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
     fetchPhotos();
   }, [fetchPhotos]);
 
-  const handleUpload = async (files: File[]) => {
+  /**
+   * Receive files from PhotoUploader along with the AbortSignal it generated.
+   * Pass the signal to the API layer so the fetch can be cancelled if the user
+   * presses "Cancel" during the upload phase.
+   */
+  const handleUpload = async (files: File[], abortSignal: AbortSignal) => {
     try {
       setIsUploading(true);
       setUploadProgress(0);
       setError(null);
 
       const uploaded = await petPhotosAPI.uploadPhotos(petId, files, (progress) => {
-        setUploadProgress(progress);
-      });
+        if (!abortSignal.aborted) {
+          setUploadProgress(progress);
+        }
+      }, abortSignal);
 
-      setPhotos((prev) => [...prev, ...uploaded]);
+      if (!abortSignal.aborted) {
+        setPhotos((prev) => [...prev, ...uploaded]);
+      }
     } catch (err: unknown) {
-      setError(getApiError(err, 'Failed to upload photos'));
+      // Ignore AbortError — the user intentionally cancelled
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to upload photos';
+      setError(msg);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
+  };
+
+  const handleCancelUpload = () => {
+    uploadAbortRef.current?.abort();
+    setIsUploading(false);
+    setUploadProgress(0);
   };
 
   const handleSetPrimary = async (photoId: string) => {
@@ -73,7 +98,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         }))
       );
     } catch (err: unknown) {
-      setError(getApiError(err, 'Failed to set primary photo'));
+      const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to set primary photo';
+      setError(msg);
     }
   };
 
@@ -90,7 +116,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         return remaining;
       });
     } catch (err: unknown) {
-      setError(getApiError(err, 'Failed to delete photo'));
+      const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to delete photo';
+      setError(msg);
     }
   };
 
@@ -107,7 +134,8 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
       await petPhotosAPI.reorderPhotos(petId, photoIds);
     } catch (err: unknown) {
       setPhotos(previousPhotos);
-      setError(getApiError(err, 'Failed to reorder photos'));
+      const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to reorder photos';
+      setError(msg);
     }
   };
 
@@ -135,7 +163,7 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
       {error && (
         <div className={styles.errorBanner}>
           <span>{error}</span>
-          <button onClick={() => setError(null)}>×</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error">×</button>
         </div>
       )}
 
@@ -145,6 +173,7 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         isUploading={isUploading}
         uploadProgress={uploadProgress}
         onUpload={handleUpload}
+        onCancelUpload={handleCancelUpload}
       />
 
       <PhotoGallery

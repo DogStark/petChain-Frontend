@@ -69,7 +69,8 @@ jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'test-uuid-1234'),
 }));
 
-import walletService from './walletService';
+import walletService, { WalletService } from './walletService';
+import * as StellarSdk from '@stellar/stellar-sdk';
 import { encryptSecretKey, decryptSecretKey, computeChecksum } from './walletCrypto';
 
 const STORAGE_KEY = 'petchain_wallets';
@@ -214,21 +215,41 @@ describe('WalletService', () => {
     });
 
     it('propagates error when submitTransaction fails', async () => {
-      const { Horizon } = require('@stellar/stellar-sdk');
-      Horizon.Server.mockImplementationOnce(() => ({
+      // Point the one-time Horizon.Server implementation at a failing server so
+      // the error path is exercised without any real network calls.
+      StellarSdk.Horizon.Server.mockImplementationOnce(() => ({
         loadAccount: jest.fn().mockResolvedValue({
           balances: [], sequence: '0', signers: [],
           thresholds: { low_threshold: 0, med_threshold: 0, high_threshold: 0 },
         }),
         submitTransaction: jest.fn().mockRejectedValue(new Error('network error')),
         feeStats: jest.fn(),
-      }));
+      };
+      // Patch the server cache on the singleton to use our failing server for TESTNET
+      const svc = walletService as unknown as {
+        serverCache: Map<string, typeof mockServer>;
+      };
+      svc.serverCache.set('TESTNET', mockServer);
 
-      // Re-import to get new instance — use a fresh service to pick up mock
-      const { default: ws } = await import('./walletService');
+      const ws = new WalletService();
       await expect(
-        ws.sendPayment(mockWallet, 'pin', { destination: 'G...', asset: 'XLM', amount: '1' })
-      ).rejects.toThrow();
+        walletService.sendPayment(mockWallet, 'pin', { destination: 'G...', asset: 'XLM', amount: '1' })
+      ).rejects.toThrow('network error');
+
+      // Restore original mock server so subsequent tests aren't affected
+      svc.serverCache.delete('TESTNET');
+    });
+
+    it('rejects sending from a wallet on a different network (no testnet/mainnet mixing)', async () => {
+      const publicWallet = { ...mockWallet, network: 'PUBLIC' as const };
+      await expect(
+        walletService.sendPayment(publicWallet, 'pin', {
+          destination: 'GDEST...',
+          asset: 'XLM',
+          amount: '1',
+        })
+      ).rejects.toThrow(/PUBLIC wallet while the app is configured for TESTNET/);
+      expect(StellarSdk.TransactionBuilder).not.toHaveBeenCalled();
     });
   });
 

@@ -1,0 +1,56 @@
+name: Production Build & Route Smoke
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: prod-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  build-and-smoke:
+    name: Production Build + Route Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      - name: Start production server
+        run: |
+          npm run start -p 3000 > /tmp/next-prod.log 2>&1 &
+          echo "started-pid=$!" >> "$GITHUB_ENV"
+          npx wait-on http://localhost:3000 --timeout 120000
+
+      - name: Smoke test public routes
+        run: |
+          set -e
+          for route in / /login /signup /wallet /clinics /notifications; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000$route")
+            echo "GET $route -> $code"
+            [ "$code" = "200" ] || { echo "Route $route returned $code (expected 200)"; exit 1; }
+          done
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-prod-log
+          path: /tmp/next-prod.log

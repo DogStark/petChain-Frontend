@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,8 @@ import {
   Phone,
   Stethoscope,
   AlertTriangle,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { PetEmergencyInfo, EmergencyContact } from '../../types/pet';
 import styles from './EmergencyContactForm.module.css';
@@ -101,20 +103,39 @@ interface EmergencyContactFormProps {
   isLoading?: boolean;
 }
 
+/**
+ * Normalise priorities so they are unique consecutive integers starting at 1,
+ * ordered by the current array order.
+ */
+function normalisePriorities(contacts: EmergencyContact[]): EmergencyContact[] {
+  return contacts.map((c, i) => ({ ...c, priority: i + 1 }));
+}
+
 export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   initialData,
   onSave,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = useState<PetEmergencyInfo>(
-    initialData || {
-      petId: 'unknown', // This should be passed in ideally
-      contacts: [],
-      medicalNotes: '',
-    }
-  );
+  const [formData, setFormData] = useState<PetEmergencyInfo>(() => {
+    const base = initialData || { petId: 'unknown', contacts: [], medicalNotes: '' };
+    // Ensure priorities are unique and consecutive on initial load
+    return { ...base, contacts: normalisePriorities([...base.contacts].sort((a, b) => a.priority - b.priority)) };
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * Live-region message for screen-reader announcements after reorder actions.
+   * The ref tracks the last message so we can force re-announcement by appending
+   * a zero-width space when the same contact moves again.
+   */
+  const [announcement, setAnnouncement] = useState('');
+  const announcementCountRef = useRef(0);
+
+  const announce = useCallback((msg: string) => {
+    // Append a cycle counter so the same message re-triggers the live region.
+    announcementCountRef.current += 1;
+    setAnnouncement(`${msg}\u200B${announcementCountRef.current % 2 === 0 ? '\u200B' : ''}`);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -136,9 +157,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   };
 
   const handleContactChange = (id: string, field: keyof EmergencyContact, value: string) => {
-    setFormData((prev: PetEmergencyInfo) => ({
+    setFormData((prev) => ({
       ...prev,
-      contacts: prev.contacts.map((c: EmergencyContact) =>
+      contacts: prev.contacts.map((c) =>
         c.id === id ? { ...c, [field]: value } : c
       ),
     }));
@@ -146,27 +167,53 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
 
   const addContact = () => {
     const newContact: EmergencyContact = {
-      id: crypto.randomUUID(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       name: '',
       relationship: '',
       phone: '',
       priority: 0, // will be normalized
     };
-    setFormData((prev: PetEmergencyInfo) => ({
+    setFormData((prev) => ({
       ...prev,
-      contacts: normalizePriorities([...prev.contacts, newContact]),
+      contacts: normalisePriorities([...prev.contacts, newContact]),
     }));
   };
 
   const removeContact = (id: string) => {
-    setFormData((prev: PetEmergencyInfo) => ({
+    setFormData((prev) => ({
       ...prev,
-      contacts: normalizePriorities(prev.contacts.filter((c: EmergencyContact) => c.id !== id)),
+      contacts: normalisePriorities(prev.contacts.filter((c) => c.id !== id)),
     }));
+    announce('Contact removed');
   };
 
+  /**
+   * Move a contact up or down in priority order.
+   * "Move up" means higher priority (lower index).
+   */
+  const moveContact = useCallback((id: string, direction: 'up' | 'down') => {
+    setFormData((prev) => {
+      const contacts = [...prev.contacts];
+      const idx = contacts.findIndex((c) => c.id === id);
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= contacts.length) return prev;
+
+      // Swap
+      [contacts[idx], contacts[swapIdx]] = [contacts[swapIdx], contacts[idx]];
+      const normalised = normalisePriorities(contacts);
+
+      const movedContact = normalised.find((c) => c.id === id);
+      const displayName = movedContact?.name || 'Contact';
+      announce(
+        `${displayName} moved ${direction === 'up' ? 'up' : 'down'} to priority ${movedContact?.priority ?? ''}`
+      );
+
+      return { ...prev, contacts: normalised };
+    });
+  }, [announce]);
+
   const handleVetChange = (field: string, value: string | boolean) => {
-    setFormData((prev: PetEmergencyInfo) => ({
+    setFormData((prev) => ({
       ...prev,
       emergencyVet: {
         ...(prev.emergencyVet || { name: '', phone: '', address: '', is24Hours: false }),
@@ -176,7 +223,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   };
 
   const handlePoisonChange = (field: string, value: string) => {
-    setFormData((prev: PetEmergencyInfo) => ({
+    setFormData((prev) => ({
       ...prev,
       poisonControl: {
         ...(prev.poisonControl || { name: '', phone: '' }),
@@ -197,9 +244,19 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
 
   return (
     <div className={styles.container}>
+      {/* Live region for screen-reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={styles.srOnly}
+      >
+        {announcement}
+      </div>
+
       <h2 className={styles.title}>
         <ShieldAlert size={28} color="#ef4444" />
-        Emergency Contacts & Info
+        Emergency Contacts &amp; Info
       </h2>
 
       <form onSubmit={handleSubmit}>
@@ -208,27 +265,106 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
           <h3 className={styles.sectionTitle}>
             <UserPlus size={18} /> Primary Contacts (reorder for priority)
           </h3>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={formData.contacts.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className={styles.contactList}>
-                {formData.contacts.map((contact: EmergencyContact) => (
-                  <SortableContactCard
-                    key={contact.id}
-                    contact={contact}
-                    styles={styles}
-                    onFieldChange={handleContactChange}
-                    onRemove={removeContact}
-                  />
-                ))}
-                <button type="button" className={styles.addBtn} onClick={addContact}>
-                  <Plus size={18} /> Add Contact
+          <div
+            className={styles.contactList}
+            role="list"
+            aria-label="Emergency contacts list"
+          >
+            {formData.contacts.map((contact, index) => (
+              <div
+                key={contact.id}
+                className={styles.contactCard}
+                role="listitem"
+                aria-label={`Contact ${contact.priority}: ${contact.name || 'Unnamed contact'}`}
+              >
+                {/* Visual drag handle (decorative, keyboard handled below) */}
+                <div className={styles.dragHandle} aria-hidden="true">
+                  <GripVertical size={20} />
+                </div>
+
+                {/* Keyboard reorder buttons */}
+                <div className={styles.reorderButtons}>
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => moveContact(contact.id, 'up')}
+                    disabled={index === 0}
+                    aria-label={`Move ${contact.name || 'contact'} up in priority`}
+                    aria-disabled={index === 0}
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => moveContact(contact.id, 'down')}
+                    disabled={index === formData.contacts.length - 1}
+                    aria-label={`Move ${contact.name || 'contact'} down in priority`}
+                    aria-disabled={index === formData.contacts.length - 1}
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+
+                {/* Priority badge */}
+                <span className={styles.priorityBadge} aria-hidden="true">
+                  #{contact.priority}
+                </span>
+
+                <div className={styles.grid}>
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Full Name"
+                      value={contact.name}
+                      aria-label={`Contact ${contact.priority} full name`}
+                      onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Relationship (e.g. Spouse)"
+                      value={contact.relationship}
+                      aria-label={`Contact ${contact.priority} relationship`}
+                      onChange={(e) =>
+                        handleContactChange(contact.id, 'relationship', e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Phone Number"
+                      value={contact.phone}
+                      aria-label={`Contact ${contact.priority} phone number`}
+                      onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <input
+                      className={styles.input}
+                      placeholder="Email (Optional)"
+                      value={contact.email || ''}
+                      aria-label={`Contact ${contact.priority} email address`}
+                      onChange={(e) => handleContactChange(contact.id, 'email', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                  onClick={() => removeContact(contact.id)}
+                  aria-label={`Remove contact ${contact.name || contact.priority}`}
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
-            </SortableContext>
-          </DndContext>
+            ))}
+            <button type="button" className={styles.addBtn} onClick={addContact}>
+              <Plus size={18} /> Add Contact
+            </button>
+          </div>
         </div>
 
         {/* 24/7 Vet Info Section */}
@@ -238,8 +374,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
           </h3>
           <div className={styles.grid}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Clinic Name</label>
+              <label className={styles.label} htmlFor="vet-name">Clinic Name</label>
               <input
+                id="vet-name"
                 className={styles.input}
                 value={formData.emergencyVet?.name || ''}
                 onChange={(e) => handleVetChange('name', e.target.value)}
@@ -247,8 +384,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Phone Number</label>
+              <label className={styles.label} htmlFor="vet-phone">Phone Number</label>
               <input
+                id="vet-phone"
                 className={styles.input}
                 value={formData.emergencyVet?.phone || ''}
                 onChange={(e) => handleVetChange('phone', e.target.value)}
@@ -257,8 +395,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
             </div>
           </div>
           <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
-            <label className={styles.label}>Address</label>
+            <label className={styles.label} htmlFor="vet-address">Address</label>
             <input
+              id="vet-address"
               className={styles.input}
               value={formData.emergencyVet?.address || ''}
               onChange={(e) => handleVetChange('address', e.target.value)}
@@ -288,8 +427,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
           </h3>
           <div className={styles.grid}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Service Name</label>
+              <label className={styles.label} htmlFor="poison-name">Service Name</label>
               <input
+                id="poison-name"
                 className={styles.input}
                 value={formData.poisonControl?.name || ''}
                 onChange={(e) => handlePoisonChange('name', e.target.value)}
@@ -297,8 +437,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Phone Number</label>
+              <label className={styles.label} htmlFor="poison-phone">Phone Number</label>
               <input
+                id="poison-phone"
                 className={styles.input}
                 value={formData.poisonControl?.phone || ''}
                 onChange={(e) => handlePoisonChange('phone', e.target.value)}
@@ -314,7 +455,9 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
             <AlertTriangle size={18} /> Critical medical notes
           </h3>
           <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor="medical-notes">Medical notes</label>
             <textarea
+              id="medical-notes"
               className={`${styles.input} ${styles.textarea}`}
               value={formData.medicalNotes || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, medicalNotes: e.target.value }))}
