@@ -118,6 +118,14 @@ export default function TransactionSigning({
   const [localError, setLocalError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setPin('');
+    };
+  }, []);
+
+  // Build asset options from balances
   const assetOptions = [
     { label: 'XLM (Stellar Lumens)', value: 'XLM' },
     ...balances
@@ -218,19 +226,15 @@ export default function TransactionSigning({
         formKey // preliminary form-level key; hook will replace with SHA-256 key
       );
       setResult(res);
-      // Reset form on success
+      // Zero all sensitive and transaction details immediately after success
       setDestination('');
       setAmount('');
       setMemo('');
       setPin('');
       lastSubmittedKeyRef.current = null;
     } catch {
-      // Error surfaced by the hook via the `error` prop.
-      // Clear the submitted key so the user can retry after fixing the issue.
-      lastSubmittedKeyRef.current = null;
-    } finally {
-      submittingRef.current = false;
-      setIsSubmitting(false);
+      // error surfaced by hook, also zero sensitive state on failure
+      setPin('');
     }
   }
 
@@ -440,10 +444,14 @@ export default function TransactionSigning({
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Enter PIN to sign…"
-              disabled={isSubmitting}
-              autoComplete="current-password"
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="button"
