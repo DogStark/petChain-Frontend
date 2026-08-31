@@ -2,6 +2,10 @@ import '@testing-library/jest-dom';
 
 require('@testing-library/jest-dom');
 
+// jsdom does not ship TextEncoder / TextDecoder — polyfill with Node's util module
+const { TextEncoder, TextDecoder } = require('util');
+Object.assign(globalThis, { TextEncoder, TextDecoder });
+
 // Mock localStorage for tests
 const localStorageMock = (() => {
   let store = {};
