@@ -16,6 +16,7 @@ import type {
   WalletBalance,
 } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -115,32 +116,7 @@ export default function TransactionSigning({
   const [showPin, setShowPin] = useState(false);
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-
-  /**
-   * In-flight guard at the component level.
-   *
-   * We use a ref (not state) to avoid an extra render cycle and to make the
-   * guard immune to stale-closure issues inside the async `handleSend`.
-   * The submit button's `disabled` attribute reads `submittingRef.current`
-   * through the mirrored `isSubmitting` state so the UI updates correctly.
-   */
-  const submittingRef = useRef(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  /**
-   * Track the form-derived key of the last submitted request.  If the user
-   * clicks Submit again with identical field values before the response
-   * arrives, we bail out early.
-   */
-  const lastSubmittedKeyRef = useRef<string | null>(null);
-
-  // Keep `isSubmitting` state in sync with the ref after each render.
-  // (The ref changes synchronously; the state drives the disabled attribute.)
-  useEffect(() => {
-    // nothing to do here — we update both together in handleSend
-  }, []);
-
-  // ── Asset helpers ────────────────────────────────────────────────────────
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const assetOptions = [
     { label: 'XLM (Stellar Lumens)', value: 'XLM' },
@@ -180,9 +156,7 @@ export default function TransactionSigning({
     return null;
   }
 
-  // ── Submit handler ────────────────────────────────────────────────────────
-
-  async function handleSend(e: React.FormEvent) {
+  function handleInitiateSend(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
     setLocalError(null);
@@ -216,10 +190,12 @@ export default function TransactionSigning({
       return;
     }
 
-    // ── Mark in-flight ─────────────────────────────────────────────────────
-    submittingRef.current = true;
-    lastSubmittedKeyRef.current = formKey;
-    setIsSubmitting(true);
+    setShowConfirmDialog(true);
+  }
+
+  async function handleConfirmSend() {
+    if (!wallet) return;
+    setShowConfirmDialog(false);
 
     try {
       // `onSendPayment` is expected to generate (or receive) the idempotency
@@ -300,7 +276,7 @@ export default function TransactionSigning({
       )}
 
       <form
-        onSubmit={handleSend}
+        onSubmit={handleInitiateSend}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4"
         aria-label="Send payment form"
       >
@@ -530,6 +506,41 @@ export default function TransactionSigning({
           )}
         </button>
       </form>
+
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        title="Confirm Transaction"
+        description="You are about to send a payment on the Stellar network. This action cannot be undone."
+        confirmLabel={loading ? 'Sending...' : 'Send Payment'}
+        cancelLabel="Go Back"
+        onConfirm={handleConfirmSend}
+        onCancel={() => setShowConfirmDialog(false)}
+        loading={loading}
+        variant="danger"
+        network={isTestnet ? 'Testnet' : 'Mainnet'}
+        fee={selectedFee ? `${stroopsToXLM(selectedFee)} XLM` : undefined}
+        details={[
+          {
+            label: 'Asset',
+            value: selectedAsset === 'XLM' ? 'XLM (Stellar Lumens)' : selectedAsset.split(':')[0],
+          },
+          {
+            label: 'Amount',
+            value: `${amount} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`,
+            highlight: true,
+          },
+          {
+            label: 'Destination',
+            value: `${destination.slice(0, 10)}…${destination.slice(-6)}`,
+          },
+          ...(memo.trim() ? [{ label: 'Memo', value: memo.trim() }] : []),
+        ]}
+        riskCues={[
+          'This transaction is irreversible once confirmed.',
+          'Double-check the destination address before proceeding.',
+          'Funds will be permanently transferred to the recipient.',
+        ]}
+      />
     </div>
   );
 }
