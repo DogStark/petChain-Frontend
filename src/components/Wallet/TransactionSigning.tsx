@@ -125,6 +125,31 @@ export default function TransactionSigning({
     };
   }, []);
 
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (pin) {
+      timeoutId = setTimeout(() => {
+        setPin('');
+        setLocalError('Session expired due to inactivity. Please re-enter your PIN.');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && pin) {
+        setPin('');
+        setLocalError('Session locked for security. Please re-enter your PIN.');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pin]);
+
   // Build asset options from balances
   const assetOptions = [
     { label: 'XLM (Stellar Lumens)', value: 'XLM' },

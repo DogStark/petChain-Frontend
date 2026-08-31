@@ -60,7 +60,28 @@ export default function WalletDashboard({
   const [showPin, setShowPin] = useState(false);
   const [deleteAckUnverified, setDeleteAckUnverified] = useState(false);
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (deletePin) {
+      timeoutId = setTimeout(() => {
+        setDeletePin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && deletePin) {
+        setDeletePin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [deletePin]);
 
   function copyAddress() {
     if (!selectedWallet) return;
