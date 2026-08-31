@@ -286,10 +286,10 @@
 
 .dragHandle {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.45);
   color: white;
@@ -297,12 +297,19 @@
   align-items: center;
   justify-content: center;
   cursor: grab;
-  opacity: 0;
   transition: opacity 0.2s;
 }
 
-.photoCard:hover .dragHandle {
-  opacity: 1;
+/* Only hide-until-hover on pointers that actually support hover; touch
+   devices always show the handle since there is no hover to reveal it. */
+@media (hover: hover) {
+  .dragHandle {
+    opacity: 0;
+  }
+
+  .photoCard:hover .dragHandle {
+    opacity: 1;
+  }
 }
 
 .cardActions {
@@ -312,6 +319,7 @@
 
 .cardActionBtn {
   flex: 1;
+  min-height: 44px;
   padding: 8px 4px;
   border: none;
   background: none;
