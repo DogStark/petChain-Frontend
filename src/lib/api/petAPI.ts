@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { Pet, PetEmergencyInfo } from '@/types/pet';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { projectEmergencyProfile } from '@/utils/emergencyProjection';
+import { ApiError } from '../apiError';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,7 +30,7 @@ class PetAPI {
   }
 
   async getPetEmergencyInfo(petId: string): Promise<PetEmergencyInfo | null> {
-    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
     try {
       const response = await this.api.get(`/${petId}/emergency`);
       return response.data;
@@ -48,7 +49,7 @@ class PetAPI {
    * containing only fields that the owner has explicitly set to public.
    */
   async getPetEmergencyInfoProjection(petId: string): Promise<PetEmergencyInfo | null> {
-    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
     try {
       // Best effort to call projection endpoint if available, fallback to client-side projection
       const response = await this.api.get(`/${petId}/emergency/projection`);
@@ -65,7 +66,7 @@ class PetAPI {
   }
 
   async updatePetEmergencyInfo(petId: string, info: PetEmergencyInfo): Promise<PetEmergencyInfo> {
-    if (!UUID_RE.test(petId)) throw new Error('Invalid petId');
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
     const response = await this.api.put(`/${petId}/emergency`, info);
     return response.data;
   }

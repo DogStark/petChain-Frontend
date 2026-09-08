@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { ApiError } from '../apiError';
 
 export interface QRCodeRecord {
   id: string;
@@ -75,12 +76,12 @@ function sanitizeScanEvent(meta?: ScanEventMeta): Record<string, string | boolea
 
 /** Returns a sanitized, URL-safe copy — breaks taint flow for CodeQL */
 function safeUuid(id: string): string {
-  if (!UUID_RE.test(id)) throw new Error('Invalid UUID');
+  if (!UUID_RE.test(id)) throw new ApiError('errors.validation.invalidId', 'Invalid UUID');
   return id.replace(/[^0-9a-f-]/gi, '');
 }
 
 function safeQrId(id: string): string {
-  if (!QRID_RE.test(id)) throw new Error('Invalid QR ID');
+  if (!QRID_RE.test(id)) throw new ApiError('errors.validation.invalidId', 'Invalid QR ID');
   return id.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 

@@ -183,6 +183,23 @@
       "notConnected": "Wallet not connected",
       "notInstalled": "Freighter wallet not installed",
       "installFreighter": "Please install Freighter wallet extension"
+    },
+    "twoFactor": {
+      "statusFailed": "Unable to load two-factor authentication status",
+      "setupFailed": "Unable to start two-factor authentication setup",
+      "enableFailed": "Unable to enable two-factor authentication",
+      "disableFailed": "Unable to disable two-factor authentication",
+      "invalidToken": "The authentication code is invalid",
+      "backupCodesFailed": "Unable to generate backup codes",
+      "invalidBackupCode": "The backup code is invalid"
+    },
+    "validation": {
+      "invalidId": "Invalid identifier"
+    },
+    "auth": {
+      "invalidResetToken": "Invalid reset token",
+      "resetFailed": "Password reset failed",
+      "registrationFailed": "Registration failed"
     }
   },
   "accessibility": {
@@ -254,7 +271,17 @@
     "tooLong": "Must be no more than {{max}} characters",
     "invalidEmail": "Please enter a valid email address",
     "invalidNumber": "Please enter a valid number",
+    "invalidPhone": "Enter a valid phone number in international format",
     "minValue": "Must be at least {{min}}",
-    "maxValue": "Must be no more than {{max}}"
+    "maxValue": "Must be no more than {{max}}",
+    "passwordMismatch": "Passwords do not match",
+    "password": {
+      "tooShort": "At least 8 characters required",
+      "needsUppercase": "At least one uppercase letter required",
+      "needsLowercase": "At least one lowercase letter required",
+      "needsNumber": "At least one number required",
+      "needsSpecial": "At least one special character required",
+      "reused": "This password was used recently"
+    }
   }
 }
