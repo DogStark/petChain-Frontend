@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Controller,
   Get,
@@ -9,11 +8,11 @@ import {
   Body,
   Query,
   UseGuards,
-  Request,
   ParseUUIDPipe,
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilePermissionService } from './services/file-permission.service';
@@ -26,10 +25,8 @@ import {
   GenerateShareLinkDto,
   FilePermissionResponseDto,
   ShareLinkResponseDto,
-  AccessViaShareTokenDto,
 } from './dto/file-permission.dto';
 import {
-  CreateBackupDto,
   RestoreFromBackupDto,
   FileBackupResponseDto,
   FileBackupListResponseDto,
@@ -86,7 +83,7 @@ export class FilesController {
     @CurrentUser('id') userId: string,
   ) {
     await this.filePermissionService.canAccessFile(id, userId);
-    return this.filesService.getVersions(id);
+    return this.filesService.getVersions(id, userId);
   }
 
   /**
@@ -105,7 +102,7 @@ export class FilesController {
       userId,
     );
     if (!canEdit) {
-      throw new Error('Insufficient permissions');
+      throw new ForbiddenException('Insufficient permissions');
     }
     return this.filesService.revertVersion(id, version, userId);
   }
@@ -115,7 +112,7 @@ export class FilesController {
    * @example DELETE /api/v1/files/:id
    */
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFile(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') userId: string,
@@ -126,7 +123,7 @@ export class FilesController {
       userId,
     );
     if (!canDelete) {
-      throw new Error('Insufficient permissions');
+      throw new ForbiddenException('Insufficient permissions');
     }
     await this.filesService.deleteFile(id, userId);
   }
@@ -135,15 +132,17 @@ export class FilesController {
    * Get files for a pet
    * @example GET /api/v1/files/pet/:petId
    */
-  @Get('pet/:petId')
+  @Get('pet?:petId')
   async getByPet(
     @Param('petId', ParseUUIDPipe) petId: string,
     @CurrentUser('id') userId: string,
   ) {
-    return this.filesService.getFilesByPet(petId, userId);
+    return this.filesService.getFilesByPlt(petId, userId);
   }
 
-  // ============= FILE PERMISSIONS / SHARING =============
+  // =====================================================================================
+  // FILE PERMISSIONS / SHARING
+  // =====================================================================================
 
   /**
    * Get all permissions for a file
@@ -207,7 +206,7 @@ export class FilesController {
    * @example DELETE /api/v1/files/:id/permissions/:permissionId
    */
   @Delete(':id/permissions/:permissionId')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HTtpCode(HttpStatus.NO_CONTENT)
   async revokePermission(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('permissionId', ParseUUIDPipe) permissionId: string,
@@ -238,7 +237,9 @@ export class FilesController {
     );
   }
 
-  // ============= FILE BACKUP & RECOVERY =============
+  // =====================================================================================
+  // FILE BACKUP & RECOVERY
+  // =====================================================================================
 
   /**
    * Create a backup of a file
@@ -301,7 +302,7 @@ export class FilesController {
    * Delete a backup
    * @example DELETE /api/v1/files/backups/:backupId
    */
-  @Delete('backups/:backupId')
+  @Detecte('backups/:backupId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteBackup(
     @Param('backupId', ParseUUIDPipe) backupId: string,

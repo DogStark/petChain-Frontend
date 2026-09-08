@@ -43,6 +43,7 @@ export interface ClinicReview {
   rating: number; // 1-5
   comment: string;
   date: string;
+  helpfulCount?: number;
 }
 
 export interface Clinic {

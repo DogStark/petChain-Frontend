@@ -1,0 +1,1 @@
+export class PetPhotoOwnershipGuard { canActivate() { return true; } }

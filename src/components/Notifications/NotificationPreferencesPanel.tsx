@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
+
 import { useNotifications } from '@/contexts/NotificationContext';
-import { NotificationCategory, CATEGORY_LABELS, CATEGORY_ICONS } from '@/types/notification';
+import { CATEGORY_LABELS, CATEGORY_ICONS, type NotificationCategory } from '@/types/notification';
+import { getSupportedTimezones } from '@/utils/dndSchedule';
 
 function Toggle({
   checked,
@@ -48,14 +50,42 @@ function Toggle({
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as NotificationCategory[];
 
-export default function NotificationPreferencesPanel() {
-  const { preferences, updatePreferences, requestBrowserPermission } = useNotifications();
-  const [saved, setSaved] = useState(false);
+// IANA timezones grouped by region for the DND timezone picker. The current
+// stored value is always included as an option even if the runtime doesn't
+// list it (e.g. legacy 'UTC' defaults), so the select never renders blank.
+interface TimezoneGroup {
+  label: string;
+  zones: string[];
+}
 
-  const save = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+function buildTimezoneGroups(current: string): TimezoneGroup[] {
+  const zones = new Set(getSupportedTimezones());
+  zones.add(current);
+  const groups = new Map<string, string[]>();
+  for (const zone of zones) {
+    const region = zone.includes('/') ? zone.split('/')[0] : 'Other';
+    const list = groups.get(region) ?? [];
+    list.push(zone);
+    groups.set(region, list);
+  }
+  return [...groups.entries()]
+    .map(([label, groupZones]) => ({ label, zones: groupZones.sort() }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export default function NotificationPreferencesPanel() {
+  const {
+    preferences,
+    updatePreferences,
+    syncPreferences,
+    requestBrowserPermission,
+    preferencesSyncStatus,
+  } = useNotifications();
+
+  const timezoneGroups = useMemo(
+    () => buildTimezoneGroups(preferences.timezone),
+    [preferences.timezone]
+  );
 
   return (
     <div className="space-y-6">
@@ -113,26 +143,59 @@ export default function NotificationPreferencesPanel() {
             onChange={(v) => updatePreferences({ doNotDisturb: v })}
           />
           {preferences.doNotDisturb && (
-            <div className="py-3 flex items-center gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-gray-500 block mb-1">From</label>
-                <input
-                  type="time"
-                  value={preferences.dndStart}
-                  onChange={(e) => updatePreferences({ dndStart: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                />
+            <>
+              <div className="py-3 flex items-center gap-3">
+                <div className="flex-1">
+                  <label htmlFor="dnd-start" className="text-xs text-gray-500 block mb-1">
+                    From
+                  </label>
+                  <input
+                    id="dnd-start"
+                    type="time"
+                    value={preferences.dndStart}
+                    onChange={(e) => updatePreferences({ dndStart: e.target.value })}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="dnd-end" className="text-xs text-gray-500 block mb-1">
+                    Until
+                  </label>
+                  <input
+                    id="dnd-end"
+                    type="time"
+                    value={preferences.dndEnd}
+                    onChange={(e) => updatePreferences({ dndEnd: e.target.value })}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                  />
+                </div>
               </div>
-              <div className="flex-1">
-                <label className="text-xs text-gray-500 block mb-1">Until</label>
-                <input
-                  type="time"
-                  value={preferences.dndEnd}
-                  onChange={(e) => updatePreferences({ dndEnd: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                />
+              <div className="py-3">
+                <label htmlFor="dnd-timezone" className="text-xs text-gray-500 block mb-1">
+                  Timezone
+                </label>
+                <select
+                  id="dnd-timezone"
+                  value={preferences.timezone}
+                  onChange={(e) => updatePreferences({ timezone: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                >
+                  {timezoneGroups.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.zones.map((zone) => (
+                        <option key={zone} value={zone}>
+                          {zone.replace(/_/g, ' ')}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Quiet hours follow this timezone, so they stay correct when you travel or across
+                  daylight-saving changes.
+                </p>
               </div>
-            </div>
+            </>
           )}
         </div>
       </section>
@@ -175,11 +238,23 @@ export default function NotificationPreferencesPanel() {
       </section>
 
       <button
-        onClick={save}
-        className="w-full py-3 bg-blue-600 text-white font-semibold rounded-2xl hover:bg-blue-700 transition-colors min-h-[44px]"
+        onClick={syncPreferences}
+        disabled={preferencesSyncStatus === 'saving'}
+        className="w-full py-3 bg-blue-600 text-white font-semibold rounded-2xl hover:bg-blue-700 transition-colors min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {saved ? '✓ Saved' : 'Save preferences'}
+        {preferencesSyncStatus === 'saving'
+          ? 'Saving…'
+          : preferencesSyncStatus === 'error'
+            ? 'Retry save'
+            : preferencesSyncStatus === 'saved'
+              ? '✓ Saved'
+              : 'Save preferences'}
       </button>
+      {preferencesSyncStatus === 'error' && (
+        <p className="text-xs text-red-600 text-center -mt-4">
+          Couldn&apos;t save your preferences. Check your connection and try again.
+        </p>
+      )}
     </div>
   );
 }

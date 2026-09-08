@@ -361,5 +361,5 @@ For issues or questions about the migration system:
 
 ---
 
-**Last Updated**: 2025-01-09
+**Last Updated**: July 23, 2026
 **Version**: 1.0.0

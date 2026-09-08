@@ -1,0 +1,147 @@
+name: Reusable Build Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '20'
+      skip-frontend:
+        description: 'Skip frontend build'
+        required: false
+        type: boolean
+        default: false
+      skip-backend:
+        description: 'Skip backend build'
+        required: false
+        type: boolean
+        default: false
+      docker-registry:
+        description: 'Docker registry'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      docker-image-name:
+        description: 'Docker image name'
+        required: false
+        type: string
+        default: 'petchain-frontend'
+      docker-tag:
+        description: 'Docker image tag'
+        required: false
+        type: string
+        default: 'latest'
+      push-docker:
+        description: 'Push Docker image'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      docker-image:
+        description: 'Built Docker image URI'
+        value: ${{ jobs.docker.outputs.image }}
+
+jobs:
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-frontend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npx next build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-build
+          path: .next/
+          retention-days: 7
+
+  backend-build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-backend }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build NestJS
+        run: npx nest build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-build
+          path: backend/dist/
+          retention-days: 7
+
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [frontend-build, backend-build]
+    if: ${{ inputs.push-docker && (needs.frontend-build.result == 'success' || needs.backend-build.result == 'success') }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Log in to Docker registry
+        if: ${{ inputs.push-docker }}
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ inputs.docker-registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ inputs.docker-registry }}/${{ github.repository }}/${{ inputs.docker-image-name }}
+          tags: |
+            type=raw,value=${{ inputs.docker-tag }}
+            type=sha,prefix=
+
+      - name: Build and push
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
+        with:
+          context: .
+          push: ${{ inputs.push-docker }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

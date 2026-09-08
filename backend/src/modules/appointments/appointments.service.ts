@@ -24,17 +24,19 @@ export class AppointmentsService {
       throw new BadRequestException('Invalid appointment data');
     }
 
-    // 🔥 Conflict prevention (generic - no date/time assumption)
+    // Conflict prevention — check for overlapping date/time with the same vet
     const existing = await this.appointmentRepository.findOne({
       where: {
         vetId: dto.vetId,
+        appointmentDate: dto.appointmentDate as any,
+        appointmentTime: dto.appointmentTime,
         status: AppointmentStatus.SCHEDULED,
       },
     });
 
     if (existing) {
       throw new BadRequestException(
-        'Vet already has a scheduled appointment (basic conflict prevention)',
+        'Vet already has a scheduled appointment at this date and time',
       );
     }
 
@@ -80,11 +82,12 @@ export class AppointmentsService {
 
   // ---------------- UPCOMING ----------------
   async getUpcomingAppointments(petId?: string) {
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const query = this.appointmentRepository
       .createQueryBuilder('appointment')
-      .where('appointment.createdAt >= :now', { now }) // safe fallback field
+      .where('appointment.appointmentDate >= :today', { today })
       .andWhere('appointment.status = :status', {
         status: AppointmentStatus.SCHEDULED,
       });
@@ -100,11 +103,17 @@ export class AppointmentsService {
   async update(id: string, dto: UpdateAppointmentDto) {
     const existingAppointment = await this.findOne(id);
 
-    // 🔥 Conflict prevention (generic)
-    if (dto.vetId) {
+    // Conflict prevention — check for overlapping date/time with the same vet
+    const vetId = (dto as any).vetId ?? existingAppointment.vetId;
+    const appointmentDate = (dto as any).appointmentDate ?? existingAppointment.appointmentDate;
+    const appointmentTime = (dto as any).appointmentTime ?? existingAppointment.appointmentTime;
+
+    if (vetId) {
       const conflict = await this.appointmentRepository.findOne({
         where: {
-          vetId: dto.vetId,
+          vetId,
+          appointmentDate: appointmentDate as any,
+          appointmentTime,
           status: AppointmentStatus.SCHEDULED,
           id: Not(id),
         },
@@ -112,7 +121,7 @@ export class AppointmentsService {
 
       if (conflict) {
         throw new BadRequestException(
-          'Vet already has another scheduled appointment',
+          'Vet already has another scheduled appointment at this date and time',
         );
       }
     }

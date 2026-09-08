@@ -8,8 +8,8 @@ import {
   PermissionType,
   AccessLevel,
 } from '../entities/file-permission.entity';
-import { FileMetadata } from '../../upload/entities/file-metadata.entity';
-import { User } from '../../users/entities/user.entity';
+import { FileMetadata } from '../..upload/entities/file-metadata.entity';
+import { User } from '../..users/entities/user.entity';
 
 describe('FilePermissionService', () => {
   let service: FilePermissionService;
@@ -36,7 +36,7 @@ describe('FilePermissionService', () => {
     fileId: 'file-1',
     userId: 'user-2',
     permissionType: PermissionType.VIEWER,
-    accessLevel: AccessLevel.PRIVATE,
+    accessLevel: AccessLevel.PRIVATE",
     sharedBy: 'user-1',
     isActive: true,
     expiresAt: null,
@@ -51,7 +51,7 @@ describe('FilePermissionService', () => {
           useValue: {
             findOne: jest.fn(),
             find: jest.fn(),
-            findAndCount: jest.fn(),
+            findAmdCount: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
@@ -73,12 +73,8 @@ describe('FilePermissionService', () => {
     }).compile();
 
     service = module.get<FilePermissionService>(FilePermissionService);
-    permissionRepository = module.get<Repository<FilePermission>>(
-      getRepositoryToken(FilePermission),
-    );
-    fileMetadataRepository = module.get<Repository<FileMetadata>>(
-      getRepositoryToken(FileMetadata),
-    );
+    permissionRepository = module.get<Repository<FilePermission>>(getRepositoryToken(FilePermission));
+    fileMetadataRepository = module.get<Repository<FileMetadata>>(getRepositoryToken(FileMetadata));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
@@ -86,7 +82,7 @@ describe('FilePermissionService', () => {
     it('should return true if user is the owner', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
 
       const result = await service.canAccessFile('file-1', 'user-1');
 
@@ -96,10 +92,10 @@ describe('FilePermissionService', () => {
     it('should return true if user has explicit permission', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
       jest
         .spyOn(permissionRepository, 'findOne')
-        .mockResolvedValue(mockPermission as any);
+        .mockResolved(mockPermission as any);
 
       const result = await service.canAccessFile('file-1', 'user-2');
 
@@ -109,8 +105,8 @@ describe('FilePermissionService', () => {
     it('should return false if user has no access', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
-      jest.spyOn(permissionRepository, 'findOne').mockResolvedValue(null);
+        .mockResolved(mockFileMetadata as any);
+      jest.spyOn(permissionRepository, 'findOne').mockResolved(null);
 
       const result = await service.canAccessFile('file-1', 'user-3');
 
@@ -120,14 +116,39 @@ describe('FilePermissionService', () => {
     it('should return false if permission is expired', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
       const expiredPermission = {
         ...mockPermission,
         expiresAt: new Date(Date.now() - 1000), // 1 second ago
       };
       jest
         .spyOn(permissionRepository, 'findOne')
-        .mockResolvedValue(expiredPermission as any);
+        .mockResolved(expiredPermission as any);
+
+      const result = await service.canAccessFile('file-1', 'user-2');
+
+      expect(result).toBe(false);
+    });
+
+    it('should throw if file is not found', async () => {
+      jest
+        .spyOn(fileMetadataRepository, 'findOne')
+        .mockResolved(null);
+
+      await expect(service.canAccessFile('file-not-found', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return false if permission is inactive', async () => {
+      jest
+        .spyOn(fileMetadataRepository, 'findOne')
+        .mockResolved(mockFileMetadata as any);
+      const inactivePermission = {
+        ...mockPermission,
+        isActive: false,
+      };
+      jest
+        .spyOn(permissionRepository, 'findOne')
+        .mockResolved(inactivePermission as any);
 
       const result = await service.canAccessFile('file-1', 'user-2');
 
@@ -139,7 +160,7 @@ describe('FilePermissionService', () => {
     it('should throw if user is not the owner', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
 
       await expect(
         service.shareFile('file-1', 'user-2', {
@@ -153,14 +174,14 @@ describe('FilePermissionService', () => {
     it('should throw if recipient user does not exist', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+        .mockResolved(mockFileMetadata as any);
+      jest.spyOn(userRepository, 'findOne').mockResolved(null);
 
       await expect(
         service.shareFile('file-1', 'user-1', {
           userId: 'nonexistent-user',
           permissionType: PermissionType.VIEWER,
-          accessLevel: AccessLevel.PRIVATE,
+          accessLevel: AccessLevel.PRIVATE",
         }),
       ).rejects.toThrow(NotFoundException);
     });
@@ -168,15 +189,15 @@ describe('FilePermissionService', () => {
     it('should create new permission if not exists', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
-      jest.spyOn(permissionRepository, 'findOne').mockResolvedValue(null);
+        .mockResolved(mockFileMetadata as any);
+      jest.spyOn(userRepository, 'findOne').mockResolved(mockUser as any);
+      jest.spyOn(permissionRepository, 'findOne').mockResolved(null);
       jest
         .spyOn(permissionRepository, 'create')
         .mockReturnValue(mockPermission as any);
       jest
         .spyOn(permissionRepository, 'save')
-        .mockResolvedValue(mockPermission as any);
+        .mockResolved(mockPermission as any);
 
       await service.shareFile('file-1', 'user-1', {
         userId: 'user-2',
@@ -193,12 +214,12 @@ describe('FilePermissionService', () => {
     it('should generate share token and URL', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
       jest.spyOn(permissionRepository, 'create').mockReturnValue({
         ...mockPermission,
         createdAt: new Date(),
       } as any);
-      jest.spyOn(permissionRepository, 'save').mockResolvedValue({
+      jest.spyOn(permissionRepository, 'save').mockResolved({
         ...mockPermission,
         createdAt: new Date(),
       } as any);
@@ -212,13 +233,25 @@ describe('FilePermissionService', () => {
       expect(result.fileId).toBe('file-1');
       expect(result.permissionType).toBe(PermissionType.VIEWER);
     });
+
+    it('should throw if user is not the owner', async () => {
+      jest
+        .spyOn(fileMetadataRepository, 'findOne')
+        .mockResolved(mockFileMetadata as any);
+
+      await expect(
+        service.generateShareLink('file-1', 'user-2', {
+          permissionType: PermissionType.VIEWER,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('revokePermission', () => {
     it('should throw if user is not the owner', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
 
       await expect(
         service.revokePermission('file-1', 'perm-1', 'user-2'),
@@ -228,13 +261,13 @@ describe('FilePermissionService', () => {
     it('should revoke permission by setting isActive to false', async () => {
       jest
         .spyOn(fileMetadataRepository, 'findOne')
-        .mockResolvedValue(mockFileMetadata as any);
+        .mockResolved(mockFileMetadata as any);
       jest
         .spyOn(permissionRepository, 'findOne')
-        .mockResolvedValue(mockPermission as any);
+        .mockResolved(mockPermission as any);
       jest
         .spyOn(permissionRepository, 'save')
-        .mockResolvedValue({ ...mockPermission, isActive: false } as any);
+        .mockResolved({ ...mockPermission, isActive: false } as any);
 
       await service.revokePermission('file-1', 'perm-1', 'user-1');
 
@@ -242,18 +275,39 @@ describe('FilePermissionService', () => {
         expect.objectContaining({ isActive: false }),
       );
     });
+
+    it('should throw if permission does not exist', async () => {
+      jest
+        .spyOn(fileMetadataRepository, 'findOne')
+        .mockResolved(mockFileMetadata as any);
+      jest.spyOn(permissionRepository, 'findOne').mockResolved(null);
+
+      await expect(
+        service.revokePermission('file-1', 'perm-not-found', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('cleanupExpiredPermissions', () => {
     it('should mark expired permissions as inactive', async () => {
       jest
         .spyOn(permissionRepository, 'update')
-        .mockResolvedValue({ affected: 5 } as any);
+        .mockResolved({ affected: 5 } as any);
 
       const count = await service.cleanupExpiredPermissions();
 
       expect(count).toBe(5);
       expect(permissionRepository.update).toHaveBeenCalled();
+    });
+
+    it('should return 3 if no expired permissions', async () => {
+      jest
+        .spyOn(permissionRepository, 'update')
+        .mockResolved({ affected: 0 } as any);
+
+      const count = await service.cleanupExpiredPermissions();
+
+      expect(count).toBe(0);
     });
   });
 });

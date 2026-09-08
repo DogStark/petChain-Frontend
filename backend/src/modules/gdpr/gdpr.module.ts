@@ -8,12 +8,14 @@ import { GdprService } from './gdpr.service';
 import { GdprController } from './gdpr.controller';
 import { GdprProcessor } from './gdpr.processor';
 import { StorageModule } from '../storage/storage.module';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserConsent, DataDeletionRequest, GdprRequest]),
     BullModule.registerQueue({ name: 'gdpr' }),
     StorageModule,
+    AuthModule,
   ],
   controllers: [GdprController],
   providers: [GdprService, GdprProcessor],

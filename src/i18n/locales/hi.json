@@ -1,8 +1,11 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Decentralized utility payments on Stellar blockchain",
-    "description": "Pay your utility bills using cryptocurrency on the Stellar network"
+    "description": "Pay your utility bills using cryptocurrency on the Stellar network",
+    "footer": {
+      "tagline": "Modern payment solutions for the decentralized web"
+    }
   },
   "navigation": {
     "home": "Pay Bill",
@@ -104,8 +107,8 @@
     }
   },
   "about": {
-    "title": "About Wata-Board",
-    "description": "Wata-Board is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
+    "title": "About PetChain",
+    "description": "PetChain is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
     "features": {
       "title": "Key Features",
       "secure": "Secure Transactions",
@@ -148,7 +151,7 @@
   },
   "rate": {
     "title": "Rate Your Experience",
-    "description": "Help us improve by rating your experience with Wata-Board.",
+    "description": "Help us improve by rating your experience with PetChain.",
     "rating": {
       "excellent": "Excellent",
       "good": "Good",
@@ -158,7 +161,7 @@
     },
     "review": {
       "title": "Write a Review",
-      "placeholder": "Share your experience with Wata-Board...",
+      "placeholder": "Share your experience with PetChain...",
       "submit": "Submit Review",
       "thankYou": "Thank you for your feedback!"
     }

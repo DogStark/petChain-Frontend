@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, PawPrint } from 'lucide-react';
+import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
+import SafeImage from '@/components/SafeImage';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
+import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ interface Pet {
   }>;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PetDetailPage() {
@@ -40,10 +41,21 @@ export default function PetDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Router not yet hydrated — stay in loading state until id is available
     if (!id || typeof id !== 'string') return;
-    if (!UUID_RE.test(id)) return;
+
+    // id is present but not a valid UUID — stop loading and surface an error
+    if (!UUID_RE.test(id)) {
+      setIsLoading(false);
+      setError('Invalid pet id');
+      return;
+    }
+
     // Use sanitized copy to break taint flow
     const safeId = id.replace(/[^0-9a-f-]/gi, '');
+
+    const controller = new AbortController();
+    let cancelled = false;
 
     const fetchPet = async () => {
       try {
@@ -51,6 +63,7 @@ export default function PetDetailPage() {
         const token = localStorage.getItem('authToken');
         const res = await fetch(`${API_BASE_URL}/pets/${safeId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -58,15 +71,22 @@ export default function PetDetailPage() {
         }
 
         const data = await res.json();
+        if (cancelled) return;
         setPet(data);
       } catch (err: any) {
+        if (cancelled || err?.name === 'AbortError') return;
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchPet();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [id]);
 
   if (isLoading) {
@@ -104,7 +124,7 @@ export default function PetDetailPage() {
 
         <div className={styles.petHeader}>
           {primaryPhoto ? (
-            <Image
+            <SafeImage
               src={primaryPhoto.thumbnailUrl || primaryPhoto.photoUrl}
               alt={pet.name}
               fill

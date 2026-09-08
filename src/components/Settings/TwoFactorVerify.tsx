@@ -21,9 +21,17 @@ export default function TwoFactorVerify({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isTokenValid = () => {
+    if (mode === 'totp') {
+      return twoFactorUtils.validateTOTPToken(token);
+    } else {
+      return twoFactorUtils.validateBackupCode(token);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!isTokenValid()) return;
 
     setIsLoading(true);
     setError('');
@@ -91,6 +99,11 @@ export default function TwoFactorVerify({
             maxLength={mode === 'totp' ? 6 : 8}
             required
           />
+          {token && !isTokenValid() && (
+            <p className="mt-2 text-sm text-gray-600">
+              {mode === 'totp' ? 'Enter all 6 digits' : 'Enter all 8 characters'}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -102,7 +115,7 @@ export default function TwoFactorVerify({
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={isLoading || !token}
+            disabled={isLoading || !isTokenValid()}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {isLoading ? 'Verifying...' : 'Verify'}

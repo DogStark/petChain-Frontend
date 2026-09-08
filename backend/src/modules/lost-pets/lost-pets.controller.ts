@@ -23,17 +23,19 @@ export class LostPetsController {
   constructor(private readonly lostPetsService: LostPetsService) {}
 
   /**
-   * GET /lost-pets - Get all lost pets (public)
+   * GET /lost-pets - Get all lost pets (requires authentication)
    */
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.lostPetsService.findAllLost();
   }
 
   /**
-   * GET /lost-pets/nearby - Get lost pets near a location
+   * GET /lost-pets/nearby - Get lost pets near a location (requires authentication)
    */
   @Get('nearby')
+  @UseGuards(JwtAuthGuard)
   findNearby(@Query() query: NearbyQueryDto) {
     return this.lostPetsService.findNearby(
       query.latitude,

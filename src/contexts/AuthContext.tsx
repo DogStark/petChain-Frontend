@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
+import { twoFactorAPI } from '../lib/api/twoFactorAPI';
+
+export type UserRole = 'user' | 'admin' | 'moderator';
 
 export interface User {
   id: string;
@@ -12,6 +15,7 @@ export interface User {
   phoneVerified: boolean;
   isVerified: boolean;
   isActive: boolean;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,6 +95,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load tokens from localStorage on mount
   useEffect(() => {
     const loadStoredAuth = () => {
@@ -122,6 +128,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     loadStoredAuth();
+
+    return () => {
+      clearTokenRefresh();
+    };
   }, []);
 
   const setAuth = (user: User, tokens: AuthTokens) => {
@@ -168,7 +178,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setState((prev) => ({ ...prev, isLoading }));
   };
 
-  let refreshTimer: NodeJS.Timeout | null = null;
+  const showLogoutWarning = (message: string) => {
+    if (typeof window === 'undefined') {
+      console.warn(message);
+      return;
+    }
+
+    const bannerId = 'auth-logout-warning-banner';
+    const existingBanner = document.getElementById(bannerId);
+    existingBanner?.remove();
+
+    const banner = document.createElement('div');
+    banner.id = bannerId;
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'assertive');
+    banner.style.position = 'fixed';
+    banner.style.bottom = '1rem';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.maxWidth = 'min(92vw, 32rem)';
+    banner.style.padding = '0.875rem 1rem';
+    banner.style.borderRadius = '0.75rem';
+    banner.style.backgroundColor = '#fef3c7';
+    banner.style.color = '#92400e';
+    banner.style.border = '1px solid #f59e0b';
+    banner.style.boxShadow = '0 12px 32px rgba(15, 23, 42, 0.16)';
+    banner.style.zIndex = '99999';
+    banner.style.fontSize = '0.95rem';
+    banner.style.lineHeight = '1.4';
+    banner.textContent = message;
+
+    document.body.appendChild(banner);
+    window.setTimeout(() => banner.remove(), 8000);
+  };
 
   const setupTokenRefresh = () => {
     clearTokenRefresh();
@@ -176,15 +218,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Refresh token 2 minutes before expiry (access token expires in 15 minutes)
     const refreshInterval = 13 * 60 * 1000; // 13 minutes
 
-    refreshTimer = setInterval(() => {
+    refreshTimerRef.current = setInterval(() => {
       refreshTokens();
     }, refreshInterval);
   };
 
   const clearTokenRefresh = () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer);
-      refreshTimer = null;
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
     }
   };
 
@@ -236,7 +278,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshToken: data.refreshToken,
       });
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
+      const message = error instanceof Error ? error.message : 'Login failed';
+      // Preserve the 2FA sentinel so the caller can branch on it; normalise everything else
+      // to avoid leaking account-state details (user enumeration).
+      setError(message === '2FA_REQUIRED' ? message : 'Invalid email or password. Please try again.');
       throw error;
     } finally {
       setLoading(false);
@@ -252,11 +297,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/verify', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, token: totpToken }),
-      });
-
+      const data = await twoFactorAPI.verify(email, password, totpToken);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -278,11 +319,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError();
 
     try {
-      const data = await makeRequest('/auth/2fa/recover', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, backupCode }),
-      });
-
+      const data = await twoFactorAPI.recover(email, password, backupCode);
       setAuth(data.user, {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -325,18 +362,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     setLoading(true);
 
-    try {
-      if (state.tokens?.refreshToken) {
-        await makeRequest('/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
-        });
+    const refreshToken = state.tokens?.refreshToken;
+    let serverLogoutSucceeded = !refreshToken; // no token = nothing to revoke
+
+    if (refreshToken) {
+      // Attempt server-side revocation with one retry
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await makeRequest('/auth/logout', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken }),
+          });
+          serverLogoutSucceeded = true;
+          break;
+        } catch (error) {
+          console.error(`Logout attempt ${attempt + 1} failed:`, error);
+        }
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      clearAuth();
-      setLoading(false);
+    }
+
+    clearAuth();
+    setLoading(false);
+
+    // Tell the service worker to purge its user-scoped cache so that
+    // authenticated API responses (health, wallet, account) cannot bleed
+    // into the next session on this device.
+    if (typeof window !== 'undefined' && navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SW_LOGOUT' });
+    }
+
+    if (!serverLogoutSucceeded) {
+      showLogoutWarning(
+        "You've been signed out on this device, but we couldn't confirm the session was closed on our server. If this device may be compromised, consider changing your password."
+      );
     }
   };
 

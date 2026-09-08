@@ -1,0 +1,96 @@
+name: Reusable Deploy Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: string
+        enum: [staging, production]
+      node-version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '20'
+      vercel-token:
+        description: 'Vercel token secret name'
+        required: false
+        type: string
+        default: 'VERCEL_TOKEN'
+      vercel-org-id:
+        description: 'Vercel org ID secret name'
+        required: false
+        type: string
+        default: 'VERCEL_ORG_ID'
+      vercel-project-id:
+        description: 'Vercel project ID secret name'
+        required: false
+        type: string
+        default: 'VERCEL_PROJECT_ID'
+      use-production:
+        description: 'Use Vercel production environment'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      VERCEL_ORG_ID:
+        required: true
+      VERCEL_PROJECT_ID:
+        required: true
+    outputs:
+      url:
+        description: 'Deployed URL'
+        value: ${{ jobs.deploy.outputs.url }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.deploy.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel environment
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        run: vercel pull --yes --environment=${{ inputs.use-production && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build for ${{ inputs.environment }}
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        run: vercel build ${{ inputs.use_production && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy to ${{ inputs.environment }}
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt ${{ inputs.use_production && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "### 🚀 ${{ inputs.environment }} deployed to: $URL" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

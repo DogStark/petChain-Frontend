@@ -1,7 +1,10 @@
-const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
-const HORIZON_MAINNET = 'https://horizon.stellar.org';
-const XLM_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd';
+import { getNetworkConfig, getStellarNetwork } from '../lib/blockchain/network';
+import { amountToStroopsOrNull, stroopsToXlm, toStroops } from '../utils/stellarAmounts';
 
+const XLM_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd';
+const STROOPS_PER_XLM = 10_000_000;
+
+/** A single asset balance entry parsed from the Horizon accounts response. */
 export interface BalanceInfo {
   assetCode: string;
   assetIssuer?: string;
@@ -10,27 +13,42 @@ export interface BalanceInfo {
   isNative: boolean;
 }
 
-export interface WalletBalance {
+/**
+ * Account-level balance aggregate returned by WalletBalanceService.
+ *
+ * This is distinct from `WalletBalance` in `src/types/wallet.ts`, which models
+ * a single per-asset Horizon record. `AccountBalance` aggregates all balances
+ * for one Stellar account along with its native XLM total and USD equivalent.
+ */
+export interface AccountBalance {
   publicKey: string;
   balances: BalanceInfo[];
   nativeBalance: number;
+  /** Native balance in integer stroops — safe for comparisons and fee math. */
+  nativeBalanceStroops: number;
   nativeBalanceUSD?: number;
   lastUpdated: Date;
   network: string;
 }
 
-export type BalanceUpdateCallback = (balance: WalletBalance) => void;
+export type BalanceUpdateCallback = (balance: AccountBalance) => void;
 
 function getHorizonUrl(): string {
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? HORIZON_MAINNET : HORIZON_TESTNET;
+  // Single validated source of truth for the network (see lib/blockchain/network).
+  return getNetworkConfig().horizonUrl;
 }
 
-function parseBalances(stellarBalances: any[]): BalanceInfo[] {
+function parseBalances(stellarBalances: Array<{
+  asset_type: string;
+  asset_code?: string;
+  asset_issuer?: string;
+  balance: string;
+}>): BalanceInfo[] {
   return stellarBalances.map((b) => ({
-    assetCode: b.asset_type === 'native' ? 'XLM' : b.asset_code,
+    assetCode: b.asset_type === 'native' ? 'XLM' : (b.asset_code ?? ''),
     assetIssuer: b.asset_issuer,
     balance: b.balance,
-    assetType: b.asset_type,
+    assetType: b.asset_type as BalanceInfo['assetType'],
     isNative: b.asset_type === 'native',
   }));
 }
@@ -47,7 +65,7 @@ async function fetchXlmPriceUSD(): Promise<number> {
 }
 
 class WalletBalanceService {
-  private cache: Map<string, { balance: WalletBalance; timestamp: number }> = new Map();
+  private cache: Map<string, { balance: AccountBalance; timestamp: number }> = new Map();
   private callbacks: Set<BalanceUpdateCallback> = new Set();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private cacheTtlMs: number;
@@ -56,7 +74,7 @@ class WalletBalanceService {
     this.cacheTtlMs = cacheTtlMs;
   }
 
-  async fetchBalance(publicKey: string): Promise<WalletBalance> {
+  async fetchBalance(publicKey: string): Promise<AccountBalance> {
     const cached = this.cache.get(publicKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs) {
       return cached.balance;
@@ -71,23 +89,32 @@ class WalletBalanceService {
     const balances = parseBalances(account.balances ?? []);
     const nativeInfo = balances.find((b) => b.isNative);
     const nativeBalance = nativeInfo ? parseFloat(nativeInfo.balance) : 0;
+    let nativeBalanceStroops = 0;
+    if (nativeInfo) {
+      try {
+        nativeBalanceStroops = toStroops(nativeInfo.balance);
+      } catch {
+        nativeBalanceStroops = 0;
+      }
+    }
     const xlmPriceUSD = await fetchXlmPriceUSD();
 
-    const walletBalance: WalletBalance = {
+    const accountBalance: AccountBalance = {
       publicKey,
       balances,
       nativeBalance,
+      nativeBalanceStroops,
       nativeBalanceUSD: nativeBalance * xlmPriceUSD,
       lastUpdated: new Date(),
-      network: process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'mainnet' ? 'mainnet' : 'testnet',
+      network: getStellarNetwork() === 'PUBLIC' ? 'mainnet' : 'testnet',
     };
 
-    this.cache.set(publicKey, { balance: walletBalance, timestamp: Date.now() });
-    this.callbacks.forEach((cb) => cb(walletBalance));
-    return walletBalance;
+    this.cache.set(publicKey, { balance: accountBalance, timestamp: Date.now() });
+    this.callbacks.forEach((cb) => cb(accountBalance));
+    return accountBalance;
   }
 
-  async refreshBalance(publicKey: string): Promise<WalletBalance> {
+  async refreshBalance(publicKey: string): Promise<AccountBalance> {
     this.cache.delete(publicKey);
     return this.fetchBalance(publicKey);
   }
@@ -109,24 +136,46 @@ class WalletBalanceService {
     }
   }
 
-  getBalanceByAsset(balance: WalletBalance, assetCode: string): BalanceInfo | null {
+  getBalanceByAsset(balance: AccountBalance, assetCode: string): BalanceInfo | null {
     return (
       balance.balances.find((b) => (assetCode === 'XLM' ? b.isNative : b.assetCode === assetCode)) ?? null
     );
   }
 
   formatBalance(balance: string, decimals = 2): string {
-    const num = parseFloat(balance);
-    if (isNaN(num)) return '0.00';
-    return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    const stroops = amountToStroopsOrNull(balance);
+    if (stroops === null) {
+      const num = parseFloat(balance);
+      if (isNaN(num)) return '0.00';
+      return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    // Convert via integer stroops to avoid float rounding in display math.
+    const xlm = Number(stroopsToXlm(stroops));
+    return xlm.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   }
 
-  isSufficientBalance(balance: WalletBalance, amount: number, includeReserve = true): boolean {
-    return balance.nativeBalance >= amount + (includeReserve ? 1 : 0);
+  isSufficientBalance(balance: WalletBalance, amount: string | number, includeReserve = true): boolean {
+    const amountStroops = toStroopsOrNull(amount);
+    if (amountStroops === null) return false;
+    const reserveStroops = includeReserve ? STROOPS_PER_XLM : 0;
+    return balance.nativeBalanceStroops >= amountStroops + reserveStroops;
   }
 
   isLowBalance(balance: WalletBalance): boolean {
-    return balance.nativeBalance < 5;
+    return balance.nativeBalanceStroops < 5 * STROOPS_PER_XLM;
+  }
+}
+
+function toStroopsOrNull(amount: string | number): number | null {
+  if (typeof amount === 'number') {
+    if (!Number.isFinite(amount) || amount < 0) return null;
+    const result = Math.round(amount * STROOPS_PER_XLM);
+    return Number.isSafeInteger(result) ? result : null;
+  }
+  try {
+    return toStroops(amount);
+  } catch {
+    return null;
   }
 }
 

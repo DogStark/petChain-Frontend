@@ -61,6 +61,12 @@ We appreciate security researchers and will:
 - Validate all inputs
 - Implement proper authentication
 - Use HTTPS in production
+- Keep emergency QR scan analytics minimized: no raw IPs, no precise coordinates, no contact details, no user identifiers in analytics payloads
+- Only store coarse, consented location fields (for example country/region) when explicitly granted, and keep analytics retention bounded to 30 days
+
+### 🔎 Emergency QR scan analytics privacy
+
+Emergency scan events are intentionally designed as low-risk telemetry. The frontend sends only a minimal device class for trend analysis and, when a user has explicitly consented, a coarse region or country code; it never includes raw IP addresses, exact coordinates, phone numbers, contact names, or other personal identifiers. Analytics records are limited to a short retention window to reduce long-term tracking risk.
 
 **For Users:**
 - Keep your software updated

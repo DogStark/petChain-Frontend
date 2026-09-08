@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { transactionAPI } from '@/lib/api/transactionAPI';
+import { daysAgo } from '@/utils/dateRange';
 
 export default function TransactionCostTracker() {
+  const { getTotalCosts } = useTransactions();
   const [costs, setCosts] = useState({
     totalFees: '0',
     totalTransactions: 0,
@@ -16,16 +18,15 @@ export default function TransactionCostTracker() {
 
   const loadCosts = async () => {
     try {
-      const now = new Date();
       let startDate: string | undefined;
 
       if (period === '7d') {
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        startDate = daysAgo(7);
       } else if (period === '30d') {
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        startDate = daysAgo(30);
       }
 
-      const data = await transactionAPI.getTotalCosts(startDate);
+      const data = await getTotalCosts(startDate);
       setCosts(data);
     } catch (error) {
       console.error('Failed to load costs:', error);

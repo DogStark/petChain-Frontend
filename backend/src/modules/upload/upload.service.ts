@@ -414,10 +414,13 @@ export class UploadService {
         format: v.format,
       })) || [];
 
-    // Find thumbnail for thumbnailUrl
+    // Get thumbnail URL from variant's storage key
     const thumbnail = file.variants?.find(
       (v) => v.variantType === VariantType.THUMBNAIL,
     );
+    const thumbnailUrl = thumbnail
+      ? this.storageService.getPublicUrl(thumbnail.storageKey)
+      : undefined;
 
     return {
       id: file.id,
@@ -437,7 +440,7 @@ export class UploadService {
           }
         : undefined,
       variants,
-      thumbnailUrl: thumbnail ? undefined : undefined, // Will be populated by CDN in next milestone
+      thumbnailUrl,
       owner: file.owner
         ? {
             id: file.owner.id,

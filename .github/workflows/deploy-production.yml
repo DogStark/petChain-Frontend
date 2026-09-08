@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      skip-frontend: false
+      skip-backend: false
+      run-coverage: false
+
+  build:
+    name: Build All
+    needs: [test]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      skip-frontend: false
+      skip-backend: false
+      push-docker: true
+      docker-tag: ${{ github.event.release.tag_name || 'latest' }}
+
+  deploy:
+    name: Deploy to Production
+    needs: [test, build]
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: production
+      use-production: true
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

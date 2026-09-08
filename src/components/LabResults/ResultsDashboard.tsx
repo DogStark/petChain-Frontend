@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
 import { AlertCircle, CheckCircle2, FlaskConical, CalendarDays, TrendingUp, ArrowRight, Share2, UploadCloud } from 'lucide-react';
-import { LabCategory, LabResultItem } from '@/types/lab-results';
+import Link from 'next/link';
+import React, { useState } from 'react';
+
 import { useLabResults } from '@/hooks/useLabResults';
+import type { LabCategory, LabResultItem } from '@/types/lab-results';
+
 import CategoryTabs from './CategoryTabs';
 import ResultList from './ResultList';
+import ShareModal from './ShareModal';
 import TrendsChart from './TrendsChart';
 import UploadModal from './UploadModal';
-import ShareModal from './ShareModal';
 
 const CATEGORIES: LabCategory[] = [
   'Blood Work',
@@ -224,7 +226,7 @@ export default function ResultsDashboard({ petId }: { petId?: string }) {
                 <p className="text-sm text-gray-500 mb-4">
                   History for <strong>{selectedTestTrend}</strong>
                 </p>
-                <TrendsChart data={trendData} />
+                <TrendsChart data={trendData} testName={selectedTestTrend} />
               </>
             ) : (
               <div className="text-center py-10 text-gray-400 text-sm">

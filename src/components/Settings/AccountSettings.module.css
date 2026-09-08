@@ -69,6 +69,22 @@
   border-color: #bbf7d0;
 }
 
+.sessionItem.currentSession {
+  opacity: 1;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.currentBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .sessionInfo {
   flex: 1;
 }
@@ -226,6 +242,52 @@
   margin-top: 20px;
 }
 
+.error {
+  padding: 12px 16px;
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #991b1b;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+.erasureConsequences {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+}
+
+.erasureConsequences h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.erasureConsequences ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.erasureConsequences li {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.erasureConsequences a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.erasureConsequences a:hover {
+  color: #1d4ed8;
+}
+
 .policyText {
   margin-top: 12px;
   font-size: 13px;
@@ -249,6 +311,50 @@
   margin-bottom: 6px;
   font-size: 13px;
   color: #374151;
+}
+
+/* Modal Form Styles */
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  background-color: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* Modal Styles */
@@ -398,5 +504,20 @@
   .revokeBtn {
     align-self: flex-end;
     margin-top: 12px;
+  }
+
+  .modalContent {
+    padding: 20px 16px;
+    width: 95%;
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+
+  .cancelBtn,
+  .confirmDangerBtn,
+  .deleteConfirmBtn {
+    width: 100%;
   }
 }

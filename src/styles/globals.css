@@ -176,6 +176,32 @@ body {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+  /* Accessibility: skip link, hidden until keyboard-focused */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0.5rem;
+    z-index: 100;
+    background: #ffffff;
+    color: #1d4ed8;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    transition: top 0.15s ease-in-out;
+  }
+  .skip-link:focus {
+    top: 0.5rem;
+  }
+
+  /* Accessibility: ensure compact interactive controls meet a 44x44 touch target */
+  .touch-target {
+    position: relative;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   /* Skeleton shimmer */
   .skeleton-shimmer {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);

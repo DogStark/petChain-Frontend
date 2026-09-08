@@ -28,8 +28,10 @@ export const useAnalytics = (dateRange?: DateRange) => {
       link.download = `analytics_${Date.now()}.${format}`;
       link.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ?? err?.message ?? 'Export failed';
+      setError(message);
     }
   };
 

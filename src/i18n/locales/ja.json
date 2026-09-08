@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Stellarブロックチェーン上の分散型公共料金決済",
     "description": "Stellarネットワークを使用して暗号資産で公共料金を支払う",
     "footer": {
@@ -107,8 +107,8 @@
     }
   },
   "about": {
-    "title": "Wata-Boardについて",
-    "description": "Wata-Boardは、Stellarブロックチェーンの上に構築された分散型公共料金決済プラットフォームです。暗号資産を使用して、安全で透明性が高く、効率的な公共料金の支払いを実現します。",
+    "title": "PetChainについて",
+    "description": "PetChainは、Stellarブロックチェーンの上に構築された分散型公共料金決済プラットフォームです。暗号資産を使用して、安全で透明性が高く、効率的な公共料金の支払いを実現します。",
     "features": {
       "title": "主な特徴",
       "secure": "安全なトランザクション",
@@ -151,7 +151,7 @@
   },
   "rate": {
     "title": "ご体験をレートする",
-    "description": "Wata-Boardでのご体験をレートすることで、私たちの改善にお力をお貸しください。",
+    "description": "PetChainでのご体験をレートすることで、私たちの改善にお力をお貸しください。",
     "rating": {
       "excellent": "とても良い",
       "good": "良い",
@@ -161,7 +161,7 @@
     },
     "review": {
       "title": "レビューを書く",
-      "placeholder": "Wata-Boardでのご体験をお聞かせください...",
+      "placeholder": "PetChainでのご体験をお聞かせください...",
       "submit": "レビューを送信",
       "thankYou": "ご意見ありがとうございました！"
     }

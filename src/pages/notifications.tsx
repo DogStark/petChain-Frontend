@@ -152,6 +152,11 @@ export default function NotificationsPage() {
             )}
           </div>
 
+      <main id="main-content" className={styles.main}>
+        {error ? (
+          <div className={styles.errorContainer}>
+            <p>{error}</p>
+            <button onClick={() => router.push('/login')}>Go to Login</button>
           {/* Tabs */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl">
             {(['notifications', 'preferences'] as const).map((t) => (

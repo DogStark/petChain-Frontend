@@ -12,6 +12,7 @@ import { DrugInteractionService } from './services/drug-interaction.service';
 import { MedicationService } from './services/medication.service';
 import { PrescriptionReminderScheduler } from './prescription-reminder.scheduler';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { RedisService } from '../../auth/services/redis.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DrugInteractionService,
     MedicationService,
     PrescriptionReminderScheduler,
+    RedisService,
   ],
   exports: [
     PrescriptionsService,

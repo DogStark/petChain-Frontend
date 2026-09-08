@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/contexts/NotificationContext';
 import {
@@ -17,6 +17,11 @@ const FILTERS: Array<{ value: NotificationCategory | 'ALL'; label: string }> = [
   { value: 'MESSAGE', label: 'Messages' },
   { value: 'SYSTEM', label: 'System' },
 ];
+
+// ─── Page size ────────────────────────────────────────────────────────────────
+// Rows revealed per page. The list is disclosed one page at a time so the DOM
+// stays bounded no matter how long the notification history grows.
+const PAGE_SIZE = 20;
 
 // ─── Single notification row ──────────────────────────────────────────────────
 function NotifRow({ n, onRead }: { n: AppNotification; onRead: (id: string) => void }) {
@@ -86,6 +91,7 @@ export default function NotificationCenter() {
   const {
     isCenterOpen,
     toggleCenter,
+    notifications,
     filteredNotifications,
     unreadCount,
     activeFilter,
@@ -93,9 +99,26 @@ export default function NotificationCenter() {
     markRead,
     markAllRead,
     isLoading,
+    error,
+    bellRef,
   } = useNotifications();
 
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // The window is tagged with the filter it was grown under, so a filter change
+  // clamps back to page one during render. Resetting from an effect instead
+  // would first commit a full render of the new list at the old count. It is
+  // deliberately not keyed on the list itself: filteredNotifications gets a
+  // fresh identity on nearly every context update (websocket arrival,
+  // markRead), which would throw the user back to page one.
+  const [pageWindow, setPageWindow] = useState({ filter: activeFilter, count: PAGE_SIZE });
+  const visibleCount = pageWindow.filter === activeFilter ? pageWindow.count : PAGE_SIZE;
+
+  const visibleNotifications = filteredNotifications.slice(0, visibleCount);
+  const hasMore = filteredNotifications.length > visibleCount;
+  const hiddenUnread = filteredNotifications.slice(visibleCount).filter((n) => !n.isRead).length;
+
+  const loadMore = () => setPageWindow({ filter: activeFilter, count: visibleCount + PAGE_SIZE });
 
   // Close on Escape
   useEffect(() => {
@@ -107,10 +130,17 @@ export default function NotificationCenter() {
     return () => document.removeEventListener('keydown', handler);
   }, [isCenterOpen, toggleCenter]);
 
-  // Trap focus inside panel
+  // Focus panel on open; restore focus to bell on close
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (isCenterOpen) panelRef.current?.focus();
-  }, [isCenterOpen]);
+    if (isCenterOpen) {
+      wasOpenRef.current = true;
+      panelRef.current?.focus();
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      bellRef.current?.focus();
+    }
+  }, [isCenterOpen, bellRef]);
 
   if (!isCenterOpen) return null;
 
@@ -189,8 +219,19 @@ export default function NotificationCenter() {
           ))}
         </div>
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto" role="list" aria-label="Notification list">
+        {/* Error banner: cached rows stay visible behind it. Gated on the
+            unfiltered list so a filter that matches nothing still gets the
+            banner rather than the full-page error below. */}
+        {error && notifications.length > 0 && (
+          <div role="alert" className="px-4 py-2.5 bg-amber-50 border-b border-amber-100 shrink-0">
+            <p className="text-xs text-amber-800">{error}</p>
+          </div>
+        )}
+
+        {/* List. role="list" and aria-busy sit on the rows wrapper below so the
+            list owns nothing but listitems; this scroller also holds the Load
+            more control. */}
+        <div className="flex-1 overflow-y-auto">
           {isLoading && filteredNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3 text-gray-400">
               <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -210,6 +251,14 @@ export default function NotificationCenter() {
               </svg>
               <span className="text-sm">Loading…</span>
             </div>
+          ) : error && notifications.length === 0 ? (
+            <div
+              role="alert"
+              className="flex flex-col items-center justify-center h-40 gap-2 px-6 text-center"
+            >
+              <span className="text-4xl">⚠️</span>
+              <p className="text-sm font-medium text-gray-600">{error}</p>
+            </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2 text-gray-400 px-6 text-center">
               <span className="text-4xl">🔔</span>
@@ -217,16 +266,49 @@ export default function NotificationCenter() {
               <p className="text-xs text-gray-400">You're all caught up!</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredNotifications.map((n) => (
-                <NotifRow key={n.id} n={n} onRead={markRead} />
-              ))}
-            </div>
+            <>
+              <div
+                className="divide-y divide-gray-100"
+                role="list"
+                aria-label="Notification list"
+                aria-busy={isLoading}
+              >
+                {visibleNotifications.map((n) => (
+                  <NotifRow key={n.id} n={n} onRead={markRead} />
+                ))}
+              </div>
+
+              {hasMore && (
+                <div className="p-3 border-t border-gray-100">
+                  <button
+                    onClick={loadMore}
+                    className="w-full min-h-[36px] rounded-xl border border-gray-200 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    Load more ({filteredNotifications.length - visibleCount})
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer */}
         <div className="border-t border-gray-100 px-4 py-3 shrink-0">
+          {/* Stays mounted, empty when there is nothing to count: a live region
+              inserted alongside its own text is not reliably announced.
+              aria-atomic re-reads the whole sentence, not the one changed node. */}
+          <p
+            aria-live="polite"
+            aria-atomic="true"
+            className="text-[11px] text-gray-500 text-center mb-1 empty:mb-0"
+          >
+            {filteredNotifications.length > 0 && (
+              <>
+                Showing {visibleNotifications.length} of {filteredNotifications.length}
+                {hiddenUnread > 0 && `, ${hiddenUnread} unread not shown`}
+              </>
+            )}
+          </p>
           <a
             href="/notifications"
             onClick={toggleCenter}

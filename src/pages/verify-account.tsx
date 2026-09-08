@@ -6,6 +6,9 @@ import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const MAX_PHONE_ATTEMPTS = 5;
+
 export default function VerifyAccountPage() {
   const router = useRouter();
   const initialEmail = useMemo(() => {
@@ -21,6 +24,10 @@ export default function VerifyAccountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [isResendingPhone, setIsResendingPhone] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
+  const [failedPhoneAttempts, setFailedPhoneAttempts] = useState(0);
+  const phoneLocked = failedPhoneAttempts >= MAX_PHONE_ATTEMPTS;
   const { verifyPhone, resendEmailVerification, resendPhoneVerification } = useAuth();
 
   useEffect(() => {
@@ -33,8 +40,21 @@ export default function VerifyAccountPage() {
     }
   }, [router.query.emailVerified]);
 
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const timer = setTimeout(() => setEmailCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [emailCooldown]);
+
+  useEffect(() => {
+    if (phoneCooldown <= 0) return;
+    const timer = setTimeout(() => setPhoneCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phoneCooldown]);
+
   const handleVerifyPhone = async (event: FormEvent) => {
     event.preventDefault();
+    if (phoneLocked) return;
     if (!email) {
       setError('We could not determine which account to verify.');
       return;
@@ -49,10 +69,12 @@ export default function VerifyAccountPage() {
       setPhoneVerified(result.phoneVerified);
       setEmailVerified(result.emailVerified);
       setMessage(result.message);
+      setFailedPhoneAttempts(0);
       if (result.isVerified) {
         router.push('/login?verified=1');
       }
     } catch (err) {
+      setFailedPhoneAttempts((prev) => prev + 1);
       setError(err instanceof Error ? err.message : 'Phone verification failed');
     } finally {
       setIsSubmitting(false);
@@ -64,6 +86,7 @@ export default function VerifyAccountPage() {
       setError('Enter registration again to request a new email link.');
       return;
     }
+    if (emailCooldown > 0) return;
 
     setIsResendingEmail(true);
     setError('');
@@ -71,6 +94,7 @@ export default function VerifyAccountPage() {
     try {
       await resendEmailVerification(email);
       setMessage('A fresh email verification link has been sent.');
+      setEmailCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to resend email verification');
     } finally {
@@ -83,6 +107,7 @@ export default function VerifyAccountPage() {
       setError('Enter registration again to request a new phone code.');
       return;
     }
+    if (phoneCooldown > 0) return;
 
     setIsResendingPhone(true);
     setError('');
@@ -90,6 +115,8 @@ export default function VerifyAccountPage() {
     try {
       await resendPhoneVerification(email);
       setMessage('A new SMS verification code has been sent.');
+      setPhoneCooldown(RESEND_COOLDOWN_SECONDS);
+      setFailedPhoneAttempts(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to resend phone verification');
     } finally {
@@ -115,7 +142,8 @@ export default function VerifyAccountPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              readOnly={Boolean(initialEmail)}
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${initialEmail ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               placeholder="you@example.com"
             />
           </div>
@@ -136,10 +164,14 @@ export default function VerifyAccountPage() {
           <button
             type="button"
             onClick={handleResendEmail}
-            disabled={isResendingEmail}
+            disabled={isResendingEmail || emailCooldown > 0}
             className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isResendingEmail ? 'Resending email...' : 'Resend email link'}
+            {isResendingEmail
+              ? 'Resending email...'
+              : emailCooldown > 0
+                ? `Resend available in ${emailCooldown}s`
+                : 'Resend email link'}
           </button>
         </div>
 
@@ -170,14 +202,20 @@ export default function VerifyAccountPage() {
               maxLength={6}
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={phoneLocked}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="123456"
               required
             />
           </div>
+          {phoneLocked && (
+            <p className="text-sm text-red-600">
+              Too many incorrect codes. Request a new code below to try again.
+            </p>
+          )}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || phoneLocked}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? 'Verifying phone...' : 'Verify phone'}
@@ -185,10 +223,14 @@ export default function VerifyAccountPage() {
           <button
             type="button"
             onClick={handleResendPhone}
-            disabled={isResendingPhone}
+            disabled={isResendingPhone || phoneCooldown > 0}
             className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isResendingPhone ? 'Resending code...' : 'Resend SMS code'}
+            {isResendingPhone
+              ? 'Resending code...'
+              : phoneCooldown > 0
+                ? `Resend available in ${phoneCooldown}s`
+                : 'Resend SMS code'}
           </button>
         </form>
 

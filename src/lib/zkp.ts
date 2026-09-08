@@ -42,8 +42,10 @@ export const zkpService = {
   },
 
   async getProofsForPet(petId: string): Promise<ZkpProof[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-    const res = await fetch(`${apiUrl}/zkp/pet/${petId}`);
+    const res = await fetch(`/api/zkp/pet/${petId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },

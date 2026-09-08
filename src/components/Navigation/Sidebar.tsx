@@ -70,7 +70,7 @@ function SidebarItem({
 
         {expanded && (
           <ul id={`nav-sub-${item.label}`} className="mt-0.5 space-y-0.5">
-            {item.children!.map((child) => (
+            {item.children?.map((child) => (
               <SidebarItem key={child.href} item={child} collapsed={collapsed} depth={depth + 1} />
             ))}
           </ul>

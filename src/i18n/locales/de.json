@@ -1,8 +1,11 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Dezentralisierte Versorgungsunternehmenzahlungen auf der Stellar-Blockchain",
-    "description": "Bezahlen Sie Ihre Versorgerrechnungen mit Kryptowährung auf dem Stellar-Netzwerk"
+    "description": "Bezahlen Sie Ihre Versorgerrechnungen mit Kryptowährung auf dem Stellar-Netzwerk",
+    "footer": {
+      "tagline": "Modern payment solutions for the decentralized web"
+    }
   },
   "navigation": {
     "home": "Rechnung Bezahlen",
@@ -104,8 +107,8 @@
     }
   },
   "about": {
-    "title": "Über Wata-Board",
-    "description": "Wata-Board ist eine dezentralisierte Versorgerzahlungsplattform, die auf der Stellar-Blockchain aufgebaut ist. Wir ermöglichen sichere, transparente und effiziente Versorgerrechnungszahlungen mit Kryptowährung.",
+    "title": "Über PetChain",
+    "description": "PetChain ist eine dezentralisierte Versorgerzahlungsplattform, die auf der Stellar-Blockchain aufgebaut ist. Wir ermöglichen sichere, transparente und effiziente Versorgerrechnungszahlungen mit Kryptowährung.",
     "features": {
       "title": "Hauptfunktionen",
       "secure": "Sichere Transaktionen",
@@ -148,7 +151,7 @@
   },
   "rate": {
     "title": "Bewerten Sie Ihre Erfahrung",
-    "description": "Helfen Sie uns uns zu verbessern, indem Sie Ihre Erfahrung mit Wata-Board bewerten.",
+    "description": "Helfen Sie uns uns zu verbessern, indem Sie Ihre Erfahrung mit PetChain bewerten.",
     "rating": {
       "excellent": "Ausgezeichnet",
       "good": "Gut",
@@ -158,7 +161,7 @@
     },
     "review": {
       "title": "Bewertung Schreiben",
-      "placeholder": "Teilen Sie Ihre Erfahrung mit Wata-Board...",
+      "placeholder": "Teilen Sie Ihre Erfahrung mit PetChain...",
       "submit": "Bewertung Einreichen",
       "thankYou": "Vielen Dank für Ihr Feedback!"
     }

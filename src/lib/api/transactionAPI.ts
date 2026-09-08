@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiBaseUrl } from './apiBaseUrl';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type TransactionType =
@@ -10,6 +9,8 @@ export type TransactionType =
   | 'access_revoke'
   | 'vaccination'
   | 'transfer';
+
+export type TransactionEstimateData = Record<string, unknown>;
 
 export interface Transaction {
   id: string;
@@ -23,7 +24,7 @@ export interface Transaction {
   timestamp: string;
   blockNumber?: number;
   confirmations: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   errorMessage?: string;
 }
 
@@ -35,7 +36,7 @@ export interface TransactionReceipt {
   timestamp: string;
   gasUsed: string;
   effectiveFee: string;
-  logs: any[];
+  logs: Record<string, unknown>[];
 }
 
 export interface TransactionCost {
@@ -44,6 +45,17 @@ export interface TransactionCost {
   totalFee: string;
   estimatedUSD?: number;
 }
+
+export interface TransactionDataMap {
+  record_creation: { petId: string; recordType: string; payload: Record<string, unknown> };
+  record_update: { petId: string; recordId: string; changes: Record<string, unknown> };
+  access_grant: { petId: string; granteeAddress: string; permissions: string[] };
+  access_revoke: { petId: string; granteeAddress: string };
+  vaccination: { petId: string; vaccineId: string; administerDate: string };
+  transfer: { petId: string; toAddress: string };
+}
+
+export type EstimateData = TransactionDataMap[TransactionType];
 
 export interface TransactionFilters {
   status?: TransactionStatus;
@@ -54,12 +66,23 @@ export interface TransactionFilters {
   offset?: number;
 }
 
+/**
+ * Options accepted by mutating transaction calls.
+ *
+ * `idempotencyKey` is forwarded as the `Idempotency-Key` HTTP header so the
+ * server can safely de-duplicate retries and rapid double-submits.  The field
+ * is optional so callers that haven't migrated yet keep working unchanged.
+ */
+export interface TransactionRequestOptions {
+  idempotencyKey?: string;
+}
+
 class TransactionAPI {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: `${API_BASE_URL}/transactions`,
+      baseURL: `${getApiBaseUrl()}/transactions`,
       withCredentials: true,
     });
 
@@ -71,6 +94,19 @@ class TransactionAPI {
       return config;
     });
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /** Build the per-request headers object, adding `Idempotency-Key` when provided. */
+  private buildHeaders(opts?: TransactionRequestOptions): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (opts?.idempotencyKey) {
+      headers['Idempotency-Key'] = opts.idempotencyKey;
+    }
+    return headers;
+  }
+
+  // ── Read operations (no idempotency header needed) ─────────────────────
 
   async getTransactionHistory(filters?: TransactionFilters): Promise<Transaction[]> {
     const response = await this.api.get('/history', { params: filters });
@@ -97,18 +133,42 @@ class TransactionAPI {
     return response.data;
   }
 
-  async estimateTransactionCost(type: TransactionType, data?: any): Promise<TransactionCost> {
-    const response = await this.api.post('/estimate', { type, data });
+  // ── Write operations (accept optional idempotency key) ─────────────────
+
+  async estimateTransactionCost(
+    type: TransactionType,
+    data?: EstimateData,
+    opts?: TransactionRequestOptions
+  ): Promise<TransactionCost> {
+    const response = await this.api.post(
+      '/estimate',
+      { type, data },
+      { headers: this.buildHeaders(opts) }
+    );
     return response.data;
   }
 
-  async retryFailedTransaction(id: string): Promise<Transaction> {
-    const response = await this.api.post(`/${id}/retry`);
+  async retryFailedTransaction(
+    id: string,
+    opts?: TransactionRequestOptions
+  ): Promise<Transaction> {
+    const response = await this.api.post(
+      `/${id}/retry`,
+      {},
+      { headers: this.buildHeaders(opts) }
+    );
     return response.data;
   }
 
-  async cancelPendingTransaction(id: string): Promise<void> {
-    await this.api.post(`/${id}/cancel`);
+  async cancelPendingTransaction(
+    id: string,
+    opts?: TransactionRequestOptions
+  ): Promise<void> {
+    await this.api.post(
+      `/${id}/cancel`,
+      {},
+      { headers: this.buildHeaders(opts) }
+    );
   }
 
   async getFailedTransactions(): Promise<Transaction[]> {

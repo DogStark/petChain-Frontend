@@ -1,8 +1,8 @@
 import { GetServerSideProps } from 'next';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type React from 'react';
 import SearchBar, { SearchFilters } from '../components/SearchBar';
-import SearchResults from '../components/SearchResults';
+import SearchResults, { SearchEmptyState } from '../components/SearchResults';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +14,10 @@ interface Pet {
   age: number;
   location: string;
   status: string;
-  owner: {
+  owner?: {
     firstName: string;
     lastName: string;
-  };
+  } | null;
 }
 
 interface Vet {
@@ -36,10 +36,10 @@ interface MedicalRecord {
   treatment: string;
   recordDate: string;
   vetName: string;
-  pet: {
+  pet?: {
     name: string;
     breed: string;
-  };
+  } | null;
 }
 
 interface EmergencyService {
@@ -73,8 +73,17 @@ export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuery, setCurrentQuery] = useState('');
   const [currentFilters, setCurrentFilters] = useState<SearchFilters>({});
+  // Track the latest in-flight request so stale responses are discarded
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSearch = async (query: string, filters: SearchFilters, page = 1) => {
+    // Cancel any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setCurrentQuery(query);
     setCurrentFilters(filters);
@@ -98,14 +107,19 @@ export default function SearchPage() {
       const endpoint =
         searchType === 'global' ? '/api/v1/search/global' : `/api/v1/search/${searchType}`;
 
-      const response = await fetch(`${endpoint}?${params}`);
+      const response = await fetch(`${endpoint}?${params}`, { signal: controller.signal });
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
+      // Ignore abort errors — they are expected when a newer request supersedes this one
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       console.error('Search failed:', error);
       setSearchResults(null);
     } finally {
-      setIsLoading(false);
+      // Only clear loading state if this controller is still the active one
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -122,9 +136,11 @@ export default function SearchPage() {
             {pet.breed} • {pet.species} • {pet.age} years old
           </p>
           <p className="text-sm text-gray-500 mt-1">📍 {pet.location}</p>
-          <p className="text-xs text-gray-500 mt-1">
-            Owner: {pet.owner.firstName} {pet.owner.lastName}
-          </p>
+          {pet.owner && (
+            <p className="text-xs text-gray-500 mt-1">
+              Owner: {pet.owner.firstName} {pet.owner.lastName}
+            </p>
+          )}
         </div>
         <span
           className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -171,9 +187,11 @@ export default function SearchPage() {
           </span>
         </div>
         <p className="text-sm text-gray-600 mb-2">Treatment: {record.treatment}</p>
-        <p className="text-sm text-gray-500">
-          Pet: {record.pet.name} ({record.pet.breed})
-        </p>
+        {record.pet && (
+          <p className="text-sm text-gray-500">
+            Pet: {record.pet.name} ({record.pet.breed})
+          </p>
+        )}
         <p className="text-xs text-gray-500 mt-1">Vet: {record.vetName}</p>
       </div>
     </div>
@@ -207,6 +225,18 @@ export default function SearchPage() {
 
   const renderGlobalResults = () => {
     if (!searchResults) return null;
+
+    const hasResults =
+      (searchResults.pets?.results?.length ?? 0) > 0 ||
+      (searchResults.vets?.results?.length ?? 0) > 0 ||
+      (searchResults.medicalRecords?.results?.length ?? 0) > 0 ||
+      (searchResults.emergencyServices?.results?.length ?? 0) > 0;
+
+    if (!hasResults) {
+      return (
+        <SearchEmptyState message="No results found across pets, vets, medical records, or emergency services" />
+      );
+    }
 
     return (
       <div className="space-y-8">
@@ -304,6 +334,11 @@ export default function SearchPage() {
                 onClick={() => {
                   setSearchType(tab.value as SearchType);
                   setSearchResults(null);
+                  // Cancel any in-flight search for the previous type
+                  if (abortControllerRef.current) {
+                    abortControllerRef.current.abort();
+                    abortControllerRef.current = null;
+                  }
                 }}
                 className={`px-6 py-2 font-semibold rounded-lg whitespace-nowrap transition-colors ${
                   searchType === tab.value

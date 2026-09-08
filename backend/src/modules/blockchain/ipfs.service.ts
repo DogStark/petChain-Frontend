@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import * as FormData from 'form-data';
+import FormData from 'form-data';
 
 type KuboRPCClient = {
   add(data: string | Buffer): Promise<{ path: string }>;
@@ -21,13 +21,7 @@ export class IPFSService {
 
   private async createClient(): Promise<KuboRPCClient> {
     const ipfsUrl = this.configService.get<string>('blockchain.ipfs.url');
-    const dynamicImport = new Function(
-      'modulePath',
-      'return import(modulePath)',
-    ) as (
-      modulePath: string,
-    ) => Promise<{ create: (options: { url?: string }) => KuboRPCClient }>;
-    const kubo = await dynamicImport('kubo-rpc-client');
+    const kubo = await import('kubo-rpc-client') as unknown as { create: (options: { url?: string }) => KuboRPCClient };
     return kubo.create({ url: ipfsUrl });
   }
 

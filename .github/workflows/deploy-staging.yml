@@ -1,0 +1,40 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      skip-frontend: false
+      skip-backend: false
+      run-coverage: false
+
+  build:
+    name: Build All
+    needs: [test]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      skip-frontend: false
+      skip-backend: false
+      push-docker: false
+
+  deploy:
+    name: Deploy to Staging
+    needs: [test, build]
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: staging
+      use-production: false
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

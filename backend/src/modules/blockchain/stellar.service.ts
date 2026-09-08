@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as StellarSdk from '@stellar/stellar-sdk';
@@ -208,8 +207,15 @@ export class StellarService implements OnModuleInit {
       if (response.status === 'ERROR')
         throw new Error(`Transaction failed: ${response.errorResult}`);
 
+      const maxPollingAttempts = 30;
+      let attempts = 0;
       let result = await this.sorobanServer.getTransaction(response.hash);
       while (result.status === 'NOT_FOUND') {
+        if (++attempts >= maxPollingAttempts) {
+          throw new Error(
+            `Transaction ${response.hash} did not finalize after ${maxPollingAttempts} polling attempts`,
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
         result = await this.sorobanServer.getTransaction(response.hash);
       }

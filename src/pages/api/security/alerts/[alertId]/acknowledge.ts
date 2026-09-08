@@ -1,11 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { requireAdmin } from '@/lib/api/requireAdmin';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // TODO: Add proper authentication check
-  // const session = await getServerSession(req, res, authOptions);
-  // if (!session || session.user.role !== 'admin') {
-  //   return res.status(401).json({ error: 'Unauthorized' });
-  // }
+  if (!(await requireAdmin(req, res))) return;
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });

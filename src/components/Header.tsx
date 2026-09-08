@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import OfflineStatusIndicator from '@/components/OfflineStatusIndicator';
+import StoragePressureBanner from '@/components/StoragePressureBanner';
 import Link from 'next/link';
 
 export default function HeaderComponent() {
@@ -13,13 +14,17 @@ export default function HeaderComponent() {
   };
 
   return (
-    <header className="bg-blue-600 text-white p-4">
+    <>
+      <StoragePressureBanner />
+      <header className="bg-blue-600 text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
         <h1 className="text-2xl font-bold">
           <Link href="/" className="hover:text-blue-200">
             PetChain
           </Link>
         </h1>
+        <nav aria-label="Main navigation">
+          <ul className="flex space-x-4 items-center">
         <nav>
           <ul className="flex space--4 items-center">
             <li><Link href="/" className="hover:text-blue-200">Home</Link></li>
@@ -32,7 +37,9 @@ export default function HeaderComponent() {
                 <li><Link href="/sessions" className="hover:text-blue-200">Sessions</Link></li>
                 <li><Link href="/wallet" className="hover:text-blue-200">Wallet</Link></li>
                 <li><Link href="/activity-log" className="hover:text-blue-200">Activity Log</Link></li>
-                <li><Link href="/admin/reports" className="hover:text-blue-200 text-yellow-300 font-semibold flex items-center gap-1">📊 Reports</Link></li>
+                {user?.role === 'admin' && (
+                  <li><Link href="/admin/reports" className="hover:text-blue-200 text-yellow-300 font-semibold flex items-center gap-1">📊 Reports</Link></li>
+                )}
                 <li className="text-blue-200">Welcome, {user?.firstName}!</li>
                 <li>
                   <button
@@ -62,5 +69,6 @@ export default function HeaderComponent() {
         </nav>
       </div>
     </header>
+    </>
   );
 }

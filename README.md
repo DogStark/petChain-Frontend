@@ -2,41 +2,73 @@
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/DogStark/petChain-Frontend)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.x-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.x-black)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-## 📋 Overview
-PetChain is a decentralized platform on Stellar that securely manages pet medical records.
-Today, health data is often scattered, lost, or stuck in outdated systemsmaking it hard to track vaccinations, manage treatments, or respond quickly in emergencies.
+## Overview
 
-By making records tamper-proof and universally accessible, PetChain keeps vets and pet owners alignedno matter where the pet is or whos treating them.
-Pets get a scannable tag for quick access to key medical details. This tag can act as a tracker if pet goes missing.
+PetChain is a decentralized platform on Stellar that securely manages pet medical records. Today, health data is often scattered, lost, or stuck in outdated systems, making it hard to track vaccinations, manage treatments, or respond quickly in emergencies.
 
-##  Features
-**1. Scannable Pet Tags:** Each pet gets a unique QR code and tag linked to its medical historyinstantly scannable by vets or emergency responders. The tag displays key info and a customizable message from the owner, doubling as a tracker if the pet goes missing.
+By making records tamper-proof and universally accessible, PetChain keeps vets and pet owners aligned no matter where the pet is or who is treating them. Pets get a scannable tag for quick access to key medical details, which can also act as a tracker if the pet goes missing.
 
-**2. Always-Available Records:** Medical history is stored on Stellar, ensuring records are tamper-proof, permanent, and accessible anytime.
+This repository hosts the **frontend** (Next.js) application. A separate `backend/` folder contains the NestJS API; the two are independently configured Node applications that are deliberately kept isolated (see [Workspace layout](#workspace-layout)).
 
-**3. Controlled Access:** Pet owners control who sees what, share vaccination status publicly or give full access to a vet when needed.
+## Features
 
-**4. Smart Notifications:** Get automatic alerts for upcoming vaccinations and routine check-ups, so you never miss a date.
+1. **Scannable Pet Tags** - Each pet gets a unique QR code and tag linked to its medical history, instantly scannable by vets or emergency responders (`/scan/[id]`).
+2. **Pet & Medical Records** - Manage profiles, dental records, surgeries, appointments, and lab results with reference ranges.
+3. **Wallet & Stellar Integration** - Create, back up, recover, sign, and send from a wallet on the Stellar network (`/wallet`), with multi-signature setup and transaction records (`/transactions`).
+4. **Clinics & Map** - Browse clinic locations with geolocation and an interactive map (`/clinics`, `/clinics/[id]`).
+5. **Analytics & Admin** - Route-level dashboards for engagement, pets, API usage, geographic distribution, financials, and compliance (`/analytics`), plus admin security, SMS, and reporting (`/admin/*`).
+6. **Notifications & Smart Alerts** - Push and in-app notifications for vaccinations, check-ups, and security alerts (`/notifications`).
+7. **Offline Mode & PWA** - Installable app with IndexedDB-backed offline caching and background sync (`/offline`).
+8. **Privacy & Compliance** - GDPR-aligned data handling, zero-knowledge proofs (ZKPs) for sensitive on-chain data, session and two-factor security, and a documented data-classification policy.
+9. **Localization** - Ten language locales (`en`, `ar`, `de`, `es`, `fr`, `hi`, `ja`, `pt`, `ru`, `zh`).
 
-**5. Vet-Ready Integration:** Designed to plug into existing vet or hospital software with minimal friction.
+## Tech Stack
 
-**6. Offline Mode**  View essential info even without internet.
+- **Framework:** Next.js (React + TypeScript)
+- **Styling:** Tailwind CSS
+- **State / Data:** React Context, Next.js API routes, REST client
+- **Blockchain:** `@stellar/stellar-sdk` (Stellar network)
+- **Charts:** Recharts (analytics, trends)
+- **Testing:** Jest + Testing Library (unit), Playwright (e2e), k6 + Lighthouse (performance)
+- **Backend:** NestJS (in `backend/`), PostgreSQL, TypeORM
 
-**7. Privacy:** Uses advanced cryptography (like ZKPs) to keep sensitive data secure, even on-chain.
+## Route Map
 
-##  Tech Stack
-* **Frontend:** 
-  - Framework: Next.js (React + TypeScript)
-  - Styling: Tailwind CSS
-  - Hosting: Vercel
-* **Backend:** NestJS, AWS, Heroku
-* **Database:** PostgreSQL, TypeORM
-* **BlockChain:** Rust, StellarJs
+The current application exposes the following pages:
 
-##  Getting Started
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing / home |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Authentication |
+| `/two-factor`, `/verify-account`, `/verify-email` | 2FA and verification |
+| `/pets/[id]` | Pet profile and medical records |
+| `/appointments`, `/surgeries`, `/dental`, `/lab-results` | Care records |
+| `/clinics`, `/clinics/[id]` | Clinics directory and location map |
+| `/wallet`, `/transactions` | Stellar wallet and transaction history |
+| `/analytics` | Analytics dashboards |
+| `/notifications`, `/activity-log`, `/sessions`, `/preferences` | Notifications and account activity |
+| `/admin/security`, `/admin/reports`, `/admin/sms` | Admin tooling |
+| `/scan/[id]` | QR tag scanning |
+| `/offline` | Offline reference view |
+| `/qrcode`, `/performance`, `/search`, `/profile`, `/account-settings` | Utilities and profile |
+
+Server-side API routes under `src/pages/api/` handle analytics metrics, blockchain sync, security metrics/alerts, ZKP generation/verification, web-vitals reports, webhooks, and observability.
+
+## Architecture & Data Flow
+
+- **Client rendering:** Pages combine server-rendered data with client-side interactions. Optional, heavy features are loaded lazily (route-level bundle budgets in `performance-budgets.json`).
+- **Authentication:** `AuthContext` drives session, login, registration, 2FA, and role-based access; admin-only pages enforce authorization server-side.
+- **Wallet:** `useWallet` + `walletService`/`StellarService` talk to the Stellar network via a stored keypair; signing and multisig flows are isolated.
+- **Offline:** Service worker + IndexedDB (`src/lib/offline/indexedDB.ts`) cache records, and `syncManager.ts` replays pending writes when connectivity returns.
+- **Analytics:** Web vitals and product analytics are reported to the API (`/api/web-vitals/report`), and dashboards read aggregated API metrics.
+- **Privacy:** Sensitive data is handled according to `docs/data-classification.md`; ZKP endpoints (`/api/zkp/*`) keep on-chain verification private.
+
+See [Architecture](#architecture--data-flow) in [PROJECT_STATUS.md](./PROJECT_STATUS.md) for the current build status and known limitations.
+
+## Getting Started
 
 ### Quick Start
 
@@ -48,11 +80,13 @@ cd petChain-Frontend
 # Use the correct Node.js version
 nvm use
 
-# Install dependencies
-npm install
+# Install dependencies (uses package-lock.json for reproducible installs)
+npm ci
 
 # Copy environment variables
 cp .env.example .env.local
+
+# Ensure the backend API is running on port 3001 (see backend/README.md)
 
 # Start development server
 npm run dev
@@ -60,109 +94,69 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Prerequisites
+### Prerequisites & Environment Matrix
 
-- **Node.js**: v20.19.0 (use nvm: `nvm use`)
-- **npm**: v10+ (comes with Node.js)
-- **Git**: Latest version
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_APP_NAME` / `NEXT_PUBLIC_APP_URL` | yes | Application identity |
+| `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_API_VERSION` | yes | Backend API base URL and version |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | yes | `testnet` or `mainnet` |
+| `NEXT_PUBLIC_STELLAR_HORIZON_URL` | yes | Stellar Horizon endpoint |
+| `NEXT_PUBLIC_GA_ID` | no | Google Analytics (product analytics) |
+| `NEXT_PUBLIC_SENTRY_DSN` | no | Error monitoring |
 
-### Detailed Setup
+The backend API (in `backend/`) requires PostgreSQL, Redis, and Docker. See `backend/README.md` for its own environment and setup.
 
-For comprehensive setup instructions, see [**SETUP.md**](./SETUP.md)
+### Verify the Setup
 
-### Frontend Development (Next.js)
-This repository serves as the main repo for **FRONTEND** contributions to the PetChain project.
+```bash
+npm run type-check   # TypeScript type checking
+npm run test:unit    # Jest unit tests (single discovery convention)
+npm run lint         # ESLint
+npm run build        # Production build
+```
 
-### Backend Development (NestJS)
-**IMPORTANT:** This repository also contains a `backend/` folder with a complete NestJS API.
+## Workspace Layout
 
-**For Backend Contributors:**
-- Navigate to `backend/` folder
-- See `backend/HIGH_QUALITY_ISSUES.md` for 17 open NestJS development issues
-- Follow `backend/README.md` for setup instructions
-- Requires PostgreSQL, Redis, and Docker
+The repository intentionally isolates two independently configured Node applications:
 
-**Note:** Please distinguish between:
-- **Frontend issues:** Next.js/React (root folder)
-- **Backend issues:** NestJS/API (backend/ folder)
+- **Frontend (`root`)** - Next.js application. Its `package.json`, `tsconfig*.json`, `jest.config.js`, and scripts operate only on `src/`, `tests/`, `performance/`, and `scripts/` files. The root does **not** compile `backend/`.
+- **Backend (`backend/`)** - NestJS API with its own `package.json`, `tsconfig`, dependencies, and scripts. Install and run it from within `backend/`.
 
-##  Contributing 
+Keep frontend tooling changes and backend tooling changes isolated: never add backend dependencies to the root `package.json`, and never import backend code from the frontend source.
 
-### Code Quality
+## Contributing
 
-This project maintains high code quality standards:
-- ✅ TypeScript strict mode
-- ✅ ESLint with Next.js rules
-- ✅ Prettier formatting
-- ✅ Pre-commit hooks with Husky
-- ✅ Automated build verification
+Please read [SETUP.md](./SETUP.md), [CODE_STYLE.md](./CODE_STYLE.md), and [PROJECT_STATUS.md](./PROJECT_STATUS.md) before contributing. For a repeatable supply-chain posture, see the dependency-license policy in [docs/license-policy.md](./docs/license-policy.md) and the API data-handling rules in [docs/data-classification.md](./docs/data-classification.md).
 
-**Before contributing**, please read:
-- [**Setup Guide**](./SETUP.md) - Development environment setup
-- [**Code Style Guide**](./CODE_STYLE.md) - Coding standards and best practices
-- [**Contribution Guide**](./contributing.md) - How to contribute
-- [**Project Status**](./PROJECT_STATUS.md) - Current project status
-
-### Frontend Contributions (Next.js)
-For frontend development, read our [**Contribution Guide**](./contributing.md)
-
-### Backend Contributions (NestJS)
-**NEW:** We have 17 high-quality backend issues available!
-- Check `backend/HIGH_QUALITY_ISSUES.md` for detailed NestJS development tasks
-- Issues include authentication, medical records, Stellar integration, and more
-- Each issue has clear acceptance criteria and technical specifications
-
-**Important:** Make sure you're working on the correct technology:
+**Important:** Make sure you are working on the correct technology:
 - **Frontend:** Next.js issues (root folder)
-- **Backend:** NestJS issues (backend/ folder)
+- **Backend:** NestJS issues (`backend/` folder)
 
-##  Related Repositories
-To work on other parts of the project, you can find the related repositories below:
-* Backend – [GitHub Link](https://github.com/DogStark/petchain_api)
-* Smart Contracts – [GitHub Link](https://github.com/DogStark/PetMedTracka-Contracts)
-* Mobile App – [GitHub Link](https://github.com/DogStark/PetMedTracka-MobileApp)
-
-##  Documentation
+## Documentation
 
 - [Setup Guide](./SETUP.md) - Complete development setup instructions
 - [Code Style Guide](./CODE_STYLE.md) - Coding standards and best practices
 - [Project Status](./PROJECT_STATUS.md) - Current build status and progress
-- [Build Verification](./BUILD_VERIFICATION.md) - Build verification details
-- [Contributing Guide](./contributing.md) - How to contribute to the project
+- [Data Classification](./docs/data-classification.md) - Field-level classification and privacy rules
+- [Security Workflow](./docs/security.md) - Security testing, audit, and incident response
+- [License Policy](./docs/license-policy.md) - Dependency and supply-chain checks
+- [Workspace Boundaries](./docs/workspace-boundaries.md) - Frontend/backend isolation rules
+- [Push Notifications](./docs/push-notifications.md) - Notification architecture
+- [Reusable Workflows](./docs/reusable-workflows.md) - CI workflow reference
+- [Testing Guide](./TESTING_GUIDE.md) - How to run and write tests
 
-##  Scripts
+## Related Repositories
 
-### Development
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-```
+- Backend - [DogStark/petchain_api](https://github.com/DogStark/petchain_api)
+- Smart Contracts - [DogStark/PetMedTracka-Contracts](https://github.com/DogStark/PetMedTracka-Contracts)
+- Mobile App - [DogStark/PetMedTracka-MobileApp](https://github.com/DogStark/PetMedTracka-MobileApp)
 
-### Code Quality
-```bash
-npm run lint         # Run ESLint
-npm run format       # Format code with Prettier
-npm run type-check   # Run TypeScript type checking
-npm run validate     # Run all checks
-```
+## Contact & Support
 
-### Maintenance
-```bash
-npm run clean        # Clean build artifacts
-npm run audit:fix    # Fix security vulnerabilities
-./verify-build.sh    # Verify entire project builds
-```
+- Project lead: [@llins_x](https://t.me/llins_x)
+- Report issues via the linked repositories or the GitHub Issues tab.
 
+## License
 
-##  Contact & Support
-For feedback, questions or collaboration:
-
-* Contact project lead: [@llins_x](https://t.me/llins_x)
-* Join Community Chat: [@PetChain Telegram Group](https://t.me/+Jw8HkvUhinw2YjE0) 
-*  Report Issues: Submit bug reports or feature requests via [GitHub Issues](https://github.com/DogStark/PetMedTracka-Contracts/issues).
-
- Star our [GitHub Repository](https://github.com/DogStark/pet-medical-tracka) to stay updated on new features and releases.
-
-##  License
 PetChain is licensed under the MIT License.

@@ -1,23 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const trends = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    return {
-      date: date.toISOString().split('T')[0],
-      registrations: Math.floor(Math.random() * 50) + 10,
-      species: {
-        dogs: Math.floor(Math.random() * 30) + 5,
-        cats: Math.floor(Math.random() * 20) + 3,
-        other: Math.floor(Math.random() * 5) + 1,
-      },
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
-  });
 
-  res.status(200).json(trends);
+    if (req.headers.authorization) {
+      headers['Authorization'] = req.headers.authorization;
+    }
+
+    const response = await fetch(`${BACKEND}/analytics/pets/trends`, {
+      method: 'GET',
+      headers,
+    });
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('Analytics pet trends error:', err);
+    res.status(500).json({ error: 'Failed to fetch pet trends' });
+  }
 }

@@ -12,17 +12,26 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showTotpPrompt, setShowTotpPrompt] = useState(false);
+  const [totpToken, setTotpToken] = useState('');
   const { tokens } = useAuth();
 
-  const handleGenerateBackupCodes = async () => {
-    if (!tokens?.accessToken) return;
+  const handleGenerateBackupCodes = () => {
+    setShowTotpPrompt(true);
+    setError('');
+  };
+
+  const handleConfirmGeneration = async () => {
+    if (!tokens?.accessToken || !totpToken) return;
 
     setIsLoading(true);
     setError('');
 
     try {
-      const data = await twoFactorAPI.generateBackupCodes(tokens.accessToken);
+      const data = await twoFactorAPI.generateBackupCodes(totpToken);
       setBackupCodes(data.backupCodes);
+      setShowTotpPrompt(false);
+      setTotpToken('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate backup codes');
     } finally {
@@ -60,25 +69,66 @@ export default function TwoFactorRecovery({ onComplete, onCancel }: TwoFactorRec
 
       {!backupCodes.length ? (
         <div>
-          <p className="text-gray-600 mb-6">
-            Generate backup codes to recover your account if you lose access to your authenticator
-            app.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={handleGenerateBackupCodes}
-              disabled={isLoading}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? 'Generating...' : 'Generate Backup Codes'}
-            </button>
-            <button
-              onClick={onCancel}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
+          {!showTotpPrompt ? (
+            <>
+              <p className="text-gray-600 mb-6">
+                Generate backup codes to recover your account if you lose access to your authenticator
+                app.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleGenerateBackupCodes}
+                  disabled={isLoading}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isLoading ? 'Generating...' : 'Generate Backup Codes'}
+                </button>
+                <button
+                  onClick={onCancel}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+              <h3 className="font-medium text-sm mb-3 text-yellow-800">⚠️ Regenerating Backup Codes</h3>
+              <p className="text-xs text-yellow-700 mb-4">
+                This action will invalidate all existing backup codes. Enter your authenticator code to confirm.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Authenticator Code</label>
+                <input
+                  type="text"
+                  value={totpToken}
+                  onChange={(e) => setTotpToken(e.target.value)}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmGeneration}
+                  disabled={isLoading || !totpToken}
+                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isLoading ? 'Confirming...' : 'Confirm & Generate'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTotpPrompt(false);
+                    setTotpToken('');
+                    setError('');
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div>

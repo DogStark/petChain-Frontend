@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Injectable, Logger } from '@nestjs/common';
 import { StellarService } from './stellar.service';
 import { ContractManagementService } from './contract-management.service';

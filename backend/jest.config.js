@@ -28,4 +28,8 @@ module.exports = {
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/$1',
+    '^@/(.*)$': '<rootDir>/$1',
+  },
 };
