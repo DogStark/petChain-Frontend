@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "network": {
+    "networkPassphrase": "Test SDF Network ; September 2015",
+    "horizonUrl": "https://horizon-testnet.stellar.org",
+    "sorobanRpcUrl": "https://soroban-testnet.stellar.org"
+  },
+  "contracts": {
+    "Registry": {
+      "address": "CCREGISTRYXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "methods": {
+        "register_pet": {
+          "type": "write",
+          "arguments": [
+            { "name": "petId", "type": "String" },
+            { "name": "metadataHash", "type": "Bytes" }
+          ],
+          "returnType": "Void"
+        },
+        "transfer_ownership": {
+          "type": "write",
+          "arguments": [
+            { "name": "petId", "type": "String" },
+            { "name": "newOwner", "type": "Address" }
+          ],
+          "returnType": "Void"
+        },
+        "register_record": {
+          "type": "write",
+          "arguments": [
+            { "name": "recordId", "type": "String" },
+            { "name": "metadataHash", "type": "Bytes" }
+          ],
+          "returnType": "Void"
+        }
+      },
+      "errors": [
+        "ErrNotFound",
+        "ErrUnauthorized",
+        "ErrInvalidParam"
+      ],
+      "events": [
+        "PetRegistered",
+        "OwnershipTransferred",
+        "RecordRegistered"
+      ]
+    },
+    "AccessControl": {
+      "address": "CCACCESSCONTROLXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "methods": {
+        "has_access": {
+          "type": "read",
+          "arguments": [
+            { "name": "recordId", "type": "String" },
+            { "name": "accessor", "type": "Address" }
+          ],
+          "returnType": "Bool"
+        },
+        "grant_access": {
+          "type": "write",
+          "arguments": [
+            { "name": "recordId", "type": "String" },
+            { "name": "accessor", "type": "Address" },
+            { "name": "expiresAt", "type": "U64" }
+          ],
+          "returnType": "Void"
+        },
+        "revoke_access": {
+          "type": "write",
+          "arguments": [
+            { "name": "recordId", "type": "String" },
+            { "name": "accessor", "type": "Address" }
+          ],
+          "returnType": "Void"
+        }
+      },
+      "errors": [
+        "ErrUnauthorized",
+        "ErrAccessExpired"
+      ],
+      "events": [
+        "AccessGranted",
+        "AccessRevoked"
+      ]
+    }
+  }
+}
