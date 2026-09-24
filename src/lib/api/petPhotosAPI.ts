@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosProgressEvent } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export interface PetPhoto {
   id: string;
@@ -33,6 +34,8 @@ class PetPhotosAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async getPhotos(petId: string): Promise<PetPhoto[]> {
