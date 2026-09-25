@@ -108,9 +108,18 @@ class ClinicsAPI {
     });
   }
 
-  async getClinics(city?: string): Promise<Clinic[]> {
+  /**
+   * Fetch vet clinics. The backend only supports an optional `city` filter;
+   * there is no free-text search parameter, so callers filter the returned
+   * list client-side.
+   *
+   * Pass an `AbortSignal` to cancel an in-flight request when a newer one
+   * supersedes it (see `useClinicSearch`).
+   */
+  async getClinics(city?: string, signal?: AbortSignal): Promise<Clinic[]> {
     const response = await this.api.get<BackendVetClinic[]>('/', {
       params: city ? { city } : undefined,
+      signal,
     });
     return response.data.map(mapVetClinicToClinic);
   }
