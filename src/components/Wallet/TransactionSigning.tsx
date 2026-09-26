@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
   ExternalLink,
@@ -24,6 +24,8 @@ import {
 } from '../../utils/transactionValidation';
 import { isValidStellarAmount, stroopsToXlm } from '../../utils/stellarAmounts';
 import { getExplorerUrl } from '../../lib/blockchain/network';
+import { receiptService } from '../../lib/wallet/receiptService';
+import type { WalletIntent } from '../../lib/wallet/walletReceipts';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -118,6 +120,11 @@ export default function TransactionSigning({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [receiptCreated, setReceiptCreated] = useState<WalletIntent['idempotencyKey'] | null>(null);
+
+  // Refs for duplicate submission guards
+  const submittingRef = useRef(false);
+  const formKeyRef = useRef<string | null>(null);
 
   // Cleanup sensitive state on unmount
   useEffect(() => {
@@ -210,10 +217,11 @@ export default function TransactionSigning({
       memo,
       selectedFee ?? ''
     );
-    if (lastSubmittedKeyRef.current === formKey) {
+    if (formKeyRef.current === formKey) {
       // Identical payload is already in-flight — swallow the duplicate click.
       return;
     }
+    formKeyRef.current = formKey;
 
     const validationError = validate();
     if (validationError) {
@@ -228,14 +236,30 @@ export default function TransactionSigning({
     if (!wallet) return;
     setShowConfirmDialog(false);
 
+    const formKey = deriveFormKey(
+      wallet.publicKey,
+      destination,
+      amount,
+      selectedAsset,
+      memo,
+      selectedFee ?? ''
+    );
+
+    const intent: WalletIntent = {
+      action: 'send_payment',
+      sourcePublicKey: wallet.publicKey,
+      destination: destination.trim(),
+      amountAsset: `${amount} ${selectedAsset === 'XLM' ? 'XLM' : selectedAsset.split(':')[0]}`,
+      memo: memo.trim() || undefined,
+      feeLevel,
+      estimatedFee: selectedFee ?? undefined,
+      network: isTestnet ? 'TESTNET' : 'PUBLIC',
+      createdAt: Date.now(),
+      idempotencyKey: formKey,
+    };
+
     try {
-      // `onSendPayment` is expected to generate (or receive) the idempotency
-      // key itself (from useWallet → useTransactions.submitPayment).  We pass
-      // an empty string here as the placeholder; the real key is produced
-      // inside the hook layer where the SHA-256 async call is available.
-      //
-      // For callers that have been upgraded to pass `idempotencyKey` all the
-      // way through, the value will be non-empty.
+      submittingRef.current = true;
       const res = await onSendPayment(
         pin,
         {
@@ -246,18 +270,33 @@ export default function TransactionSigning({
           memo: memo.trim() || undefined,
           fee: selectedFee ?? undefined,
         },
-        formKey // preliminary form-level key; hook will replace with SHA-256 key
+        formKey
       );
       setResult(res);
+
+      // Create durable audit receipt for successful submission
+      receiptService.createAndSave({
+        intent,
+        broadcastResult: res,
+        network: isTestnet ? 'TESTNET' : 'PUBLIC',
+      });
+      setReceiptCreated(formKey);
+
       // Zero all sensitive and transaction details immediately after success
       setDestination('');
       setAmount('');
       setMemo('');
       setPin('');
-      lastSubmittedKeyRef.current = null;
-    } catch {
-      // error surfaced by hook, also zero sensitive state on failure
+    } catch (err) {
+      // Create durable audit receipt for failed/rejected submission
+      receiptService.createAndSave({
+        intent,
+        error: err instanceof Error ? err : new Error('Transaction submission failed'),
+        network: isTestnet ? 'TESTNET' : 'PUBLIC',
+      });
       setPin('');
+    } finally {
+      submittingRef.current = false;
     }
   }
 
