@@ -13,6 +13,7 @@ import {
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
 import ConfirmationDialog from './ConfirmationDialog';
+import SafeExternalLink from '@/components/SafeExternalLink';
 
 interface Props {
   wallets: WalletAccount[];
@@ -177,15 +178,14 @@ export default function WalletDashboard({
                 >
                   <RefreshCw size={16} className={balanceLoading ? 'animate-spin' : ''} />
                 </button>
-                <a
+                <SafeExternalLink
                   href={getExplorerUrl(selectedWallet.publicKey, isTestnet)}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="View on Stellar Explorer"
+                  aria-label="View wallet on Stellar Explorer"
                 >
                   <ExternalLink size={16} />
-                </a>
+                </SafeExternalLink>
               </div>
             </div>
 
