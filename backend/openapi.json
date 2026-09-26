@@ -1,0 +1,975 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PetChain API",
+    "description": "PetChain backend API — endpoints used by the frontend",
+    "version": "1.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/appointments": {
+      "get": {
+        "summary": "List appointments",
+        "parameters": [
+          { "name": "petId", "in": "query", "schema": { "type": "string" } },
+          { "name": "vetId", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "List of appointments" } }
+      },
+      "post": {
+        "summary": "Create appointment",
+        "responses": { "201": { "description": "Appointment created" } }
+      }
+    },
+    "/api/v1/appointments/upcoming": {
+      "get": {
+        "summary": "Get upcoming appointments",
+        "parameters": [
+          { "name": "petId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Upcoming appointments" } }
+      }
+    },
+    "/api/v1/appointments/waitlist": {
+      "get": {
+        "summary": "Get waitlist",
+        "responses": { "200": { "description": "Waitlist entries" } }
+      },
+      "post": {
+        "summary": "Add to waitlist",
+        "responses": { "201": { "description": "Added to waitlist" } }
+      }
+    },
+    "/api/v1/appointments/waitlist/{entryId}": {
+      "delete": {
+        "summary": "Remove from waitlist",
+        "parameters": [
+          { "name": "entryId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Removed from waitlist" } }
+      }
+    },
+    "/api/v1/appointments/waitlist/{entryId}/schedule": {
+      "patch": {
+        "summary": "Schedule from waitlist",
+        "parameters": [
+          { "name": "entryId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Scheduled from waitlist" } }
+      }
+    },
+    "/api/v1/appointments/{id}": {
+      "get": {
+        "summary": "Get appointment by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Appointment details" } }
+      },
+      "patch": {
+        "summary": "Update appointment",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Appointment updated" } }
+      },
+      "delete": {
+        "summary": "Delete appointment",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Appointment deleted" } }
+      }
+    },
+    "/api/v1/pets/me": {
+      "get": {
+        "summary": "Get user's pets",
+        "responses": { "200": { "description": "List of pets" } }
+      }
+    },
+    "/api/v1/pets/{petId}/emergency": {
+      "get": {
+        "summary": "Get pet emergency info",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Emergency info" },
+          "404": { "description": "Not configured" }
+        }
+      },
+      "put": {
+        "summary": "Update pet emergency info",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Emergency info updated" } }
+      }
+    },
+    "/api/v1/pets/{petId}/emergency/projection": {
+      "get": {
+        "summary": "Get projected emergency info for anonymous scanners",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Projected emergency info" },
+          "404": { "description": "Not available" }
+        }
+      }
+    },
+    "/api/v1/pets/{petId}/lab-results": {
+      "get": {
+        "summary": "Get lab results for a pet",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Lab results" } }
+      },
+      "post": {
+        "summary": "Upload lab report",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "201": { "description": "Lab report uploaded" } }
+      }
+    },
+    "/api/v1/lab-reports/{reportId}": {
+      "get": {
+        "summary": "Get lab report by ID",
+        "parameters": [
+          { "name": "reportId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Lab report details" } }
+      },
+      "delete": {
+        "summary": "Delete lab report",
+        "parameters": [
+          { "name": "reportId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Lab report deleted" } }
+      }
+    },
+    "/api/v1/pets/{petId}/photos": {
+      "get": {
+        "summary": "Get pet photos",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Pet photos" } }
+      },
+      "post": {
+        "summary": "Upload pet photos",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "201": { "description": "Photos uploaded" } }
+      }
+    },
+    "/api/v1/pets/{petId}/photos/reorder": {
+      "put": {
+        "summary": "Reorder pet photos",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Photos reordered" } }
+      }
+    },
+    "/api/v1/pets/{petId}/photos/{photoId}": {
+      "delete": {
+        "summary": "Delete pet photo",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "photoId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Photo deleted" } }
+      }
+    },
+    "/api/v1/pets/{petId}/photos/{photoId}/primary": {
+      "patch": {
+        "summary": "Set primary photo",
+        "parameters": [
+          { "name": "petId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "photoId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Primary photo set" } }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "summary": "Get all users",
+        "responses": { "200": { "description": "List of users" } }
+      },
+      "post": {
+        "summary": "Create user",
+        "responses": { "201": { "description": "User created" } }
+      }
+    },
+    "/api/v1/users/search": {
+      "get": {
+        "summary": "Search users",
+        "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/api/v1/users/export": {
+      "get": {
+        "summary": "Export users CSV",
+        "responses": { "200": { "description": "CSV file" } }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "summary": "Get current user",
+        "responses": { "200": { "description": "Current user" } }
+      },
+      "put": {
+        "summary": "Replace current user profile",
+        "responses": { "200": { "description": "Profile updated" } }
+      },
+      "delete": {
+        "summary": "Delete account",
+        "responses": { "204": { "description": "Account deleted" } }
+      }
+    },
+    "/api/v1/users/me/profile": {
+      "get": {
+        "summary": "Get user profile",
+        "responses": { "200": { "description": "User profile with completion" } }
+      },
+      "patch": {
+        "summary": "Update user profile",
+        "responses": { "200": { "description": "Profile updated" } }
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "patch": {
+        "summary": "Update avatar URL",
+        "responses": { "200": { "description": "Avatar updated" } }
+      }
+    },
+    "/api/v1/users/me/profile-completion": {
+      "get": {
+        "summary": "Get profile completion score",
+        "responses": { "200": { "description": "Completion score" } }
+      }
+    },
+    "/api/v1/users/me/preferences": {
+      "get": {
+        "summary": "Get user preferences",
+        "responses": { "200": { "description": "User preferences" } }
+      },
+      "patch": {
+        "summary": "Update user preferences",
+        "responses": { "200": { "description": "Preferences updated" } }
+      }
+    },
+    "/api/v1/users/me/preferences/notifications": {
+      "get": {
+        "summary": "Get notification preferences",
+        "responses": { "200": { "description": "Notification preferences" } }
+      },
+      "patch": {
+        "summary": "Update notification preferences",
+        "responses": { "200": { "description": "Notification preferences updated" } }
+      }
+    },
+    "/api/v1/users/me/preferences/privacy": {
+      "get": {
+        "summary": "Get privacy settings",
+        "responses": { "200": { "description": "Privacy settings" } }
+      },
+      "patch": {
+        "summary": "Update privacy settings",
+        "responses": { "200": { "description": "Privacy settings updated" } }
+      }
+    },
+    "/api/v1/users/me/sessions": {
+      "get": {
+        "summary": "Get active sessions",
+        "responses": { "200": { "description": "Active sessions" } }
+      }
+    },
+    "/api/v1/users/me/sessions/all": {
+      "get": {
+        "summary": "Get all sessions",
+        "responses": { "200": { "description": "All sessions" } }
+      }
+    },
+    "/api/v1/users/me/sessions/revoke-others": {
+      "post": {
+        "summary": "Revoke other sessions",
+        "responses": { "204": { "description": "Other sessions revoked" } }
+      }
+    },
+    "/api/v1/users/me/sessions/{sessionId}": {
+      "delete": {
+        "summary": "Revoke a session",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Session revoked" } }
+      }
+    },
+    "/api/v1/users/me/activity": {
+      "get": {
+        "summary": "Get activity logs",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer" } },
+          { "name": "activityType", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Activity logs" } }
+      }
+    },
+    "/api/v1/users/me/activity/summary": {
+      "get": {
+        "summary": "Get activity summary",
+        "responses": { "200": { "description": "Activity summary" } }
+      }
+    },
+    "/api/v1/users/me/activity/suspicious": {
+      "get": {
+        "summary": "Get suspicious activities",
+        "responses": { "200": { "description": "Suspicious activities" } }
+      }
+    },
+    "/api/v1/users/me/activity/export": {
+      "get": {
+        "summary": "Export activity logs",
+        "responses": { "200": { "description": "CSV export" } }
+      }
+    },
+    "/api/v1/users/me/deactivate": {
+      "post": {
+        "summary": "Deactivate account",
+        "responses": { "204": { "description": "Account deactivated" } }
+      }
+    },
+    "/api/v1/users/me/reactivate": {
+      "post": {
+        "summary": "Reactivate account",
+        "responses": { "204": { "description": "Account reactivated" } }
+      }
+    },
+    "/api/v1/users/me/export": {
+      "get": {
+        "summary": "Export user data",
+        "responses": { "200": { "description": "User data export" } }
+      }
+    },
+    "/api/v1/users/me/onboarding": {
+      "get": {
+        "summary": "Get onboarding status",
+        "responses": { "200": { "description": "Onboarding status" } }
+      }
+    },
+    "/api/v1/users/me/onboarding/skip": {
+      "post": {
+        "summary": "Skip onboarding",
+        "responses": { "204": { "description": "Onboarding skipped" } }
+      }
+    },
+    "/api/v1/users/me/onboarding/analytics": {
+      "get": {
+        "summary": "Get onboarding analytics",
+        "responses": { "200": { "description": "Onboarding analytics" } }
+      }
+    },
+    "/api/v1/users/me/onboarding/steps/{stepId}/complete": {
+      "post": {
+        "summary": "Complete onboarding step",
+        "parameters": [
+          { "name": "stepId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Step completed" } }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "summary": "Get user by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "User details" } }
+      },
+      "patch": {
+        "summary": "Update user",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "User updated" } }
+      },
+      "delete": {
+        "summary": "Delete user",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "User deleted" } }
+      }
+    },
+    "/api/v1/users/{userId}/profile": {
+      "get": {
+        "summary": "Get user profile by ID",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Public profile" } }
+      }
+    },
+    "/api/v1/users/phone/send-otp": {
+      "post": {
+        "summary": "Send phone OTP",
+        "responses": { "200": { "description": "OTP sent" } }
+      }
+    },
+    "/api/v1/users/phone/verify-otp": {
+      "post": {
+        "summary": "Verify phone OTP",
+        "responses": { "200": { "description": "Phone verified" } }
+      }
+    },
+    "/api/v1/users/avatar": {
+      "post": {
+        "summary": "Upload avatar file",
+        "responses": { "201": { "description": "Avatar uploaded" } }
+      }
+    },
+    "/api/v1/users/sms/usage": {
+      "get": {
+        "summary": "Get SMS usage",
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "type": "integer" } },
+          { "name": "year", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "SMS usage stats" } }
+      }
+    },
+    "/api/v1/users/sms/admin/stats": {
+      "get": {
+        "summary": "Get admin SMS stats",
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "type": "integer" } },
+          { "name": "year", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Admin SMS stats" } }
+      }
+    },
+    "/api/v1/vet-clinics": {
+      "get": {
+        "summary": "Get vet clinics",
+        "parameters": [
+          { "name": "city", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "List of clinics" } }
+      }
+    },
+    "/api/v1/vet-clinics/{id}": {
+      "get": {
+        "summary": "Get clinic by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Clinic details" } }
+      }
+    },
+    "/api/v1/vet-clinics/{id}/availability": {
+      "patch": {
+        "summary": "Update clinic availability",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Availability updated" } }
+      }
+    },
+    "/api/v1/medical-records": {
+      "get": {
+        "summary": "Get medical records",
+        "parameters": [
+          { "name": "petId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Medical records" } }
+      }
+    },
+    "/api/v1/transactions/history": {
+      "get": {
+        "summary": "Get transaction history",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Transaction history" } }
+      }
+    },
+    "/api/v1/transactions/{id}": {
+      "get": {
+        "summary": "Get transaction by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction details" } }
+      }
+    },
+    "/api/v1/transactions/hash/{hash}": {
+      "get": {
+        "summary": "Get transaction by hash",
+        "parameters": [
+          { "name": "hash", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction details" } }
+      }
+    },
+    "/api/v1/transactions/{id}/receipt": {
+      "get": {
+        "summary": "Get transaction receipt",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction receipt" } }
+      }
+    },
+    "/api/v1/transactions/{id}/cost": {
+      "get": {
+        "summary": "Get transaction cost",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction cost" } }
+      }
+    },
+    "/api/v1/transactions/estimate": {
+      "post": {
+        "summary": "Estimate transaction cost",
+        "responses": { "200": { "description": "Cost estimate" } }
+      }
+    },
+    "/api/v1/transactions/{id}/retry": {
+      "post": {
+        "summary": "Retry failed transaction",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction retried" } }
+      }
+    },
+    "/api/v1/transactions/{id}/cancel": {
+      "post": {
+        "summary": "Cancel pending transaction",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Transaction cancelled" } }
+      }
+    },
+    "/api/v1/transactions/failed": {
+      "get": {
+        "summary": "Get failed transactions",
+        "responses": { "200": { "description": "Failed transactions" } }
+      }
+    },
+    "/api/v1/transactions/pending": {
+      "get": {
+        "summary": "Get pending transactions",
+        "responses": { "200": { "description": "Pending transactions" } }
+      }
+    },
+    "/api/v1/transactions/costs/summary": {
+      "get": {
+        "summary": "Get total cost summary",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Cost summary" } }
+      }
+    },
+    "/api/v1/transactions/costs/summary": {
+      "get": {
+        "summary": "Get total cost summary",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Cost summary" } }
+      }
+    },
+    "/api/v1/surgeries": {
+      "get": {
+        "summary": "List surgeries",
+        "parameters": [
+          { "name": "petId", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Surgeries list" } }
+      },
+      "post": {
+        "summary": "Create surgery record",
+        "responses": { "201": { "description": "Surgery created" } }
+      }
+    },
+    "/api/v1/surgeries/{id}": {
+      "get": {
+        "summary": "Get surgery by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Surgery details" } }
+      },
+      "patch": {
+        "summary": "Update surgery",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Surgery updated" } }
+      },
+      "delete": {
+        "summary": "Delete surgery",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Surgery deleted" } }
+      }
+    },
+    "/api/v1/auth/2fa/status": {
+      "get": {
+        "summary": "Get 2FA status",
+        "responses": { "200": { "description": "2FA status" } }
+      }
+    },
+    "/api/v1/auth/2fa/setup": {
+      "post": {
+        "summary": "Setup 2FA",
+        "responses": { "200": { "description": "2FA setup details" } }
+      }
+    },
+    "/api/v1/auth/2fa/enable": {
+      "post": {
+        "summary": "Enable 2FA",
+        "responses": { "200": { "description": "2FA enabled" } }
+      }
+    },
+    "/api/v1/auth/2fa/disable": {
+      "post": {
+        "summary": "Disable 2FA",
+        "responses": { "204": { "description": "2FA disabled" } }
+      }
+    },
+    "/api/v1/auth/2fa/verify": {
+      "post": {
+        "summary": "Verify 2FA token",
+        "responses": { "200": { "description": "2FA verified" } }
+      }
+    },
+    "/api/v1/auth/2fa/backup-codes": {
+      "post": {
+        "summary": "Generate backup codes",
+        "responses": { "200": { "description": "Backup codes generated" } }
+      }
+    },
+    "/api/v1/auth/2fa/recover": {
+      "post": {
+        "summary": "Recover with backup code",
+        "responses": { "200": { "description": "Recovery successful" } }
+      }
+    },
+    "/api/v1/analytics/users": {
+      "get": {
+        "summary": "Get user metrics",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "User metrics" } }
+      }
+    },
+    "/api/v1/analytics/pets/trends": {
+      "get": {
+        "summary": "Get pet registration trends",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Pet registration trends" } }
+      }
+    },
+    "/api/v1/analytics/vaccinations/compliance": {
+      "get": {
+        "summary": "Get vaccination compliance",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Vaccination compliance" } }
+      }
+    },
+    "/api/v1/analytics/appointments/stats": {
+      "get": {
+        "summary": "Get appointment stats",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Appointment stats" } }
+      }
+    },
+    "/api/v1/analytics/geographic": {
+      "get": {
+        "summary": "Get geographic distribution",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Geographic distribution" } }
+      }
+    },
+    "/api/v1/analytics/report": {
+      "get": {
+        "summary": "Get full analytics report",
+        "parameters": [
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Analytics report" } }
+      }
+    },
+    "/api/v1/analytics/export": {
+      "get": {
+        "summary": "Export analytics report",
+        "parameters": [
+          { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["csv", "json", "pdf"] } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Report file" } }
+      }
+    },
+    "/api/v1/qrcodes": {
+      "get": {
+        "summary": "Get QR codes for a pet",
+        "parameters": [
+          { "name": "petId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "QR codes" } }
+      },
+      "post": {
+        "summary": "Create QR code",
+        "responses": { "201": { "description": "QR code created" } }
+      }
+    },
+    "/api/v1/qrcodes/{qrCodeId}": {
+      "get": {
+        "summary": "Get QR code by ID",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "QR code details" } }
+      },
+      "patch": {
+        "summary": "Update QR code",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "QR code updated" } }
+      }
+    },
+    "/api/v1/qrcodes/{qrCodeId}/regenerate": {
+      "post": {
+        "summary": "Regenerate QR code",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "QR code regenerated" } }
+      }
+    },
+    "/api/v1/qrcodes/{qrCodeId}/analytics": {
+      "get": {
+        "summary": "Get QR code analytics",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Scan analytics" } }
+      }
+    },
+    "/api/v1/qrcodes/{qrCodeId}/scan": {
+      "post": {
+        "summary": "Record scan event",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Scan recorded" } }
+      }
+    },
+    "/api/v1/qrcodes/{qrCodeId}/image": {
+      "get": {
+        "summary": "Get QR code image URL (returns URL, not image)",
+        "parameters": [
+          { "name": "qrCodeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Image URL" } }
+      }
+    },
+    "/api/v1/ratings/reviews": {
+      "get": {
+        "summary": "Get all reviews",
+        "responses": { "200": { "description": "Reviews list" } }
+      },
+      "post": {
+        "summary": "Submit review",
+        "responses": { "200": { "description": "Review submitted" } }
+      }
+    },
+    "/api/v1/ratings/reviews/{userAddress}": {
+      "get": {
+        "summary": "Get user review",
+        "parameters": [
+          { "name": "userAddress", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "User review" } }
+      }
+    },
+    "/api/v1/ratings/stats": {
+      "get": {
+        "summary": "Get rating stats",
+        "responses": { "200": { "description": "Rating statistics" } }
+      }
+    },
+    "/api/v1/ratings/verify": {
+      "post": {
+        "summary": "Verify review on-chain",
+        "responses": { "200": { "description": "Verification result" } }
+      }
+    },
+    "/api/v1/notifications/{userId}": {
+      "get": {
+        "summary": "Get notifications",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "isRead", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Notifications list" } }
+      }
+    },
+    "/api/v1/notifications/{userId}/read-all": {
+      "patch": {
+        "summary": "Mark all as read",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "All marked as read" } }
+      }
+    },
+    "/api/v1/notifications/{userId}/{notificationId}/read": {
+      "patch": {
+        "summary": "Mark notification as read",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Notification marked as read" } }
+      }
+    },
+    "/api/v1/notifications/{userId}/device-tokens": {
+      "post": {
+        "summary": "Register device token",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "201": { "description": "Device token registered" } }
+      }
+    },
+    "/api/v1/notifications/{userId}/device-tokens/{token}": {
+      "delete": {
+        "summary": "Remove device token",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Device token removed" } }
+      }
+    },
+    "/api/v1/notifications/{userId}/settings": {
+      "get": {
+        "summary": "Get notification settings",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Notification settings" } }
+      },
+      "patch": {
+        "summary": "Update notification settings",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Settings updated" } }
+      }
+    },
+    "/api/v1/wallets": {
+      "get": {
+        "summary": "List wallets",
+        "responses": { "200": { "description": "List of wallets" } }
+      },
+      "post": {
+        "summary": "Register wallet",
+        "responses": { "201": { "description": "Wallet registered" } }
+      }
+    },
+    "/api/v1/wallets/{id}": {
+      "patch": {
+        "summary": "Update wallet",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Wallet updated" } }
+      },
+      "delete": {
+        "summary": "Delete wallet",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Wallet deleted" } }
+      }
+    },
+    "/api/v1/wallets/{walletId}/backup": {
+      "get": {
+        "summary": "Get wallet backup",
+        "parameters": [
+          { "name": "walletId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Backup data" } }
+      },
+      "post": {
+        "summary": "Store wallet backup",
+        "parameters": [
+          { "name": "walletId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "201": { "description": "Backup stored" } }
+      }
+    },
+    "/api/v1/wallets/{walletId}/transactions": {
+      "get": {
+        "summary": "Get wallet transactions",
+        "parameters": [
+          { "name": "walletId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Transaction history" } }
+      }
+    }
+  }
+}
