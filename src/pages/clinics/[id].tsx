@@ -10,17 +10,19 @@ import {
   ArrowLeft,
   Loader2,
   AlertCircle,
+  WifiOff,
 } from "lucide-react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import BookingModal from "@/components/Appointments/BookingModal";
 import LocationMap from "@/components/Clinics/LocationMap";
 import ReviewSection from "@/components/Clinics/ReviewSection";
 import ServiceList from "@/components/Clinics/ServiceList";
 import StaffList from "@/components/Clinics/StaffList";
+import StaleIndicator from "@/components/Clinics/StaleIndicator";
 import HeaderComponent from "@/components/Header";
 import { clinicsAPI } from "@/lib/api/clinicsAPI";
 import type { Clinic } from "@/types/clinic";
@@ -68,6 +70,8 @@ function getOpenStatus(clinic: Clinic): { isOpen: boolean; label: string } {
   return { isOpen: false, label: "Closed now" };
 }
 
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 export default function ClinicProfile() {
   const router = useRouter();
   const { id } = router.query;
@@ -77,27 +81,53 @@ export default function ClinicProfile() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== "undefined" ? !navigator.onLine : false,
+  );
+
   const [activeTab, setActiveTab] = useState<Tab>("services");
   const [isBookingOpen, setBookingOpen] = useState(false);
   const [shareConfirmed, setShareConfirmed] = useState(false);
 
-  const loadClinic = useCallback(async (clinicId: string) => {
-    setLoading(true);
-    setError(null);
-    setNotFound(false);
-    try {
-      const data = await clinicsAPI.getClinicById(clinicId);
-      setClinic(data);
-    } catch (err) {
-      if (isAxiosError(err) && err.response?.status === 404) {
-        setNotFound(true);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadClinic = useCallback(
+    async (clinicId: string, background = false) => {
+      if (!background) {
+        setLoading(true);
       } else {
-        setError("Failed to load clinic details. Please try again.");
+        setIsRefreshing(true);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setError(null);
+      setNotFound(false);
+      try {
+        const data = await clinicsAPI.getClinicById(clinicId);
+        setClinic(data);
+        setLastUpdated(new Date());
+      } catch (err) {
+        if (isAxiosError(err) && err.response?.status === 404) {
+          setNotFound(true);
+        } else if (!background) {
+          setError("Failed to load clinic details. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
+
+  const startRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    refreshTimerRef.current = setInterval(() => {
+      if (typeof id === "string" && !isOffline) {
+        loadClinic(id, true);
+      }
+    }, REFRESH_INTERVAL_MS);
+  }, [id, isOffline, loadClinic]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -105,6 +135,42 @@ export default function ClinicProfile() {
       loadClinic(id);
     }
   }, [router.isReady, id, loadClinic]);
+
+  useEffect(() => {
+    if (clinic) {
+      startRefreshTimer();
+    }
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    };
+  }, [clinic, startRefreshTimer]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    const handleVisibility = () => {
+      if (typeof id === "string" && !document.hidden && !isOffline) {
+        loadClinic(id, true);
+      }
+    };
+    const handleFocus = () => {
+      if (typeof id === "string" && !isOffline) {
+        loadClinic(id, true);
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [id, isOffline, loadClinic]);
 
   /** Web Share API with clipboard-copy fallback */
   const handleShare = useCallback(async () => {
@@ -217,6 +283,22 @@ export default function ClinicProfile() {
 
       <HeaderComponent />
 
+      {/* ── Offline banner ── */}
+      {isOffline && (
+        <div
+          className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs font-medium text-amber-700"
+          role="alert"
+        >
+          <WifiOff className="w-3 h-3 inline mr-1" aria-hidden="true" />
+          You are offline — showing last-known data
+          {lastUpdated && (
+            <span className="ml-1 opacity-75">
+              (last fetched {lastUpdated.toLocaleTimeString()})
+            </span>
+          )}
+        </div>
+      )}
+
       {/* ── Back breadcrumb ── */}
       <div className="container mx-auto px-4 pt-6 max-w-7xl">
         <Link
@@ -245,7 +327,7 @@ export default function ClinicProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left — clinic info */}
             <div>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <div className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold uppercase tracking-widest text-blue-200">
                   Verified Clinic
                 </div>
@@ -258,6 +340,11 @@ export default function ClinicProfile() {
                 >
                   {openStatus.label}
                 </div>
+                <StaleIndicator
+                  lastUpdated={lastUpdated}
+                  isOffline={isOffline}
+                  isRefreshing={isRefreshing}
+                />
               </div>
 
               <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
