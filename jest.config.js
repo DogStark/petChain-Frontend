@@ -16,6 +16,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@stellar/stellar-sdk$': '<rootDir>/node_modules/@stellar/stellar-sdk/lib/index.js',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
     '^.+\\.[jt]sx?$': ['ts-jest', {

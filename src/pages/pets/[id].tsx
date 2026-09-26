@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, PawPrint, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
-import SafeImage from '@/components/SafeImage';
+import { Avatar } from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
@@ -123,20 +123,14 @@ export default function PetDetailPage() {
         </button>
 
         <div className={styles.petHeader}>
-          {primaryPhoto ? (
-            <SafeImage
-              src={primaryPhoto.thumbnailUrl || primaryPhoto.photoUrl}
-              alt={pet.name}
-              fill
-              sizes="80px"
-              className={styles.petAvatar}
-              style={{ objectFit: 'cover' }}
-            />
-          ) : (
-            <div className={styles.petAvatar}>
-              <PawPrint size={32} />
-            </div>
-          )}
+          <Avatar
+            src={primaryPhoto?.thumbnailUrl || primaryPhoto?.photoUrl}
+            alt={`${pet.name}'s profile picture`}
+            name={pet.name}
+            species={pet.species as 'dog' | 'cat' | 'bird' | 'rabbit' | 'other'}
+            size={80}
+            shape="circle"
+          />
           <div className={styles.petInfo}>
             <h1>{pet.name}</h1>
             <div className={styles.petMeta}>

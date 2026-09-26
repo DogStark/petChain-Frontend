@@ -32,11 +32,8 @@
 }
 
 .preview {
-  width: 150px;
-  height: 150px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 2px solid #e2e8f0;
+  /* Avatar component handles its own sizing */
+  border: 2px solid #e2e8f0 !important;
 }
 
 .loader {

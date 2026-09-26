@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import NextImage from 'next/image';
+import { Avatar } from '@/components/Avatar';
 import styles from './AvatarUpload.module.css';
 
 interface AvatarUploadProps {
   currentAvatar?: string;
+  userName?: string; // For initials fallback
   onUploadSuccess: (avatarUrl: string) => void;
   onUploadError: (error: string) => void;
   isLoading?: boolean;
@@ -11,6 +12,7 @@ interface AvatarUploadProps {
 
 export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   currentAvatar,
+  userName,
   onUploadSuccess,
   onUploadError,
   isLoading = false,
@@ -111,14 +113,13 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
         {preview ? (
           <div className={styles.previewContainer}>
-            <NextImage
+            <Avatar
               src={preview}
               alt="Avatar preview"
-              width={96}
-              height={96}
+              name={userName}
+              size={96}
+              shape="rounded"
               className={styles.preview}
-              style={{ objectFit: 'cover' }}
-              unoptimized={preview.startsWith('blob:')}
             />
             {isLoading && <div className={styles.loader} />}
           </div>
