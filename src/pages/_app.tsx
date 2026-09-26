@@ -19,6 +19,7 @@ import {
 } from "@/components/PWAInstallPrompt";
 import ToastContainer from "@/components/Notifications/ToastContainer";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
+import AccessibilityAnnouncer from "@/components/Accessibility/AccessibilityAnnouncer";
 import { useWebVitals } from "@/hooks/useWebVitals";
 import { buildReport, sendToAnalytics, sendToGoogleAnalytics, getRating } from "@/lib/webVitalsReporter";
 
@@ -110,6 +111,8 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             <ToastContainer />
             {/* Slide-in notification center */}
             <NotificationCenter />
+            {/* Live-region announcements for assistive technology */}
+            <AccessibilityAnnouncer />
             {getLayout(<Component {...pageProps} />)}
           </ErrorBoundary>
         </NotificationProvider>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface WaitlistEntry {
   id: string;
@@ -10,6 +11,7 @@ interface WaitlistEntry {
 }
 
 export default function WaitlistManager() {
+  const { announce } = useAnnouncement();
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +37,10 @@ export default function WaitlistManager() {
     try {
       await appointmentsAPI.scheduleFromWaitlist(id);
       setWaitlist((prev) => prev.filter((e) => e.id !== id));
+      announce('Appointment scheduled from waitlist.', 'success');
     } catch {
       setError('Failed to schedule appointment.');
+      announce('Failed to schedule appointment.', 'error');
     } finally {
       setActionId(null);
     }
@@ -47,8 +51,10 @@ export default function WaitlistManager() {
     try {
       await appointmentsAPI.removeFromWaitlist(id);
       setWaitlist((prev) => prev.filter((e) => e.id !== id));
+      announce('Removed from waitlist.', 'success');
     } catch {
       setError('Failed to remove from waitlist.');
+      announce('Failed to remove from waitlist.', 'error');
     } finally {
       setActionId(null);
     }
