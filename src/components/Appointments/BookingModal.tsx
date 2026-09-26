@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { X, Calendar, Clock, User, Heart } from "lucide-react";
-import { AppointmentType } from "@/types/appointments";
-import Dialog from "@/components/ui/Dialog";
-import { X } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Calendar, Clock, User, Heart } from 'lucide-react';
+import { AppointmentType } from '@/types/appointments';
+import Dialog from '@/components/ui/Dialog';
 
 import {
   TouchSelect,
@@ -14,6 +12,10 @@ import {
 } from '@/components/TouchUI';
 import { useHaptic } from '@/hooks/useHaptic';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
+import {
+  validateNotFuture,
+  validateDateOrdering,
+} from '@/lib/validation/dateValidation';
 import type { AppointmentType } from '@/types/appointments';
 
 interface BookingModalProps {
@@ -95,15 +97,24 @@ export default function BookingModal({
     return options.sort((a, b) => a.value.localeCompare(b.value));
   }, [conflictSlots]);
 
-  const validate = () => {
+  const validate = useCallback(() => {
     const next: Record<string, string> = {};
     if (!formData.petId) next.petId = 'Please select a pet';
     // Only require vet selection when no clinic is pre-selected from a clinic profile
     if (!initialClinicId && !formData.vetId) next.vetId = 'Please select a vet';
-    if (!formData.date) next.date = 'Please pick a date';
+    if (!formData.date) {
+      next.date = 'Please pick a date';
+    } else {
+      const futureError = validateNotFuture(formData.date, 'Appointment date');
+      if (futureError) next.date = futureError;
+    }
+    const orderingErrors = validateDateOrdering({
+      appointmentDate: formData.date,
+    });
+    Object.assign(next, orderingErrors);
     setErrors(next);
     return Object.keys(next).length === 0;
-  };
+  }, [formData.petId, formData.vetId, formData.date, initialClinicId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,7 +330,16 @@ export default function BookingModal({
             <TouchDatePicker
               label="Date"
               value={formData.date}
-              onChange={(e) => setFormData((f) => ({ ...f, date: e.target.value }))}
+              onChange={(e) => {
+                setFormData((f) => ({ ...f, date: e.target.value }));
+                if (errors.date) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.date;
+                    return next;
+                  });
+                }
+              }}
               min={new Date().toISOString().split('T')[0]}
               required
               aria-required="true"
