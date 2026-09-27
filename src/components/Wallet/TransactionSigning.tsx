@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
   ExternalLink,
@@ -24,6 +24,7 @@ import {
 } from '../../utils/transactionValidation';
 import { isValidStellarAmount, stroopsToXlm } from '../../utils/stellarAmounts';
 import { getExplorerUrl } from '../../lib/blockchain/network';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -108,6 +109,7 @@ export default function TransactionSigning({
   onClearError,
   isTestnet,
 }: Props) {
+  const { announce } = useAnnouncement();
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedAsset, setSelectedAsset] = useState('XLM');
@@ -255,9 +257,11 @@ export default function TransactionSigning({
       setMemo('');
       setPin('');
       lastSubmittedKeyRef.current = null;
+      announce('Transaction submitted successfully.', 'success');
     } catch {
       // error surfaced by hook, also zero sensitive state on failure
       setPin('');
+      announce('Transaction failed. Please try again.', 'error');
     }
   }
 

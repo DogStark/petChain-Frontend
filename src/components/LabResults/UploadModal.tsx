@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { UploadCloud, File, X, CheckCircle2 } from "lucide-react";
-import Dialog from "@/components/ui/Dialog";
 import React, { useState, useCallback } from 'react';
 import { UploadCloud, File, X, CheckCircle2, AlertCircle } from 'lucide-react';
-import React, { useState, useCallback, useId } from 'react';
+import Dialog from '@/components/ui/Dialog';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 
 import {
@@ -19,6 +17,7 @@ interface UploadModalProps {
 const MAX_FILE_SIZE_MB = MAX_FILE_SIZE_BYTES / (1024 * 1024);
 
 export default function UploadModal({ onClose }: UploadModalProps) {
+  const { announce } = useAnnouncement();
   const [isDragActive, setIsDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -96,11 +95,12 @@ export default function UploadModal({ onClose }: UploadModalProps) {
     setTimeout(() => {
       setIsUploading(false);
       setIsSuccess(true);
+      announce('Lab report uploaded successfully.', 'success');
       setTimeout(() => {
         onClose();
       }, 2000);
     }, 1500);
-  }, [selectedFile, onClose]);
+  }, [selectedFile, onClose, announce]);
 
   // ------------------------------------------------------------------
   // Derived state for dropzone styling

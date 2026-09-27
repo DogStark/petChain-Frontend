@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { petPhotosAPI, type PetPhoto } from '@/lib/api/petPhotosAPI';
 import { PhotoUploader } from './PhotoUploader';
 import { PhotoGallery } from './PhotoGallery';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import styles from './PetPhotos.module.css';
 
 const MAX_PHOTOS = 10;
@@ -20,6 +21,7 @@ interface PetPhotosManagerProps {
 }
 
 export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => {
+  const { announce } = useAnnouncement();
   const [photos, setPhotos] = useState<PetPhoto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -69,12 +71,14 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
 
       if (!abortSignal.aborted) {
         setPhotos((prev) => [...prev, ...uploaded]);
+        announce('Photo uploaded successfully.', 'success');
       }
     } catch (err: unknown) {
       // Ignore AbortError — the user intentionally cancelled
       if (err instanceof DOMException && err.name === 'AbortError') return;
       const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to upload photos';
       setError(msg);
+      announce('Photo upload failed.', 'error');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -97,9 +101,11 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
           isPrimary: p.id === photoId,
         }))
       );
+      announce('Primary photo updated.', 'success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to set primary photo';
       setError(msg);
+      announce('Failed to update primary photo.', 'error');
     }
   };
 
@@ -115,9 +121,11 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
         }
         return remaining;
       });
+      announce('Photo deleted.', 'success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to delete photo';
       setError(msg);
+      announce('Failed to delete photo.', 'error');
     }
   };
 
@@ -132,10 +140,12 @@ export const PetPhotosManager: React.FC<PetPhotosManagerProps> = ({ petId }) => 
     try {
       setError(null);
       await petPhotosAPI.reorderPhotos(petId, photoIds);
+      announce('Photo order updated.', 'success');
     } catch (err: unknown) {
       setPhotos(previousPhotos);
       const msg = err instanceof Error ? (err as {response?: {data?: {message?: string}}}).response?.data?.message ?? err.message : 'Failed to reorder photos';
       setError(msg);
+      announce('Failed to reorder photos.', 'error');
     }
   };
 
