@@ -14,6 +14,8 @@
     "test:password-policy": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
     "test:e2e": "playwright test",
     "check:locales": "node ./scripts/check-locale-parity.mjs",
+    "check:schema": "node ./scripts/check-api-schema.mjs",
+    "check:schema:strict": "node ./scripts/check-api-schema.mjs --strict",
     "check:a11y": "jest --config jest.config.js --testPathPattern a11y --coverage=false",
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
