@@ -135,6 +135,37 @@ export function formatNumber(
 }
 
 /**
+ * Formats a quantity with a localized unit when Intl supports it. Unknown units
+ * (including clinical abbreviations such as mg/dL) are preserved verbatim.
+ */
+export function formatUnit(
+  value: string | number | null | undefined,
+  unit: string,
+  options?: Omit<FormatNumberOptions, 'style' | 'unit' | 'unitDisplay'>,
+  locale?: string
+): string {
+  const num = toValidNumber(value);
+  if (num === null) return options?.fallback ?? DEFAULT_FALLBACK;
+
+  const { fallback, ...intlOptions } = options ?? {};
+  try {
+    return new Intl.NumberFormat(locale, {
+      ...intlOptions,
+      style: 'unit',
+      unit: unit as Intl.NumberFormatOptions['unit'],
+      unitDisplay: 'long',
+    }).format(num);
+  } catch {
+    try {
+      const formattedNumber = new Intl.NumberFormat(locale, intlOptions).format(num);
+      return unit ? `${formattedNumber} ${unit}` : formattedNumber;
+    } catch {
+      return fallback ?? DEFAULT_FALLBACK;
+    }
+  }
+}
+
+/**
  * Formats a percentage (0.15 -> "15%").
  */
 export function formatPercent(
