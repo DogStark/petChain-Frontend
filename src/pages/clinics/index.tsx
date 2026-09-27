@@ -1,36 +1,28 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import Head from "next/head";
 import { GetServerSideProps } from "next";
 import HeaderComponent from "@/components/Header";
 import ClinicCard from "@/components/Clinics/ClinicCard";
 import { Search, Filter, Star, Loader2 } from "lucide-react";
-import { Clinic } from "@/types/clinic";
-import { clinicsAPI } from "@/lib/api/clinicsAPI";
+import { useClinicSearch } from "@/hooks/useClinicSearch";
 
 export default function ClinicDirectory() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    results,
+    query,
+    setQuery,
+    submit,
+    clear,
+    loading,
+    error,
+    reload,
+    isSearching,
+    isQueryActive,
+    minQueryLength,
+  } = useClinicSearch();
+
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [minRating, setMinRating] = useState<number | null>(null);
-
-  const loadClinics = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await clinicsAPI.getClinics();
-      setClinics(data);
-    } catch {
-      setError("Failed to load clinics.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadClinics();
-  }, [loadClinics]);
 
   const toggleService = (service: string) => {
     setSelectedServices((prev) =>
@@ -44,18 +36,21 @@ export default function ClinicDirectory() {
     setMinRating((prev) => (prev === star ? null : star));
   };
 
-  const filteredClinics = clinics.filter((clinic) => {
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      const matchesSearch =
-        clinic.name.toLowerCase().includes(term) ||
-        clinic.locations.some((loc) => loc.city.toLowerCase().includes(term)) ||
-        clinic.services.some((service) =>
-          service.name.toLowerCase().includes(term),
-        );
-      if (!matchesSearch) return false;
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submit();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      clear();
     }
+  };
 
+  const trimmedQueryLength = query.trim().length;
+  const showMinLengthHint =
+    trimmedQueryLength > 0 && trimmedQueryLength < minQueryLength;
+
+  const filteredClinics = results.filter((clinic) => {
     if (selectedServices.length > 0) {
       const hasService = clinic.services.some((service) =>
         selectedServices.some(
@@ -99,16 +94,29 @@ export default function ClinicDirectory() {
               <Search className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             </div>
             <input
-              type="text"
+              type="search"
+              aria-label="Search clinics by name, city, or service"
               placeholder="Search by clinic name, city, or service..."
               className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl shadow-xl border-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-800 placeholder-gray-400 font-medium"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
             />
-            <button className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95">
+            <button
+              type="button"
+              aria-label="Search clinics"
+              onClick={submit}
+              className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
+            >
               Search
             </button>
           </div>
+
+          {showMinLengthHint ? (
+            <p role="status" className="mt-3 text-sm text-gray-500">
+              Type at least {minQueryLength} characters to search.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 mb-12">
@@ -188,9 +196,21 @@ export default function ClinicDirectory() {
           {/* Clinics Grid */}
           <div className="flex-grow">
             <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-500 font-medium">
-                Displaying {filteredClinics.length} clinics
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-500 font-medium">
+                  Displaying {filteredClinics.length} clinics
+                </p>
+                {isSearching ? (
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    className="flex items-center gap-1 text-sm font-medium text-blue-600"
+                  >
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    Searching…
+                  </span>
+                ) : null}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Sort by:</span>
                 <select className="bg-transparent font-bold text-blue-800 text-sm focus:outline-none cursor-pointer">
@@ -210,16 +230,23 @@ export default function ClinicDirectory() {
               <div className="text-center py-16">
                 <p className="text-red-600 mb-4">{error}</p>
                 <button
-                  onClick={loadClinics}
+                  onClick={reload}
                   className="px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors"
                 >
                   Retry
                 </button>
               </div>
             ) : filteredClinics.length === 0 ? (
-              <p className="text-center text-gray-500 py-16">
-                No clinics found. Try adjusting your search or check back later.
-              </p>
+              isQueryActive ? (
+                <p className="text-center text-gray-500 py-16">
+                  No clinics match your search. Try a different clinic name,
+                  city, or service.
+                </p>
+              ) : (
+                <p className="text-center text-gray-500 py-16">
+                  No clinics found. Try adjusting your search or check back later.
+                </p>
+              )
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredClinics.map((clinic) => (
