@@ -6,7 +6,7 @@ import type { NextPage } from "next";
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 
 import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -103,7 +103,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
     <AuthProvider>
       <ThemeProvider>
         <NotificationProvider>
-          <ErrorBoundary>
+          <RouteErrorBoundaryWithRouter>
             <PWAManager />
             {/* Custom high-performance route transition feedback */}
             <RouteProgressBar />
@@ -114,7 +114,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             {/* Live-region announcements for assistive technology */}
             <AccessibilityAnnouncer />
             {getLayout(<Component {...pageProps} />)}
-          </ErrorBoundary>
+          </RouteErrorBoundaryWithRouter>
         </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 import { Appointment, AppointmentStatus, AppointmentType } from '@/types/appointments';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -101,6 +102,8 @@ class AppointmentsAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async getUpcomingAppointments(): Promise<UpcomingAppointmentView[]> {

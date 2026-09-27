@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 import { Clinic, ClinicService, OperatingHours } from '@/types/clinic';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -96,6 +97,8 @@ class ClinicsAPI {
       baseURL: `${API_BASE_URL}/vet-clinics`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     this.api.interceptors.request.use((config) => {
       if (typeof window !== 'undefined') {
