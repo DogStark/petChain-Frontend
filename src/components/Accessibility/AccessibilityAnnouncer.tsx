@@ -18,6 +18,20 @@ interface AnnouncementEvent extends CustomEvent {
  * added. The `aria-live` attribute on the container controls the
  * politeness level.
  */
+
+/**
+ * AccessibilityAnnouncer — renders a visually hidden ARIA live region
+ * that receives announcements dispatched by `useAnnouncement`.
+ *
+ * The component must be mounted once (e.g. in _app.tsx) so that
+ * every mutation component can call `announce()` without needing
+ * a direct parent-child relationship.
+ *
+ * Each announcement is rendered as a separate paragraph inside the
+ * live region. Screen readers announce new paragraphs as they are
+ * added. The `aria-live` attribute on the container controls the
+ * politeness level.
+ */
 export default function AccessibilityAnnouncer() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const regionRef = useRef<HTMLDivElement>(null);
