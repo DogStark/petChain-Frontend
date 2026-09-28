@@ -278,6 +278,21 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "Нет лекарств",
+    "count_one": "{{count}} лекарство",
+    "count_few": "{{count}} лекарства",
+    "count_many": "{{count}} лекарств",
+    "count_other": "{{count}} лекарства",
+    "dose_unit_mg": "мг",
+    "dose_unit_ml": "мл",
+    "dose_unit_tablet": "таблетка",
+    "dose_unit_tablet_plural": "таблетки",
+    "dose_unit_capsule": "капсула",
+    "dose_unit_capsule_plural": "капсулы",
+    "dose_unit_drop": "капля",
+    "dose_unit_drop_plural": "капли"
+  },
   "validation": {
     "required": "Это поле обязательно",
     "invalid": "Неверный формат",
