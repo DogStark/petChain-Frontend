@@ -160,3 +160,8 @@ Please read [SETUP.md](./SETUP.md), [CODE_STYLE.md](./CODE_STYLE.md), and [PROJE
 ## License
 
 PetChain is licensed under the MIT License.
+
+## Handsoff notes
+
+<!-- handsoff-issue-1000 -->
+- #1000: [Frontend] Add account-switch cache isolation across Next.js routes
