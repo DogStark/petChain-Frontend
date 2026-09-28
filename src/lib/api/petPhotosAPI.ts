@@ -18,6 +18,26 @@ export interface PetPhoto {
   updatedAt: string;
 }
 
+export interface PhotoUploadProgress {
+  loadedBytes: number;
+  totalBytes?: number;
+  percent?: number;
+}
+
+export function mergePhotoUploadProgress(
+  previous: PhotoUploadProgress,
+  next: PhotoUploadProgress
+): PhotoUploadProgress {
+  const nextPercent = next.percent === undefined
+    ? previous.percent
+    : Math.max(previous.percent ?? 0, Math.min(100, next.percent));
+  return {
+    loadedBytes: Math.max(previous.loadedBytes, next.loadedBytes),
+    totalBytes: next.totalBytes,
+    percent: nextPercent,
+  };
+}
+
 class PetPhotosAPI {
   private api: AxiosInstance;
 
@@ -48,27 +68,37 @@ class PetPhotosAPI {
    *
    * @param petId        Target pet ID.
    * @param files        Compressed, metadata-stripped files ready for upload.
-   * @param onProgress   Optional progress callback (0–100).
+  * @param onProgress   Optional progress callback with byte counts and an optional percentage.
    * @param signal       Optional AbortSignal for cancellation (issue #877).
+  * @param idempotencyKey Stable key reused when retrying the same batch.
    */
   async uploadPhotos(
     petId: string,
     files: File[],
-    onProgress?: (progress: number) => void,
-    signal?: AbortSignal
+    onProgress?: (progress: PhotoUploadProgress) => void,
+    signal?: AbortSignal,
+    idempotencyKey?: string
   ): Promise<PetPhoto[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('photos', file));
 
     const response = await this.api.post(`/pets/${petId}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (event: AxiosProgressEvent) => {
-        if (onProgress && event.total) {
-          onProgress(Math.round((event.loaded * 100) / event.total));
+        if (onProgress) {
+          const totalBytes = event.total && event.total > 0 ? event.total : undefined;
+          onProgress({
+            loadedBytes: event.loaded,
+            totalBytes,
+            percent: totalBytes ? Math.min(100, Math.round((event.loaded * 100) / totalBytes)) : undefined,
+          });
         }
       },
       // Axios accepts an AbortSignal in its config (axios >= 0.22)
       signal,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      },
     });
     return response.data;
   }
