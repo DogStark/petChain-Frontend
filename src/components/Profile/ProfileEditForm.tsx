@@ -221,6 +221,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           <h2 className={styles.sectionTitle}>Profile Picture</h2>
           <AvatarUpload
             currentAvatar={formData.avatarUrl}
+            userName={`${formData.firstName} ${formData.lastName}`.trim()}
             onUploadSuccess={handleAvatarUploadSuccess}
             onUploadError={(error) => setErrors((prev) => ({ ...prev, avatar: error }))}
             isLoading={isLoading}
