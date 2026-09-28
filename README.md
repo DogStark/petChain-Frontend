@@ -160,3 +160,8 @@ Please read [SETUP.md](./SETUP.md), [CODE_STYLE.md](./CODE_STYLE.md), and [PROJE
 ## License
 
 PetChain is licensed under the MIT License.
+
+## Handsoff notes
+
+<!-- handsoff-issue-1006 -->
+- #1006: [Frontend] Add wallet transaction simulation expiry handling
