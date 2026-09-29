@@ -18,6 +18,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { petAPI } from '@/lib/api/petAPI';
+import SafeExternalLink from '@/components/SafeExternalLink';
 import {
   PetEmergencyInfo,
   EmergencyContact,
@@ -415,16 +416,15 @@ export default function EmergencyAccessPage() {
                   >
                     <Phone size={18} fill="currentColor" /> Call Clinic
                   </a>
-                  <a
+                  <SafeExternalLink
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                       (activeData?.emergencyVet ?? data.emergencyVet)!.address
                     )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 bg-white text-blue-600 border-2 border-blue-600 rounded-full py-3.5 font-black hover:bg-blue-50 transition-colors"
+                    aria-label="Open emergency vet location in Google Maps"
                   >
                     <MapPin size={18} /> Open Maps
-                  </a>
+                  </SafeExternalLink>
                 </div>
               </div>
             )}
@@ -488,14 +488,13 @@ export default function EmergencyAccessPage() {
               </div>
             </a>
             {(activeData?.poisonControl ?? data.poisonControl)?.website && (
-              <a
+              <SafeExternalLink
                 href={(activeData?.poisonControl ?? data.poisonControl)!.website}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex items-center gap-2 text-xs sm:text-sm opacity-60 mt-4 justify-center hover:opacity-100 transition-opacity"
+                aria-label="Visit poison control website"
               >
                 Visit Website <ExternalLink size={14} />
-              </a>
+              </SafeExternalLink>
             )}
           </div>
         )}
