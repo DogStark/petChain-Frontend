@@ -173,7 +173,34 @@ Please read [SETUP.md](./SETUP.md), [CODE_STYLE.md](./CODE_STYLE.md), and [PROJE
 ## Documentation
 
 - [Setup Guide](./SETUP.md) - Complete development setup instructions
-- [Code Style](./CODE_STYLE.md) - Formatting and conventions
-- [Project Status](./PROJECT_STATUS.md) - Build status and known limitations
-- [License Policy](./docs/license-policy.md) - Dependency license rules
-- [Data Classification](./docs/data-classification.md) - API data-handling rules
+- [Code Style Guide](./CODE_STYLE.md) - Coding standards and best practices
+- [Project Status](./PROJECT_STATUS.md) - Current build status and progress
+- [Data Classification](./docs/data-classification.md) - Field-level classification and privacy rules
+- [Security Workflow](./docs/security.md) - Security testing, audit, and incident response
+- [License Policy](./docs/license-policy.md) - Dependency and supply-chain checks
+- [Workspace Boundaries](./docs/workspace-boundaries.md) - Frontend/backend isolation rules
+- [Push Notifications](./docs/push-notifications.md) - Notification architecture
+- [Reusable Workflows](./docs/reusable-workflows.md) - CI workflow reference
+- [Testing Guide](./TESTING_GUIDE.md) - How to run and write tests
+
+## Related Repositories
+
+- Backend - [DogStark/petchain_api](https://github.com/DogStark/petchain_api)
+- Smart Contracts - [DogStark/PetMedTracka-Contracts](https://github.com/DogStark/PetMedTracka-Contracts)
+- Mobile App - [DogStark/PetMedTracka-MobileApp](https://github.com/DogStark/PetMedTracka-MobileApp)
+
+## Contact & Support
+
+- Project lead: [@llins_x](https://t.me/llins_x)
+- Report issues via the linked repositories or the GitHub Issues tab.
+
+## License
+
+PetChain is licensed under the MIT License.
+
+## Handsoff notes
+
+<!-- handsoff-issue-1006 -->
+- #1006: [Frontend] Add wallet transaction simulation expiry handling
+<!-- handsoff-issue-1000 -->
+- #1000: [Frontend] Add account-switch cache isolation across Next.js routes

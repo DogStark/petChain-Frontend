@@ -73,6 +73,12 @@ class PetAPI {
     const response = await this.api.put(`/${petId}/emergency`, info);
     return response.data;
   }
+
+  async getPet(petId: string): Promise<Pet> {
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
+    const response = await this.api.get(`/${petId}`);
+    return response.data;
+  }
 }
 
 export const petAPI = new PetAPI();
