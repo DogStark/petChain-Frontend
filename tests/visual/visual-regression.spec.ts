@@ -100,14 +100,32 @@ async function maskDynamicContent(page: Page): Promise<void> {
 
 // ─── Viewport and theme helpers ───────────────────────────────────────────────
 
-type Viewport = 'desktop' | 'mobile';
+type Viewport = 'desktop' | 'mobile' | 'mobile-landscape' | 'desktop-landscape' | 'narrow' | 'print';
 type ColorScheme = 'light' | 'dark';
 
 async function setViewport(page: Page, viewport: Viewport): Promise<void> {
-  if (viewport === 'desktop') {
-    await page.setViewportSize({ width: 1280, height: 800 });
-  } else {
-    await page.setViewportSize({ width: 390, height: 844 });
+  switch (viewport) {
+    case 'desktop':
+      await page.setViewportSize({ width: 1280, height: 800 });
+      break;
+    case 'mobile':
+      await page.setViewportSize({ width: 390, height: 844 });
+      break;
+    case 'mobile-landscape':
+      await page.setViewportSize({ width: 844, height: 390 });
+      break;
+    case 'desktop-landscape':
+      await page.setViewportSize({ width: 1280, height: 720 });
+      break;
+    case 'narrow':
+      // Very narrow phones (e.g., iPhone SE, older Android)
+      await page.setViewportSize({ width: 320, height: 568 });
+      break;
+    case 'print':
+      // Print layout uses desktop width but emulates print media
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.emulateMedia({ media: 'print' });
+      break;
   }
 }
 
@@ -119,6 +137,14 @@ async function setLargeText(page: Page): Promise<void> {
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '24px';
   });
+}
+
+async function setPrintMedia(page: Page): Promise<void> {
+  await page.emulateMedia({ media: 'print' });
+}
+
+async function resetPrintMedia(page: Page): Promise<void> {
+  await page.emulateMedia({ media: 'screen' });
 }
 
 // ─── Page setup helpers ───────────────────────────────────────────────────────
@@ -293,7 +319,8 @@ test.describe('Wallet — visual regression', () => {
 // ─── Emergency visual tests ───────────────────────────────────────────────────
 
 test.describe('Emergency — visual regression', () => {
-  for (const viewport of ['desktop', 'mobile'] as Viewport[]) {
+  // Test all viewport/scheme combinations for core states
+  for (const viewport of ['desktop', 'mobile', 'mobile-landscape', 'desktop-landscape', 'narrow'] as Viewport[]) {
     for (const scheme of ['light', 'dark'] as ColorScheme[]) {
       test.describe(`${viewport} / ${scheme}`, () => {
 
@@ -392,7 +419,7 @@ test.describe('Emergency — visual regression', () => {
     }
   }
 
-  // Large-text / accessibility mode
+  // Large-text / accessibility mode (desktop only)
   test('owner view — large text mode', async ({ page }) => {
     await setViewport(page, 'desktop');
     await setColorScheme(page, 'light');
@@ -400,4 +427,27 @@ test.describe('Emergency — visual regression', () => {
     await setLargeText(page);
     await screenshot(page, 'emergency-owner-large-text', 'desktop', 'light');
   });
+
+  // Print layout tests (desktop viewport with print media emulation)
+  for (const scheme of ['light', 'dark'] as ColorScheme[]) {
+    test.describe(`print / ${scheme}`, () => {
+
+      test('owner view — print layout', async ({ page }) => {
+        await setViewport(page, 'print');
+        await setColorScheme(page, scheme);
+        await openEmergencyPage(page);
+        await screenshot(page, 'emergency-owner-print', 'print', scheme);
+      });
+
+      test('scanner preview — print layout', async ({ page }) => {
+        await setViewport(page, 'print');
+        await setColorScheme(page, scheme);
+        await openEmergencyPage(page);
+        const previewTab = page.getByRole('tab', { name: /scanner preview/i });
+        if (await previewTab.isVisible()) await previewTab.click();
+        await screenshot(page, 'emergency-scanner-preview-print', 'print', scheme);
+      });
+
+    });
+  }
 });

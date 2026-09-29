@@ -1,0 +1,15 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PetChain API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/pets/me": {
+      "get": {
+        "summary": "Get user's pets",
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  }
+}

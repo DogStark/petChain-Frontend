@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export interface MedicalRecordSummary {
   id: string;
@@ -21,6 +22,8 @@ class MedicalRecordsAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async getByPetId(petId: string): Promise<MedicalRecordSummary[]> {

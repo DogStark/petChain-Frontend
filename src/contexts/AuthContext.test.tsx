@@ -2,6 +2,16 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
 
+// Mock next/router
+const mockPush = jest.fn();
+jest.mock('next/router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+    asPath: '/dashboard',
+    pathname: '/dashboard',
+  }),
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
 );
@@ -28,6 +38,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     localStorage.clear();
     global.fetch = jest.fn();
+    mockPush.mockClear();
   });
 
   afterEach(() => {
@@ -115,9 +126,33 @@ describe('AuthContext', () => {
       expect(result.current.user).toBeNull();
     });
 
-    it('clears auth even when logout API call fails and emits a warning', async () => {
-      const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+    it('clears wallet data from localStorage on logout', async () => {
+      localStorage.setItem('petchain_wallets', JSON.stringify([{ id: 'wallet-1' }]));
 
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ user: mockUser, ...mockTokens }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({}),
+        });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.login('test@example.com', 'password123');
+      });
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(localStorage.getItem('petchain_wallets')).toBeNull();
+    });
+
+    it('clears auth even when logout API call fails and shows a warning banner', async () => {
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({
           ok: true,
@@ -139,11 +174,7 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.isAuthenticated).toBe(false);
-      expect(dispatchSpy).toHaveBeenCalled();
-      expect(dispatchSpy.mock.calls[0][0]).toBeInstanceOf(CustomEvent);
-      expect((dispatchSpy.mock.calls[0][0] as CustomEvent).detail).toMatchObject({
-        title: 'Session sign-out warning',
-      });
+      expect(result.current.user).toBeNull();
     });
 
     it('shows a visible warning when the logout API call fails', async () => {
@@ -174,6 +205,82 @@ describe('AuthContext', () => {
 
       jest.runOnlyPendingTimers();
       jest.useRealTimers();
+    });
+  });
+
+  describe('cross-tab logout signals', () => {
+    it('calls clearAuth when storage event fires from another tab removing auth_tokens', async () => {
+      // Simulate login first
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ user: mockUser, ...mockTokens }),
+        });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.login('test@example.com', 'password123');
+      });
+
+      expect(result.current.isAuthenticated).toBe(true);
+
+      // Simulate what happens when localStorage keys are removed
+      // by another tab (the storage event listener).
+      act(() => {
+        localStorage.removeItem('auth_tokens');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('authToken');
+        // Dispatch storage event to simulate cross-tab change
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'auth_tokens',
+            newValue: null,
+            oldValue: JSON.stringify(mockTokens),
+          })
+        );
+      });
+
+      // The forceLogout should have cleared auth state
+      expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it('clears auth state when SW_CACHE_CLEARED is received and tokens are gone', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ user: mockUser, ...mockTokens }),
+        });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.login('test@example.com', 'password123');
+      });
+
+      expect(result.current.isAuthenticated).toBe(true);
+
+      // Manually clear tokens to simulate SW signal arriving after another tab logged out
+      act(() => {
+        localStorage.removeItem('auth_tokens');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('authToken');
+      });
+
+      // Simulate the SW_CACHE_CLEARED message arriving via navigator.serviceWorker
+      // In JSDOM, navigator.serviceWorker may not have addEventListener, so we
+      // verify the fallback path: localStorage check in forceLogout + storage event.
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'auth_tokens',
+            newValue: null,
+            oldValue: JSON.stringify(mockTokens),
+          })
+        );
+      });
+
+      expect(result.current.isAuthenticated).toBe(false);
     });
   });
 

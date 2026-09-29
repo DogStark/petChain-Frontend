@@ -247,6 +247,19 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "कोई दवा नहीं",
+    "count_one": "{{count}} दवा",
+    "count_other": "{{count}} दवाएँ",
+    "dose_unit_mg": "मिग्रा",
+    "dose_unit_ml": "मिली",
+    "dose_unit_tablet": "गोली",
+    "dose_unit_tablet_plural": "गोलियाँ",
+    "dose_unit_capsule": "कैप्सूल",
+    "dose_unit_capsule_plural": "कैप्सूल",
+    "dose_unit_drop": "बूँद",
+    "dose_unit_drop_plural": "बूँदें"
+  },
   "validation": {
     "required": "This field is required",
     "invalid": "Invalid format",

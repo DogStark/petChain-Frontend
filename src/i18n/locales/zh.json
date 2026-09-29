@@ -247,6 +247,19 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "无药物",
+    "count_one": "{{count}} 种药物",
+    "count_other": "{{count}} 种药物",
+    "dose_unit_mg": "毫克",
+    "dose_unit_ml": "毫升",
+    "dose_unit_tablet": "片",
+    "dose_unit_tablet_plural": "片",
+    "dose_unit_capsule": "粒",
+    "dose_unit_capsule_plural": "粒",
+    "dose_unit_drop": "滴",
+    "dose_unit_drop_plural": "滴"
+  },
   "validation": {
     "required": "此字段为必填项",
     "invalid": "格式无效",

@@ -9,12 +9,21 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
 import ToastContainer from "@/components/Notifications/ToastContainer";
+import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { I18nProvider } from "@/i18n";
+import { usePWA } from "@/hooks/usePWA";
 import {
   OfflineBanner,
   PWAInstallPrompt,
   PWAUpdateBanner,
 } from "@/components/PWAInstallPrompt";
 import RouteMetadata from "@/components/RouteMetadata";
+import ToastContainer from "@/components/Notifications/ToastContainer";
+import NotificationCenter from "@/components/Notifications/NotificationCenter";
+import AccessibilityAnnouncer from "@/components/Accessibility/AccessibilityAnnouncer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -104,7 +113,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
     <AuthProvider>
       <ThemeProvider>
         <NotificationProvider>
-          <ErrorBoundary>
+          <RouteErrorBoundaryWithRouter>
             <PWAManager />
             {/* Custom high-performance route transition feedback */}
             <RouteProgressBar />
@@ -112,9 +121,11 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             <ToastContainer />
             {/* Slide-in notification center */}
             <NotificationCenter />
+            {/* Live-region announcements for assistive technology */}
+            <AccessibilityAnnouncer />
             {getLayout(<Component {...pageProps} />)}
             <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
-          </ErrorBoundary>
+          </RouteErrorBoundaryWithRouter>
         </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>

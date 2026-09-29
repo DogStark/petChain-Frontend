@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Surgery, CreateSurgeryDto, SurgeryStatus } from '../../lib/api/surgeryAPI';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import styles from './SurgeryForm.module.css';
 
 interface SurgeryFormProps {
@@ -10,6 +11,7 @@ interface SurgeryFormProps {
 }
 
 export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubmit, onCancel }) => {
+  const { announce } = useAnnouncement();
   const [formData, setFormData] = useState<CreateSurgeryDto>({
     petId: surgery?.petId || petId,
     surgeryType: surgery?.surgeryType || '',
@@ -29,6 +31,9 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
     setLoading(true);
     try {
       await onSubmit(formData, photos);
+      announce('Surgery record saved successfully.', 'success');
+    } catch {
+      announce('Failed to save surgery record.', 'error');
     } finally {
       setLoading(false);
     }

@@ -247,6 +247,22 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "لا توجد أدوية",
+    "count_one": "دواء واحد",
+    "count_two": "دواءان",
+    "count_few": "{{count}} أدوية",
+    "count_many": "{{count}} دواءً",
+    "count_other": "{{count}} دواء",
+    "dose_unit_mg": "ملغ",
+    "dose_unit_ml": "مل",
+    "dose_unit_tablet": "قرص",
+    "dose_unit_tablet_plural": "أقراص",
+    "dose_unit_capsule": "كبسولة",
+    "dose_unit_capsule_plural": "كبسولات",
+    "dose_unit_drop": "قطرة",
+    "dose_unit_drop_plural": "قطرات"
+  },
   "validation": {
     "required": "هذا الحقل مطلوب",
     "invalid": "تنسيق غير صالح",
