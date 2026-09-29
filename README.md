@@ -163,5 +163,7 @@ PetChain is licensed under the MIT License.
 
 ## Handsoff notes
 
+<!-- handsoff-issue-1006 -->
+- #1006: [Frontend] Add wallet transaction simulation expiry handling
 <!-- handsoff-issue-1000 -->
 - #1000: [Frontend] Add account-switch cache isolation across Next.js routes
