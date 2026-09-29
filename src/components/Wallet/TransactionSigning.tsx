@@ -26,6 +26,7 @@ import { isValidStellarAmount, stroopsToXlm } from '../../utils/stellarAmounts';
 import { getExplorerUrl } from '../../lib/blockchain/network';
 import { receiptService } from '../../lib/wallet/receiptService';
 import type { WalletIntent } from '../../lib/wallet/walletReceipts';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -110,6 +111,7 @@ export default function TransactionSigning({
   onClearError,
   isTestnet,
 }: Props) {
+  const { announce } = useAnnouncement();
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedAsset, setSelectedAsset] = useState('XLM');
@@ -287,6 +289,8 @@ export default function TransactionSigning({
       setAmount('');
       setMemo('');
       setPin('');
+      lastSubmittedKeyRef.current = null;
+      announce('Transaction submitted successfully.', 'success');
     } catch (err) {
       // Create durable audit receipt for failed/rejected submission
       receiptService.createAndSave({
@@ -295,6 +299,7 @@ export default function TransactionSigning({
         network: isTestnet ? 'TESTNET' : 'PUBLIC',
       });
       setPin('');
+      announce('Transaction failed. Please try again.', 'error');
     } finally {
       submittingRef.current = false;
     }

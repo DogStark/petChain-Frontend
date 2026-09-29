@@ -202,6 +202,16 @@
   overflow: hidden;
 }
 
+.progressBar[data-indeterminate='true'] .progressFill {
+  width: 30% !important;
+  animation: uploadIndeterminate 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes uploadIndeterminate {
+  from { transform: translateX(0); }
+  to { transform: translateX(230%); }
+}
+
 .progressFill {
   height: 100%;
   background: #3b82f6;

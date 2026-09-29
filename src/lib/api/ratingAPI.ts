@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export interface Review {
   reviewer: string;
@@ -37,6 +38,8 @@ class RatingAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async submitReview(rating: number, comment: string): Promise<SubmitReviewResponse> {

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/router';
 import { getApiBaseUrl } from '../lib/api/apiBaseUrl';
 import { twoFactorAPI } from '../lib/api/twoFactorAPI';
 
@@ -86,6 +87,23 @@ interface AuthProviderProps {
 
 const API_BASE_URL = getApiBaseUrl();
 
+/**
+ * Combines multiple AbortSignals into one. The returned signal is aborted when
+ * ANY of the input signals are aborted. Useful for merging a per-request signal
+ * with a session-level signal.
+ */
+function anySignal(signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
+    }
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+  }
+  return controller.signal;
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -96,6 +114,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ── Cross-tab logout signal (BroadcastChannel) ─────────────────────────────
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const router = useRouter();
+
+  // ── Abort in-flight requests on logout ─────────────────────────────────────
+  const abortControllerRef = useRef<AbortController>(new AbortController());
 
   // Load tokens from localStorage on mount
   useEffect(() => {
@@ -129,8 +154,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     loadStoredAuth();
 
+    // ── Cross-tab logout via BroadcastChannel ─────────────────────────────
+    try {
+      const channel = new BroadcastChannel('petchain-auth');
+      broadcastChannelRef.current = channel;
+      channel.addEventListener('message', (event) => {
+        if (event.data?.type === 'LOGOUT') {
+          forceLogout('Signed out in another tab or window.');
+        }
+      });
+    } catch {
+      // BroadcastChannel not supported (e.g. older browsers) — fall back to storage event
+    }
+
+    // ── Cross-tab logout via localStorage 'storage' event ──────────────────
+    const handleStorageChange = (event: StorageEvent) => {
+      if (
+        event.key === 'auth_tokens' ||
+        event.key === 'auth_user' ||
+        event.key === 'authToken'
+      ) {
+        // If the key was removed (or set to null), another tab logged out.
+        if (event.newValue === null) {
+          const tokensStillPresent = localStorage.getItem('auth_tokens');
+          if (!tokensStillPresent) {
+            forceLogout('Session ended in another window.');
+          }
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // ── Service-worker logout signal (SW_CACHE_CLEARED / LOGOUT) ────────────
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SW_CACHE_CLEARED') {
+        // The SW purged its caches; verify this tab still has a session.
+        const storedTokens = localStorage.getItem('auth_tokens');
+        if (!storedTokens) {
+          // Session was already cleared — another tab handled the logout.
+          forceLogout('Session cache cleared by service worker.');
+        }
+      }
+      // Direct LOGOUT from the service worker (broadcast to all clients)
+      if (event.data?.type === 'LOGOUT') {
+        forceLogout('Signed out in another tab or window.');
+      }
+    };
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
     return () => {
       clearTokenRefresh();
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.close();
+      }
+      window.removeEventListener('storage', handleStorageChange);
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
     };
   }, []);
 
@@ -151,7 +233,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setupTokenRefresh();
   };
 
-  const clearAuth = () => {
+  const clearAuth = useCallback(() => {
+    // Abort any in-flight requests so stale responses cannot restore the session
+    abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
     setState((prev) => ({
       ...prev,
       user: null,
@@ -163,8 +249,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('auth_tokens');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('authToken');
+
+    // Clear wallet data from localStorage so other tabs cannot read it
+    localStorage.removeItem('petchain_wallets');
+
+    // Clear IndexedDB offline caches (best-effort)
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        indexedDB.deleteDatabase('petchain-offline');
+      } catch {
+        // Non-critical; cache will expire naturally
+      }
+    }
+
     clearTokenRefresh();
-  };
+  }, []);
+
+  /**
+   * Called when a cross-tab or service-worker signal indicates the session has
+   * ended. Clears auth state and redirects to a safe public route.
+   */
+  const forceLogout = useCallback(
+    (reason: string) => {
+      clearAuth();
+
+      if (typeof window !== 'undefined') {
+        showLogoutWarning(reason);
+
+        // Navigate to login, preserving a safe redirect if the current page
+        // is a protected route. Public routes (/, /login, /register, etc.)
+        // remain visible.
+        const currentPath = window.location.pathname;
+        const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/offline'];
+        if (!publicRoutes.includes(currentPath)) {
+          router.push(`/login?next=${encodeURIComponent(currentPath)}`);
+        }
+      }
+    },
+    [clearAuth, router]
+  );
 
   const setError = (error: string) => {
     setState((prev) => ({ ...prev, error }));
@@ -233,20 +356,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
 
+    // Merge the caller's signal (if any) with the session abort controller so
+    // that clearAuth() cancels all in-flight requests, preventing stale
+    // responses from restoring the session.
+    const sessionSignal = abortControllerRef.current.signal;
+    const combinedSignal = options.signal
+      ? anySignal([options.signal, sessionSignal])
+      : sessionSignal;
+
     const config: RequestInit = {
+      method: options.method ?? 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string>),
       },
-      ...options,
+      signal: combinedSignal,
+      body: options.body,
+      cache: options.cache,
+      credentials: options.credentials,
+      mode: options.mode,
+      redirect: options.redirect,
+      referrer: options.referrer,
+      integrity: options.integrity,
+      keepalive: options.keepalive,
+      window: options.window,
     };
 
     // Add auth header if we have a token
     if (state.tokens?.accessToken) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${state.tokens.accessToken}`,
-      };
+      (config.headers as Record<string, string>).Authorization = `Bearer ${state.tokens.accessToken}`;
     }
 
     const response = await fetch(url, config);
@@ -362,16 +500,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     setLoading(true);
 
+    // ── Cross-tab logout signal ─────────────────────────────────────────────
+    // Tell every other tab to exit protected routes immediately. This must
+    // happen BEFORE the server call so that sibling tabs see the signal even
+    // if the network is slow or unavailable.
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage({ type: 'LOGOUT' });
+    }
+
     const refreshToken = state.tokens?.refreshToken;
     let serverLogoutSucceeded = !refreshToken; // no token = nothing to revoke
 
     if (refreshToken) {
+      // Attach the current abort signal so in-flight requests are cancelled
+      // when clearAuth() fires (which aborts the controller).
+      const signal = abortControllerRef.current.signal;
+
       // Attempt server-side revocation with one retry
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           await makeRequest('/auth/logout', {
             method: 'POST',
             body: JSON.stringify({ refreshToken }),
+            signal,
           });
           serverLogoutSucceeded = true;
           break;

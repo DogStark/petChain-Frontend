@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
+import type { PhotoUploadProgress } from '@/lib/api/petPhotosAPI';
 import styles from './PetPhotos.module.css';
 import { verifyMetadataStripped } from './exifUtils';
 
@@ -29,10 +30,10 @@ interface PhotoUploaderProps {
   maxPhotos: number;
   /** Whether an upload is in flight (controlled by parent). */
   isUploading: boolean;
-  /** Upload progress 0–100 reported by the parent after onUpload fires. */
-  uploadProgress: number;
+  /** Byte progress reported by the parent after onUpload fires. */
+  uploadProgress: PhotoUploadProgress;
   /** Called with the files to upload once staging is complete. */
-  onUpload: (files: File[], abortSignal: AbortSignal) => void;
+  onUpload: (files: File[], abortSignal: AbortSignal, idempotencyKey: string) => Promise<boolean>;
   /** Optional: called when the user cancels an in-progress upload. */
   onCancelUpload?: () => void;
 }
@@ -98,6 +99,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     label: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [uploadFailed, setUploadFailed] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   /**
@@ -110,6 +112,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
    * Replaced on each handleUpload() call.
    */
   const uploadAbortRef = useRef<AbortController | null>(null);
+  const uploadIdempotencyKeyRef = useRef<string | null>(null);
+  const retryBatchRef = useRef<PreviewFile[]>([]);
 
   const remainingSlots = maxPhotos - currentCount;
   const stagedFilesRef = useRef(stagedFiles);
@@ -138,12 +142,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   useEffect(() => {
     if (isUploading) {
       // Map parent's 0-100 upload progress to the 'uploading' phase range (70-100%)
-      const combined = 70 + Math.round(uploadProgress * 0.3);
-      setPhaseProgress({
+      const combined = 70 + Math.round((uploadProgress.percent ?? 0) * 0.3);
+      setPhaseProgress((previous) => ({
         phase: 'uploading',
-        percent: Math.min(combined, 100),
-        label: `Uploading… ${uploadProgress}%`,
-      });
+        percent: Math.max(previous.percent, Math.min(combined, 100)),
+        label: uploadProgress.totalBytes
+          ? `Uploading… ${uploadProgress.percent ?? 0}%`
+          : `Uploading… ${formatBytes(uploadProgress.loadedBytes)} sent`,
+      }));
     } else if (phaseProgress.phase === 'uploading') {
       // Parent says upload is done
       setPhaseProgress({ phase: 'done', percent: 100, label: 'Upload complete' });
@@ -205,6 +211,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           previewUrl: URL.createObjectURL(file),
         }));
 
+        uploadIdempotencyKeyRef.current = null;
+        setUploadFailed(false);
         setStagedFiles((prev) => [...prev, ...previews]);
         setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
       } catch (err: unknown) {
@@ -259,19 +267,50 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     });
   };
 
-  const handleUpload = () => {
-    if (stagedFiles.length === 0) return;
+  const handleUpload = async () => {
+    const filesToUpload = uploadFailed ? retryBatchRef.current : stagedFiles;
+    if (filesToUpload.length === 0) return;
+
+    if (uploadFailed) {
+      retryBatchRef.current = filesToUpload;
+      setStagedFiles([]);
+    }
+
     // Create a fresh AbortController for this upload
     uploadAbortRef.current?.abort(); // cancel any previous
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
+    uploadIdempotencyKeyRef.current ??= crypto.randomUUID();
+    const idempotencyKey = uploadIdempotencyKeyRef.current;
+    setUploadFailed(false);
 
-    setPhaseProgress({ phase: 'uploading', percent: 70, label: 'Starting upload…' });
+    setPhaseProgress((previous) => ({
+      phase: 'uploading',
+      percent: Math.max(previous.percent, 70),
+      label: 'Starting upload…',
+    }));
 
-    onUpload(stagedFiles.map((p) => p.file), abortController.signal);
-    // Revoke object URLs immediately; the parent now owns the File references
-    stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
-    setStagedFiles([]);
+    const succeeded = await onUpload(filesToUpload.map((p) => p.file), abortController.signal, idempotencyKey);
+    if (abortController.signal.aborted) {
+      handleCancelStaging();
+      uploadIdempotencyKeyRef.current = null;
+      return;
+    }
+    if (succeeded) {
+      filesToUpload.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      setStagedFiles([]);
+      retryBatchRef.current = [];
+      uploadIdempotencyKeyRef.current = null;
+      setPhaseProgress({ phase: 'done', percent: 100, label: 'Upload complete' });
+      return;
+    }
+    retryBatchRef.current = filesToUpload;
+    setUploadFailed(true);
+    setPhaseProgress((previous) => ({
+      phase: 'error',
+      percent: previous.percent,
+      label: 'Upload failed. Retry or cancel.',
+    }));
   };
 
   const handleCancelCompression = () => {
@@ -283,13 +322,20 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const handleCancelUpload = () => {
     uploadAbortRef.current?.abort();
     onCancelUpload?.();
+    uploadIdempotencyKeyRef.current = null;
+    stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    setStagedFiles([]);
+    setUploadFailed(false);
     setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
   };
 
   const handleCancelStaging = () => {
     // Revoke object URLs to free memory when the user cancels staging
     stagedFiles.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    retryBatchRef.current = [];
     setStagedFiles([]);
+    uploadIdempotencyKeyRef.current = null;
+    setUploadFailed(false);
     setError(null);
     setPhaseProgress({ phase: 'idle', percent: 0, label: '' });
   };
@@ -411,6 +457,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             >
               {isUploading
                 ? 'Uploading…'
+                : uploadFailed
+                  ? 'Retry upload'
                 : `Upload ${stagedFiles.length} photo${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
             <button
@@ -441,17 +489,31 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           </div>
           <div
             className={styles.progressBar}
+            data-indeterminate={uploadProgress.totalBytes ? undefined : 'true'}
             role="progressbar"
-            aria-valuenow={phaseProgress.percent}
             aria-valuemin={0}
             aria-valuemax={100}
+            aria-valuenow={uploadProgress.totalBytes ? phaseProgress.percent : undefined}
+            aria-valuetext={uploadProgress.totalBytes
+              ? `${uploadProgress.percent ?? 0}% uploaded`
+              : `${formatBytes(uploadProgress.loadedBytes)} uploaded; total size unknown`}
             aria-label="Upload progress"
           >
             <div className={styles.progressFill} style={{ width: `${phaseProgress.percent}%` }} />
           </div>
-          <p className={styles.progressText}>{uploadProgress}%</p>
+          <p className={styles.progressText}>
+            {uploadProgress.totalBytes
+              ? `${uploadProgress.percent ?? 0}% · ${formatBytes(uploadProgress.loadedBytes)} / ${formatBytes(uploadProgress.totalBytes)}`
+              : `${formatBytes(uploadProgress.loadedBytes)} sent`}
+          </p>
         </div>
       )}
     </div>
   );
 };
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
