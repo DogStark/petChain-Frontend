@@ -58,6 +58,9 @@ jobs:
         run: npm run check:schema
         continue-on-error: false
 
+      - name: Validate runtime configuration fixtures
+        run: npm run check:runtime-config
+
       - name: Run frontend tests
         run: npm test -- --passWithNoTests --ci
 

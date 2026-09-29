@@ -14,6 +14,79 @@ jest.mock('@/hooks/useHaptic', () => ({
   useHaptic: () => ({ trigger: jest.fn() }),
 }));
 
+describe('BookingModal date validation', () => {
+  const mockOnClose = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('blocks submit when appointment date is in the future', async () => {
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    render(<BookingModal onClose={mockOnClose} />);
+
+    fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
+    fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: tomorrowStr } });
+
+    const submitButton = screen.getByRole('button', { name: /confirm booking/i });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/appointment date cannot be in the future/i)).toBeInTheDocument();
+      expect(appointmentsAPI.createAppointment).not.toHaveBeenCalled();
+    });
+  });
+
+  it('allows submit when appointment date is today', async () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    render(<BookingModal onClose={mockOnClose} />);
+
+    fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
+    fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: todayStr } });
+
+    const submitButton = screen.getByRole('button', { name: /confirm booking/i });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(appointmentsAPI.createAppointment).toHaveBeenCalled();
+    });
+  });
+
+  it('clears the date error when the user changes to a valid date', async () => {
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    render(<BookingModal onClose={mockOnClose} />);
+
+    fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
+    fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: tomorrowStr } });
+
+    const submitButton = screen.getByRole('button', { name: /confirm booking/i });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/appointment date cannot be in the future/i)).toBeInTheDocument();
+    });
+
+    // Change to a valid date (today)
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: todayStr } });
+
+    expect(screen.queryByText(/appointment date cannot be in the future/i)).not.toBeInTheDocument();
+  });
+});
+
 describe('BookingModal Conflict Handling', () => {
   const mockOnClose = jest.fn();
 
@@ -24,7 +97,7 @@ describe('BookingModal Conflict Handling', () => {
   const fillForm = () => {
     fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
     fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
-    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-10-10' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2020-10-10' } });
   };
 
   it('displays alternate slots when a 409 conflict occurs', async () => {
@@ -56,7 +129,7 @@ describe('BookingModal Conflict Handling', () => {
     // Verify form fields are preserved
     expect(screen.getByLabelText(/select pet/i)).toHaveValue('pet1');
     expect(screen.getByLabelText(/veterinarian/i)).toHaveValue('vet1');
-    expect(screen.getByLabelText(/date/i)).toHaveValue('2026-10-10');
+    expect(screen.getByLabelText(/date/i)).toHaveValue('2020-10-10');
   });
 
   it('updates time and clears conflict slots when an alternate slot is selected', async () => {

@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/generate-firebase-config.mjs",
     "build": "next build",
     "start": "next start",
+<<<<<<< Updated upstream
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "jest --config jest.config.js",
@@ -17,6 +19,12 @@
     "check:schema": "node ./scripts/check-api-schema.mjs",
     "check:schema:strict": "node ./scripts/check-api-schema.mjs --strict",
     "check:a11y": "jest --config jest.config.js --testPathPattern a11y --coverage=false",
+=======
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "test:i18n": "ts-node --project tsconfig.test.json src/i18n/localization.test.ts",
+    "test:firebase-config": "node scripts/generate-firebase-config.mjs",
+>>>>>>> Stashed changes
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
     "analyze": "ANALYZE=true next build",
