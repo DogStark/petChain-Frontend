@@ -246,25 +246,19 @@ jobs:
             📊 [Full Report](${result.url})`;
 
             if (context.issue?.number || context.payload?.pull_request?.number) {
-              const issueNumber = context.issue?.number || context.payload?.pull_request?.number;
-              try {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  body: body,
-                });
-              } catch (error) {
-                core.error(`Failed to post comment: ${error.message}`);
-                if (error.status !== 404) throw error;
-              }
-            } else {
-              core.warning('No PR context found for posting comment');
+              const issueNumber = context.issue?.number || context.payload.pull_request.number;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body
+              });
             }
 
-  bundle-analysis:
-    name: Bundle Size Analysis
+  emergency-profile-budget:
+    name: Emergency Profile Performance Budget
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -278,24 +272,79 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and analyze
+      - name: Build Next.js
+        run: npx next build
+
+      - name: Start production server
         run: |
-          ANALYZE=true npx next build 2>&1 | tee build-output.txt
+          npx next start -H 127.0.0.1 -p 3000 > next-server.log 2>&1 &
+          echo $! > next-server.pid
 
-      - name: Enforce route-level bundle budgets
-        run: npm run bundle:check
-
-      - name: Report bundle size
+      - name: Wait for server
         run: |
-          echo "### 📦 Bundle Size Report" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          # Extract the route summary from Next.js build output
-          sed -n '/Route (app)/,/First Load JS shared/p' build-output.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "Build output captured" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js server did not start in time" >&2
+          cat next-server.log >&2
+          exit 1
 
-      - name: Upload build output
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run emergency profile budget checks
+        run: |
+          mkdir -p performance/results
+          npx playwright test \
+            --config performance/playwright/emergency-profile.config.ts \
+            --reporter=json \
+            > performance/results/emergency-profile-budget.json
+
+      - name: Enforce emergency profile budgets
+        run: |
+          node performance/scripts/check-emergency-budget.mjs \
+            performance/results/emergency-profile-budget.json \
+            performance/budgets/emergency-profile.json
+
+      - name: Publish emergency profile budget summary
+        if: always()
+        run: |
+          echo "## 🚑 Emergency Profile Performance Budget" >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Route: `/emergency/[token]` on the CI fixture network profile (Slow 4G, 4x CPU throttle).' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '| Asset | Budget | Status |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|-------|--------|--------|' >> "$GITHUB_STEP_SUMMARY"
+          echo '| HTML | ≤ 30 KB | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| JS | ≤ 180 KB | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| CSS | ≤ 40 KB | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| Images | ≤ 250 KB | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| Time to content | ≤ 2500ms | ⏳ Checked below |' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Budgets defined in `performance/budgets/emergency-profile.json`.' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f performance/results/emergency-profile-budget.json ]; then
+            node performance/scripts/check-emergency-budget.mjs \
+              performance/results/emergency-profile-budget.json \
+              performance/budgets/emergency-profile.json \
+              --summary-only >> "$GITHUB_STEP_SUMMARY" || true
+          fi
+
+      - name: Upload emergency profile budget artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bundle-analysis
-          path: build-output.txt
-          retention-days: 7
+          name: emergency-profile-budget-results
+          path: |
+            performance/results/emergency-profile-budget.json
+            next-server.log
+          retention-days: 14
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f next-server.pid ]; then
+            kill $(cat next-server.pid) || true
+          fi
