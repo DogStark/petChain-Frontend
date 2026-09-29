@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { LabResultItem, LabReport } from '@/types/lab-results';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 function client() {
-  return axios.create({ baseURL: getApiBaseUrl() });
+  const api = axios.create({ baseURL: getApiBaseUrl() });
+  attachCorrelationInterceptor(api);
+  return api;
 }
 
 export async function getLabResults(petId: string): Promise<LabResultItem[]> {

@@ -14,6 +14,7 @@ import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
 import ConfirmationDialog from './ConfirmationDialog';
 import SafeExternalLink from '@/components/SafeExternalLink';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface Props {
   wallets: WalletAccount[];
@@ -55,6 +56,7 @@ export default function WalletDashboard({
   isTestnet,
   loading,
 }: Props) {
+  const { announce } = useAnnouncement();
   const [copied, setCopied] = useState(false);
   const [deleteStep, setDeleteStep] = useState<'initial' | 'pin' | 'confirm'>('initial');
   const [deletePin, setDeletePin] = useState('');
@@ -447,7 +449,13 @@ export default function WalletDashboard({
         cancelLabel="Go Back"
         onConfirm={() => {
           if (selectedWallet) {
-            onDeleteWallet(selectedWallet.id, deletePin);
+            onDeleteWallet(selectedWallet.id, deletePin)
+              .then(() => {
+                announce('Wallet deleted successfully.', 'success');
+              })
+              .catch(() => {
+                announce('Failed to delete wallet.', 'error');
+              });
             setDeleteStep('initial');
             setDeletePin('');
             setDeleteAckUnverified(false);

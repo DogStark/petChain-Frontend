@@ -8,6 +8,7 @@ import {
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -116,6 +117,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { announce: announceMutation } = useAnnouncement();
   const [formData, setFormData] = useState<PetEmergencyInfo>(() => {
     const base = initialData || { petId: 'unknown', contacts: [], medicalNotes: '' };
     // Ensure priorities are unique and consecutive on initial load
@@ -237,6 +239,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
     setIsSubmitting(true);
     try {
       await onSave(formData);
+      announceMutation('Emergency contact information saved.', 'success');
     } finally {
       setIsSubmitting(false);
     }

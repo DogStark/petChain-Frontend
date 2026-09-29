@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type TransactionType =
@@ -85,6 +86,8 @@ class TransactionAPI {
       baseURL: `${getApiBaseUrl()}/transactions`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');

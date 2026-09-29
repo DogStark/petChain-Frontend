@@ -208,3 +208,106 @@ test.describe('Session refresh and expiry', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 });
+
+test.describe('Cross-tab logout', () => {
+  test('logging out in one tab signs out another tab on the dashboard', async ({ browser }) => {
+    // Create two tabs that share the same browser context (same localStorage).
+    const context = await browser.newContext();
+    const tabA = await context.newPage();
+    const tabB = await context.newPage();
+
+    await installAuthApiMock(tabA, {
+      'POST /auth/login': (route) => ok(route, { user: TEST_USER, ...TEST_TOKENS }),
+      'POST /auth/logout': (route) => ok(route, { message: 'Logged out' }),
+    });
+
+    // Login on tab A and confirm dashboard
+    await tabA.goto('/login');
+    await tabA.fill('#email-address', CREDENTIALS.email);
+    await tabA.fill('#password', CREDENTIALS.password);
+    await tabA.click('button[type="submit"]');
+    await expect(tabA).toHaveURL(/\/dashboard/);
+
+    // Tab B navigates directly to the dashboard (should see it via shared localStorage)
+    await tabB.goto('/dashboard');
+    await expect(tabB).toHaveURL(/\/dashboard/);
+
+    // Accept confirm dialog on tab A
+    tabA.on('dialog', (dialog) => dialog.accept());
+    await tabA.click('button:has-text("Logout")');
+    await expect(tabA).toHaveURL(/\/login/);
+
+    // Tab B should be redirected to /login promptly (via BroadcastChannel or storage event)
+    await expect(tabB).toHaveURL(/\/login/, { timeout: 5000 });
+  });
+
+  test('public routes remain accessible after cross-tab logout', async ({ browser }) => {
+    const context = await browser.newContext();
+    const tabA = await context.newPage();
+    const tabB = await context.newPage();
+
+    await installAuthApiMock(tabA, {
+      'POST /auth/login': (route) => ok(route, { user: TEST_USER, ...TEST_TOKENS }),
+      'POST /auth/logout': (route) => ok(route, { message: 'Logged out' }),
+    });
+
+    // Login on tab A
+    await tabA.goto('/login');
+    await tabA.fill('#email-address', CREDENTIALS.email);
+    await tabA.fill('#password', CREDENTIALS.password);
+    await tabA.click('button[type="submit"]');
+    await expect(tabA).toHaveURL(/\/dashboard/);
+
+    // Tab B opens a public route
+    await tabB.goto('/');
+    await expect(tabB).toHaveURL(/\/$/);
+
+    // Accept confirm dialog on tab A and logout
+    tabA.on('dialog', (dialog) => dialog.accept());
+    await tabA.click('button:has-text("Logout")');
+    await expect(tabA).toHaveURL(/\/login/);
+
+    // Tab B stays on a public route without redirect
+    await expect(tabB).toHaveURL(/\/$/);
+  });
+
+  test('in-flight API response does not restore session after logout', async ({ page }) => {
+    // Set up a login that returns tokens, and a logout that completes
+    // but add a slow auth/check that arrives after logout.
+    await installAuthApiMock(page, {
+      'POST /auth/login': (route) => ok(route, { user: TEST_USER, ...TEST_TOKENS }),
+      'POST /auth/logout': async (route) => {
+        // Simulate a slow server
+        await new Promise((r) => setTimeout(r, 100));
+        await ok(route, { message: 'Logged out' });
+      },
+      'GET /auth/check': async (route) => {
+        // This in-flight response should NOT restore the session after logout
+        await new Promise((r) => setTimeout(r, 300));
+        await ok(route, { user: TEST_USER, ...TEST_TOKENS });
+      },
+    });
+
+    page.on('dialog', (dialog) => dialog.accept());
+
+    await page.goto('/login');
+    await page.fill('#email-address', CREDENTIALS.email);
+    await page.fill('#password', CREDENTIALS.password);
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    // Fire an in-flight request and immediately logout
+    await page.evaluate(() => {
+      fetch('/api/v1/auth/check');
+    });
+    await page.click('button:has-text("Logout")');
+    await expect(page).toHaveURL(/\/login/);
+
+    // Wait a bit for the in-flight response to arrive
+    await page.waitForTimeout(500);
+
+    // Session should remain cleared; navigating to dashboard redirects to login
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/login/);
+  });
+});
