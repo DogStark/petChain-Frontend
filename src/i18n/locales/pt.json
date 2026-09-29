@@ -247,6 +247,19 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "Nenhum medicamento",
+    "count_one": "{{count}} medicamento",
+    "count_other": "{{count}} medicamentos",
+    "dose_unit_mg": "mg",
+    "dose_unit_ml": "ml",
+    "dose_unit_tablet": "comprimido",
+    "dose_unit_tablet_plural": "comprimidos",
+    "dose_unit_capsule": "cápsula",
+    "dose_unit_capsule_plural": "cápsulas",
+    "dose_unit_drop": "gota",
+    "dose_unit_drop_plural": "gotas"
+  },
   "validation": {
     "required": "This field is required",
     "invalid": "Invalid format",

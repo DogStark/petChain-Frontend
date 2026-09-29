@@ -247,6 +247,19 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "薬なし",
+    "count_one": "{{count}}種類の薬",
+    "count_other": "{{count}}種類の薬",
+    "dose_unit_mg": "mg",
+    "dose_unit_ml": "ml",
+    "dose_unit_tablet": "錠",
+    "dose_unit_tablet_plural": "錠",
+    "dose_unit_capsule": "カプセル",
+    "dose_unit_capsule_plural": "カプセル",
+    "dose_unit_drop": "滴",
+    "dose_unit_drop_plural": "滴"
+  },
   "validation": {
     "required": "このフィールドは必須です",
     "invalid": "無効な形式です",

@@ -3,6 +3,7 @@ import {
   formatBalance,
   formatStellar,
   formatNumber,
+  formatUnit,
   formatPercent,
   formatCrypto,
 } from './formatCurrency';
@@ -89,6 +90,33 @@ describe('formatCurrency utility', () => {
     it('handles invalid number and percent inputs', () => {
       expect(formatNumber('abc')).toBe('—');
       expect(formatPercent('abc')).toBe('—');
+    });
+  });
+
+  describe('formatUnit', () => {
+    it('localizes singular and plural units in English and Spanish', () => {
+      expect(formatUnit(1, 'minute', undefined, 'en')).toBe('1 minute');
+      expect(formatUnit(0, 'minute', undefined, 'en')).toBe('0 minutes');
+      expect(formatUnit(2, 'minute', undefined, 'es')).toBe('2 minutos');
+    });
+
+    it('covers Arabic zero, one, dual, few, and many forms for RTL locales', () => {
+      expect(formatUnit(0, 'minute', undefined, 'ar')).toBe('0 دقيقة');
+      expect(formatUnit(1, 'minute', undefined, 'ar')).toBe('دقيقة');
+      expect(formatUnit(2, 'minute', undefined, 'ar')).toBe('دقيقتان');
+      expect(formatUnit(3, 'minute', undefined, 'ar')).toBe('3 دقائق');
+      expect(formatUnit(5, 'minute', undefined, 'ar')).toBe('5 دقائق');
+      expect(formatUnit(11, 'minute', undefined, 'ar')).toBe('11 دقيقة');
+      expect(formatUnit(1.5, 'minute', undefined, 'es')).toBe('1,5 minutos');
+    });
+
+    it('keeps clinical units explicit and does not convert their values', () => {
+      expect(formatUnit(2.5, 'mg', undefined, 'en')).toBe('2.5 mg');
+      expect(formatUnit(1.25, 'mL', undefined, 'es')).toBe('1,25 mL');
+    });
+
+    it('uses the configured fallback for invalid quantities', () => {
+      expect(formatUnit('invalid', 'mg', { fallback: 'N/A' }, 'en')).toBe('N/A');
     });
   });
 });

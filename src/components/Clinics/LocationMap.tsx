@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { ClinicLocation } from "@/types/clinic";
+import SafeExternalLink from "@/components/SafeExternalLink";
 
 interface LocationMapProps {
   locations: ClinicLocation[];
@@ -590,24 +591,24 @@ export default function LocationMap({ locations }: LocationMapProps) {
 
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-blue-500 shrink-0" />
-                    <a
+                    <SafeExternalLink
                       href={getCallUrl(loc.phone)}
                       className="text-sm text-gray-600 font-bold hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
                       aria-label={`Call ${loc.name} at ${loc.phone}`}
                     >
                       {loc.phone}
-                    </a>
+                    </SafeExternalLink>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-blue-500 shrink-0" />
-                    <a
+                    <SafeExternalLink
                       href={`mailto:${loc.email}`}
                       className="text-sm text-gray-600 font-medium hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
                       aria-label={`Email ${loc.name} at ${loc.email}`}
                     >
                       {loc.email}
-                    </a>
+                    </SafeExternalLink>
                   </div>
                 </div>
 
@@ -628,22 +629,20 @@ export default function LocationMap({ locations }: LocationMapProps) {
                   )}
 
                   <div className="flex gap-2">
-                    <a
+                    <SafeExternalLink
                       href={getNavigateUrl(loc)}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       aria-label={`Navigate to ${loc.name}`}
                     >
                       <Navigation className="w-3.5 h-3.5" /> Navigate
-                    </a>
-                    <a
+                    </SafeExternalLink>
+                    <SafeExternalLink
                       href={getCallUrl(loc.phone)}
                       className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-black rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                       aria-label={`Call ${loc.name}`}
                     >
                       <Phone className="w-3.5 h-3.5" /> Call Clinic
-                    </a>
+                    </SafeExternalLink>
                   </div>
                 </div>
               </div>

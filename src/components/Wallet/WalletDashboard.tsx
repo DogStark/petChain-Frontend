@@ -13,6 +13,8 @@ import {
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
 import ConfirmationDialog from './ConfirmationDialog';
+import SafeExternalLink from '@/components/SafeExternalLink';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface Props {
   wallets: WalletAccount[];
@@ -54,6 +56,7 @@ export default function WalletDashboard({
   isTestnet,
   loading,
 }: Props) {
+  const { announce } = useAnnouncement();
   const [copied, setCopied] = useState(false);
   const [deleteStep, setDeleteStep] = useState<'initial' | 'pin' | 'confirm'>('initial');
   const [deletePin, setDeletePin] = useState('');
@@ -177,15 +180,14 @@ export default function WalletDashboard({
                 >
                   <RefreshCw size={16} className={balanceLoading ? 'animate-spin' : ''} />
                 </button>
-                <a
+                <SafeExternalLink
                   href={getExplorerUrl(selectedWallet.publicKey, isTestnet)}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="View on Stellar Explorer"
+                  aria-label="View wallet on Stellar Explorer"
                 >
                   <ExternalLink size={16} />
-                </a>
+                </SafeExternalLink>
               </div>
             </div>
 
@@ -447,7 +449,13 @@ export default function WalletDashboard({
         cancelLabel="Go Back"
         onConfirm={() => {
           if (selectedWallet) {
-            onDeleteWallet(selectedWallet.id, deletePin);
+            onDeleteWallet(selectedWallet.id, deletePin)
+              .then(() => {
+                announce('Wallet deleted successfully.', 'success');
+              })
+              .catch(() => {
+                announce('Failed to delete wallet.', 'error');
+              });
             setDeleteStep('initial');
             setDeletePin('');
             setDeleteAckUnverified(false);

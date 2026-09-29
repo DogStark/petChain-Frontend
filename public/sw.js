@@ -92,10 +92,12 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'SW_LOGOUT') {
     event.waitUntil(
       caches.delete(DYNAMIC_CACHE).then(() => {
-        // Notify all clients that the SW cache has been cleared.
+        // Notify all clients that the SW cache has been cleared and a
+        // logout occurred, so other tabs can exit protected routes.
         return self.clients.matchAll().then((clients) => {
           clients.forEach((client) => {
             client.postMessage({ type: 'SW_CACHE_CLEARED' });
+            client.postMessage({ type: 'LOGOUT' });
           });
         });
       })

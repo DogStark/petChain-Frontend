@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 import { ApiError } from '../apiError';
 
 export interface TwoFactorSetupResponse {
@@ -49,6 +50,8 @@ class TwoFactorAPI {
       baseURL: `${getApiBaseUrl()}/auth/2fa`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');

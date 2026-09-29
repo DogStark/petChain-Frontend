@@ -5,6 +5,7 @@ import {
   validateAfterBirth,
   validateDateOrdering,
 } from '../../lib/validation/dateValidation';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import styles from './SurgeryForm.module.css';
 
 interface SurgeryFormProps {
@@ -15,13 +16,12 @@ interface SurgeryFormProps {
   onCancel: () => void;
 }
 
-export const SurgeryForm: React.FC<SurgeryFormProps> = ({
-  surgery,
-  petId,
-  petDateOfBirth,
-  onSubmit,
-  onCancel,
-}) => {
+import {
+  validateNotFuture,
+  validateAfterBirth,
+  validateDateOrdering,
+} from '../../lib/validation/dateValidation';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
   const [formData, setFormData] = useState<CreateSurgeryDto>({
     petId: surgery?.petId || petId,
     surgeryType: surgery?.surgeryType || '',
@@ -65,6 +65,9 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({
     setLoading(true);
     try {
       await onSubmit(formData, photos);
+      announce('Surgery record saved successfully.', 'success');
+    } catch {
+      announce('Failed to save surgery record.', 'error');
     } finally {
       setLoading(false);
     }

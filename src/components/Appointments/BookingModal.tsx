@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Calendar, Clock, User, Heart } from 'lucide-react';
 import { AppointmentType } from '@/types/appointments';
 import Dialog from '@/components/ui/Dialog';
-
 import {
   TouchSelect,
   TouchDatePicker,
@@ -11,6 +10,7 @@ import {
   TouchButton,
 } from '@/components/TouchUI';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
 import {
   validateNotFuture,
@@ -72,6 +72,7 @@ export default function BookingModal({
   initialAppointmentType,
 }: BookingModalProps) {
   const { trigger } = useHaptic();
+  const { announce } = useAnnouncement();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [formData, setFormData] = useState({
@@ -135,16 +136,19 @@ export default function BookingModal({
         notes: formData.notes || undefined,
       });
       trigger('success');
+      announce('Appointment booked successfully.', 'success');
       onClose();
     } catch (err) {
       const apiErr = err as { response?: { status?: number; data?: { message?: string; availableSlots?: string[] } }; message?: string };
       if (apiErr.response?.status === 409 && apiErr.response.data?.availableSlots) {
         setConflictSlots(apiErr.response.data.availableSlots);
         setSubmitError(apiErr.response.data.message || 'The selected time slot is no longer available.');
+        announce('Booking conflict: the selected time slot is no longer available.', 'warning');
       } else {
         const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
         setSubmitError(errorMessage);
         setConflictSlots([]);
+        announce('Booking failed. Please try again.', 'error');
       }
       trigger('error');
     } finally {
