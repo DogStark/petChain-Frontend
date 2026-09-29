@@ -25,6 +25,43 @@ This repository hosts the **frontend** (Next.js) application. A separate `backen
 8. **Privacy & Compliance** - GDPR-aligned data handling, zero-knowledge proofs (ZKPs) for sensitive on-chain data, session and two-factor security, and a documented data-classification policy.
 9. **Localization** - Ten language locales (`en`, `ar`, `de`, `es`, `fr`, `hi`, `ja`, `pt`, `ru`, `zh`).
 
+## Browser Support & Feature Detection
+
+PetChain degrades gracefully instead of failing when a browser lacks a capability. Runtime feature detection (`src/lib/browserSupport.ts`) gates every optional action behind a client-side check, so unsupported APIs are never invoked during SSR and users get clear guidance rather than a broken control.
+
+### Supported browser versions
+
+| Browser | Supported versions | Notes |
+|---------|--------------------|-------|
+| Chrome / Edge (Chromium) | Last 2 stable releases | Full capability set |
+| Firefox | Last 2 stable releases | Full capability set |
+| Safari (macOS / iOS) | 15.4+ | WebCrypto and service workers supported; camera requires HTTPS |
+| Mobile Chrome / Safari | Last 2 stable releases | Camera and file APIs require a secure context |
+
+Anything older than the versions above is treated as a **degraded environment**: the app still loads and read-only flows work, but capability-gated actions are disabled with an inline explanation.
+
+### Capability matrix and degraded behavior
+
+| Capability | Detection | When unavailable |
+|------------|-----------|------------------|
+| Camera (`getUserMedia`) | `navigator.mediaDevices?.getUserMedia` | QR scanning and photo capture are disabled; users can upload an image file instead. Guidance: "Camera access isn't available in this browser. Upload a photo or enter the code manually." |
+| WebCrypto (`crypto.subtle`) | `window.crypto?.subtle` | Client-side signing and ZKP helpers are disabled; the action is routed through the backend or blocked with guidance. Requires a secure context (HTTPS). |
+| Service workers | `'serviceWorker' in navigator` | Offline caching and background sync are disabled; the app falls back to online-only mode and the `/offline` view shows a notice. |
+| Wallet providers | `window.stellar` / injected provider probe | Wallet connect is disabled with guidance to install a supported wallet or use the built-in keypair flow. |
+| File APIs (`File`, `FileReader`, `Blob`) | `typeof File !== 'undefined' && typeof FileReader !== 'undefined'` | Uploads and exports are disabled with guidance to use a supported browser. |
+
+### SSR safety
+
+All detection lives in `src/lib/browserSupport.ts` and is guarded by `typeof window === 'undefined'` checks. Components consume the results through a client-only hook, so no browser API is touched while rendering on the server. Detection results are cached per session and re-evaluated on the client after hydration.
+
+### Testing the matrix
+
+Automated browser tests (Playwright) run the supported matrix (Chromium, Firefox, WebKit) plus one degraded environment that stubs out `getUserMedia`, `crypto.subtle`, and `navigator.serviceWorker` to assert that gated actions are disabled and guidance is shown. Run them with:
+
+```bash
+npm run test:e2e
+```
+
 ## Tech Stack
 
 - **Framework:** Next.js (React + TypeScript)
