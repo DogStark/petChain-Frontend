@@ -21,15 +21,8 @@ import {
   PWAUpdateBanner,
 } from "@/components/PWAInstallPrompt";
 import RouteMetadata from "@/components/RouteMetadata";
-import ToastContainer from "@/components/Notifications/ToastContainer";
-import NotificationCenter from "@/components/Notifications/NotificationCenter";
 import AccessibilityAnnouncer from "@/components/Accessibility/AccessibilityAnnouncer";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { NotificationProvider } from "@/contexts/NotificationContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { usePWA } from "@/hooks/usePWA";
 import { useWebVitals } from "@/hooks/useWebVitals";
-import { I18nProvider } from "@/i18n";
 import { buildReport, sendToAnalytics, sendToGoogleAnalytics, getRating } from "@/lib/webVitalsReporter";
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
@@ -39,6 +32,41 @@ export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 type AppPropsWithLayout = AppProps & {
   Component: NextPageWithLayout;
 };
+
+const SW_REGISTRATION_KEY = "sw-registered";
+
+/**
+ * Browser-only initialization. Safe no-op on the server so that SSR and
+ * `next build` never touch `window`, `navigator`, or service workers.
+ */
+function initBrowserCapabilities(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  // Register the service worker once per browser session.
+  if ("serviceWorker" in navigator) {
+    try {
+      if (window.sessionStorage.getItem(SW_REGISTRATION_KEY) !== "true") {
+        window.sessionStorage.setItem(SW_REGISTRATION_KEY, "true");
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            if (process.env.NODE_ENV !== "production") {
+              console.log("SW registered:", reg.scope);
+            }
+          })
+          .catch((err) => {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("SW registration failed:", err);
+            }
+          });
+      }
+    } catch {
+      // sessionStorage may be unavailable (private mode); skip registration.
+    }
+  }
+}
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
@@ -73,27 +101,27 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const { reports: _reports } = useWebVitals();
   const router = useRouter();
 
-  // Register service worker on mount
+  // Browser-only initialization runs once, after mount, on the client only.
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          if (process.env.NODE_ENV !== "production") {
-            console.log("SW registered:", reg.scope);
-          }
-        })
-        .catch((err) => {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("SW registration failed:", err);
-          }
-        });
-    }
+    initBrowserCapabilities();
   }, []);
 
-  // Global Pageview Analytics Event Tracker
+  // Global Pageview Analytics Event Tracker (client-only, consent-gated).
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const handleRouteChange = (url: string) => {
+      // Analytics must not emit before consent is known.
+      const consent =
+        typeof window.localStorage !== "undefined"
+          ? window.localStorage.getItem("analytics-consent")
+          : null;
+      if (consent !== "granted") {
+        return;
+      }
+
       if (process.env.NODE_ENV !== "production") {
         // eslint-disable-next-line no-console
         console.log(`[Analytics] Pageview tracked for: ${url}`);
