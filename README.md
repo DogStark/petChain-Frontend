@@ -207,3 +207,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-997 -->
 - #997: [Frontend] Add route-level error boundaries with safe reset scopes
+
+<!-- handsoff-issue-984 -->
+- #984: [Frontend] Add a non-map accessible alternative to clinic search results
