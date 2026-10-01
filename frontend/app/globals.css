@@ -1,0 +1,147 @@
+/* Global print styles: privacy-safe, paginated medical record printing.
+   Only the selected record scope is printed; navigation, wallet controls,
+   QR/token widgets, and analytics UI are excluded. */
+
+@media print {
+  /* Reset page chrome and use a readable, ink-friendly base. */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything by default, then reveal only the print scope. */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* The selected pet/record scope is the only visible content. */
+  [data-print-scope],
+  [data-print-scope] * {
+    visibility: visible !important;
+  }
+
+  [data-print-scope] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Explicitly exclude interactive, secret, and analytics surfaces even if
+     they are nested inside the print scope. */
+  nav,
+  header nav,
+  footer nav,
+  [role="navigation"],
+  [data-print-exclude],
+  [data-wallet],
+  [data-wallet-controls],
+  [data-qr],
+  [data-qr-token],
+  [data-token],
+  [data-analytics],
+  [data-analytics-ui],
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Page headers/footers for the printed record. */
+  [data-print-header] {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #000;
+    font-size: 0.75rem;
+  }
+
+  [data-print-footer] {
+    display: block !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid #000;
+    font-size: 0.75rem;
+  }
+
+  /* Long notes and tables paginate without clipping. */
+  [data-print-scope] table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+
+  [data-print-scope] thead {
+    display: table-header-group;
+  }
+
+  [data-print-scope] tfoot {
+    display: table-footer-group;
+  }
+
+  [data-print-scope] tr,
+  [data-print-scope] img,
+  [data-print-scope] figure {
+    page-break-inside: avoid;
+  }
+
+  [data-print-scope] h1,
+  [data-print-scope] h2,
+  [data-print-scope] h3 {
+    page-break-after: avoid;
+  }
+
+  [data-print-scope] p,
+  [data-print-scope] pre,
+  [data-print-scope] blockquote {
+    orphans: 3;
+    widows: 3;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* Announce print mode and keep the cancel affordance usable. */
+  [data-print-banner] {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    padding: 0.5rem 1rem;
+    background: #fff;
+    color: #000;
+    border-bottom: 1px solid #000;
+    font-size: 0.75rem;
+  }
+
+  [data-print-banner] button,
+  [data-print-cancel] {
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+
+  /* Avoid printing link URLs and background decoration. */
+  a[href]::after {
+    content: "";
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
