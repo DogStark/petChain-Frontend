@@ -4,8 +4,13 @@ import { notFound } from 'next/navigation';
 // Server-rendered public emergency profile.
 // Essential identity/contact info is rendered in server HTML so it is
 // available without client JavaScript. No private account controls render here.
+//
+// Privacy: these pages are reachable from QR codes and must never be indexed
+// or leak the referring URL. We force dynamic rendering so the no-store cache
+// headers below are emitted on every response and shared proxies cannot retain
+// the sensitive payload.
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 export const dynamicParams = true;
 
@@ -38,7 +43,7 @@ async function getEmergencyProfile(id: string): Promise<EmergencyProfile | null>
 
   try {
     const res = await fetch(`${baseUrl}/emergency/${encodeURIComponent(id)}`, {
-      next: { revalidate },
+      cache: 'no-store',
     });
     if (!res.ok) {
       return null;
@@ -56,11 +61,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const profile = await getEmergencyProfile(params.id);
   if (!profile) {
-    return { title: 'Emergency profile not found' };
+    return {
+      title: 'Emergency profile not found',
+      robots: { index: false, follow: false, noarchive: true },
+      referrer: 'no-referrer',
+    };
   }
   return {
     title: `${profile.displayName} — Emergency profile`,
-    robots: { index: false, follow: false },
+    robots: { index: false, follow: false, noarchive: true },
+    referrer: 'no-referrer',
   };
 }
 
