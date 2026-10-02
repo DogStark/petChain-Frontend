@@ -15,10 +15,9 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 50,
   },
-<<<<<<< Updated upstream
   images: {
     remotePatterns: REMOTE_IMAGE_HOSTS,
-=======
+  },
   async headers() {
     // Allowed origins for CSP — extend as needed for your deployment.
     // gstatic.com is required for Firebase compat SDK via importScripts in the SW.
@@ -69,7 +68,6 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
->>>>>>> Stashed changes
   },
 };
 

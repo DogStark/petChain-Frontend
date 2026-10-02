@@ -54,12 +54,15 @@ jobs:
       - name: Check locale catalog parity
         run: npm run check:locales
 
+      - name: Check contract-schema compatibility
+        run: npm run check:contract-compatibility
+
+      - name: Run contract fixture tests
+        run: npm run test:fixtures
+
       - name: Check API schema drift
         run: npm run check:schema
         continue-on-error: false
-
-      - name: Validate runtime configuration fixtures
-        run: npm run check:runtime-config
 
       - name: Run frontend tests
         run: npm test -- --passWithNoTests --ci

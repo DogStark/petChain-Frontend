@@ -7,8 +7,7 @@
     "prebuild": "node scripts/generate-firebase-config.mjs",
     "build": "next build",
     "start": "next start",
-<<<<<<< Updated upstream
-    "lint": "next lint",
+    "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
     "test": "jest --config jest.config.js",
     "test:unit": "jest --config jest.config.js",
@@ -18,13 +17,11 @@
     "check:locales": "node ./scripts/check-locale-parity.mjs",
     "check:schema": "node ./scripts/check-api-schema.mjs",
     "check:schema:strict": "node ./scripts/check-api-schema.mjs --strict",
-    "check:a11y": "jest --config jest.config.js --testPathPattern a11y --coverage=false",
-=======
-    "lint": "eslint src --ext .ts,.tsx",
-    "test": "ts-node --project tsconfig.test.json src/utils/passwordPolicy.test.ts",
+    "check:contract-compatibility": "node ./scripts/check-contract-compatibility.mjs",
+    "test:fixtures": "ts-node --project tsconfig.test.json tests/integration/petContractFixture.test.ts",
     "test:i18n": "ts-node --project tsconfig.test.json src/i18n/localization.test.ts",
     "test:firebase-config": "node scripts/generate-firebase-config.mjs",
->>>>>>> Stashed changes
+    "check:a11y": "jest --config jest.config.js --testPathPattern a11y --coverage=false",
     "security:audit": "npm audit --omit=dev --audit-level=critical || true",
     "debug": "NODE_OPTIONS='--inspect' next dev",
     "analyze": "ANALYZE=true next build",
