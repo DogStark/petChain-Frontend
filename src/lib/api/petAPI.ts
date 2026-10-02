@@ -3,6 +3,7 @@ import { Pet, PetEmergencyInfo } from '@/types/pet';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { projectEmergencyProfile } from '@/utils/emergencyProjection';
 import { ApiError } from '../apiError';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,6 +23,8 @@ class PetAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async getUserPets(): Promise<Pet[]> {
@@ -68,6 +71,12 @@ class PetAPI {
   async updatePetEmergencyInfo(petId: string, info: PetEmergencyInfo): Promise<PetEmergencyInfo> {
     if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
     const response = await this.api.put(`/${petId}/emergency`, info);
+    return response.data;
+  }
+
+  async getPet(petId: string): Promise<Pet> {
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
+    const response = await this.api.get(`/${petId}`);
     return response.data;
   }
 }

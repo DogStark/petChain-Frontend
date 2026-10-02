@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 import type { NotificationPreferences } from '@/types/notification';
 export type { NotificationPriority } from '@/types/notification';
 
@@ -118,6 +119,8 @@ class NotificationsAPI {
       baseURL: `${getApiBaseUrl()}/notifications`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     // Add token to requests
     this.api.interceptors.request.use((config) => {

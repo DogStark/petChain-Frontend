@@ -1,6 +1,7 @@
 name: Visual Regression
 
 # Issue #966 — Visual regression coverage for emergency and wallet flows.
+# Issue #1003 — Responsive overflow coverage for clinical data tables.
 #
 # ## Trigger
 # - Every pull request (for review)
@@ -22,6 +23,15 @@ name: Visual Regression
 #   test itself (see tests/visual/visual-regression.spec.ts).
 # - The Node and Playwright versions are pinned; update them deliberately.
 # - Fonts are installed explicitly to avoid platform-specific glyph differences.
+#
+# ## Responsive clinical tables (issue #1003)
+# - The `clinical-tables` job renders wide record, lab, and medication tables at
+#   narrow viewports (320/375/414px) to catch clipped columns and unusable
+#   horizontal scrolling.
+# - It also runs semantic table assertions (headers/units associated with cells,
+#   accessible disclosure for any hidden clinical value) via the same spec.
+# - Baselines live under tests/visual/snapshots/ and are updated with the same
+#   `update_baselines` dispatch input as the main visual regression job.
 
 on:
   pull_request:
@@ -133,6 +143,88 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: updated-snapshots-shard-${{ matrix.shard }}
+          path: tests/visual/snapshots/
+          retention-days: 7
+
+  # ── Responsive clinical data tables (issue #1003) ──────────────────────────
+  clinical-tables:
+    name: Clinical tables — responsive overflow
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APP_NAME: PetChain
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_API_VERSION: v1
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_STELLAR_HORIZON_URL: https://horizon-testnet.stellar.org
+
+      - name: Start app (background)
+        run: npm start &
+        env:
+          PORT: 3000
+          NEXT_PUBLIC_APP_NAME: PetChain
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_API_VERSION: v1
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_STELLAR_HORIZON_URL: https://horizon-testnet.stellar.org
+
+      - name: Wait for app to be ready
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      # ── Viewport screenshot tests + semantic table assertions ────────────────
+      # Runs the clinical table spec across narrow viewports (320/375/414px) to
+      # verify no clinical value is clipped without an accessible disclosure and
+      # that headers/units stay associated with their cells.
+      - name: Run clinical table responsive tests
+        id: clinical_tests
+        run: |
+          if [ "${{ github.event.inputs.update_baselines }}" = "true" ]; then
+            npx playwright test tests/visual/clinical-tables.spec.ts \
+              --project=chromium \
+              --update-snapshots
+          else
+            npx playwright test tests/visual/clinical-tables.spec.ts \
+              --project=chromium
+          fi
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          CI: true
+
+      - name: Upload clinical table report
+        if: failure() && steps.clinical_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-tables-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+      - name: Upload updated clinical table snapshots
+        if: github.event.inputs.update_baselines == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-clinical-table-snapshots
           path: tests/visual/snapshots/
           retention-days: 7
 

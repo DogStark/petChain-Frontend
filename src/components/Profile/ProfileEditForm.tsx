@@ -3,6 +3,7 @@ import styles from './ProfileEditForm.module.css';
 import { AvatarUpload } from './AvatarUpload';
 import { ProfileCompletion } from './ProfileCompletion';
 import { isValidEmail, isValidPhone } from '@/utils/validation';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface ProfileEditFormProps {
   user?: UserProfile;
@@ -17,6 +18,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   onAvatarUpload,
   isLoading = false,
 }) => {
+  const { announce } = useAnnouncement();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -158,6 +160,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     try {
       await onSubmit(formData);
       setSuccessMessage('Profile updated successfully');
+      announce('Profile updated successfully.', 'success');
       setTimeout(() => setSuccessMessage(''), 3000);
 
       // Update completion
@@ -171,6 +174,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       setErrors({
         submit: error instanceof Error ? error.message : 'Failed to update profile',
       });
+      announce('Failed to update profile.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -217,6 +221,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           <h2 className={styles.sectionTitle}>Profile Picture</h2>
           <AvatarUpload
             currentAvatar={formData.avatarUrl}
+            userName={`${formData.firstName} ${formData.lastName}`.trim()}
             onUploadSuccess={handleAvatarUploadSuccess}
             onUploadError={(error) => setErrors((prev) => ({ ...prev, avatar: error }))}
             isLoading={isLoading}

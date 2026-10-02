@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { ApiError } from '../apiError';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export interface QRCodeRecord {
   id: string;
@@ -95,6 +96,8 @@ export class QRCodeAPI {
       if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async create(

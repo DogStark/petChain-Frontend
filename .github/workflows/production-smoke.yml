@@ -48,6 +48,44 @@ jobs:
             [ "$code" = "200" ] || { echo "Route $route returned $code (expected 200)"; exit 1; }
           done
 
+      - name: Verify CSP header and required directives
+        run: |
+          set -e
+          headers=$(curl -s -D - -o /dev/null http://localhost:3000/)
+          csp=$(printf '%s\n' "$headers" | grep -i '^content-security-policy' || true)
+          if [ -z "$csp" ]; then
+            echo "Missing Content-Security-Policy header on production response"
+            exit 1
+          fi
+          echo "$csp"
+
+          # Required directives must be present.
+          for directive in "default-src" "script-src" "style-src" "connect-src" "img-src" "frame-src" "worker-src" "object-src" "base-uri" "form-action"; do
+            if ! printf '%s' "$csp" | grep -q "$directive"; then
+              echo "CSP is missing required directive: $directive"
+              exit 1
+            fi
+          done
+
+          # Nonce must be threaded through framework scripts.
+          if ! printf '%s' "$csp" | grep -q "'nonce-"; then
+            echo "CSP is missing a nonce for framework scripts"
+            exit 1
+          fi
+
+          # Reject accidental wildcard expansion in script-src.
+          script_src=$(printf '%s' "$csp" | tr ';' '\n' | grep -i 'script-src' || true)
+          if printf '%s' "$script_src" | grep -Eq "(^|[[:space:]])[*]([[:space:]]|$)|https?:\*|\*\."; then
+            echo "CSP script-src contains an accidental wildcard: $script_src"
+            exit 1
+          fi
+
+          # unsafe-inline must not be required for scripts.
+          if printf '%s' "$script_src" | grep -q "'unsafe-inline'"; then
+            echo "CSP script-src must not rely on 'unsafe-inline'"
+            exit 1
+          fi
+
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4

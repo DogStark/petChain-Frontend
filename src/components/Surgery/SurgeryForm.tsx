@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Surgery, CreateSurgeryDto, SurgeryStatus } from '../../lib/api/surgeryAPI';
+import {
+  validateNotFuture,
+  validateAfterBirth,
+  validateDateOrdering,
+} from '../../lib/validation/dateValidation';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import styles from './SurgeryForm.module.css';
 
 interface SurgeryFormProps {
   surgery?: Surgery;
   petId: string;
+  petDateOfBirth?: string;
   onSubmit: (data: CreateSurgeryDto, photos?: File[]) => Promise<void>;
   onCancel: () => void;
 }
 
-export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubmit, onCancel }) => {
+import {
+  validateNotFuture,
+  validateAfterBirth,
+  validateDateOrdering,
+} from '../../lib/validation/dateValidation';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
   const [formData, setFormData] = useState<CreateSurgeryDto>({
     petId: surgery?.petId || petId,
     surgeryType: surgery?.surgeryType || '',
@@ -23,12 +35,39 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
   });
   const [photos, setPhotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = useCallback((): boolean => {
+    const next: Record<string, string> = {};
+
+    const futureError = validateNotFuture(formData.surgeryDate, 'Surgery date');
+    if (futureError) next.surgeryDate = futureError;
+
+    if (petDateOfBirth) {
+      const birthError = validateAfterBirth(formData.surgeryDate, petDateOfBirth, 'Surgery date');
+      if (birthError) next.surgeryDate = birthError;
+    }
+
+    const orderingErrors = validateDateOrdering({
+      surgeryDate: formData.surgeryDate,
+    });
+    Object.assign(next, orderingErrors);
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }, [formData.surgeryDate, petDateOfBirth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) {
+      return;
+    }
     setLoading(true);
     try {
       await onSubmit(formData, photos);
+      announce('Surgery record saved successfully.', 'success');
+    } catch {
+      announce('Failed to save surgery record.', 'error');
     } finally {
       setLoading(false);
     }
@@ -55,11 +94,25 @@ export const SurgeryForm: React.FC<SurgeryFormProps> = ({ surgery, petId, onSubm
           id="surgeryDate"
           type="date"
           value={formData.surgeryDate}
-          onChange={(e) => setFormData({ ...formData, surgeryDate: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, surgeryDate: e.target.value });
+            if (errors.surgeryDate) {
+              setErrors((prev) => {
+                const next = { ...prev };
+                delete next.surgeryDate;
+                return next;
+              });
+            }
+          }}
           required
           aria-required="true"
-          aria-invalid={!formData.surgeryDate ? 'true' : 'false'}
+          aria-invalid={!!errors.surgeryDate ? 'true' : 'false'}
         />
+        {errors.surgeryDate && (
+          <p className={styles.fieldError} role="alert">
+            {errors.surgeryDate}
+          </p>
+        )}
       </div>
 
       <div className={styles.field}>

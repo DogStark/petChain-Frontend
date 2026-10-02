@@ -33,6 +33,8 @@ import type { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import type { BackupData } from '../../types/wallet';
 
+import { attachCorrelationInterceptor } from './correlationInterceptor';
+
 /** Server-side wallet registration record returned by the backend. */
 export interface ServerWallet {
   id: string;
@@ -83,6 +85,8 @@ class WalletManagementAPI {
       }
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   /**

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export interface ExchangeRate {
   asset: string;
@@ -49,6 +50,8 @@ class RateAPI {
       baseURL: `${getApiBaseUrl()}/rates`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');

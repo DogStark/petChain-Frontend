@@ -1,5 +1,5 @@
 import React from "react";
-import SafeImage from "@/components/SafeImage";
+import Avatar from "@/components/Avatar";
 import { StaffMember } from "@/types/clinic";
 
 interface StaffListProps {
@@ -14,21 +14,13 @@ export default function StaffList({ staff }: StaffListProps) {
           key={member.id}
           className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4"
         >
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-50 shrink-0 border-2 border-white shadow-sm relative">
-            {member.avatar ? (
-              <SafeImage
-                src={member.avatar}
-                alt={member.name}
-                fill
-                sizes="64px"
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-blue-300 font-bold text-xl uppercase">
-                {member.name[0]}
-              </div>
-            )}
-          </div>
+          <Avatar
+            src={member.avatar}
+            name={member.name}
+            type="staff"
+            size={64}
+            className="shrink-0 border-2 border-white shadow-sm"
+          />
           <div>
             <h4 className="font-bold text-gray-900">{member.name}</h4>
             <p className="text-sm text-blue-600 font-semibold">{member.role}</p>

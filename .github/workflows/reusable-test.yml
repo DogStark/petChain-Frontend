@@ -60,6 +60,10 @@ jobs:
       - name: Run contract fixture tests
         run: npm run test:fixtures
 
+      - name: Check API schema drift
+        run: npm run check:schema
+        continue-on-error: false
+
       - name: Run frontend tests
         run: npm test -- --passWithNoTests --ci
 
