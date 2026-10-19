@@ -67,11 +67,22 @@ export default function ScanPage({
           emergencyContact: qr.emergencyContact,
           emergency,
         });
-      } catch {
+      } catch (err: unknown) {
         setProfile(null);
-        setError(
-          'This QR tag is invalid, revoked, or no longer active. No private pet details are available from this tag.',
-        );
+        // Distinguish rate-limit responses from other failures so the user
+        // knows the difference between "invalid tag" and "slow down".
+        const status =
+          err && typeof err === 'object'
+            ? (err as { status?: number }).status ??
+              (err as { response?: { status?: number } }).response?.status
+            : undefined;
+        if (status === 429) {
+          setError('Too many requests. Please wait a moment and try again.');
+        } else {
+          setError(
+            'This QR tag is invalid, revoked, or no longer active. No private pet details are available from this tag.',
+          );
+        }
       } finally {
         setLoading(false);
       }
