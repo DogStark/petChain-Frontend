@@ -45,7 +45,7 @@ export class StellarService {
     }
 
     try {
-      const response = await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+      const response = await fetch(`${this.config.friendbotUrl}?addr=${publicKey}`);
       if (response.ok) {
         return true;
       }

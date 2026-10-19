@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface Props {
@@ -37,7 +38,13 @@ function PinInput({
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onPaste={(e) => e.preventDefault()}
           placeholder={placeholder ?? 'Enter PIN…'}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
@@ -64,7 +71,12 @@ function SecretKeyInput({ value, onChange }: { value: string; onChange: (v: stri
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value.trim())}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onPaste={(e) => e.preventDefault()}
           placeholder="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          autoComplete="off"
+          spellCheck={false}
           className={`w-full px-3 py-2 pr-16 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             value && !isValid ? 'border-red-400' : 'border-gray-300 focus:border-blue-500'
           }`}
@@ -117,6 +129,17 @@ export default function WalletSetup({
   const [importPinConfirm, setImportPinConfirm] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
 
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setCreatePin('');
+      setCreatePinConfirm('');
+      setImportPin('');
+      setImportPinConfirm('');
+      setImportSecretKey('');
+    };
+  }, []);
+
   function validateCreate(): string | null {
     if (!createLabel.trim()) return 'Please enter a wallet name.';
     if (createPin.length < PIN_MIN_LENGTH)
@@ -149,11 +172,14 @@ export default function WalletSetup({
     try {
       await onCreateWallet(createLabel.trim(), createPin);
       setCreateSuccess(true);
+      // Zero sensitive state immediately after success
       setCreateLabel('');
       setCreatePin('');
       setCreatePinConfirm('');
     } catch {
-      // error is set by hook
+      // error is set by hook, also zero sensitive state on failure
+      setCreatePin('');
+      setCreatePinConfirm('');
     }
   }
 
@@ -169,12 +195,16 @@ export default function WalletSetup({
     try {
       await onImportWallet(importSecretKey, importLabel.trim(), importPin);
       setImportSuccess(true);
+      // Zero sensitive state immediately after success
       setImportLabel('');
       setImportSecretKey('');
       setImportPin('');
       setImportPinConfirm('');
     } catch {
-      // error is set by hook
+      // error is set by hook, also zero sensitive state on failure
+      setImportSecretKey('');
+      setImportPin('');
+      setImportPinConfirm('');
     }
   }
 

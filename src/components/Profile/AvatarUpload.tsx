@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import NextImage from 'next/image';
+import React, { useState, useRef, useEffect } from 'react';
+import Avatar from '@/components/Avatar';
 import styles from './AvatarUpload.module.css';
 
 interface AvatarUploadProps {
@@ -7,6 +7,7 @@ interface AvatarUploadProps {
   onUploadSuccess: (avatarUrl: string) => void;
   onUploadError: (error: string) => void;
   isLoading?: boolean;
+  userName?: string;
 }
 
 export const AvatarUpload: React.FC<AvatarUploadProps> = ({
@@ -14,10 +15,26 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   onUploadSuccess,
   onUploadError,
   isLoading = false,
+  userName = '',
 }) => {
   const [preview, setPreview] = useState<string | undefined>(currentAvatar);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the next `currentAvatar` change was caused by our own
+  // local file selection (via onUploadSuccess bubbling back up), so that
+  // sync effect below doesn't clobber the just-picked local preview.
+  const hasLocalSelectionRef = useRef(false);
+
+  // Keep the preview in sync with the currentAvatar prop, which may arrive
+  // asynchronously (e.g. after the user's profile finishes loading) or
+  // change when switching between different users/profiles.
+  useEffect(() => {
+    if (hasLocalSelectionRef.current) {
+      hasLocalSelectionRef.current = false;
+      return;
+    }
+    setPreview(currentAvatar);
+  }, [currentAvatar]);
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
@@ -37,6 +54,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
+      hasLocalSelectionRef.current = true;
       setPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
@@ -95,14 +113,12 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
         {preview ? (
           <div className={styles.previewContainer}>
-            <NextImage
+            <Avatar
               src={preview}
-              alt="Avatar preview"
-              width={96}
-              height={96}
+              name={userName}
+              type="user"
+              size={96}
               className={styles.preview}
-              style={{ objectFit: 'cover' }}
-              unoptimized={preview.startsWith('blob:')}
             />
             {isLoading && <div className={styles.loader} />}
           </div>

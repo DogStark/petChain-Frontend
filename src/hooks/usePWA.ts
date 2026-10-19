@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +12,7 @@ interface PWAState {
   isUpdateAvailable: boolean;
   promptInstall: () => Promise<boolean>;
   applyUpdate: () => void;
+  emergencyReset: () => Promise<void>;
 }
 
 export function usePWA(): PWAState {
@@ -112,5 +113,43 @@ export function usePWA(): PWAState {
     window.location.reload();
   }, []);
 
-  return { isInstallable, isInstalled, isOffline, isUpdateAvailable, promptInstall, applyUpdate };
+  const emergencyReset = useCallback(async () => {
+    return new Promise<void>((resolve) => {
+      if (!('serviceWorker' in navigator)) {
+        window.location.reload();
+        resolve();
+        return;
+      }
+
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        if (registrations.length === 0) {
+          window.location.reload();
+          resolve();
+          return;
+        }
+
+        const handleResetComplete = (event: MessageEvent) => {
+          if (event.data?.type === 'EMERGENCY_RESET_COMPLETE') {
+            navigator.serviceWorker.removeEventListener('message', handleResetComplete);
+            window.location.reload();
+            resolve();
+          }
+        };
+        navigator.serviceWorker.addEventListener('message', handleResetComplete);
+
+        for (const registration of registrations) {
+          if (registration.active) {
+            registration.active.postMessage({ type: 'EMERGENCY_RESET' });
+          } else {
+            registration.unregister().then(() => {
+              window.location.reload();
+              resolve();
+            });
+          }
+        }
+      });
+    });
+  }, []);
+
+  return { isInstallable, isInstalled, isOffline, isUpdateAvailable, promptInstall, applyUpdate, emergencyReset };
 }

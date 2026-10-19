@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
+import ConfirmationDialog from './ConfirmationDialog';
+import SafeExternalLink from '@/components/SafeExternalLink';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 
 interface Props {
   wallets: WalletAccount[];
@@ -53,11 +56,35 @@ export default function WalletDashboard({
   isTestnet,
   loading,
 }: Props) {
+  const { announce } = useAnnouncement();
   const [copied, setCopied] = useState(false);
   const [deleteStep, setDeleteStep] = useState<'initial' | 'pin' | 'confirm'>('initial');
   const [deletePin, setDeletePin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [deleteAckUnverified, setDeleteAckUnverified] = useState(false);
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (deletePin) {
+      timeoutId = setTimeout(() => {
+        setDeletePin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && deletePin) {
+        setDeletePin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [deletePin]);
 
   function copyAddress() {
     if (!selectedWallet) return;
@@ -153,26 +180,25 @@ export default function WalletDashboard({
                 >
                   <RefreshCw size={16} className={balanceLoading ? 'animate-spin' : ''} />
                 </button>
-                <a
+                <SafeExternalLink
                   href={getExplorerUrl(selectedWallet.publicKey, isTestnet)}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="View on Stellar Explorer"
+                  aria-label="View wallet on Stellar Explorer"
                 >
                   <ExternalLink size={16} />
-                </a>
+                </SafeExternalLink>
               </div>
             </div>
 
             <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
-              <code className="text-sm text-gray-700 break-all">
+              <code className="ltr-embed text-sm text-gray-700 break-all">
                 <span className="hidden sm:inline">{selectedWallet.publicKey}</span>
                 <span className="sm:hidden">{truncate(selectedWallet.publicKey)}</span>
               </code>
               <button
                 onClick={copyAddress}
-                className="ml-3 flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                className="ms-3 flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
                 title="Copy address"
               >
                 {copied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -261,8 +287,8 @@ export default function WalletDashboard({
               <div className="space-y-2">
                 {accountData.signers.map((s) => (
                   <div key={s.publicKey} className="flex items-center justify-between text-sm">
-                    <code className="text-gray-600 text-xs truncate max-w-xs">{s.publicKey}</code>
-                    <span className="ml-4 flex-shrink-0 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                    <code className="ltr-embed text-gray-600 text-xs truncate max-w-xs">{s.publicKey}</code>
+                    <span className="ms-4 flex-shrink-0 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
                       Weight {s.weight}
                     </span>
                   </div>
@@ -392,13 +418,7 @@ export default function WalletDashboard({
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      onDeleteWallet(selectedWallet.id, deletePin);
-                      setDeleteStep('initial');
-                      setDeletePin('');
-                      setDeleteAckUnverified(false);
-                      setShowPin(false);
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700"
                   >
                     Confirm Deletion
@@ -420,6 +440,61 @@ export default function WalletDashboard({
           </div>
         </>
       )}
+
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        title="Delete Wallet"
+        description={`You are about to permanently delete "${selectedWallet?.label}". This action cannot be undone and all funds will be lost if not backed up.`}
+        confirmLabel={loading ? 'Deleting...' : 'Delete Wallet'}
+        cancelLabel="Go Back"
+        onConfirm={() => {
+          if (selectedWallet) {
+            onDeleteWallet(selectedWallet.id, deletePin)
+              .then(() => {
+                announce('Wallet deleted successfully.', 'success');
+              })
+              .catch(() => {
+                announce('Failed to delete wallet.', 'error');
+              });
+            setDeleteStep('initial');
+            setDeletePin('');
+            setDeleteAckUnverified(false);
+            setShowPin(false);
+          }
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        loading={loading}
+        variant="danger"
+        details={[
+          { label: 'Wallet', value: selectedWallet?.label || '' },
+          {
+            label: 'Public Key',
+            value: selectedWallet
+              ? `${selectedWallet.publicKey.slice(0, 10)}…${selectedWallet.publicKey.slice(-6)}`
+              : '',
+          },
+          {
+            label: 'Network',
+            value: isTestnet ? 'Testnet' : 'Mainnet',
+          },
+          ...(accountData?.balances
+            .filter((b) => parseFloat(b.balance) > 0)
+            .map((b) => ({
+              label: `Balance (${b.asset_code || 'XLM'})`,
+              value: formatBalance(b.balance),
+              highlight: true,
+            })) || []),
+        ]}
+        riskCues={[
+          'This will remove the wallet from this device permanently.',
+          ...(selectedWallet && !selectedWallet.backupVerified
+            ? ['This wallet has NO verified backup. All funds will be lost.']
+            : []),
+          'You will need your backup to restore this wallet later.',
+          'Any pending transactions may still be processed on-chain.',
+        ]}
+      />
     </div>
   );
 }

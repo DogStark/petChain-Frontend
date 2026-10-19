@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 async function parseBlobError(error: AxiosError): Promise<never> {
   const data = error.response?.data;
@@ -167,6 +168,8 @@ class UserManagementAPI {
       return config;
     });
 
+    attachCorrelationInterceptor(this.api);
+
     this.api.interceptors.response.use((r) => r, parseBlobError);
   }
 
@@ -219,6 +222,7 @@ class UserManagementAPI {
       baseURL: `${API_BASE_URL}/users`,
       withCredentials: true,
     });
+    attachCorrelationInterceptor(uploadsApi);
 
     const token = this.getAccessToken();
     if (token) {

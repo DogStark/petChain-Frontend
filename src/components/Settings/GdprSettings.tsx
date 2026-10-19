@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGdpr } from '@/hooks/useGdpr';
-import type { ConsentType } from '@/lib/gdpr';
+import { ACTIVE_DELETION_STATUSES, type ConsentType } from '@/lib/gdpr';
 
 interface GdprSettingsProps {
   userId: string;
@@ -25,12 +25,31 @@ const CONSENT_LABELS: Record<ConsentType, { label: string; description: string }
   },
 };
 
+const DELETION_STATUS_COPY: Record<string, string> = {
+  pending: 'Your account erasure request is pending review.',
+  processing: 'Your account erasure request is being processed.',
+  completed: 'Your account erasure request has been completed.',
+  failed: 'Your last account erasure request failed. You can submit a new one below.',
+  cancelled: 'Your account erasure request was cancelled. You can submit a new one below.',
+};
+
 export default function GdprSettings({ userId }: GdprSettingsProps) {
-  const { consents, loading, error, updateConsent, exportData, requestDeletion } =
-    useGdpr(userId);
+  const {
+    consents,
+    deletionStatus,
+    loading,
+    pendingAction,
+    error,
+    updateConsent,
+    exportData,
+    requestDeletion,
+    cancelDeletion,
+  } = useGdpr(userId);
   const [deletionReason, setDeletionReason] = useState('');
   const [showDeletionForm, setShowDeletionForm] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const isDeletionActive = !!deletionStatus && ACTIVE_DELETION_STATUSES.includes(deletionStatus.status);
 
   const handleToggle = async (type: ConsentType, granted: boolean) => {
     if (type === 'essential') return; // essential consent is immutable
@@ -38,18 +57,29 @@ export default function GdprSettings({ userId }: GdprSettingsProps) {
   };
 
   const handleExport = async () => {
+    if (pendingAction) return;
     await exportData();
     setActionFeedback('Your data export has started. The download will begin shortly.');
     setTimeout(() => setActionFeedback(null), 5000);
   };
 
   const handleDeletionRequest = async () => {
+    if (pendingAction || isDeletionActive) return;
     const result = await requestDeletion(deletionReason || undefined);
     if (result) {
       setShowDeletionForm(false);
       setDeletionReason('');
       setActionFeedback(`Deletion request submitted (ID: ${result.id}). Status: ${result.status}.`);
       setTimeout(() => setActionFeedback(null), 8000);
+    }
+  };
+
+  const handleCancelDeletion = async () => {
+    if (pendingAction || !isDeletionActive) return;
+    const result = await cancelDeletion();
+    if (result) {
+      setActionFeedback('Your account erasure request has been cancelled.');
+      setTimeout(() => setActionFeedback(null), 5000);
     }
   };
 
@@ -71,6 +101,15 @@ export default function GdprSettings({ userId }: GdprSettingsProps) {
       {actionFeedback && (
         <p role="status" className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 mb-3">
           {actionFeedback}
+        </p>
+      )}
+
+      {deletionStatus && (
+        <p
+          role="status"
+          className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3"
+        >
+          {DELETION_STATUS_COPY[deletionStatus.status] ?? `Erasure request status: ${deletionStatus.status}.`}
         </p>
       )}
 
@@ -114,20 +153,32 @@ export default function GdprSettings({ userId }: GdprSettingsProps) {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleExport}
-          disabled={loading}
+          disabled={loading || pendingAction === 'export'}
           className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
         >
-          Export My Data
+          {pendingAction === 'export' ? 'Preparing export…' : 'Export My Data'}
         </button>
-        <button
-          onClick={() => setShowDeletionForm((v) => !v)}
-          className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-        >
-          Request Account Erasure
-        </button>
+
+        {isDeletionActive ? (
+          <button
+            onClick={handleCancelDeletion}
+            disabled={loading || pendingAction === 'cancelDeletion'}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            {pendingAction === 'cancelDeletion' ? 'Cancelling…' : 'Cancel Erasure Request'}
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowDeletionForm((v) => !v)}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+          >
+            Request Account Erasure
+          </button>
+        )}
       </div>
 
-      {showDeletionForm && (
+      {showDeletionForm && !isDeletionActive && (
         <div className="mt-3 p-4 border border-red-200 rounded-lg bg-red-50">
           <p className="text-sm text-red-800 font-medium mb-2">
             This will permanently delete your account and all associated data. This action cannot
@@ -143,10 +194,10 @@ export default function GdprSettings({ userId }: GdprSettingsProps) {
           <div className="flex gap-2">
             <button
               onClick={handleDeletionRequest}
-              disabled={loading}
+              disabled={loading || pendingAction === 'requestDeletion'}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
-              Confirm Erasure Request
+              {pendingAction === 'requestDeletion' ? 'Submitting…' : 'Confirm Erasure Request'}
             </button>
             <button
               onClick={() => setShowDeletionForm(false)}

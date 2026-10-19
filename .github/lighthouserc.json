@@ -4,11 +4,21 @@
             "startServerCommand": "npx next start -p 9222",
             "startServerReadyPattern": "started server on",
             "url": [
-                "http://localhost:9222"
+                "http://localhost:9222",
+                "http://localhost:9222/emergency"
             ],
             "numberOfRuns": 3,
             "settings": {
-                "preset": "desktop"
+                "preset": "desktop",
+                "throttlingMethod": "simulate",
+                "throttling": {
+                    "rttMs": 150,
+                    "throughputKbps": 1638.4,
+                    "requestLatencyMs": 562.5,
+                    "downloadThroughputKbps": 1474.56,
+                    "uploadThroughputKbps": 675,
+                    "cpuSlowdownMultiplier": 4
+                }
             }
         },
         "assert": {
@@ -77,6 +87,66 @@
                     "warn",
                     {
                         "maxNumericValue": 1800
+                    }
+                ],
+                "resource-summary:document:size": [
+                    "warn",
+                    {
+                        "maxNumericValue": 51200
+                    }
+                ],
+                "resource-summary:script:size": [
+                    "warn",
+                    {
+                        "maxNumericValue": 307200
+                    }
+                ],
+                "resource-summary:stylesheet:size": [
+                    "warn",
+                    {
+                        "maxNumericValue": 102400
+                    }
+                ],
+                "resource-summary:image:size": [
+                    "warn",
+                    {
+                        "maxNumericValue": 512000
+                    }
+                ],
+                "resource-summary:total:size": [
+                    "warn",
+                    {
+                        "maxNumericValue": 1048576
+                    }
+                ],
+                "resource-summary:third-party:count": [
+                    "warn",
+                    {
+                        "maxNumericValue": 0
+                    }
+                ],
+                "uses-responsive-images": [
+                    "warn",
+                    {
+                        "maxLength": 0
+                    }
+                ],
+                "unsized-images": [
+                    "warn",
+                    {
+                        "maxLength": 0
+                    }
+                ],
+                "render-blocking-resources": [
+                    "warn",
+                    {
+                        "maxLength": 0
+                    }
+                ],
+                "unused-javascript": [
+                    "warn",
+                    {
+                        "maxNumericValue": 102400
                     }
                 ]
             }

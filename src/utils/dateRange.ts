@@ -7,6 +7,7 @@ export function daysAgo(n: number): string {
 
 /**
  * Returns a human-readable relative time string, e.g. "5 minutes ago",
+ * Returns a human-readable relative time string, e.g. "5 minutes ago",
  * "3 hours ago", "2 days ago".
  */
 export function getRelativeTime(dateStr: string): string {

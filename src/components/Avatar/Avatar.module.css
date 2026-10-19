@@ -1,0 +1,56 @@
+.container {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* Prevents layout shift by maintaining explicit dimensions */
+  min-width: var(--avatar-size, 48px);
+  min-height: var(--avatar-size, 48px);
+}
+
+.image {
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.image.loaded {
+  opacity: 1;
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  font-weight: 600;
+  user-select: none;
+  /* Ensures stable dimensions */
+  flex-shrink: 0;
+}
+
+.initials {
+  display: block;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.icon {
+  display: block;
+  color: white;
+  stroke-width: 2;
+}
+
+.loadingFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* Accessibility: ensure focus is visible */
+.container:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}

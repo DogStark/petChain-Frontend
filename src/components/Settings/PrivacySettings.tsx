@@ -123,7 +123,7 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
         dataShareConsent: preferences.dataShareConsent ?? false,
         preferredLanguage: preferences.preferredLanguage ?? 'en',
         timezone: preferences.timezone ?? 'UTC',
-      });
+      };
       prevDataShareConsentRef.current = preferences.dataShareConsent ?? false;
       // Load consent timestamp from server preferences
       const loadConsentTimestamp = async () => {
@@ -137,7 +137,6 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
         }
       };
       loadConsentTimestamp();
-      };
       setProfileSettings(newProfileSettings);
       setSavedProfileSettings(newProfileSettings);
     }
@@ -176,11 +175,11 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
         emergencyAccess,
       });
 
-      // Only update timestamp if transitioning from false to true
-      if (!prevConsent && currentConsent) {
       setSavedPrivacySettings(privacySettings);
       setSavedProfileSettings(profileSettings);
-      if (profileSettings.dataShareConsent) {
+
+      // Only update timestamp if transitioning from false to true
+      if (!prevConsent && currentConsent) {
         const acceptedAt = new Date().toISOString();
         setPolicyAcceptedAt(acceptedAt);
       }

@@ -23,11 +23,6 @@ import {
   ShareLinkResponseDto,
 } from '../dto/file-permission.dto';
 
-/**
- * File Permission Service
- *
- * Manages file access permissions, sharing, and access control.
- */
 @Injectable()
 export class FilePermissionService {
   private readonly logger = new Logger(FilePermissionService.name);
@@ -41,12 +36,7 @@ export class FilePermissionService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  /**
-   * Check if a user has access to a file
-   * @returns true if user has at least VIEWER permission, false otherwise
-   */
   async canAccessFile(fileId: string, userId: string): Promise<boolean> {
-    // First check if user is the owner
     const fileMetadata = await this.fileMetadataRepository.findOne({
       where: { id: fileId },
     });
@@ -59,7 +49,6 @@ export class FilePermissionService {
       return true;
     }
 
-    // Check explicit permissions
     const permission = await this.permissionRepository.findOne({
       where: {
         fileId,
@@ -72,7 +61,6 @@ export class FilePermissionService {
       return false;
     }
 
-    // Check if permission has expired
     if (permission.expiresAt && permission.expiresAt < new Date()) {
       return false;
     }
@@ -80,9 +68,6 @@ export class FilePermissionService {
     return true;
   }
 
-  /**
-   * Check if a user can perform a specific action
-   */
   async canPerformAction(
     fileId: string,
     userId: string,
@@ -96,7 +81,6 @@ export class FilePermissionService {
       return false;
     }
 
-    // Owner can do anything
     if (fileMetadata.ownerId === userId) {
       return true;
     }
@@ -113,7 +97,6 @@ export class FilePermissionService {
       return false;
     }
 
-    // Check permission hierarchy: OWNER > EDITOR > COMMENTER > VIEWER
     const permissionHierarchy = {
       [PermissionType.OWNER]: 4,
       [PermissionType.EDITOR]: 3,
@@ -128,7 +111,6 @@ export class FilePermissionService {
       return false;
     }
 
-    // Check if permission has expired
     if (permission.expiresAt && permission.expiresAt < new Date()) {
       return false;
     }
@@ -136,25 +118,11 @@ export class FilePermissionService {
     return true;
   }
 
-  /**
-   * Get all permissions for a file
-   */
   async getFilePermissions(
     fileId: string,
     userId: string,
   ): Promise<FilePermissionResponseDto[]> {
-    // Check if requester is owner
-    const fileMetadata = await this.fileMetadataRepository.findOne({
-      where: { id: fileId },
-    });
-
-    if (!fileMetadata) {
-      throw new NotFoundException(`File not found: ${fileId}`);
-    }
-
-    if (fileMetadata.ownerId !== userId) {
-      throw new ForbiddenException('Only file owner can view permissions');
-    }
+    await this.ensureFilePetOwnership(fileId, userId);
 
     const permissions = await this.permissionRepository.find({
       where: { fileId },
@@ -164,28 +132,14 @@ export class FilePermissionService {
     return permissions.map((p) => this.mapPermissionToDto(p));
   }
 
-  /**
-   * Share file with a user
-   */
   async shareFile(
     fileId: string,
     ownerId: string,
     dto: ShareFileDto,
+    petId?: string,
   ): Promise<FilePermissionResponseDto> {
-    // Verify ownership
-    const fileMetadata = await this.fileMetadataRepository.findOne({
-      where: { id: fileId },
-    });
+    await this.ensureFilePetOwnership(fileId, ownerId, petId);
 
-    if (!fileMetadata) {
-      throw new NotFoundException(`File not found: ${fileId}`);
-    }
-
-    if (fileMetadata.ownerId !== ownerId) {
-      throw new ForbiddenException('Only file owner can share');
-    }
-
-    // Verify recipient exists if shared with user
     if (dto.userId) {
       const recipient = await this.userRepository.findOne({
         where: { id: dto.userId },
@@ -196,7 +150,6 @@ export class FilePermissionService {
       }
     }
 
-    // Check if permission already exists
     const existingPermission = await this.permissionRepository.findOne({
       where: {
         fileId,
@@ -205,7 +158,6 @@ export class FilePermissionService {
     });
 
     if (existingPermission) {
-      // Update existing permission
       existingPermission.permissionType = dto.permissionType;
       existingPermission.accessLevel = dto.accessLevel;
       existingPermission.expiresAt = dto.expiresAt || null;
@@ -217,7 +169,6 @@ export class FilePermissionService {
       return this.mapPermissionToDto(existingPermission);
     }
 
-    // Create new permission
     const permission = this.permissionRepository.create({
       fileId,
       userId: dto.userId || null,
@@ -230,43 +181,26 @@ export class FilePermissionService {
     });
 
     await this.permissionRepository.save(permission);
-    this.logger.log(
-      `Shared file ${fileId} with user ${dto.userId || 'public'}`,
-    );
+    this.logger.log(`Shared file ${fileId} with user ${dto.userId || 'public'}`);
 
     return this.mapPermissionToDto(permission);
   }
 
-  /**
-   * Generate a shareable link token
-   */
   async generateShareLink(
     fileId: string,
     userId: string,
     dto: GenerateShareLinkDto,
+    petId?: string,
   ): Promise<ShareLinkResponseDto> {
-    // Verify ownership
-    const fileMetadata = await this.fileMetadataRepository.findOne({
-      where: { id: fileId },
-    });
+    await this.ensureFilePetOwnership(fileId, userId, petId);
 
-    if (!fileMetadata) {
-      throw new NotFoundException(`File not found: ${fileId}`);
-    }
+    const shareToken = random.bytes(32).toString('hex');
 
-    if (fileMetadata.ownerId !== userId) {
-      throw new ForbiddenException('Only file owner can generate share links');
-    }
-
-    // Generate unique token
-    const shareToken = randomBytes(32).toString('hex');
-
-    // Create LINK access permission
     const permission = this.permissionRepository.create({
       fileId,
       userId: null,
       permissionType: dto.permissionType,
-      accessLevel: AccessLevel.LINK,
+      accessLevel: AccessLevel.LInk,
       shareToken,
       expiresAt: dto.expiresAt || null,
       sharedBy: userId,
@@ -288,26 +222,13 @@ export class FilePermissionService {
     };
   }
 
-  /**
-   * Revoke permission for a user
-   */
   async revokePermission(
     fileId: string,
     permissionId: string,
     userId: string,
+    petId?: string,
   ): Promise<void> {
-    // Verify ownership
-    const fileMetadata = await this.fileMetadataRepository.findOne({
-      where: { id: fileId },
-    });
-
-    if (!fileMetadata) {
-      throw new NotFoundException(`File not found: ${fileId}`);
-    }
-
-    if (fileMetadata.ownerId !== userId) {
-      throw new ForbiddenException('Only file owner can revoke permissions');
-    }
+    await this.ensureFilePetOwnership(fileId, userId, petId);
 
     const permission = await this.permissionRepository.findOne({
       where: { id: permissionId, fileId },
@@ -322,27 +243,14 @@ export class FilePermissionService {
     this.logger.log(`Revoked permission ${permissionId}`);
   }
 
-  /**
-   * Update a permission
-   */
   async updatePermission(
     fileId: string,
     permissionId: string,
     userId: string,
     dto: UpdateFilePermissionDto,
+    petId?: string,
   ): Promise<FilePermissionResponseDto> {
-    // Verify ownership
-    const fileMetadata = await this.fileMetadataRepository.findOne({
-      where: { id: fileId },
-    });
-
-    if (!fileMetadata) {
-      throw new NotFoundException(`File not found: ${fileId}`);
-    }
-
-    if (fileMetadata.ownerId !== userId) {
-      throw new ForbiddenException('Only file owner can update permissions');
-    }
+    await this.ensureFilePetOwnership(fileId, userId, petId);
 
     const permission = await this.permissionRepository.findOne({
       where: { id: permissionId, fileId },
@@ -352,7 +260,6 @@ export class FilePermissionService {
       throw new NotFoundException(`Permission not found: ${permissionId}`);
     }
 
-    // Update fields
     if (dto.permissionType) permission.permissionType = dto.permissionType;
     if (dto.accessLevel) permission.accessLevel = dto.accessLevel;
     if (dto.expiresAt !== undefined) permission.expiresAt = dto.expiresAt;
@@ -365,9 +272,6 @@ export class FilePermissionService {
     return this.mapPermissionToDto(permission);
   }
 
-  /**
-   * Access file via share token
-   */
   async accessViaShareToken(shareToken: string): Promise<{
     fileId: string;
     permissionType: PermissionType;
@@ -384,12 +288,10 @@ export class FilePermissionService {
       throw new ForbiddenException('Invalid or expired share link');
     }
 
-    // Check expiration
     if (permission.expiresAt && permission.expiresAt < new Date()) {
       throw new ForbiddenException('Share link has expired');
     }
 
-    // Update last accessed time
     permission.lastAccessedAt = new Date();
     await this.permissionRepository.save(permission);
 
@@ -399,9 +301,6 @@ export class FilePermissionService {
     };
   }
 
-  /**
-   * Get files shared with a user
-   */
   async getFilesSharedWithMe(
     userId: string,
     page: number = 1,
@@ -435,9 +334,6 @@ export class FilePermissionService {
     };
   }
 
-  /**
-   * Update last accessed time for tracking
-   */
   async updateLastAccessed(permissionId: string): Promise<void> {
     await this.permissionRepository.update(
       { id: permissionId },
@@ -445,9 +341,35 @@ export class FilePermissionService {
     );
   }
 
-  /**
-   * Map permission entity to DTO
-   */
+  private async ensureFilePetOwnership(
+    fileId: string,
+    userId: string,
+    petId?: string,
+  ): Promise<FileMetadata> {
+    const fileMetadata = await this.fileMetadataRepository.findOne({
+      where: { id: fileId },
+    });
+
+    if (!fileMetadata) {
+      throw new NotFoundException(`File not found: ${fileId}`);
+    }
+
+    if (fileMetadata.ownerId !== userId) {
+      throw new ForbiddenException('You do not have permission to this file');
+    }
+
+    if (petId) {
+      if (!fileMetadata.petId) {
+        throw new BadRequestException('File is not associated with a pet');
+      }
+      if (fileMetadata.petId !== petId) {
+        throw new ForbiddenException('File does not belong to the specified pet');
+      }
+    }
+
+    return fileMetadata;
+  }
+
   private mapPermissionToDto(
     permission: FilePermission,
   ): FilePermissionResponseDto {
@@ -458,31 +380,10 @@ export class FilePermissionService {
       userName: permission.user?.email,
       permissionType: permission.permissionType,
       accessLevel: permission.accessLevel,
-      shareToken: permission.shareToken || undefined,
-      sharedBy: permission.sharedBy,
+      shareToken: permission.shareToken,
       expiresAt: permission.expiresAt,
-      isActive: permission.isActive,
-      notes: permission.notes,
       createdAt: permission.createdAt,
-      updatedAt: permission.updatedAt,
-      lastAccessedAt: permission.lastAccessedAt,
+      isActive: permission.isActive,
     };
-  }
-
-  /**
-   * Clean up expired permissions (scheduled job)
-   */
-  async cleanupExpiredPermissions(): Promise<number> {
-    const result = await this.permissionRepository.update(
-      {
-        expiresAt: new Date(),
-        isActive: true,
-      },
-      { isActive: false },
-    );
-
-    const count = result.affected || 0;
-    this.logger.log(`Cleaned up ${count} expired permissions`);
-    return count;
   }
 }

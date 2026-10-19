@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: '0 6 * 1'
   workflow_dispatch:
 
 permissions:
@@ -55,6 +55,69 @@ jobs:
 
       - name: Run frontend dependency audit
         run: npm run security:audit
+
+  csp-policy-check:
+    name: CSP Policy Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify required CSP directives
+        run: |
+          set -euo pipefail
+          CSP_FILE="frontend/lib/csp.ts"
+          if [ ! -f "$CSP_FILE" ]; then
+            echo "::error::Missing CSP policy definition at $CSP_FILE"
+            exit 1
+          fi
+
+          required_directives=(
+            "default-src"
+            "script-src"
+            "style-src"
+            "img-src"
+            "connect-src"
+            "font-src"
+            "frame-ancestors"
+            "base-uri"
+            "form-action"
+            "object-src"
+            "worker-src"
+            "manifest-src"
+          )
+
+          missing=0
+          for directive in "${required_directives[@]}"; do
+            if ! grep -q "$directive" "$CSP_FILE"; then
+              echo "::error::CSP policy is missing required directive: $directive"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "All required CSP directives are present."
+
+      - name: Reject accidental wildcard expansion
+        run: |
+          set -euo pipefail
+          CSP_FILE="frontend/lib/csp.ts"
+
+          # Disallow bare '*' sources and protocol wildcards in the policy.
+          if grep -nE "(^|[[:space:]'\"])[*]([[:space:]'\";]|$)" "$CSP_FILE"; then
+            echo "::error::CSP policy contains a bare wildcard source ('*')."
+            exit 1
+          fi
+
+          if grep -nE "https?:\/\/\*" "$CSP_FILE"; then
+            echo "::error::CSP policy contains a protocol wildcard (e.g. https://*)."
+            exit 1
+          fi
+
+          echo "No wildcard expansion detected in CSP policy."
 
   backend-security-audit:
     name: Backend Security Audit

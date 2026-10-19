@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Decentralized utility payments on Stellar blockchain",
     "description": "Pay your utility bills using cryptocurrency on the Stellar network",
     "footer": {
@@ -107,8 +107,8 @@
     }
   },
   "about": {
-    "title": "About Wata-Board",
-    "description": "Wata-Board is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
+    "title": "About PetChain",
+    "description": "PetChain is a decentralized utility payment platform built on the Stellar blockchain. We enable secure, transparent, and efficient utility bill payments using cryptocurrency.",
     "features": {
       "title": "Key Features",
       "secure": "Secure Transactions",
@@ -151,7 +151,7 @@
   },
   "rate": {
     "title": "Rate Your Experience",
-    "description": "Help us improve by rating your experience with Wata-Board.",
+    "description": "Help us improve by rating your experience with PetChain.",
     "rating": {
       "excellent": "Excellent",
       "good": "Good",
@@ -161,7 +161,7 @@
     },
     "review": {
       "title": "Write a Review",
-      "placeholder": "Share your experience with Wata-Board...",
+      "placeholder": "Share your experience with PetChain...",
       "submit": "Submit Review",
       "thankYou": "Thank you for your feedback!"
     }
@@ -183,6 +183,30 @@
       "notConnected": "Wallet not connected",
       "notInstalled": "Freighter wallet not installed",
       "installFreighter": "Please install Freighter wallet extension"
+    },
+    "twoFactor": {
+      "statusFailed": "Unable to load two-factor authentication status",
+      "setupFailed": "Unable to start two-factor authentication setup",
+      "enableFailed": "Unable to enable two-factor authentication",
+      "disableFailed": "Unable to disable two-factor authentication",
+      "invalidToken": "The authentication code is invalid",
+      "backupCodesFailed": "Unable to generate backup codes",
+      "invalidBackupCode": "The backup code is invalid"
+    },
+    "validation": {
+      "invalidId": "Invalid identifier",
+      "petNameRequired": "Pet name is required",
+      "invalidDosage": "Invalid dosage amount",
+      "appointmentConflict": "The selected appointment time is no longer available",
+      "staleVersion": "The record has been modified elsewhere. Please refresh and try again.",
+      "invalidPetId": "Please select a valid pet",
+      "invalidVetId": "Please select a valid veterinarian",
+      "invalidDate": "Please enter a valid date"
+    },
+    "auth": {
+      "invalidResetToken": "Invalid reset token",
+      "resetFailed": "Password reset failed",
+      "registrationFailed": "Registration failed"
     }
   },
   "accessibility": {
@@ -247,6 +271,19 @@
     "usd": "USD",
     "eur": "EUR"
   },
+  "medication": {
+    "count_zero": "No medications",
+    "count_one": "{{count}} medication",
+    "count_other": "{{count}} medications",
+    "dose_unit_mg": "mg",
+    "dose_unit_ml": "ml",
+    "dose_unit_tablet": "tablet",
+    "dose_unit_tablet_plural": "tablets",
+    "dose_unit_capsule": "capsule",
+    "dose_unit_capsule_plural": "capsules",
+    "dose_unit_drop": "drop",
+    "dose_unit_drop_plural": "drops"
+  },
   "validation": {
     "required": "This field is required",
     "invalid": "Invalid format",
@@ -254,7 +291,17 @@
     "tooLong": "Must be no more than {{max}} characters",
     "invalidEmail": "Please enter a valid email address",
     "invalidNumber": "Please enter a valid number",
+    "invalidPhone": "Enter a valid phone number in international format",
     "minValue": "Must be at least {{min}}",
-    "maxValue": "Must be no more than {{max}}"
+    "maxValue": "Must be no more than {{max}}",
+    "passwordMismatch": "Passwords do not match",
+    "password": {
+      "tooShort": "At least 8 characters required",
+      "needsUppercase": "At least one uppercase letter required",
+      "needsLowercase": "At least one lowercase letter required",
+      "needsNumber": "At least one number required",
+      "needsSpecial": "At least one special character required",
+      "reused": "This password was used recently"
+    }
   }
 }

@@ -216,3 +216,42 @@ export function formatDate(date: Date, options?: Intl.DateTimeFormatOptions): st
 export function getPluralForm(count: number): Intl.LDMLPluralRule {
   return new Intl.PluralRules(_currentLanguage).select(count);
 }
+
+/**
+ * Format a medication count using locale-aware plural rules.
+ * Reads from the `medication.count_*` keys in the active locale.
+ */
+export function formatMedicationCount(count: number): string {
+  const locale = _currentLanguage === 'zh' ? 'zh-CN' : _currentLanguage;
+  const rule = new Intl.PluralRules(locale).select(count);
+
+  // Try the locale-specific plural key first, fall back to `count_other`
+  const dict = resources[_currentLanguage] as Record<string, unknown>;
+  const med = (dict?.medication ?? {}) as Record<string, string>;
+
+  const key = `count_${rule}` as keyof typeof med;
+  const template = med[key] ?? med['count_other'] ?? `${count}`;
+  return template.replace('{{count}}', String(count));
+}
+
+/**
+ * Format a dosage unit using locale-aware plural rules.
+ * @param amount  numeric dose amount (used to determine singular/plural)
+ * @param unit    one of: 'mg' | 'ml' | 'tablet' | 'capsule' | 'drop'
+ */
+export function formatDoseUnit(amount: number, unit: 'mg' | 'ml' | 'tablet' | 'capsule' | 'drop'): string {
+  const locale = _currentLanguage === 'zh' ? 'zh-CN' : _currentLanguage;
+  const rule = new Intl.PluralRules(locale).select(amount);
+  const isPlural = rule !== 'one';
+
+  const dict = resources[_currentLanguage] as Record<string, unknown>;
+  const med = (dict?.medication ?? {}) as Record<string, string>;
+
+  // mg and ml don't have plural variants in most languages
+  if (unit === 'mg') return med['dose_unit_mg'] ?? 'mg';
+  if (unit === 'ml') return med['dose_unit_ml'] ?? 'ml';
+
+  const pluralKey = `dose_unit_${unit}_plural`;
+  const singularKey = `dose_unit_${unit}`;
+  return (isPlural ? med[pluralKey] : med[singularKey]) ?? med[singularKey] ?? unit;
+}

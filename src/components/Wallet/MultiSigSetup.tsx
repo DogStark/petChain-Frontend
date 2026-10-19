@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, AlertTriangle, CheckCircle, Eye, EyeOff, Info } from 'lucide-react';
 import type {
   WalletAccount,
@@ -7,6 +7,7 @@ import type {
   BroadcastResult,
   WalletMonitoringData,
 } from '../../types/wallet';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -18,13 +19,9 @@ interface Props {
   onClearError: () => void;
 }
 
-const DEFAULT_CONFIG: MultiSigConfig = {
-  signers: [],
-  masterWeight: 1,
-  lowThreshold: 1,
-  medThreshold: 2,
-  highThreshold: 2,
-};
+const STELLAR_KEY_LENGTH = 56;
+const STELLAR_KEY_PREFIX = 'G';
+const MAX_WEIGHT = 255;
 
 export default function MultiSigSetup({
   wallet,
@@ -45,6 +42,41 @@ export default function MultiSigSetup({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [removePin, setRemovePin] = useState('');
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const [showSetupConfirm, setShowSetupConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
+
+  // Cleanup sensitive state on unmount
+  useEffect(() => {
+    return () => {
+      setPin('');
+      setRemovePin('');
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (pin || removePin) {
+      timeoutId = setTimeout(() => {
+        setPin('');
+        setRemovePin('');
+      }, 5 * 60 * 1000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && (pin || removePin)) {
+        setPin('');
+        setRemovePin('');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pin, removePin]);
 
   if (!wallet) {
     return (
@@ -54,6 +86,26 @@ export default function MultiSigSetup({
 
   const existingSigners =
     accountData?.signers.filter((s) => s.publicKey !== wallet.publicKey) ?? [];
+
+  const validation = useMemo(() => {
+    if (!wallet) return { errors: [], warnings: [] };
+    return validateMultisigConfig(
+      signers,
+      masterWeight,
+      lowThreshold,
+      medThreshold,
+      highThreshold,
+      wallet.publicKey,
+      accountData,
+    );
+  }, [signers, masterWeight, lowThreshold, medThreshold, highThreshold, wallet.publicKey, accountData]);
+
+  const configSummary = useMemo(
+    () => buildConfigSummary(signers, masterWeight, lowThreshold, medThreshold, highThreshold),
+    [signers, masterWeight, lowThreshold, medThreshold, highThreshold],
+  );
+
+  const totalWeight = signers.reduce((sum, s) => sum + (s.weight || 0), 0) + masterWeight;
 
   function addSigner() {
     setSigners((prev) => [...prev, { publicKey: '', weight: 1 }]);
@@ -67,32 +119,38 @@ export default function MultiSigSetup({
     setSigners((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
   }
 
-  function validateSigners(): string | null {
-    if (!wallet) return null;
-    for (const s of signers) {
-      if (!s.publicKey.trim()) return 'All signers must have a public key.';
-      if (!s.publicKey.startsWith('G') || s.publicKey.length !== 56)
-        return `"${s.publicKey.slice(0, 12)}…" is not a valid Stellar public key (must start with G, 56 chars).`;
-      if (s.publicKey === wallet.publicKey)
-        return "Don't add your own key as a co-signer — adjust the master weight instead.";
-      if (s.weight < 0 || s.weight > 255) return 'Signer weight must be between 0 and 255.';
+  function hasKeyError(idx: number): boolean {
+    const pk = signers[idx]?.publicKey;
+    if (!pk) return false;
+    if (!pk.startsWith(STELLAR_KEY_PREFIX) || pk.length !== STELLAR_KEY_LENGTH) return true;
+    if (pk === wallet?.publicKey) return true;
+    const dupCount = signers.filter((s) => s.publicKey.trim() === pk.trim()).length;
+    if (dupCount > 1) return true;
+    if (
+      accountData?.signers.some(
+        (s) => s.publicKey === pk && s.publicKey !== wallet?.publicKey,
+      )
+    )
+      return true;
+    return false;
+  }
+
+  function handleInitiateSetup(e: React.FormEvent) {
+    e.preventDefault();
+    onClearError();
+    const err = validateSigners();
+    if (err) {
+      setResult(null);
+      alert(err);
+      return;
     }
-    if (medThreshold < lowThreshold) return 'Medium threshold must be ≥ low threshold.';
-    if (highThreshold < medThreshold) return 'High threshold must be ≥ medium threshold.';
-    if (!pin) return 'PIN required to sign the setup transaction.';
-    return null;
+    setShowSetupConfirm(true);
   }
 
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
-    const err = validateSigners();
-    if (err) {
-      // Inline error display via hook's setError isn't accessible here, show locally
-      setResult(null);
-      alert(err);
-      return;
-    }
+    setShowSetupConfirm(false);
     try {
       const res = await onSetupMultiSig(pin, {
         signers: signers.filter((s) => s.publicKey.trim()),
@@ -102,26 +160,48 @@ export default function MultiSigSetup({
         highThreshold,
       });
       setResult(res);
+      // Zero sensitive state immediately after success
       setPin('');
     } catch {
-      // error shown via hook
+      // error shown via hook, also zero sensitive state on failure
+      setPin('');
     }
+  }
+
+  function handleInitiateRemoveSigner(signerKey: string) {
+    if (!removePin) return;
+    setShowRemoveConfirm(signerKey);
   }
 
   async function handleRemoveSigner(signerKey: string) {
-    if (!removePin) return;
     setRemovingKey(signerKey);
+    setShowRemoveConfirm(null);
     onClearError();
     try {
       await onRemoveSigner(removePin, signerKey);
+      // Zero sensitive state immediately after success
       setRemovePin('');
       setRemovingKey(null);
     } catch {
+      // error shown via hook, also zero sensitive state on failure
+      setRemovePin('');
       setRemovingKey(null);
     }
   }
 
-  const totalWeight = signers.reduce((sum, s) => sum + (s.weight || 0), 0) + masterWeight;
+  const duplicateWarningFor = (idx: number): string | null => {
+    const pk = signers[idx]?.publicKey?.trim();
+    if (!pk) return null;
+    const dupCount = signers.filter((s) => s.publicKey.trim() === pk).length;
+    if (dupCount > 1) return 'Duplicate key — each signer must be unique.';
+    if (
+      accountData?.signers.some(
+        (s) => s.publicKey === pk && s.publicKey !== wallet?.publicKey,
+      )
+    )
+      return 'This key already exists on-chain as a co-signer.';
+    return null;
+  };
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -165,7 +245,7 @@ export default function MultiSigSetup({
                   w={s.weight}
                 </span>
                 <button
-                  onClick={() => handleRemoveSigner(s.publicKey)}
+                  onClick={() => handleInitiateRemoveSigner(s.publicKey)}
                   disabled={loading || removingKey === s.publicKey}
                   className="text-red-400 hover:text-red-600 flex-shrink-0 disabled:opacity-40"
                   title="Remove signer"
@@ -184,7 +264,13 @@ export default function MultiSigSetup({
                 type="password"
                 value={removePin}
                 onChange={(e) => setRemovePin(e.target.value)}
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
                 placeholder="Your wallet PIN…"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -194,48 +280,83 @@ export default function MultiSigSetup({
 
       {/* Setup Form */}
       <form
-        onSubmit={handleSetup}
+        onSubmit={handleInitiateSetup}
         className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5"
       >
         <h3 className="font-semibold text-gray-900">Configure Multi-Sig</h3>
 
+        {/* Validation Errors */}
+        {validation.errors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+            <p className="font-medium mb-1">Please fix the following:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              {validation.errors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Validation Warnings */}
+        {validation.warnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
+            <p className="font-medium mb-1">Warnings:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              {validation.warnings.map((w: ValidationWarning, i: number) => (
+                <li key={i}>{w.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Co-signers */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">Co-Signers</label>
-          {signers.map((signer, idx) => (
-            <div key={idx} className="flex gap-2 items-start">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={signer.publicKey}
-                  onChange={(e) => updateSigner(idx, 'publicKey', e.target.value.trim())}
-                  placeholder="G... (Stellar public key)"
-                  className={`w-full px-3 py-2 border rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    signer.publicKey &&
-                    (!signer.publicKey.startsWith('G') || signer.publicKey.length !== 56)
-                      ? 'border-red-400'
-                      : 'border-gray-300'
-                  }`}
-                />
+          {signers.map((signer, idx) => {
+            const dupMsg = duplicateWarningFor(idx);
+            return (
+              <div key={idx} className="space-y-1">
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={signer.publicKey}
+                      onChange={(e) => updateSigner(idx, 'publicKey', e.target.value.trim())}
+                      placeholder="G... (Stellar public key)"
+                      aria-invalid={hasKeyError(idx)}
+                      aria-describedby={dupMsg ? `signer-dup-${idx}` : undefined}
+                      className={`w-full px-3 py-2 border rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        hasKeyError(idx) ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  <input
+                    type="number"
+                    value={signer.weight}
+                    min={0}
+                    max={MAX_WEIGHT}
+                    onChange={(e) => updateSigner(idx, 'weight', parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                    title="Weight"
+                    aria-label={`Weight for signer ${idx + 1}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSigner(idx)}
+                    className="p-2 text-gray-400 hover:text-red-500 mt-0.5"
+                    aria-label={`Remove signer ${idx + 1}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                {dupMsg && (
+                  <p id={`signer-dup-${idx}`} className="text-xs text-red-600 pl-1">
+                    {dupMsg}
+                  </p>
+                )}
               </div>
-              <input
-                type="number"
-                value={signer.weight}
-                min={0}
-                max={255}
-                onChange={(e) => updateSigner(idx, 'weight', parseInt(e.target.value) || 0)}
-                className="w-16 px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                title="Weight"
-              />
-              <button
-                type="button"
-                onClick={() => removeSigner(idx)}
-                className="p-2 text-gray-400 hover:text-red-500 mt-0.5"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+            );
+          })}
           <button
             type="button"
             onClick={addSigner}
@@ -253,7 +374,7 @@ export default function MultiSigSetup({
               type="number"
               value={masterWeight}
               min={0}
-              max={255}
+              max={MAX_WEIGHT}
               onChange={(e) => setMasterWeight(parseInt(e.target.value) || 0)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -308,7 +429,13 @@ export default function MultiSigSetup({
               type={showPin ? 'text' : 'password'}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
               placeholder="Enter PIN to sign setup transaction…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
@@ -323,12 +450,70 @@ export default function MultiSigSetup({
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || validation.errors.length > 0 || !pin}
           className="w-full py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
         >
           {loading ? 'Submitting transaction…' : 'Apply Multi-Sig Configuration'}
         </button>
       </form>
+
+      <ConfirmationDialog
+        open={showSetupConfirm}
+        title="Confirm Multi-Sig Configuration"
+        description="You are about to change the multi-signature configuration for this wallet. This will modify the signing requirements on-chain."
+        confirmLabel={loading ? 'Applying...' : 'Apply Configuration'}
+        cancelLabel="Go Back"
+        onConfirm={(e) => handleSetup(e as unknown as React.FormEvent)}
+        onCancel={() => setShowSetupConfirm(false)}
+        loading={loading}
+        variant="warning"
+        details={[
+          {
+            label: 'Co-signers',
+            value: `${signers.filter((s) => s.publicKey.trim()).length} signer(s)`,
+          },
+          { label: 'Master Weight', value: String(masterWeight) },
+          { label: 'Low Threshold', value: String(lowThreshold) },
+          {
+            label: 'Medium Threshold',
+            value: String(medThreshold),
+            highlight: true,
+          },
+          {
+            label: 'High Threshold',
+            value: String(highThreshold),
+            highlight: true,
+          },
+          { label: 'Total Weight', value: String(totalWeight) },
+        ]}
+        riskCues={[
+          'This will change your wallet\'s signing requirements on-chain.',
+          'Existing co-signers will be affected immediately.',
+          'Ensure your signing parties can meet the new thresholds.',
+        ]}
+      />
+
+      <ConfirmationDialog
+        open={showRemoveConfirm !== null}
+        title="Remove Co-Signer"
+        description="You are about to remove a co-signer from this wallet. The removed party will no longer be able to authorize transactions."
+        confirmLabel={loading ? 'Removing...' : 'Remove Signer'}
+        cancelLabel="Go Back"
+        onConfirm={() => showRemoveConfirm && handleRemoveSigner(showRemoveConfirm)}
+        onCancel={() => setShowRemoveConfirm(null)}
+        loading={loading}
+        variant="danger"
+        details={
+          showRemoveConfirm
+            ? [{ label: 'Signer', value: `${showRemoveConfirm.slice(0, 12)}…${showRemoveConfirm.slice(-6)}` }]
+            : []
+        }
+        riskCues={[
+          'This signer will no longer be able to approve transactions.',
+          'The change takes effect immediately on the Stellar network.',
+          'You may need other signers to re-authorize operations.',
+        ]}
+      />
     </div>
   );
 }

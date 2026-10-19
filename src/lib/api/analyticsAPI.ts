@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 async function parseBlobError(error: AxiosError): Promise<never> {
   const data = error.response?.data;
@@ -75,6 +76,8 @@ class AnalyticsAPI {
       baseURL: `${getApiBaseUrl()}/analytics`,
       withCredentials: true,
     });
+
+    attachCorrelationInterceptor(this.api);
 
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');

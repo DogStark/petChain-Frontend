@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Wata-Board",
+    "title": "PetChain",
     "tagline": "Pagos de servicios públicos descentralizados en la blockchain Stellar",
     "description": "Paga tus facturas de servicios públicos usando criptomoneda en la red Stellar",
     "footer": {
@@ -107,8 +107,8 @@
     }
   },
   "about": {
-    "title": "Acerca de Wata-Board",
-    "description": "Wata-Board es una plataforma de pago de servicios públicos descentralizada construida en la blockchain Stellar. Permitimos pagos de facturas de servicios seguros, transparentes y eficientes usando criptomoneda.",
+    "title": "Acerca de PetChain",
+    "description": "PetChain es una plataforma de pago de servicios públicos descentralizada construida en la blockchain Stellar. Permitimos pagos de facturas de servicios seguros, transparentes y eficientes usando criptomoneda.",
     "features": {
       "title": "Características Clave",
       "secure": "Transacciones Seguras",
@@ -151,7 +151,7 @@
   },
   "rate": {
     "title": "Califica Tu Experiencia",
-    "description": "Ayúdanos a mejorar calificando tu experiencia con Wata-Board.",
+    "description": "Ayúdanos a mejorar calificando tu experiencia con PetChain.",
     "rating": {
       "excellent": "Excelente",
       "good": "Bueno",
@@ -161,7 +161,7 @@
     },
     "review": {
       "title": "Escribe una Reseña",
-      "placeholder": "Comparte tu experiencia con Wata-Board...",
+      "placeholder": "Comparte tu experiencia con PetChain...",
       "submit": "Enviar Reseña",
       "thankYou": "¡Gracias por tu retroalimentación!"
     }
@@ -246,6 +246,19 @@
     "xlm": "XLM",
     "usd": "USD",
     "eur": "EUR"
+  },
+  "medication": {
+    "count_zero": "Sin medicamentos",
+    "count_one": "{{count}} medicamento",
+    "count_other": "{{count}} medicamentos",
+    "dose_unit_mg": "mg",
+    "dose_unit_ml": "ml",
+    "dose_unit_tablet": "comprimido",
+    "dose_unit_tablet_plural": "comprimidos",
+    "dose_unit_capsule": "cápsula",
+    "dose_unit_capsule_plural": "cápsulas",
+    "dose_unit_drop": "gota",
+    "dose_unit_drop_plural": "gotas"
   },
   "validation": {
     "required": "Este campo es requerido",

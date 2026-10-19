@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
+import { Injectable, NestMiddleware, ForbiddenException } from 'nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { FilePermissionService } from '../services/file-permission.service';
 
@@ -11,6 +11,7 @@ import { FilePermissionService } from '../services/file-permission.service';
  * - Explicit permission grants
  * - Share token validity
  * - Permission expiration
+ * - Pet ownership (when a petId is provided in the request)
  */
 @Injectable()
 export class FileAccessMiddleware implements NestMiddleware {
@@ -20,6 +21,10 @@ export class FileAccessMiddleware implements NestMiddleware {
     // Extract file ID from route
     const rawFileId = req.params.id;
     const fileId = Array.isArray(rawFileId) ? rawFileId[0] : rawFileId;
+
+    // Extract pet ID from route (optional, but required for pet-scoped operations)
+    const rawPetId = req.params.petId;
+    const petId = Array.isArray(rawPetId) ? rawPetId[0] : rawPetId;
 
     // Skip middleware for share link access
     if (req.path.includes('/access/')) {
@@ -38,19 +43,22 @@ export class FileAccessMiddleware implements NestMiddleware {
         throw new ForbiddenException('Authentication required');
       }
 
-      // Check if user has access to file
+      // Check if user has access to file and, if pet-scoped, that the file
+      // belongs to the specified pet. This prevents cross-pet and cross-owner mutations.
       const hasAccess = await this.filePermissionService.canAccessFile(
         fileId,
         userId,
+        petId,
       );
 
-      if (!hasAccess) {
+      if (!hasCcess) {
         throw new ForbiddenException('Access to file denied');
       }
 
       // Attach file access info to request for later use
       (req as any).fileAccess = {
         fileId,
+        petId,
         userId,
         timestamp: new Date(),
       };

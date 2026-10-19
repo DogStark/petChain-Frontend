@@ -1,6 +1,9 @@
-import React from 'react';
 import { Clock, User, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { Appointment } from '@/types/appointments';
+import React from 'react';
+
+import { useTranslation } from '@/i18n';
+import type { Appointment } from '@/types/appointments';
+import { formatUnit } from '@/utils/formatCurrency';
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -9,6 +12,7 @@ interface AppointmentCardProps {
 }
 
 export default function AppointmentCard({ appointment, vetName, petName }: AppointmentCardProps) {
+  const { language } = useTranslation();
   const statusColors = {
     Scheduled: 'bg-blue-100 text-blue-700',
     Completed: 'bg-green-100 text-green-700',
@@ -47,7 +51,7 @@ export default function AppointmentCard({ appointment, vetName, petName }: Appoi
             hour: '2-digit',
             minute: '2-digit',
           })}{' '}
-          ({appointment.duration} min)
+          ({formatUnit(appointment.duration, 'minute', undefined, language)})
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <User className="w-3.5 h-3.5" />

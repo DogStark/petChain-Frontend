@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
+import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 export enum SurgeryStatus {
   SCHEDULED = 'scheduled',
@@ -75,6 +76,8 @@ class SurgeryAPI {
       };
       return config;
     });
+
+    attachCorrelationInterceptor(this.api);
   }
 
   async create(data: CreateSurgeryDto, photos?: File[]): Promise<Surgery> {

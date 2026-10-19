@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditService } from './audit/audit.service';
@@ -74,6 +77,23 @@ async function bootstrap() {
   // ── Global API prefix ──────────────────────────────────────────────────────
   const apiPrefix = configService.get<string>('app.apiPrefix') || 'api/v1';
   app.setGlobalPrefix(apiPrefix);
+
+  // ── Swagger / OpenAPI ─────────────────────────────────────────────────────
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('PetChain API')
+    .setDescription('PetChain backend API — endpoints used by the frontend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+
+  // Write the schema to disk when GENERATE_SCHEMA is set (used by CI / drift check)
+  if (process.env.GENERATE_SCHEMA) {
+    const outPath = join(process.cwd(), 'openapi.json');
+    writeFileSync(outPath, JSON.stringify(document, null, 2));
+    console.log(`📄 OpenAPI schema written to ${outPath}`);
+  }
 
   const port = configService.get<number>('app.port') || 3000;
   const server = await app.listen(port);

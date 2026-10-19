@@ -3,6 +3,22 @@
 **Date**: 2024
 **Status**: ✅ Build Verified & Standardized
 
+## Current Feature Status (Updated)
+
+The sections below reflect the currently implemented feature surface. As of the latest `main`, the following are implemented and covered by tests and CI:
+
+- **Authentication & accounts** - login, registration, password reset, email/account verification, two-factor auth, session management, and profile settings.
+- **Medical records** - pet profiles, vaccinations, appointments, surgeries, dental records, and lab results (with units and reference-range provenance).
+- **Stellar wallet** - wallet setup, backup, recovery, signing, pending transactions, multi-signature setup, and balance tracking (`/wallet`, `/transactions`).
+- **Clinics & map** - clinic directory, geolocation, and interactive location map with loading/failure/no-geolocation states.
+- **Analytics & admin** - engagement, pet, vaccination-compliance, API-usage, geographic, and financial dashboards (`/analytics`) plus admin security, SMS, and reports (`/admin/*`).
+- **Notifications** - in-app, push, and security-alert notifications with a paginated notification center.
+- **Offline & PWA** - offline caching (IndexedDB), background sync, service-worker registration, and install/update prompts.
+- **Privacy & GDPR** - consent management, data-deletion requests, ZKP-based on-chain privacy, and a data-classification policy (`docs/data-classification.md`).
+- **Localization** - ten locales under `src/i18n/locales`.
+
+The "Next Steps" list further below documents remaining improvements; items already shipped were removed from that list.
+
 ## Summary
 
 The PetChain Frontend repository has been cleaned, standardized, and verified to build successfully. All code quality checks pass, and the codebase follows consistent patterns.
@@ -148,9 +164,9 @@ The PetChain Frontend repository has been cleaned, standardized, and verified to
    - Optimize images and assets
 
 6. **Features**
-   - Implement authentication
-   - Add Stellar blockchain integration
-   - Create medical records management
+   - Add IPFS / additional storage providers
+   - Extend analytics with drill-down reports
+   - Expand offline-first sync for more record types
 
 ## Development Workflow
 

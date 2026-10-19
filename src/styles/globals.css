@@ -176,6 +176,32 @@ body {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+  /* Accessibility: skip link, hidden until keyboard-focused */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0.5rem;
+    z-index: 100;
+    background: #ffffff;
+    color: #1d4ed8;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    transition: top 0.15s ease-in-out;
+  }
+  .skip-link:focus {
+    top: 0.5rem;
+  }
+
+  /* Accessibility: ensure compact interactive controls meet a 44x44 touch target */
+  .touch-target {
+    position: relative;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   /* Skeleton shimmer */
   .skeleton-shimmer {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -192,4 +218,28 @@ body {
   /* Aspect ratio helpers */
   .aspect-hero { aspect-ratio: 1 / 1; }
   .aspect-card { aspect-ratio: 16 / 10; }
+
+  /*
+   * Force left-to-right rendering for values that must never mirror inside
+   * an RTL page (wallet addresses, transaction hashes, emails, phone
+   * numbers). Use `unicode-bidi: isolate` (not `-plaintext`) so the
+   * identifier is direction-isolated but still positioned correctly by its
+   * bidi-neutral surroundings.
+   */
+  .ltr-embed {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  /* Mirror purely directional icons (chevrons/arrows that imply
+   * next/previous or forward/back) when the page is RTL. Do not apply to
+   * icons with fixed real-world meaning (e.g. play, external-link). */
+  [dir='rtl'] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+/* Logo/brand marquee should scroll toward the reading start in RTL too. */
+[dir='rtl'] .animate-marquee {
+  animation-direction: reverse;
 }

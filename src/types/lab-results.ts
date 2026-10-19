@@ -10,6 +10,9 @@ export interface ReferenceRange {
   min: number;
   max: number;
   unit: string;
+  sourceLab?: string;
+  methodology?: string;
+  notes?: string;
 }
 
 export interface LabResultItem {
@@ -20,6 +23,8 @@ export interface LabResultItem {
   date: string; // ISO string
   referenceRange?: ReferenceRange;
   isAbnormal?: boolean;
+  sourceLab?: string;
+  notes?: string;
 }
 
 export interface LabReport {

@@ -119,6 +119,8 @@ export interface NotificationPreferences {
   doNotDisturb: boolean;
   dndStart: string; // "HH:MM"
   dndEnd: string; // "HH:MM"
+  /** IANA timezone (e.g. "America/New_York") used to evaluate DND quiet hours. */
+  timezone: string;
   // Category toggles
   categories: Record<NotificationCategory, boolean>;
 }
@@ -130,6 +132,7 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   doNotDisturb: false,
   dndStart: '22:00',
   dndEnd: '08:00',
+  timezone: 'UTC',
   categories: {
     APPOINTMENT: true,
     MEDICATION: true,

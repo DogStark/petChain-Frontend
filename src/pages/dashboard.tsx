@@ -1,12 +1,15 @@
-import { GetServerSideProps } from 'next';
+import type { GetServerSideProps } from 'next';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useAuth, type User } from '@/contexts/AuthContext';
+
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { SkeletonAvatar, SkeletonLine } from '@/components/Skeleton';
-import Link from 'next/link';
+import { useAuth, type User } from '@/contexts/AuthContext';
+import { useTranslation } from '@/i18n';
+import { medicalRecordsAPI } from '@/lib/api/medicalRecordsAPI';
 import { petAPI } from '@/lib/api/petAPI';
 import { userAPI } from '@/lib/api/userAPI';
-import { medicalRecordsAPI } from '@/lib/api/medicalRecordsAPI';
+import { formatNumber } from '@/utils/formatCurrency';
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
@@ -51,6 +54,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent({ user }: { user: User }) {
+  const { language } = useTranslation();
   const [petCount, setPetCount] = useState<number | null>(null);
   const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
@@ -109,7 +113,9 @@ function DashboardContent({ user }: { user: User }) {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">My Pets</dt>
-                  <dd className="text-lg font-medium text-gray-900">{petCount ?? '—'}</dd>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {petCount === null ? '—' : formatNumber(petCount, undefined, language)}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -135,7 +141,9 @@ function DashboardContent({ user }: { user: User }) {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Medical Records</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {medicalRecordCount ?? '—'}
+                    {medicalRecordCount === null
+                      ? '—'
+                      : formatNumber(medicalRecordCount, undefined, language)}
                   </dd>
                 </dl>
               </div>
@@ -161,7 +169,9 @@ function DashboardContent({ user }: { user: User }) {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Active Sessions</dt>
-                  <dd className="text-lg font-medium text-gray-900">{sessionCount ?? '—'}</dd>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {sessionCount === null ? '—' : formatNumber(sessionCount, undefined, language)}
+                  </dd>
                 </dl>
               </div>
             </div>

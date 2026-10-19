@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { surgeryAPI, Surgery, CreateSurgeryDto } from '../lib/api/surgeryAPI';
+import { petAPI } from '../lib/api/petAPI';
 import { SurgeryForm } from '../components/Surgery/SurgeryForm';
 import { SurgeryList } from '../components/Surgery/SurgeryList';
 import styles from '../styles/pages/SurgeriesPage.module.css';
@@ -15,10 +16,12 @@ export default function SurgeriesPage() {
   const [selectedSurgery, setSelectedSurgery] = useState<Surgery | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [petDateOfBirth, setPetDateOfBirth] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (petId) {
       loadSurgeries();
+      loadPetDateOfBirth();
     }
   }, [petId]);
 
@@ -30,6 +33,15 @@ export default function SurgeriesPage() {
       console.error('Failed to load surgeries:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPetDateOfBirth = async () => {
+    try {
+      const pet = await petAPI.getPet(petId as string);
+      setPetDateOfBirth(pet.dateOfBirth);
+    } catch {
+      // Pet data unavailable — birth date ordering validation will be skipped
     }
   };
 
@@ -66,6 +78,7 @@ export default function SurgeriesPage() {
       {showForm && (
         <SurgeryForm
           petId={petId as string}
+          petDateOfBirth={petDateOfBirth}
           onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
         />
@@ -75,6 +88,7 @@ export default function SurgeriesPage() {
         <SurgeryForm
           surgery={selectedSurgery}
           petId={petId as string}
+          petDateOfBirth={petDateOfBirth}
           onSubmit={handleUpdate}
           onCancel={() => setSelectedSurgery(null)}
         />

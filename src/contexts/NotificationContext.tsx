@@ -17,6 +17,7 @@ import {
 import { notificationsAPI } from '@/lib/api/notificationsAPI';
 import { notificationService } from '@/services/notificationService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDeviceTimezone, isInDndWindow } from '@/utils/dndSchedule';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ interface NotificationState {
   isCenterOpen: boolean;
   activeFilter: NotificationCategory | 'ALL';
   isLoading: boolean;
+  error: string | null;
 }
 
 type Action =
@@ -47,7 +49,8 @@ type Action =
   | { type: 'SET_CONNECTED'; value: boolean }
   | { type: 'TOGGLE_CENTER' }
   | { type: 'SET_FILTER'; filter: NotificationCategory | 'ALL' }
-  | { type: 'SET_LOADING'; value: boolean };
+  | { type: 'SET_LOADING'; value: boolean }
+  | { type: 'SET_ERROR'; message: string | null };
 
 function reducer(state: NotificationState, action: Action): NotificationState {
   switch (action.type) {
@@ -91,11 +94,19 @@ function reducer(state: NotificationState, action: Action): NotificationState {
     case 'SET_CONNECTED':
       return { ...state, isConnected: action.value };
     case 'TOGGLE_CENTER':
-      return { ...state, isCenterOpen: !state.isCenterOpen };
+      // Closing clears the advisory error. Only the mount fetch ever sets it,
+      // so one transient failure would otherwise pin the banner for the session.
+      return {
+        ...state,
+        isCenterOpen: !state.isCenterOpen,
+        error: state.isCenterOpen ? null : state.error,
+      };
     case 'SET_FILTER':
       return { ...state, activeFilter: action.filter };
     case 'SET_LOADING':
       return { ...state, isLoading: action.value };
+    case 'SET_ERROR':
+      return { ...state, error: action.message };
     default:
       return state;
   }
@@ -103,6 +114,14 @@ function reducer(state: NotificationState, action: Action): NotificationState {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
+/**
+ * Value published by `NotificationProvider` and read through `useNotifications()`.
+ *
+ * `error` holds the message for the last failed notification fetch, or `null`
+ * when the most recent fetch succeeded or the center was closed. It is advisory
+ * only: the offline-first localStorage cache is still served while an error is
+ * set, so consumers must render it beside cached data rather than instead of it.
+ */
 interface NotificationContextType extends NotificationState {
   toast: (n: Omit<ToastNotification, 'id'>) => void;
   dismissToast: (id: string) => void;
@@ -135,9 +154,17 @@ function loadPrefs(): NotificationPreferences {
   if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) } : DEFAULT_PREFERENCES;
+    if (!raw) return { ...DEFAULT_PREFERENCES, timezone: getDeviceTimezone() };
+    const parsed = JSON.parse(raw) as Partial<NotificationPreferences>;
+    // Legacy prefs (saved before the timezone field existed) have no
+    // timezone; default to the device zone so quiet hours stay sensible.
+    const timezone =
+      typeof parsed.timezone === 'string' && parsed.timezone.trim()
+        ? parsed.timezone
+        : getDeviceTimezone();
+    return { ...DEFAULT_PREFERENCES, ...parsed, timezone };
   } catch {
-    return DEFAULT_PREFERENCES;
+    return { ...DEFAULT_PREFERENCES, timezone: getDeviceTimezone() };
   }
 }
 
@@ -167,17 +194,6 @@ function persistNotifications(ns: AppNotification[]) {
   }
 }
 
-function isDND(prefs: NotificationPreferences): boolean {
-  if (!prefs.doNotDisturb) return false;
-  const now = new Date();
-  const [sh, sm] = prefs.dndStart.split(':').map(Number);
-  const [eh, em] = prefs.dndEnd.split(':').map(Number);
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const start = sh * 60 + sm;
-  const end = eh * 60 + em;
-  return start <= end ? cur >= start && cur < end : cur >= start || cur < end;
-}
-
 let toastCounter = 0;
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -202,6 +218,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     isCenterOpen: false,
     activeFilter: 'ALL',
     isLoading: false,
+    error: null,
   });
 
   // Keep a ref in sync with the latest preferences so callbacks with stable
@@ -242,10 +259,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }));
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
+        dispatch({ type: 'SET_ERROR', message: null });
         persistNotifications(ns);
       })
       .catch(() => {
-        /* use cached */
+        // Cached notifications stay on screen; the error is surfaced beside them.
+        dispatch({ type: 'SET_ERROR', message: 'Could not load the latest notifications.' });
       })
       .finally(() => dispatch({ type: 'SET_LOADING', value: false }));
 
@@ -382,8 +401,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const current = loadPersisted();
     persistNotifications([notif, ...current]);
 
-    // DND check — skip sound/vibration/toast if in DND (unless urgent)
-    const inDND = isDND(prefs) && notif.priority !== 'urgent';
+    // DND check — skip sound/vibration/toast if in DND (unless urgent).
+    // Evaluated in the user's chosen IANA timezone so quiet hours stay
+    // correct across travel and DST transitions (issue #870).
+    const inDND = isInDndWindow(prefs) && notif.priority !== 'urgent';
 
     if (!inDND) {
       // Toast

@@ -41,18 +41,7 @@
 }
 
 .petAvatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
   border: 3px solid #e2e8f0;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  font-size: 32px;
-  flex-shrink: 0;
 }
 
 .petInfo h1 {

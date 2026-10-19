@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AccountSettings.module.css';
 import { ActivityLog } from '../../lib/api/userAPI';
+import Dialog from '@/components/ui/Dialog';
 import { formatDate, formatDateTime } from '../../utils/formatDate';
 
 interface Session {
@@ -355,6 +356,32 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
       </div>
 
       {/* Deactivate Modal */}
+      <Dialog
+        isOpen={showDeactivateModal}
+        onClose={() => setShowDeactivateModal(false)}
+        titleId="deactivate-modal-title"
+        className={styles.modalContent}
+      >
+        <h3 id="deactivate-modal-title">Deactivate Account?</h3>
+        <p>
+          Your account will be temporarily disabled. You can reactivate it anytime by
+          logging in again.
+        </p>
+        <div className={styles.modalActions}>
+          <button
+            className={styles.cancelBtn}
+            onClick={() => setShowDeactivateModal(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            className={styles.confirmDangerBtn}
+            onClick={handleDeactivate}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Deactivating...' : 'Deactivate'}
+          </button>
       {showDeactivateModal && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
@@ -412,9 +439,55 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
             </div>
           </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Delete Modal */}
+      <Dialog
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteConfirmation('');
+        }}
+        titleId="delete-modal-title"
+        className={styles.modalContent}
+      >
+        <h3 id="delete-modal-title">Delete Account Permanently?</h3>
+        <p>
+          This action cannot be undone. All your data will be permanently deleted
+          after 30 days. You will not be able to log in anymore.
+        </p>
+        <p className={styles.warning}>
+          Type "delete my account" below to confirm:
+        </p>
+        <input
+          type="text"
+          className={styles.confirmInput}
+          placeholder="Type 'delete my account' to confirm"
+          value={deleteConfirmation}
+          onChange={(e) => setDeleteConfirmation(e.target.value)}
+          disabled={isSubmitting}
+        />
+        <div className={styles.modalActions}>
+          <button
+            className={styles.cancelBtn}
+            onClick={() => {
+              setShowDeleteModal(false);
+              setDeleteConfirmation('');
+            }}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            className={styles.deleteConfirmBtn}
+            onClick={handleDelete}
+            disabled={
+              isSubmitting ||
+              deleteConfirmation.toLowerCase() !== 'delete my account'
+            }
+          >
+            {isSubmitting ? 'Deleting...' : 'Delete Permanently'}
+          </button>
       {showDeleteModal && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
@@ -482,7 +555,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
             </div>
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 };

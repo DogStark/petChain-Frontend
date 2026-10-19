@@ -19,22 +19,28 @@ export default function NavSearch({ onClose, autoFocus }: NavSearchProps) {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  const requestIdRef = useRef(0);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchSuggestions = useCallback(
     debounce(async (q: unknown) => {
       const query = q as string;
       if (query.length < 2) {
+        requestIdRef.current += 1;
         setSuggestions([]);
         return;
       }
+      const requestId = ++requestIdRef.current;
       try {
         const res = await fetch(
           `/api/v1/search/autocomplete?query=${encodeURIComponent(query)}&type=global`
         );
         const data = await res.json();
+        // Ignore this response if a newer request has since been issued.
+        if (requestId !== requestIdRef.current) return;
         setSuggestions(data.suggestions?.slice(0, 5) ?? []);
       } catch {
-        setSuggestions([]);
+        if (requestId === requestIdRef.current) setSuggestions([]);
       }
     }, 300),
     []
