@@ -210,3 +210,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-984 -->
 - #984: [Frontend] Add a non-map accessible alternative to clinic search results
+
+<!-- handsoff-issue-1110 -->
+- #1110: [Frontend] Add an alert triage view for overdue care tasks
