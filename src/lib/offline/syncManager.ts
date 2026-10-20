@@ -15,17 +15,20 @@
  *  - Cleanup: dead-letter items older than DEAD_LETTER_TTL_MS are pruned on
  *    every processQueue run.
  *
- * Conflict resolution strategy (unchanged from original):
- *  - For medical records: last-write-wins based on timestamp.
- *  - For appointments: server version wins.
- *  - For general data: merge keeping latest values.
+ * Conflicts are retained with local and server snapshots so the user can
+ * compare and explicitly resolve them.
  */
 
 import {
+  getSyncConflict,
+  getUnresolvedSyncConflicts,
   getPendingSyncActions,
   removeSyncAction,
+  removeSyncConflict,
   incrementRetry,
-  SyncQueueItem,
+  storeSyncConflict,
+  type SyncConflictSnapshot,
+  type SyncQueueItem,
 } from './indexedDB';
 
 const SYNC_API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -207,68 +210,129 @@ class SyncManager {
    *    dead-letter store instead of being silently dropped.
    *  - Emits 'dead-letter' status when any items were dead-lettered.
    */
-  async processQueue(): Promise<{ synced: number; failed: number; conflicts: number }> {
+  async processQueue(
+    ownerId?: string,
+    accessToken?: string,
+  ): Promise<{ synced: number; failed: number; conflicts: number }> {
     if (this.isSyncing) return { synced: 0, failed: 0, conflicts: 0 };
     this.isSyncing = true;
     this.notify('syncing');
 
-    // Prune stale dead-letter items first
-    this.pruneExpiredDeadLetterItems();
+    try {
+      this.pruneExpiredDeadLetterItems();
 
-    const pending = await getPendingSyncActions();
-    let synced = 0;
-    let failed = 0;
-    let conflicts = 0;
-    let deadLettered = 0;
-
-    // Process in batches to avoid overwhelming the server
-    const batches: SyncQueueItem[][] = [];
-    for (let i = 0; i < pending.length; i += this.config.maxConcurrent) {
-      batches.push(pending.slice(i, i + this.config.maxConcurrent));
-    }
-
-    for (const batch of batches) {
-      const results = await Promise.allSettled(
-        batch.map((item) => this.executeSync(item))
+      const unresolvedBeforeSync = (await getUnresolvedSyncConflicts()).filter(
+        (conflict) => ownerId == null || conflict.ownerId === ownerId,
       );
+      const unresolvedIds = new Set(
+        unresolvedBeforeSync.map((conflict) => conflict.conflictId),
+      );
+      const pending = (await getPendingSyncActions()).filter(
+        (item) =>
+          (ownerId == null || item.ownerId == null || item.ownerId === ownerId) &&
+          !unresolvedIds.has(String(item.id ?? item.idempotencyKey)),
+      );
+      let synced = 0;
+      let failed = 0;
+      let deadLettered = 0;
 
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status === 'fulfilled') {
-          if (result.value.outcome === 'synced') synced++;
-          else if (result.value.outcome === 'conflict') conflicts++;
-          else if (result.value.outcome === 'dead-letter') deadLettered++;
-          else failed++;
-        } else {
-          failed++;
+      const batches: SyncQueueItem[][] = [];
+      for (let i = 0; i < pending.length; i += this.config.maxConcurrent) {
+        batches.push(pending.slice(i, i + this.config.maxConcurrent));
+      }
+
+      for (const batch of batches) {
+        const results = await Promise.allSettled(
+          batch.map((item) => this.executeSync(item, ownerId, accessToken)),
+        );
+
+        for (const result of results) {
+          if (result.status === 'rejected') {
+            failed++;
+          } else if (result.value.outcome === 'synced') {
+            synced++;
+          } else if (result.value.outcome === 'dead-letter') {
+            deadLettered++;
+          } else if (result.value.outcome === 'failed') {
+            failed++;
+          }
         }
       }
-    }
 
-    this.isSyncing = false;
-
-    if (deadLettered > 0) {
-      this.notify(
-        'dead-letter',
-        `${deadLettered} item(s) exhausted retries and moved to dead-letter store`
+      const unresolvedConflicts = (await getUnresolvedSyncConflicts()).filter(
+        (conflict) => ownerId == null || conflict.ownerId === ownerId,
       );
-    } else if (conflicts > 0) {
-      this.notify('conflict', `${conflicts} item(s) have conflicts`);
-    } else if (failed > 0) {
-      this.notify('error', `${failed} item(s) failed to sync`);
-    } else if (synced > 0) {
-      this.notify('success', `${synced} item(s) synced successfully`);
-    } else {
-      this.notify('idle');
+      const conflicts = unresolvedConflicts.length;
+
+      if (deadLettered > 0) {
+        this.notify(
+          'dead-letter',
+          `${deadLettered} item(s) exhausted retries and moved to dead-letter store`,
+        );
+      } else if (conflicts > 0) {
+        this.notify('conflict', `${conflicts} unresolved conflict(s)`);
+      } else if (failed > 0) {
+        this.notify('error', `${failed} item(s) failed to sync`);
+      } else if (synced > 0) {
+        this.notify('success', `${synced} item(s) synced successfully`);
+      } else {
+        this.notify('idle');
+      }
+
+      return { synced, failed, conflicts };
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  async getUnresolvedConflicts(): Promise<SyncConflictSnapshot[]> {
+    return getUnresolvedSyncConflicts();
+  }
+
+  async getConflict(conflictId: string): Promise<SyncConflictSnapshot | null> {
+    return getSyncConflict(conflictId);
+  }
+
+  async resolveConflict(
+    conflictId: string,
+    resolvedData: Record<string, unknown>,
+    ownerId?: string,
+    accessToken?: string,
+  ): Promise<void> {
+    const conflict = await getSyncConflict(conflictId);
+    if (!conflict || (ownerId != null && conflict.ownerId !== ownerId)) {
+      throw new Error('This conflict is no longer available.');
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('Connect to the internet before resolving this conflict.');
     }
 
-    return { synced, failed, conflicts };
+    const response = await fetch(`${SYNC_API_BASE}${conflict.endpoint}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': `${conflict.idempotencyKey}-resolved`,
+        'X-Conflict-Resolution': 'true',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(resolvedData),
+    });
+    if (!response.ok) {
+      throw new Error(`The server did not accept this resolution (HTTP ${response.status}).`);
+    }
+
+    if (conflict.queueItemId !== undefined) {
+      await removeSyncAction(conflict.queueItemId);
+    }
+    await removeSyncConflict(conflictId);
+    this.notify('success', 'Conflict resolved');
   }
 
   // ─── executeSync ─────────────────────────────────────────────────────────
 
   /**
-   * Execute a single sync action with conflict resolution.
+   * Execute a single sync action and retain any server conflict for review.
    *
    * Changes from original (#866):
    *  - Items at maxRetries are dead-lettered rather than silently removed.
@@ -277,7 +341,9 @@ class SyncManager {
    *    (the caller will pick up the updated retryCount on the next run).
    */
   private async executeSync(
-    item: SyncQueueItem
+    item: SyncQueueItem,
+    ownerId?: string,
+    accessToken?: string,
   ): Promise<{ outcome: 'synced' | 'conflict' | 'failed' | 'dead-letter' }> {
     const { id, action, endpoint, payload, idempotencyKey, maxRetries, retryCount } = item;
 
@@ -296,10 +362,12 @@ class SyncManager {
       const url = `${SYNC_API_BASE}${endpoint}`;
       const response = await fetch(url, {
         method: action === 'delete' ? 'DELETE' : action === 'create' ? 'POST' : 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,
           'X-Sync-Mode': 'offline',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: action !== 'delete' ? JSON.stringify(payload) : undefined,
       });
@@ -311,27 +379,27 @@ class SyncManager {
 
       // Handle conflict (409)
       if (response.status === 409) {
-        const serverData = await response.json().catch(() => ({}));
-        const resolved = await this.resolveConflict(item, serverData);
-
-        if (resolved) {
-          const resolveResponse = await fetch(url, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Idempotency-Key': `${idempotencyKey}-resolved`,
-              'X-Conflict-Resolution': 'true',
-            },
-            body: JSON.stringify(resolved),
-          });
-
-          if (resolveResponse.ok) {
-            if (id !== undefined) await removeSyncAction(id);
-            return { outcome: 'conflict' };
+        const responseText = await response.text();
+        let responseBody: unknown = {};
+        if (responseText) {
+          try {
+            responseBody = JSON.parse(responseText);
+          } catch {
+            responseBody = {};
           }
         }
-
-        if (id !== undefined) await incrementRetry(id);
+        const serverData = this.extractServerData(responseBody);
+        const conflictId = String(id ?? idempotencyKey);
+        await storeSyncConflict({
+          conflictId,
+          ownerId: item.ownerId ?? ownerId,
+          queueItemId: id,
+          endpoint,
+          idempotencyKey,
+          localData: this.asRecord(payload),
+          serverData,
+          createdAt: Date.now(),
+        });
         return { outcome: 'conflict' };
       }
 
@@ -345,42 +413,22 @@ class SyncManager {
     }
   }
 
-  // ─── Conflict resolution ─────────────────────────────────────────────────
-
-  /**
-   * Conflict resolution strategy (unchanged from original):
-   * - For appointments: server version wins.
-   * - For medical records: last-write-wins based on timestamp.
-   * - For general data: merge with server data keeping latest values.
-   */
-  private async resolveConflict(
-    localItem: SyncQueueItem,
-    serverData: Record<string, unknown>
-  ): Promise<Record<string, unknown> | null> {
-    const localPayload = localItem.payload as Record<string, unknown>;
-
-    if (!localPayload || !serverData) return null;
-
-    if (localItem.endpoint.includes('appointment')) {
-      return null; // Server data takes precedence
+  private asRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
     }
+    return {};
+  }
 
-    const localTimestamp = (
-      localPayload.updatedAt || localPayload.createdAt || localItem.createdAt
-    ) as number;
-    const serverTimestamp = (serverData.updatedAt || serverData.createdAt || 0) as number;
-
-    if (localTimestamp >= serverTimestamp) {
-      return { ...localPayload, conflictResolvedAt: Date.now() } as Record<string, unknown>;
-    }
-
-    const merged = { ...serverData };
-    for (const [key, value] of Object.entries(localPayload)) {
-      if (!(key in serverData) || key.startsWith('local_')) {
-        merged[key] = value;
+  private extractServerData(value: unknown): Record<string, unknown> {
+    const body = this.asRecord(value);
+    for (const key of ['serverData', 'current', 'currentVersion', 'currentData', 'data']) {
+      const candidate = body[key];
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+        return candidate as Record<string, unknown>;
       }
     }
-    return merged as Record<string, unknown>;
+    return body;
   }
 }
 

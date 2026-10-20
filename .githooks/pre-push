@@ -3,8 +3,8 @@
 # Pre-push hook: prevent pushing orphan branches with disconnected history
 # and verify every commit is authored by the expected GitHub account.
 
-EXPECTED_NAME="Victoro001-tech"
-EXPECTED_EMAIL="318625348+Victoro001-tech@users.noreply.github.com"
+EXPECTED_NAME="FairBid"
+EXPECTED_EMAIL="fairbid01@gmail.com"
 
 remote="$1"
 url="$2"

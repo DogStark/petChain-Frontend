@@ -13,7 +13,7 @@
 import { isQuotaExceededError, reportStorageEvent } from './storageManager';
 
 const DB_NAME = 'petchain-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 /** How many entries to evict per recovery pass (oldest first). */
 const EVICTION_BATCH = 20;
@@ -27,6 +27,7 @@ export interface OfflineCacheEntry<T = unknown> {
 
 export interface SyncQueueItem {
   id?: number;
+  ownerId?: string;
   action: 'create' | 'update' | 'delete';
   endpoint: string;
   payload: unknown;
@@ -34,6 +35,17 @@ export interface SyncQueueItem {
   retryCount: number;
   maxRetries: number;
   idempotencyKey: string;
+}
+
+export interface SyncConflictSnapshot {
+  conflictId: string;
+  ownerId?: string;
+  queueItemId?: number;
+  endpoint: string;
+  idempotencyKey: string;
+  localData: Record<string, unknown>;
+  serverData: Record<string, unknown>;
+  createdAt: number;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -55,6 +67,10 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('records')) {
         const recordsStore = db.createObjectStore('records', { keyPath: 'key' });
         recordsStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('syncConflicts')) {
+        const conflictsStore = db.createObjectStore('syncConflicts', { keyPath: 'conflictId' });
+        conflictsStore.createIndex('createdAt', 'createdAt', { unique: false });
       }
     };
     request.onsuccess = (event) => resolve((event.target as IDBOpenDBRequest).result);
@@ -242,14 +258,24 @@ export async function enqueueSyncAction(
   endpoint: string,
   payload: unknown,
   idempotencyKey: string,
-  maxRetries = 3
+  maxRetries = 3,
+  ownerId?: string,
 ): Promise<number> {
   const write = async (): Promise<number> => {
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('syncQueue', 'readwrite');
       const store = tx.objectStore('syncQueue');
-      const item: Omit<SyncQueueItem, 'id'> = { action, endpoint, payload, createdAt: Date.now(), retryCount: 0, maxRetries, idempotencyKey };
+      const item: Omit<SyncQueueItem, 'id'> = {
+        action,
+        endpoint,
+        payload,
+        createdAt: Date.now(),
+        retryCount: 0,
+        maxRetries,
+        idempotencyKey,
+        ...(ownerId ? { ownerId } : {}),
+      };
       const request = store.add(item);
       request.onsuccess = () => resolve(request.result as number);
       request.onerror = () => reject(request.error);
@@ -271,6 +297,72 @@ export async function getPendingSyncActions(): Promise<SyncQueueItem[]> {
     const request = index.getAll();
     request.onsuccess = () => { db.close(); resolve(request.result as SyncQueueItem[]); };
     request.onerror = () => reject(request.error);
+  });
+}
+
+export async function storeSyncConflict(conflict: SyncConflictSnapshot): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('syncConflicts', 'readwrite');
+    const request = tx.objectStore('syncConflicts').put(conflict);
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+export async function getUnresolvedSyncConflicts(): Promise<SyncConflictSnapshot[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('syncConflicts', 'readonly');
+    const request = tx.objectStore('syncConflicts').index('createdAt').getAll();
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result as SyncConflictSnapshot[]);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getSyncConflict(conflictId: string): Promise<SyncConflictSnapshot | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('syncConflicts', 'readonly');
+    const request = tx.objectStore('syncConflicts').get(conflictId);
+    request.onsuccess = () => {
+      db.close();
+      resolve((request.result as SyncConflictSnapshot | undefined) ?? null);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function removeSyncConflict(conflictId: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('syncConflicts', 'readwrite');
+    tx.objectStore('syncConflicts').delete(conflictId);
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 

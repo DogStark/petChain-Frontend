@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useOffline } from '@/hooks/useOffline';
 import type { SyncStatus } from '@/lib/offline/syncManager';
@@ -24,10 +25,22 @@ interface OfflineIndicatorProps {
 }
 
 export default function OfflineIndicator({ showLabel = true, className = '' }: OfflineIndicatorProps) {
-  const { isOnline, syncStatus, pendingSyncCount, syncDetails, triggerSync } = useOffline();
+  const {
+    isOnline,
+    syncStatus,
+    pendingSyncCount,
+    unresolvedConflictIds,
+    syncDetails,
+    triggerSync,
+  } = useOffline();
   const statusConfig = getStatusConfig(syncStatus);
 
-  if (isOnline && syncStatus === 'idle' && pendingSyncCount === 0) {
+  if (
+    isOnline &&
+    syncStatus === 'idle' &&
+    pendingSyncCount === 0 &&
+    unresolvedConflictIds.length === 0
+  ) {
     // Online and idle - show minimal indicator or nothing
     return (
       <div className={`flex items-center gap-1.5 text-xs ${className}`} title="Online">
@@ -48,17 +61,31 @@ export default function OfflineIndicator({ showLabel = true, className = '' }: O
               {pendingSyncCount}
             </span>
           )}
+          {unresolvedConflictIds.length > 0 && (
+            <span role="status" aria-live="polite" className="font-medium">
+              {unresolvedConflictIds.length} unresolved server conflict
+              {unresolvedConflictIds.length === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
       ) : syncStatus !== 'idle' ? (
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusConfig.bg} ${statusConfig.text} border`}>
           <statusConfig.icon className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
           {showLabel && (
             <span className="font-medium">
-              {statusConfig.label}
-              {syncDetails ? `: ${syncDetails}` : ''}
+              {syncStatus === 'conflict'
+                ? `${unresolvedConflictIds.length} unresolved server conflict${unresolvedConflictIds.length === 1 ? '' : 's'}`
+                : statusConfig.label}
+              {syncStatus !== 'conflict' && syncDetails ? `: ${syncDetails}` : ''}
             </span>
           )}
-          {syncStatus === 'error' || syncStatus === 'conflict' ? (
+          {syncStatus === 'conflict' && !showLabel && (
+            <span role="status" aria-live="polite" className="font-medium">
+              {unresolvedConflictIds.length} unresolved server conflict
+              {unresolvedConflictIds.length === 1 ? '' : 's'}
+            </span>
+          )}
+          {syncStatus === 'error' ? (
             <button
               onClick={(e) => { e.stopPropagation(); triggerSync(); }}
               className="ml-1 p-0.5 rounded hover:bg-black/10 transition-colors"
@@ -81,6 +108,31 @@ export default function OfflineIndicator({ showLabel = true, className = '' }: O
           </button>
         </div>
       ) : null}
+      {isOnline && syncStatus !== 'conflict' && unresolvedConflictIds.length > 0 && (
+        <span role="status" aria-live="polite" className="font-medium">
+          {unresolvedConflictIds.length} unresolved server conflict
+          {unresolvedConflictIds.length === 1 ? '' : 's'}
+        </span>
+      )}
+      {unresolvedConflictIds.length > 0 && (
+        <nav aria-label="Unresolved server conflicts">
+          <ul className="flex flex-wrap gap-x-2">
+            {unresolvedConflictIds.map((conflictId, index) => (
+              <li key={conflictId}>
+                <Link
+                  href={{
+                    pathname: '/sync/conflicts/[id]',
+                    query: { id: conflictId },
+                  }}
+                  className="underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  Compare conflict {index + 1}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }
