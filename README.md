@@ -213,3 +213,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1076 -->
 - #1076: [Frontend] Show data freshness and source on dashboard summaries
+
+<!-- handsoff-issue-1078 -->
+- #1078: [Frontend] Add a duplicate-profile review and merge flow
