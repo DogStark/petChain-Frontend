@@ -213,3 +213,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1092 -->
 - #1092: [Frontend] Add a record provenance panel for verified entries
+
+<!-- handsoff-issue-1093 -->
+- #1093: [Frontend] Add a clinical note review request workflow
