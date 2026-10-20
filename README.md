@@ -216,3 +216,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1081 -->
 - #1081: [Frontend] Add a pet deactivation and reactivation confirmation flow
+
+<!-- handsoff-issue-1082 -->
+- #1082: [Frontend] Add pet-specific document categories and labels
