@@ -1,74 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-/**
- * Centralized stale-data policy for offline pet views.
- *
- * Thresholds are expressed in milliseconds and describe how long cached data
- * of a given type may be considered "current" before it is flagged as stale.
- * Keep this table as the single source of truth for every offline-capable view
- * so indicators stay consistent across the app.
- */
-export const STALE_THRESHOLDS_MS = {
-  /** Emergency / medical data must be verified frequently. */
-  emergency: 15 * 60 * 1000, // 15 minutes
-  /** General medical records tolerate a longer window. */
-  medical: 60 * 60 * 1000, // 1 hour
-  /** Non-critical profile data. */
-  profile: 24 * 60 * 60 * 1000, // 24 hours
-} as const;
-
-export type OfflineDataType = keyof typeof STALE_THRESHOLDS_MS;
-
-/**
- * Lifecycle states an offline-capable view can be in.
- * - `no-cache`: nothing cached locally yet.
- * - `syncing`: a refresh is in flight.
- * - `current`: cached data is within its stale threshold.
- * - `stale`: cached data is older than its stale threshold.
- */
-export type OfflineDataState = 'no-cache' | 'syncing' | 'current' | 'stale';
-
-/**
- * Resolve the offline state for a cached payload.
- *
- * Clock skew is handled defensively: if the reported timestamp is in the
- * future relative to `now`, we clamp the age to 0 rather than producing a
- * negative age (which would otherwise read as "current" forever).
- */
-export function resolveOfflineState(params: {
-  lastSyncedAt: number | null;
-  dataType: OfflineDataType;
-  isSyncing?: boolean;
-  now?: number;
-}): { state: OfflineDataState; ageMs: number | null } {
-  const { lastSyncedAt, dataType, isSyncing = false, now = Date.now() } = params;
-
-  if (lastSyncedAt == null) {
-    return { state: isSyncing ? 'syncing' : 'no-cache', ageMs: null };
-  }
-
-  const ageMs = Math.max(0, now - lastSyncedAt);
-
-  if (isSyncing) {
-    return { state: 'syncing', ageMs };
-  }
-
-  const threshold = STALE_THRESHOLDS_MS[dataType];
-  return { state: ageMs > threshold ? 'stale' : 'current', ageMs };
-}
-
-/** Human-readable relative age, e.g. "just now", "4m ago", "2h ago". */
-export function formatAge(ageMs: number | null): string {
-  if (ageMs == null) return 'never synced';
-  const seconds = Math.floor(ageMs / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+import { formatAge, resolveOfflineState } from '../offline/staleThresholds';
 
 export interface EmergencyDataCardProps {
   /** Cached emergency payload, or null when nothing is cached. */
@@ -86,14 +17,11 @@ export interface EmergencyDataCardProps {
    * settles. The card treats it as cancellable via the returned signal.
    */
   onRefresh: (signal: AbortSignal) => Promise<void>;
-  /**
-   * Optional local revision counter. When it changes while a refresh is in
-   * flight, the incoming refresh result must not clobber newer local edits.
-   */
-  localRevision?: number;
 }
 
-const STATE_LABELS: Record<OfflineDataState, string> = {
+type EmergencyCardState = 'no-cache' | 'syncing' | 'current' | 'stale';
+
+const STATE_LABELS: Record<EmergencyCardState, string> = {
   'no-cache': 'Not cached',
   syncing: 'Syncing…',
   current: 'Current',
@@ -103,14 +31,12 @@ const STATE_LABELS: Record<OfflineDataState, string> = {
 export const EmergencyDataCard: React.FC<EmergencyDataCardProps> = ({
   data,
   onRefresh,
-  localRevision = 0,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const abortRef = useRef<AbortController | null>(null);
-  const revisionAtStartRef = useRef<number>(localRevision);
 
   // Keep the displayed age fresh without re-fetching.
   useEffect(() => {
@@ -125,25 +51,20 @@ export const EmergencyDataCard: React.FC<EmergencyDataCardProps> = ({
     };
   }, []);
 
-  const { state, ageMs } = useMemo(
-    () =>
-      resolveOfflineState({
-        lastSyncedAt: data?.lastSyncedAt ?? null,
-        dataType: 'emergency',
-        isSyncing,
-        now,
-      }),
-    [data?.lastSyncedAt, isSyncing, now],
-  );
+  const cachedState: Exclude<EmergencyCardState, 'syncing'> = useMemo(() => {
+    const resolved = resolveOfflineState('emergency', data?.lastSyncedAt ?? null, now);
+    if (resolved === 'stale') return 'stale';
+    if (resolved === 'no-cache') return data == null ? 'no-cache' : 'stale';
+    return 'current';
+  }, [data, data?.lastSyncedAt, now]);
+  const state: EmergencyCardState = isSyncing ? 'syncing' : cachedState;
 
   const handleRefresh = useCallback(async () => {
-    if (isSyncing) return;
+    if (abortRef.current) return;
 
-    abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    revisionAtStartRef.current = localRevision;
     setIsSyncing(true);
     setRefreshError(null);
 
@@ -154,32 +75,38 @@ export const EmergencyDataCard: React.FC<EmergencyDataCardProps> = ({
         setRefreshError('Refresh failed. Showing cached data.');
       }
     } finally {
-      if (!controller.signal.aborted) {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
         setIsSyncing(false);
       }
     }
-  }, [isSyncing, localRevision, onRefresh]);
+  }, [onRefresh]);
 
   const handleCancel = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setIsSyncing(false);
+    setRefreshError('Refresh cancelled. Showing cached data.');
   }, []);
 
-  const isStale = state === 'stale';
-  const isNoCache = state === 'no-cache';
+  const isStale = cachedState === 'stale';
+  const isNoCache = data == null;
 
   return (
     <section
       className={`emergency-data-card emergency-data-card--${state}`}
-      aria-live="polite"
       aria-busy={isSyncing}
+      aria-labelledby="emergency-data-card-title"
     >
       <header className="emergency-data-card__header">
-        <h2 className="emergency-data-card__title">Emergency Information</h2>
+        <h2 id="emergency-data-card-title" className="emergency-data-card__title">
+          Emergency Information
+        </h2>
         <span
           className={`emergency-data-card__badge emergency-data-card__badge--${state}`}
           data-state={state}
+          role="status"
+          aria-live="polite"
         >
           {STATE_LABELS[state]}
         </span>
@@ -191,24 +118,23 @@ export const EmergencyDataCard: React.FC<EmergencyDataCardProps> = ({
         </p>
       ) : (
         <>
-          <p className="emergency-data-card__summary">{data?.summary}</p>
+          <p className="emergency-data-card__summary">{data.summary}</p>
 
           <dl className="emergency-data-card__meta">
             <div>
               <dt>Last synced</dt>
-              <dd>{formatAge(ageMs)}</dd>
+              <dd>{formatAge(data.lastSyncedAt, now) ?? 'never synced'}</dd>
             </div>
             <div>
               <dt>Verification</dt>
-              <dd>
-                {data?.verified ? 'Verified' : 'Unverified'}
-              </dd>
+              <dd>{data.verified ? 'Verified' : 'Unverified'}</dd>
             </div>
           </dl>
 
           {isStale && (
             <p className="emergency-data-card__warning" role="alert">
-              This emergency data is out of date. Refresh before relying on it.
+              This saved emergency information may be out of date. Your saved
+              profile remains available; refresh to check for updates.
             </p>
           )}
         </>
@@ -222,11 +148,19 @@ export const EmergencyDataCard: React.FC<EmergencyDataCardProps> = ({
 
       <div className="emergency-data-card__actions">
         {isSyncing ? (
-          <button type="button" onClick={handleCancel}>
+          <button
+            type="button"
+            onClick={handleCancel}
+            aria-label="Cancel emergency information refresh"
+          >
             Cancel refresh
           </button>
         ) : (
-          <button type="button" onClick={handleRefresh}>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            aria-label="Refresh emergency information online"
+          >
             {isNoCache ? 'Sync now' : 'Refresh'}
           </button>
         )}
