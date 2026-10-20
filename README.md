@@ -213,3 +213,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1080 -->
 - #1080: [Frontend] Add a per-pet role editor for shared households
+
+<!-- handsoff-issue-1081 -->
+- #1081: [Frontend] Add a pet deactivation and reactivation confirmation flow
