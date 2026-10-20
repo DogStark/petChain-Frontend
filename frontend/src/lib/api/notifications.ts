@@ -26,6 +26,30 @@ export interface NotificationHistoryExportResult {
   redacted: boolean;
 }
 
+/** Clinical domains whose push actions require a review step. */
+export type ClinicalActionDomain = 'medication' | 'appointment';
+
+export interface NotificationActionReview {
+  notificationId: string;
+  domain: ClinicalActionDomain;
+  /** Human-readable summary of the change the action would apply. */
+  summary: string;
+  /** Server version of the notification the review was based on. */
+  version: string;
+}
+
+export interface NotificationActionConfirmation {
+  notificationId: string;
+  domain: ClinicalActionDomain;
+  /** Version the user reviewed; the backend rejects stale confirmations. */
+  version: string;
+}
+
+export type NotificationActionOutcome =
+  | { status: 'applied'; version: string }
+  | { status: 'stale'; current: NotificationActionReview }
+  | { status: 'denied'; reason?: string };
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function assertIsoDate(value: string, field: string): void {
@@ -61,6 +85,40 @@ export async function exportNotificationHistory(
         includeSecrets: false,
         includeHealthDetails: false,
       },
+    },
+  );
+
+  return response.data;
+}
+
+/**
+ * Fetch the review payload for a push action that would change medication or
+ * appointment state. The backend owns authorization and consent decisions and
+ * may deny the request.
+ */
+export async function fetchNotificationActionReview(
+  notificationId: string,
+): Promise<NotificationActionReview> {
+  const response = await apiClient.get<NotificationActionReview>(
+    `/notifications/${encodeURIComponent(notificationId)}/action/review`,
+  );
+
+  return response.data;
+}
+
+/**
+ * Confirm a reviewed clinical action. The reviewed version is sent so the
+ * backend can reject stale confirmations; a `stale` outcome carries the
+ * current server state so the caller can route the user to it.
+ */
+export async function confirmNotificationAction(
+  confirmation: NotificationActionConfirmation,
+): Promise<NotificationActionOutcome> {
+  const response = await apiClient.post<NotificationActionOutcome>(
+    `/notifications/${encodeURIComponent(confirmation.notificationId)}/action/confirm`,
+    {
+      domain: confirmation.domain,
+      version: confirmation.version,
     },
   );
 
