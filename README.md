@@ -210,3 +210,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-984 -->
 - #984: [Frontend] Add a non-map accessible alternative to clinic search results
+
+<!-- handsoff-issue-1101 -->
+- #1101: [Frontend] Add appointment waitlist offer acceptance
