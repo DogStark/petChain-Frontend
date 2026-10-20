@@ -216,3 +216,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1093 -->
 - #1093: [Frontend] Add a clinical note review request workflow
+
+<!-- handsoff-issue-1095 -->
+- #1095: [Frontend] Add appointment preparation checklists
