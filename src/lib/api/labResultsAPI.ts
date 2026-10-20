@@ -4,7 +4,14 @@ import { LabResultItem, LabReport } from '@/types/lab-results';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 function client() {
-  const api = axios.create({ baseURL: getApiBaseUrl() });
+  const api = axios.create({ baseURL: getApiBaseUrl(), withCredentials: true });
+  api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('authToken');
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
   attachCorrelationInterceptor(api);
   return api;
 }
