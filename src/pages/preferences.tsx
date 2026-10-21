@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { NotificationPreferences } from '../components/Settings/NotificationPreferences';
 import { PrivacySettings } from '../components/Settings/PrivacySettings';
+import DataModeSettings from '../components/Settings/DataModeSettings';
 import { userAPI, UpdateUserPreferencesDto, UserProfile } from '../lib/api/userAPI';
 import styles from '../styles/pages/PreferencesPage.module.css';
 import { GetServerSideProps } from 'next';
@@ -26,7 +27,7 @@ type PrivacyPreferenceState = {
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy'>('notifications');
+  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy' | 'data-mode'>('notifications');
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferenceState | null>(
     null
   );
@@ -109,7 +110,7 @@ export default function PreferencesPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [notificationDirty, privacyDirty]);
 
-  const handleTabChange = (newTab: 'notifications' | 'privacy') => {
+  const handleTabChange = (newTab: 'notifications' | 'privacy' | 'data-mode') => {
     const currentTabDirty = activeTab === 'notifications' ? notificationDirty : privacyDirty;
 
     if (currentTabDirty) {
@@ -214,6 +215,12 @@ export default function PreferencesPage() {
         >
           Privacy
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'data-mode' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('data-mode')}
+        >
+          Data Mode
+        </button>
       </div>
 
       <div className={styles.content}>
@@ -246,6 +253,10 @@ export default function PreferencesPage() {
             />
           </div>
         )}
+
+        <div style={{ display: activeTab === 'data-mode' ? 'block' : 'none' }}>
+          <DataModeSettings />
+        </div>
       </div>
     </div>
   );

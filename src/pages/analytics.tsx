@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
 import { generateAnalyticsData } from '../lib/analyticsUserData';
 import { GetServerSideProps } from 'next';
+import DataModeChart from '@/components/DataModeChart';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), {
   ssr: false,
@@ -185,23 +186,54 @@ const AnalyticsPage = () => {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <UserEngagementChart data={engagementData} />
+            <DataModeChart
+              title="User Engagement"
+              summary={`${engagementData[engagementData.length - 1]?.activeUsers || 0} active users today`}
+              minHeight="400px"
+            >
+              <UserEngagementChart data={engagementData} />
+            </DataModeChart>
           </div>
 
           <div className="lg:col-span-4">
-            <PetHealthChart data={healthData} />
+            <DataModeChart
+              title="Pet Health Overview"
+              priority={true}
+              minHeight="400px"
+            >
+              <PetHealthChart data={healthData} />
+            </DataModeChart>
           </div>
 
           <div className="lg:col-span-6">
-            <VaccinationChart data={vaccinationData} />
+            <DataModeChart
+              title="Vaccination Compliance"
+              priority={true}
+              summary="Track vaccination status across your pets"
+              minHeight="350px"
+            >
+              <VaccinationChart data={vaccinationData} />
+            </DataModeChart>
           </div>
 
           <div className="lg:col-span-6">
-            <GeoDistributionChart data={geoData} />
+            <DataModeChart
+              title="Geographic Distribution"
+              summary="User distribution across regions"
+              minHeight="350px"
+            >
+              <GeoDistributionChart data={geoData} />
+            </DataModeChart>
           </div>
 
           <div className="lg:col-span-12">
-            <ApiUsageChart data={apiUsageData} />
+            <DataModeChart
+              title="API Usage & Performance"
+              summary="Monitor system requests and error rates"
+              minHeight="300px"
+            >
+              <ApiUsageChart data={apiUsageData} />
+            </DataModeChart>
           </div>
         </div>
       </div>

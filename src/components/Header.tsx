@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import DataModeToggle from '@/components/DataModeToggle';
 import OfflineStatusIndicator from '@/components/OfflineStatusIndicator';
 import StoragePressureBanner from '@/components/StoragePressureBanner';
 import Link from 'next/link';
@@ -64,6 +65,7 @@ export default function HeaderComponent() {
               </>
             )}
             <li><ThemeToggle /></li>
+            <li><DataModeToggle /></li>
             <li><OfflineStatusIndicator /></li>
           </ul>
         </nav>
