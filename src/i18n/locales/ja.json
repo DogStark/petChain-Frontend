@@ -269,5 +269,27 @@
     "invalidNumber": "有効な数値を入力してください",
     "minValue": "最低{{min}}である必要があります",
     "maxValue": "最大{{max}}以下である必要があります"
+  },
+  "settings": {
+    "save": "変更を保存",
+    "cancel": "キャンセル",
+    "units": {
+      "title": "単位の設定",
+      "description": "体重、温度、容量などの測定値を表示するための優先単位システムを選択してください。",
+      "systemLabel": "優先単位システム",
+      "metric": "メートル法",
+      "metricExamples": "キログラム（kg）、摂氏（°C）、ミリリットル（ml）",
+      "customary": "米国慣用単位",
+      "customaryExamples": "ポンド（lb）、華氏（°F）、液量オンス（fl oz）",
+      "localeDefault": "地域のデフォルト",
+      "usingLocaleDefault": "お住まいの地域のデフォルト単位システムを使用しています。",
+      "usingUserPreference": "カスタム単位設定を設定しています。",
+      "saved": "単位の設定が正常に保存されました。",
+      "resetToLocale": "地域のデフォルトにリセット",
+      "explicitUnitNote": {
+        "title": "データ変換に関する注意：",
+        "description": "記録に明示的な単位が含まれている場合（例：「kg」とマークされた検査結果）、その値は変換せずに記録されたとおりに正確に表示されます。設定は明示的な単位のない記録にのみ適用されます。"
+      }
+    }
   }
 }

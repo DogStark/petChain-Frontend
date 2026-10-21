@@ -269,5 +269,27 @@
     "invalidNumber": "Bitte geben Sie eine gültige Zahl ein",
     "minValue": "Muss mindestens {{min}} sein",
     "maxValue": "Darf nicht mehr als {{max}} sein"
+  },
+  "settings": {
+    "save": "Änderungen Speichern",
+    "cancel": "Abbrechen",
+    "units": {
+      "title": "Einheitenpräferenzen",
+      "description": "Wählen Sie Ihr bevorzugtes Einheitensystem für die Anzeige von Messungen wie Gewicht, Temperatur und Volumen.",
+      "systemLabel": "Bevorzugtes Einheitensystem",
+      "metric": "Metrisch",
+      "metricExamples": "Kilogramm (kg), Celsius (°C), Milliliter (ml)",
+      "customary": "US-System",
+      "customaryExamples": "Pfund (lb), Fahrenheit (°F), Flüssigunzen (fl oz)",
+      "localeDefault": "Regionalstandard",
+      "usingLocaleDefault": "Sie verwenden das Standard-Einheitensystem Ihrer Region.",
+      "usingUserPreference": "Sie haben eine benutzerdefinierte Einheitenpräferenz festgelegt.",
+      "saved": "Einheitenpräferenz erfolgreich gespeichert.",
+      "resetToLocale": "Auf Regionalstandard Zurücksetzen",
+      "explicitUnitNote": {
+        "title": "Hinweis zur Datenkonvertierung:",
+        "description": "Wenn ein Datensatz eine explizite Einheit enthält (z. B. ein Laborbefund mit 'kg'), wird dieser Wert genau so angezeigt, wie er aufgezeichnet wurde, ohne Konvertierung. Ihre Präferenz gilt nur für Datensätze ohne explizite Einheit."
+      }
+    }
   }
 }

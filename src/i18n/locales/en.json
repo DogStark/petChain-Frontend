@@ -303,5 +303,27 @@
       "needsSpecial": "At least one special character required",
       "reused": "This password was used recently"
     }
+  },
+  "settings": {
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "units": {
+      "title": "Unit Preferences",
+      "description": "Choose your preferred unit system for displaying measurements such as weight, temperature, and volume.",
+      "systemLabel": "Preferred Unit System",
+      "metric": "Metric",
+      "metricExamples": "Kilograms (kg), Celsius (°C), Milliliters (ml)",
+      "customary": "US Customary",
+      "customaryExamples": "Pounds (lb), Fahrenheit (°F), Fluid Ounces (fl oz)",
+      "localeDefault": "Locale default",
+      "usingLocaleDefault": "You are using your locale's default unit system.",
+      "usingUserPreference": "You have set a custom unit preference.",
+      "saved": "Unit preference saved successfully.",
+      "resetToLocale": "Reset to Locale Default",
+      "explicitUnitNote": {
+        "title": "Note about data conversion:",
+        "description": "When a record includes an explicit unit (e.g., a lab result marked as 'kg'), that value will be displayed exactly as recorded without conversion. Your preference applies only to records without an explicit unit."
+      }
+    }
   }
 }

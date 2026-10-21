@@ -269,5 +269,27 @@
     "invalidNumber": "请输入有效数字",
     "minValue": "必须至少为{{min}}",
     "maxValue": "不能超过{{max}}"
+  },
+  "settings": {
+    "save": "保存更改",
+    "cancel": "取消",
+    "units": {
+      "title": "单位偏好设置",
+      "description": "选择您显示重量、温度和体积等测量值的首选单位系统。",
+      "systemLabel": "首选单位系统",
+      "metric": "公制",
+      "metricExamples": "千克（kg）、摄氏度（°C）、毫升（ml）",
+      "customary": "美制",
+      "customaryExamples": "磅（lb）、华氏度（°F）、液量盎司（fl oz）",
+      "localeDefault": "区域默认",
+      "usingLocaleDefault": "您正在使用区域的默认单位系统。",
+      "usingUserPreference": "您已设置自定义单位偏好。",
+      "saved": "单位偏好已成功保存。",
+      "resetToLocale": "重置为区域默认值",
+      "explicitUnitNote": {
+        "title": "关于数据转换的说明：",
+        "description": "当记录包含明确的单位（例如，实验室结果标记为'kg'）时，该值将完全按记录显示而不进行转换。您的偏好仅适用于没有明确单位的记录。"
+      }
+    }
   }
 }
