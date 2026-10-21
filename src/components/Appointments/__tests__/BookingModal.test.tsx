@@ -1,7 +1,10 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import BookingModal from '../BookingModal';
+import React from 'react';
+
+import { I18nProvider } from '@/i18n';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
+
+import BookingModal from '../BookingModal';
 import '@testing-library/jest-dom';
 
 jest.mock('@/lib/api/appointmentsAPI', () => ({
@@ -16,6 +19,12 @@ jest.mock('@/hooks/useHaptic', () => ({
 
 describe('BookingModal date validation', () => {
   const mockOnClose = jest.fn();
+  const renderModal = () =>
+    render(
+      <I18nProvider>
+        <BookingModal onClose={mockOnClose} />
+      </I18nProvider>,
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,7 +35,7 @@ describe('BookingModal date validation', () => {
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    render(<BookingModal onClose={mockOnClose} />);
+    renderModal();
 
     fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
     fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
@@ -45,7 +54,7 @@ describe('BookingModal date validation', () => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
-    render(<BookingModal onClose={mockOnClose} />);
+    renderModal();
 
     fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
     fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
@@ -64,7 +73,7 @@ describe('BookingModal date validation', () => {
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    render(<BookingModal onClose={mockOnClose} />);
+    renderModal();
 
     fireEvent.change(screen.getByLabelText(/select pet/i), { target: { value: 'pet1' } });
     fireEvent.change(screen.getByLabelText(/veterinarian/i), { target: { value: 'vet1' } });
@@ -89,6 +98,12 @@ describe('BookingModal date validation', () => {
 
 describe('BookingModal Conflict Handling', () => {
   const mockOnClose = jest.fn();
+  const renderModal = () =>
+    render(
+      <I18nProvider>
+        <BookingModal onClose={mockOnClose} />
+      </I18nProvider>,
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -112,7 +127,7 @@ describe('BookingModal Conflict Handling', () => {
     };
     (appointmentsAPI.createAppointment as jest.Mock).mockRejectedValueOnce(errorResponse);
 
-    render(<BookingModal onClose={mockOnClose} />);
+    renderModal();
 
     fillForm();
 
@@ -120,8 +135,10 @@ describe('BookingModal Conflict Handling', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('The selected time slot is no longer available.')).toBeInTheDocument();
-      expect(screen.getByText('10:30')).toBeInTheDocument();
+      expect(
+        screen.getByText('The selected appointment time is no longer available.'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '10:30' })).toBeInTheDocument();
       expect(screen.getByText('11:00')).toBeInTheDocument();
       expect(screen.getByText('14:00')).toBeInTheDocument();
     });
@@ -146,7 +163,7 @@ describe('BookingModal Conflict Handling', () => {
       .mockRejectedValueOnce(errorResponse)
       .mockResolvedValueOnce({});
 
-    render(<BookingModal onClose={mockOnClose} />);
+    renderModal();
 
     fillForm();
 
@@ -154,16 +171,18 @@ describe('BookingModal Conflict Handling', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('10:30')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '10:30' })).toBeInTheDocument();
     });
 
     // Click on the alternate slot
-    fireEvent.click(screen.getByText('10:30'));
+    fireEvent.click(screen.getByRole('button', { name: '10:30' }));
 
     // Should update time and hide alternate slots
-    expect(screen.queryByText('10:30')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '10:30' })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/time/i)).toHaveValue('10:30');
-    expect(screen.queryByText('The selected time slot is no longer available.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The selected appointment time is no longer available.'),
+    ).not.toBeInTheDocument();
 
     // Submit again, should succeed
     fireEvent.click(submitButton);

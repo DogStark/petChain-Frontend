@@ -183,6 +183,32 @@
       "notConnected": "Wallet not connected",
       "notInstalled": "Freighter wallet not installed",
       "installFreighter": "Please install Freighter wallet extension"
+    },
+    "api": {
+      "unknown": "Não foi possível concluir a solicitação. Tente novamente.",
+      "unknownWithCorrelation": "Não foi possível concluir a solicitação. Tente novamente. ID de referência: {{correlationId}}",
+      "network": "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.",
+      "unauthorized": "Entre na sua conta para continuar.",
+      "forbidden": "Você não tem permissão para realizar esta ação.",
+      "notFound": "O item solicitado não foi encontrado.",
+      "conflict": "A solicitação conflita com o estado atual. Atualize e tente novamente.",
+      "rateLimited": "Muitas solicitações foram feitas. Aguarde um momento e tente novamente.",
+      "server": "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+      "correlationIdLabel": "ID de referência",
+      "correlationIdAccessibleLabel": "ID de referência de suporte selecionável",
+      "copyCorrelationId": "Copiar ID",
+      "correlationIdCopied": "ID de referência copiado.",
+      "correlationIdCopyFailed": "Não foi possível copiar o ID. Selecione-o e copie manualmente.",
+      "validation": {
+        "invalidId": "Identificador inválido.",
+        "petNameRequired": "O nome do animal é obrigatório.",
+        "invalidDosage": "Informe uma dosagem válida.",
+        "appointmentConflict": "O horário selecionado para a consulta não está mais disponível.",
+        "staleVersion": "O registro foi alterado em outro lugar. Atualize e tente novamente.",
+        "invalidPetId": "Selecione um animal válido.",
+        "invalidVetId": "Selecione um veterinário válido.",
+        "invalidDate": "Informe uma data válida."
+      }
     }
   },
   "accessibility": {

@@ -1,7 +1,7 @@
+import { X } from 'lucide-react';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Calendar, Clock, User, Heart } from 'lucide-react';
-import { AppointmentType } from '@/types/appointments';
-import Dialog from '@/components/ui/Dialog';
+
+import ApiErrorAlert from '@/components/ApiErrorAlert';
 import {
   TouchSelect,
   TouchDatePicker,
@@ -9,8 +9,8 @@ import {
   TouchTextarea,
   TouchButton,
 } from '@/components/TouchUI';
-import { useHaptic } from '@/hooks/useHaptic';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
+import { useHaptic } from '@/hooks/useHaptic';
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
 import {
   validateNotFuture,
@@ -85,18 +85,18 @@ export default function BookingModal({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [conflictSlots, setConflictSlots] = useState<string[]>([]);
 
   const dynamicTimeOptions = React.useMemo(() => {
     const options = [...TIME_OPTIONS];
-    conflictSlots.forEach(slot => {
+    [...conflictSlots, formData.time].forEach((slot) => {
       if (!options.find(opt => opt.value === slot)) {
         options.push({ value: slot, label: slot });
       }
     });
     return options.sort((a, b) => a.value.localeCompare(b.value));
-  }, [conflictSlots]);
+  }, [conflictSlots, formData.time]);
 
   const validate = useCallback(() => {
     const next: Record<string, string> = {};
@@ -139,17 +139,36 @@ export default function BookingModal({
       announce('Appointment booked successfully.', 'success');
       onClose();
     } catch (err) {
-      const apiErr = err as { response?: { status?: number; data?: { message?: string; availableSlots?: string[] } }; message?: string };
-      if (apiErr.response?.status === 409 && apiErr.response.data?.availableSlots) {
-        setConflictSlots(apiErr.response.data.availableSlots);
-        setSubmitError(apiErr.response.data.message || 'The selected time slot is no longer available.');
+      const response =
+        typeof err === 'object' && err !== null && 'response' in err
+          ? err.response
+          : undefined;
+      const data =
+        typeof response === 'object' && response !== null && 'data' in response
+          ? response.data
+          : undefined;
+      const availableSlots =
+        typeof data === 'object' &&
+        data !== null &&
+        'availableSlots' in data &&
+        Array.isArray(data.availableSlots)
+          ? data.availableSlots.filter(
+              (slot): slot is string => typeof slot === 'string' && /^\d{2}:\d{2}$/.test(slot),
+            )
+          : [];
+      const isConflict =
+        typeof response === 'object' && response !== null && 'status' in response
+          ? response.status === 409
+          : false;
+
+      if (isConflict && availableSlots.length > 0) {
+        setConflictSlots(availableSlots);
         announce('Booking conflict: the selected time slot is no longer available.', 'warning');
       } else {
-        const errorMessage = apiErr.response?.data?.message || apiErr.message || 'Booking failed, please try again';
-        setSubmitError(errorMessage);
         setConflictSlots([]);
         announce('Booking failed. Please try again.', 'error');
       }
+      setSubmitError(err);
       trigger('error');
     } finally {
       setIsSubmitting(false);
@@ -224,24 +243,6 @@ export default function BookingModal({
   }, [onClose]);
 
   return (
-    <Dialog
-      isOpen
-      onClose={onClose}
-      titleId="booking-modal-title"
-      className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in"
-    >
-      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-        <h2 id="booking-modal-title" className="text-2xl font-bold text-blue-900">
-          Book Appointment
-        </h2>
-        <button
-          onClick={onClose}
-          aria-label="Close booking dialog"
-          className="touch-target hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <X className="w-6 h-6 text-gray-400" />
-        </button>
-      </div>
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
       role="dialog"
@@ -282,13 +283,14 @@ export default function BookingModal({
 
         {/* Scrollable form body */}
         <form
+          id="booking-form"
           onSubmit={handleSubmit}
           noValidate
           className="overflow-y-auto flex-1 px-5 py-5 space-y-5"
         >
-          {submitError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              <p>{submitError}</p>
+          {submitError !== null && (
+            <div>
+              <ApiErrorAlert error={submitError} />
               {conflictSlots.length > 0 && (
                 <div className="mt-3">
                   <p className="text-xs font-semibold mb-2">Available alternate slots:</p>
@@ -393,8 +395,6 @@ export default function BookingModal({
             rows={3}
           />
         </form>
-    </Dialog>
-
         {/* Footer actions */}
         <div className="px-5 py-4 border-t border-gray-100 flex gap-3 shrink-0">
           <TouchButton variant="secondary" onClick={onClose} fullWidth haptic="light">
@@ -402,10 +402,10 @@ export default function BookingModal({
           </TouchButton>
           <TouchButton
             type="submit"
+            form="booking-form"
             fullWidth
             loading={isSubmitting}
             haptic="medium"
-            onClick={handleSubmit as unknown as React.MouseEventHandler}
           >
             Confirm booking
           </TouchButton>

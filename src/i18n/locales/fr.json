@@ -183,6 +183,32 @@
       "notConnected": "Portefeuille non connecté",
       "notInstalled": "Portefeuille Freighter non installé",
       "installFreighter": "Veuillez installer l'extension de portefeuille Freighter"
+    },
+    "api": {
+      "unknown": "La demande n'a pas pu aboutir. Veuillez réessayer.",
+      "unknownWithCorrelation": "La demande n'a pas pu aboutir. Veuillez réessayer. Identifiant de référence : {{correlationId}}",
+      "network": "Impossible de se connecter au service. Vérifiez votre connexion et réessayez.",
+      "unauthorized": "Veuillez vous connecter pour continuer.",
+      "forbidden": "Vous n'êtes pas autorisé à effectuer cette action.",
+      "notFound": "L'élément demandé est introuvable.",
+      "conflict": "La demande est incompatible avec l'état actuel. Actualisez et réessayez.",
+      "rateLimited": "Trop de demandes ont été envoyées. Attendez un instant, puis réessayez.",
+      "server": "Le service est temporairement indisponible. Veuillez réessayer plus tard.",
+      "correlationIdLabel": "Identifiant de référence",
+      "correlationIdAccessibleLabel": "Identifiant de référence du support sélectionnable",
+      "copyCorrelationId": "Copier l'identifiant",
+      "correlationIdCopied": "Identifiant de référence copié.",
+      "correlationIdCopyFailed": "Impossible de copier l'identifiant. Sélectionnez-le et copiez-le.",
+      "validation": {
+        "invalidId": "Identifiant non valide.",
+        "petNameRequired": "Le nom de l'animal est obligatoire.",
+        "invalidDosage": "Saisissez un dosage valide.",
+        "appointmentConflict": "L'horaire de rendez-vous sélectionné n'est plus disponible.",
+        "staleVersion": "Le dossier a été modifié ailleurs. Actualisez et réessayez.",
+        "invalidPetId": "Sélectionnez un animal valide.",
+        "invalidVetId": "Sélectionnez un vétérinaire valide.",
+        "invalidDate": "Saisissez une date valide."
+      }
     }
   },
   "accessibility": {

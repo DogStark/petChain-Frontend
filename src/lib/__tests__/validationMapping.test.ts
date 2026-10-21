@@ -1,17 +1,20 @@
-import { mapServerValidationError, focusFirstInvalidField } from '../validationMapping';
 import { ApiError } from '../apiError';
-import { AxiosError } from 'axios';
+import { mapServerValidationError, focusFirstInvalidField } from '../validationMapping';
 
 describe('validationMapping', () => {
-  const mockTranslate = (key: string) => {
+  const mockTranslate = (key: string, params?: Record<string, string | number>) => {
     const translations: Record<string, string> = {
-      'errors.validation.petNameRequired': 'Pet name is required (localized)',
-      'errors.validation.invalidDosage': 'Invalid dosage (localized)',
-      'errors.validation.appointmentConflict': 'Slot taken (localized)',
-      'errors.validation.staleVersion': 'Stale version (localized)',
-      'errors.general.unknown': 'Unknown error occurred',
+      'errors.api.validation.petNameRequired': 'Pet name is required (localized)',
+      'errors.api.validation.invalidDosage': 'Invalid dosage (localized)',
+      'errors.api.validation.appointmentConflict': 'Slot taken (localized)',
+      'errors.api.validation.staleVersion': 'Stale version (localized)',
+      'errors.api.unknown': 'A safe generic API error',
+      'errors.api.unknownWithCorrelation': 'A safe API error. Reference ID: {{correlationId}}',
     };
-    return translations[key] || key;
+    return Object.entries(params ?? {}).reduce(
+      (message, [name, value]) => message.replaceAll(`{{${name}}}`, String(value)),
+      translations[key] || key,
+    );
   };
 
   describe('mapServerValidationError', () => {
@@ -20,7 +23,11 @@ describe('validationMapping', () => {
         response: {
           data: {
             errors: [
-              { field: 'pet.medicalHistory.diagnosis', code: 'REQUIRED', message: 'Diagnosis is required' },
+              {
+                field: 'pet.medicalHistory.diagnosis',
+                code: 'PET_NAME_REQUIRED',
+                message: 'Private server validation detail',
+              },
             ],
           },
         },
@@ -28,7 +35,7 @@ describe('validationMapping', () => {
 
       const result = mapServerValidationError(error, mockTranslate);
       expect(result.fieldErrors).toEqual({
-        'pet.medicalHistory.diagnosis': 'Diagnosis is required',
+        'pet.medicalHistory.diagnosis': 'Pet name is required (localized)',
       });
       expect(result.globalError).toBeNull();
     });
@@ -39,7 +46,7 @@ describe('validationMapping', () => {
           data: {
             fieldErrors: {
               'dosages[0].amount': 'INVALID_DOSAGE',
-              'medications.1.name': 'Medication name is required',
+              'medications.1.name': 'Private medication details',
             },
           },
         },
@@ -48,8 +55,8 @@ describe('validationMapping', () => {
       const result = mapServerValidationError(error, mockTranslate);
       expect(result.fieldErrors).toEqual({
         'dosages[0].amount': 'Invalid dosage (localized)',
-        'medications.1.name': 'Medication name is required',
       });
+      expect(result.globalError).toBe('A safe generic API error');
     });
 
     it('handles stale versions and concurrency conflicts', () => {
@@ -86,7 +93,8 @@ describe('validationMapping', () => {
       const error = new Error('Database connection timeout 500');
       const result = mapServerValidationError(error, mockTranslate);
       expect(result.fieldErrors).toEqual({});
-      expect(result.globalError).toBe('Unknown error occurred');
+      expect(result.globalError).toBe('A safe generic API error');
+      expect(result.globalError).not.toContain('Database');
     });
 
     it('handles malformed error payloads safely', () => {
@@ -113,6 +121,51 @@ describe('validationMapping', () => {
       const apiErr = new ApiError('errors.twoFactor.invalidToken', 'Fallback token');
       const result = mapServerValidationError(apiErr, mockTranslate);
       expect(result.globalError).toBe('errors.twoFactor.invalidToken');
+    });
+
+    it('uses a safe generic message and correlation ID for an unknown field code', () => {
+      const result = mapServerValidationError(
+        {
+          response: {
+            status: 422,
+            data: {
+              errors: [
+                {
+                  field: 'pet.name',
+                  code: 'FUTURE_VALIDATION_CODE',
+                  message: 'Private pet information',
+                },
+              ],
+              correlationId: 'ec-public-validation-123abc',
+            },
+          },
+        },
+        mockTranslate,
+      );
+
+      expect(result.fieldErrors).toEqual({});
+      expect(result.globalError).toBe(
+        'A safe API error. Reference ID: ec-public-validation-123abc',
+      );
+      expect(result.globalError).not.toContain('Private pet information');
+    });
+
+    it('localizes known validation codes in plain Axios-shaped objects', () => {
+      const result = mapServerValidationError(
+        {
+          response: {
+            data: {
+              fieldErrors: { 'dosages[0].amount': 'INVALID_DOSAGE' },
+            },
+          },
+        },
+        mockTranslate,
+      );
+
+      expect(result.fieldErrors).toEqual({
+        'dosages[0].amount': 'Invalid dosage (localized)',
+      });
+      expect(result.globalError).toBeNull();
     });
   });
 

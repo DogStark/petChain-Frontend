@@ -183,6 +183,32 @@
       "notConnected": "Wallet not connected",
       "notInstalled": "Freighter wallet not installed",
       "installFreighter": "Please install Freighter wallet extension"
+    },
+    "api": {
+      "unknown": "अनुरोध पूरा नहीं हो सका। कृपया फिर से प्रयास करें।",
+      "unknownWithCorrelation": "अनुरोध पूरा नहीं हो सका। कृपया फिर से प्रयास करें। संदर्भ आईडी: {{correlationId}}",
+      "network": "सेवा से कनेक्ट नहीं हो सका। अपना कनेक्शन जाँचें और फिर प्रयास करें।",
+      "unauthorized": "जारी रखने के लिए कृपया साइन इन करें।",
+      "forbidden": "आपको यह कार्रवाई करने की अनुमति नहीं है।",
+      "notFound": "अनुरोधित आइटम नहीं मिला।",
+      "conflict": "अनुरोध मौजूदा स्थिति से मेल नहीं खाता। रीफ़्रेश करके फिर प्रयास करें।",
+      "rateLimited": "बहुत अधिक अनुरोध किए गए। थोड़ी देर प्रतीक्षा करके फिर प्रयास करें।",
+      "server": "सेवा अस्थायी रूप से उपलब्ध नहीं है। कृपया बाद में प्रयास करें।",
+      "correlationIdLabel": "संदर्भ आईडी",
+      "correlationIdAccessibleLabel": "चयन योग्य सहायता संदर्भ आईडी",
+      "copyCorrelationId": "आईडी कॉपी करें",
+      "correlationIdCopied": "संदर्भ आईडी कॉपी की गई।",
+      "correlationIdCopyFailed": "संदर्भ आईडी कॉपी नहीं हो सकी। इसे चुनकर कॉपी करें।",
+      "validation": {
+        "invalidId": "अमान्य पहचानकर्ता।",
+        "petNameRequired": "पालतू जानवर का नाम आवश्यक है।",
+        "invalidDosage": "मान्य खुराक दर्ज करें।",
+        "appointmentConflict": "चुना गया अपॉइंटमेंट समय अब उपलब्ध नहीं है।",
+        "staleVersion": "रिकॉर्ड कहीं और बदला गया है। रीफ़्रेश करके फिर प्रयास करें।",
+        "invalidPetId": "कृपया मान्य पालतू जानवर चुनें।",
+        "invalidVetId": "कृपया मान्य पशु चिकित्सक चुनें।",
+        "invalidDate": "मान्य तारीख दर्ज करें।"
+      }
     }
   },
   "accessibility": {
