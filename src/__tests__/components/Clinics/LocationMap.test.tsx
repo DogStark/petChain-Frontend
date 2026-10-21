@@ -1,8 +1,9 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
+
 import LocationMap from "@/components/Clinics/LocationMap";
-import { ClinicLocation } from "@/types/clinic";
+import type { ClinicLocation, OperatingHours } from "@/types/clinic";
 
 const mockLocations: ClinicLocation[] = [
   {
@@ -38,10 +39,46 @@ const mockLocationsWithoutCoords: ClinicLocation[] = [
 
 const mixedLocations: ClinicLocation[] = [...mockLocations, ...mockLocationsWithoutCoords];
 
+const mockHours: OperatingHours[] = [
+  {
+    day: "Monday",
+    open: "09:00",
+    close: "17:00",
+    isClosed: false,
+  },
+];
+
 function setupGeolocationAvailable() {
   Object.defineProperty(navigator, "geolocation", {
     value: {
       getCurrentPosition: jest.fn(),
+      watchPosition: jest.fn(),
+      clearWatch: jest.fn(),
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+function setupGeolocationSuccess() {
+  const position: GeolocationPosition = {
+    coords: {
+      latitude: 51.5074,
+      longitude: -0.1278,
+      accuracy: 10,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null,
+    },
+    timestamp: Date.now(),
+  };
+
+  Object.defineProperty(navigator, "geolocation", {
+    value: {
+      getCurrentPosition: jest.fn((success: PositionCallback) =>
+        success(position)
+      ),
       watchPosition: jest.fn(),
       clearWatch: jest.fn(),
     },
@@ -121,7 +158,9 @@ function setupGeolocationPermissionDenied() {
 }
 
 async function advanceToLoaded() {
-  jest.advanceTimersByTime(1500);
+  act(() => {
+    jest.advanceTimersByTime(1500);
+  });
   await waitFor(() => {
     expect(screen.queryByText(/loading map/i)).not.toBeInTheDocument();
   });
@@ -131,6 +170,7 @@ describe("LocationMap", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    jest.setSystemTime(new Date(2025, 0, 6, 10, 0));
     setupGeolocationAvailable();
 
     global.ResizeObserver = jest.fn().mockImplementation(() => ({
@@ -196,6 +236,38 @@ describe("LocationMap", () => {
         screen.getByRole("button", { name: /find my location/i })
       ).toBeInTheDocument();
     });
+
+    it("summarizes clinic name, opening status, distance privacy, and selection", async () => {
+      render(<LocationMap locations={mockLocations} hours={mockHours} />);
+      await advanceToLoaded();
+
+      expect(screen.getByRole("list", { name: /clinic locations/i })).toBeInTheDocument();
+      expect(screen.getAllByText("Open · Closes 17:00")).toHaveLength(2);
+      expect(
+        screen.getAllByText(/distance available after sharing your location/i)
+      ).toHaveLength(2);
+
+      const selection = screen.getByRole("button", {
+        name: /select pawfect health center and show details/i,
+      });
+      await userEvent.setup({ advanceTimers: jest.advanceTimersByTime }).click(selection);
+
+      expect(selection).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /selected pawfect health center.*distance is available after you share your location.*open · closes 17:00/i
+      );
+      expect(
+        screen.getByRole("button", { name: /select pawfect health center on map/i })
+      ).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("shows unavailable opening hours without implying the clinic is closed", async () => {
+      render(<LocationMap locations={mockLocations} />);
+      await advanceToLoaded();
+
+      expect(screen.getAllByText("Hours not available")).toHaveLength(2);
+    });
+
   });
 
   describe("Error State", () => {
@@ -276,10 +348,35 @@ describe("LocationMap", () => {
       expect(
         screen.getByText(/you denied location access/i)
       ).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/distance available after sharing your location/i)
+      ).toHaveLength(2);
     });
   });
 
   describe("Location Interactions", () => {
+    it("shows distances after the user chooses to share their location", async () => {
+      setupGeolocationSuccess();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+      render(<LocationMap locations={mockLocations} hours={mockHours} />);
+      await advanceToLoaded();
+      await user.click(
+        screen.getByRole("button", { name: /find my location/i })
+      );
+
+      expect(
+        screen.getByRole("button", {
+          name: /select pawfect health center and show details.*0m away.*open/i,
+        })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: /select animal care clinic and show details.*km away.*open/i,
+        })
+      ).toBeInTheDocument();
+    });
+
     it("expands location details when list item clicked", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
