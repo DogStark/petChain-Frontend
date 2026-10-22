@@ -183,6 +183,32 @@
       "notConnected": "ウォレットが接続されていません",
       "notInstalled": "Freighterウォレットがインストールされていません",
       "installFreighter": "Freighterウォレット拡張機能をインストールしてください"
+    },
+    "api": {
+      "unknown": "リクエストを完了できませんでした。もう一度お試しください。",
+      "unknownWithCorrelation": "リクエストを完了できませんでした。もう一度お試しください。照会ID：{{correlationId}}",
+      "network": "サービスに接続できません。接続を確認して、もう一度お試しください。",
+      "unauthorized": "続行するにはサインインしてください。",
+      "forbidden": "この操作を行う権限がありません。",
+      "notFound": "リクエストされた項目が見つかりません。",
+      "conflict": "現在の状態とリクエストが競合しています。更新して、もう一度お試しください。",
+      "rateLimited": "リクエストが多すぎます。少し待ってから、もう一度お試しください。",
+      "server": "サービスは一時的に利用できません。しばらくしてからお試しください。",
+      "correlationIdLabel": "照会ID",
+      "correlationIdAccessibleLabel": "選択可能なサポート照会ID",
+      "copyCorrelationId": "IDをコピー",
+      "correlationIdCopied": "照会IDをコピーしました。",
+      "correlationIdCopyFailed": "照会IDをコピーできませんでした。選択してコピーしてください。",
+      "validation": {
+        "invalidId": "識別子が無効です。",
+        "petNameRequired": "ペットの名前を入力してください。",
+        "invalidDosage": "正しい用量を入力してください。",
+        "appointmentConflict": "選択した予約時間は利用できなくなりました。",
+        "staleVersion": "レコードが別の場所で変更されました。更新して、もう一度お試しください。",
+        "invalidPetId": "有効なペットを選択してください。",
+        "invalidVetId": "有効な獣医師を選択してください。",
+        "invalidDate": "正しい日付を入力してください。"
+      }
     }
   },
   "accessibility": {
@@ -269,5 +295,27 @@
     "invalidNumber": "有効な数値を入力してください",
     "minValue": "最低{{min}}である必要があります",
     "maxValue": "最大{{max}}以下である必要があります"
+  },
+  "settings": {
+    "save": "変更を保存",
+    "cancel": "キャンセル",
+    "units": {
+      "title": "単位の設定",
+      "description": "体重、温度、容量などの測定値を表示するための優先単位システムを選択してください。",
+      "systemLabel": "優先単位システム",
+      "metric": "メートル法",
+      "metricExamples": "キログラム（kg）、摂氏（°C）、ミリリットル（ml）",
+      "customary": "米国慣用単位",
+      "customaryExamples": "ポンド（lb）、華氏（°F）、液量オンス（fl oz）",
+      "localeDefault": "地域のデフォルト",
+      "usingLocaleDefault": "お住まいの地域のデフォルト単位システムを使用しています。",
+      "usingUserPreference": "カスタム単位設定を設定しています。",
+      "saved": "単位の設定が正常に保存されました。",
+      "resetToLocale": "地域のデフォルトにリセット",
+      "explicitUnitNote": {
+        "title": "データ変換に関する注意：",
+        "description": "記録に明示的な単位が含まれている場合（例：「kg」とマークされた検査結果）、その値は変換せずに記録されたとおりに正確に表示されます。設定は明示的な単位のない記録にのみ適用されます。"
+      }
+    }
   }
 }

@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 
 import type { LabResultItem, ReferenceRange } from '@/types/lab-results';
+import PeriodComparison from './PeriodComparison';
 
 export interface TrendsChartProps {
   data: LabResultItem[];
@@ -594,6 +595,8 @@ export default function TrendsChart({ data, testName, className = '' }: TrendsCh
           )}
         </div>
       )}
+
+      {numericItems.length > 0 && <PeriodComparison data={numericItems} />}
     </div>
   );
 }

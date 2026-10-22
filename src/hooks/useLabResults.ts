@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { LabResultItem } from '@/types/lab-results';
+import { getLabResults } from '@/lib/api/labResultsAPI';
 
 const MOCK_RESULTS: LabResultItem[] = [
   {
@@ -86,8 +87,29 @@ export function useLabResults(petId?: string): UseLabResultsReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Replace with real API: fetch(`/api/pets/${petId}/lab-results`)
     setLoading(true);
+    setError(null);
+    if (petId) {
+      let cancelled = false;
+      getLabResults(petId)
+        .then((data) => {
+          if (!cancelled) setResults(data);
+        })
+        .catch((loadError: unknown) => {
+          if (!cancelled) {
+            setError(
+              loadError instanceof Error ? loadError.message : 'Failed to load lab results.'
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const timer = setTimeout(() => {
       setResults(MOCK_RESULTS);
       setLoading(false);

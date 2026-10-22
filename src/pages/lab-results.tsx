@@ -1,11 +1,16 @@
 import React from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import HeaderComponent from '@/components/Header';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 
 export const dynamic = 'force-dynamic';
 
 export default function LabResultsPage() {
+  const router = useRouter();
+  const petId = typeof router.query.petId === 'string' ? router.query.petId : undefined;
+  const selectedTest = typeof router.query.test === 'string' ? router.query.test : undefined;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
       <Head>
@@ -26,7 +31,7 @@ export default function LabResultsPage() {
           {/* Action Buttons */}
         </div>
 
-        <ResultsDashboard />
+        <ResultsDashboard petId={petId} selectedTest={selectedTest} />
       </main>
 
       {/* Footer */}

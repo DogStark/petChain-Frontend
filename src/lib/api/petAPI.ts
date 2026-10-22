@@ -7,6 +7,20 @@ import { attachCorrelationInterceptor } from './correlationInterceptor';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export interface PetShareSummary {
+  id: string;
+  petId: string;
+  sharedWithUserId: string;
+  canEdit: boolean;
+  isActive: boolean;
+  createdAt: string;
+  sharedWithUser?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+}
+
 class PetAPI {
   private api: AxiosInstance;
 
@@ -77,6 +91,12 @@ class PetAPI {
   async getPet(petId: string): Promise<Pet> {
     if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
     const response = await this.api.get(`/${petId}`);
+    return response.data;
+  }
+
+  async getPetShares(petId: string): Promise<PetShareSummary[]> {
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
+    const response = await this.api.get<PetShareSummary[]>(`/${petId}/shares`);
     return response.data;
   }
 }

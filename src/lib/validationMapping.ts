@@ -1,4 +1,3 @@
-import { AxiosError } from 'axios';
 import { ApiError, getErrorMessage } from './apiError';
 
 export interface ServerValidationErrorItem {
@@ -17,58 +16,63 @@ export interface ServerValidationResult {
 const STABLE_ERROR_CODE_MAP: Record<string, { field: string; i18nKey: string; fallback: string }> = {
   PET_NAME_REQUIRED: {
     field: 'pet.name',
-    i18nKey: 'errors.validation.petNameRequired',
+    i18nKey: 'errors.api.validation.petNameRequired',
     fallback: 'Pet name is required',
   },
   INVALID_DOSAGE: {
     field: 'dosage',
-    i18nKey: 'errors.validation.invalidDosage',
+    i18nKey: 'errors.api.validation.invalidDosage',
     fallback: 'Invalid dosage amount',
   },
   DOSAGE_INVALID: {
     field: 'dosage',
-    i18nKey: 'errors.validation.invalidDosage',
+    i18nKey: 'errors.api.validation.invalidDosage',
     fallback: 'Invalid dosage amount',
   },
   APPOINTMENT_CONFLICT: {
     field: 'appointment.date',
-    i18nKey: 'errors.validation.appointmentConflict',
+    i18nKey: 'errors.api.validation.appointmentConflict',
     fallback: 'The selected appointment time is no longer available',
   },
   SLOT_TAKEN: {
     field: 'appointment.date',
-    i18nKey: 'errors.validation.appointmentConflict',
+    i18nKey: 'errors.api.validation.appointmentConflict',
     fallback: 'The selected appointment time is no longer available',
   },
   STALE_VERSION: {
     field: 'version',
-    i18nKey: 'errors.validation.staleVersion',
+    i18nKey: 'errors.api.validation.staleVersion',
     fallback: 'The record has been modified elsewhere. Please refresh and try again.',
   },
   VERSION_MISMATCH: {
     field: 'version',
-    i18nKey: 'errors.validation.staleVersion',
+    i18nKey: 'errors.api.validation.staleVersion',
     fallback: 'The record has been modified elsewhere. Please refresh and try again.',
   },
   CONCURRENT_MODIFICATION: {
     field: 'version',
-    i18nKey: 'errors.validation.staleVersion',
+    i18nKey: 'errors.api.validation.staleVersion',
     fallback: 'The record has been modified elsewhere. Please refresh and try again.',
   },
   PET_ID_INVALID: {
     field: 'petId',
-    i18nKey: 'errors.validation.invalidPetId',
+    i18nKey: 'errors.api.validation.invalidPetId',
     fallback: 'Please select a valid pet',
   },
   VET_ID_REQUIRED: {
     field: 'vetId',
-    i18nKey: 'errors.validation.invalidVetId',
+    i18nKey: 'errors.api.validation.invalidVetId',
     fallback: 'Please select a valid veterinarian',
   },
   DATE_REQUIRED: {
     field: 'date',
-    i18nKey: 'errors.validation.invalidDate',
+    i18nKey: 'errors.api.validation.invalidDate',
     fallback: 'Please enter a valid date',
+  },
+  INVALID_ID: {
+    field: 'id',
+    i18nKey: 'errors.api.validation.invalidId',
+    fallback: 'Invalid identifier',
   },
 };
 
@@ -77,143 +81,93 @@ export function mapServerValidationError(
   t: (key: string, params?: Record<string, string | number>) => string = (k) => k,
 ): ServerValidationResult {
   const fieldErrors: Record<string, string> = {};
-  let globalError: string | null = null;
-
-  if (error === null || error === undefined) {
+  let hasUnmappedValidationError = false;
+  if (error instanceof ApiError) {
     return { fieldErrors, globalError: getErrorMessage(error, t) };
   }
 
-  // Extract response data if AxiosError
-  let data: any = error;
-  if (error instanceof Error) {
-    if ('response' in error && (error as AxiosError).response?.data) {
-      data = (error as AxiosError).response?.data;
-    } else if (error instanceof ApiError) {
-      return {
-        fieldErrors,
-        globalError: t(error.key, error.params) || error.message,
-      };
-    } else {
-      data = error.message;
-    }
-  }
-
-  // If data is primitive (string, number, boolean)
-  if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
-    const str = String(data);
-    const mapped = STABLE_ERROR_CODE_MAP[str.toUpperCase()];
-    if (mapped) {
-      const translated = t(mapped.i18nKey);
-      fieldErrors[mapped.field] = translated !== mapped.i18nKey ? translated : mapped.fallback;
-    } else {
-      globalError = str;
-    }
-    return { fieldErrors, globalError };
-  }
-
-  if (typeof data !== 'object' || data === null) {
+  const root = isRecord(error) ? error : undefined;
+  const response = root && isRecord(root.response) ? root.response : undefined;
+  const data = response && isRecord(response.data) ? response.data : root;
+  if (!data) {
     return { fieldErrors, globalError: getErrorMessage(error, t) };
   }
 
-  // 1. Check for fieldErrors record: { fieldErrors: { 'pet.name': '...' } }
-  if (data.fieldErrors && typeof data.fieldErrors === 'object' && data.fieldErrors !== null) {
-    for (const [field, val] of Object.entries(data.fieldErrors)) {
-      if (typeof val === 'string') {
-        const mappedCode = STABLE_ERROR_CODE_MAP[val.toUpperCase()];
-        if (mappedCode) {
-          const translated = t(mappedCode.i18nKey);
-          fieldErrors[field] = translated !== mappedCode.i18nKey ? translated : mappedCode.fallback;
-        } else {
-          fieldErrors[field] = val;
-        }
-      } else if (val && typeof val === 'object') {
-        const item = val as ServerValidationErrorItem;
-        const msg =
-          item.message ||
-          (item.code && STABLE_ERROR_CODE_MAP[item.code.toUpperCase()]?.fallback) ||
-          JSON.stringify(val);
-        fieldErrors[field] = typeof msg === 'string' ? msg : JSON.stringify(msg);
-      }
-    }
-  }
-
-  // 2. Check for errors array: { errors: [{ field: '...', code: '...', message: '...' }] }
-  if (Array.isArray(data.errors)) {
-    for (const errItem of data.errors) {
-      if (errItem && typeof errItem === 'object') {
-        const field = errItem.field || errItem.path;
-        const code = errItem.code;
-        const message = errItem.message;
-
-        if (field) {
-          let resolvedMsg = message;
-          if (code && STABLE_ERROR_CODE_MAP[code.toUpperCase()]) {
-            const mapped = STABLE_ERROR_CODE_MAP[code.toUpperCase()];
-            const translated = t(mapped.i18nKey);
-            resolvedMsg = translated !== mapped.i18nKey ? translated : (message || mapped.fallback);
-          } else if (!resolvedMsg && code) {
-            resolvedMsg = code;
-          }
-          fieldErrors[field] = resolvedMsg || 'Invalid value';
-        } else if (code && STABLE_ERROR_CODE_MAP[code.toUpperCase()]) {
-          const mapped = STABLE_ERROR_CODE_MAP[code.toUpperCase()];
-          const translated = t(mapped.i18nKey);
-          fieldErrors[mapped.field] = translated !== mapped.i18nKey ? translated : (message || mapped.fallback);
-        }
-      } else if (typeof errItem === 'string') {
-        const mapped = STABLE_ERROR_CODE_MAP[errItem.toUpperCase()];
-        if (mapped) {
-          const translated = t(mapped.i18nKey);
-          fieldErrors[mapped.field] = translated !== mapped.i18nKey ? translated : mapped.fallback;
-        } else {
-          globalError = globalError ? `${globalError}; ${errItem}` : errItem;
-        }
-      }
-    }
-  }
-
-  // 3. Check for single field, code, message at top level of data
-  const topField = data.field || data.path;
-  const topCode = data.code;
-  const topMessage = data.message;
-
-  if (topField && (topCode || topMessage)) {
-    let resolvedMsg = topMessage;
-    if (topCode && STABLE_ERROR_CODE_MAP[topCode.toUpperCase()]) {
-      const mapped = STABLE_ERROR_CODE_MAP[topCode.toUpperCase()];
-      const translated = t(mapped.i18nKey);
-      resolvedMsg = translated !== mapped.i18nKey ? translated : (topMessage || mapped.fallback);
-    }
-    fieldErrors[topField] = resolvedMsg || topCode || 'Invalid value';
-  } else if (topCode && STABLE_ERROR_CODE_MAP[topCode.toUpperCase()]) {
-    const mapped = STABLE_ERROR_CODE_MAP[topCode.toUpperCase()];
+  const resolveCode = (code: unknown): string | undefined => {
+    if (typeof code !== 'string') return undefined;
+    const normalized = code.trim().toUpperCase();
+    const mapped = STABLE_ERROR_CODE_MAP[normalized];
+    if (!mapped) return undefined;
     const translated = t(mapped.i18nKey);
-    fieldErrors[mapped.field] = translated !== mapped.i18nKey ? translated : (topMessage || mapped.fallback);
-  }
+    return translated !== mapped.i18nKey ? translated : mapped.fallback;
+  };
 
-  // 4. Check if message is an array
-  if (Array.isArray(topMessage)) {
-    for (const msg of topMessage) {
-      if (typeof msg === 'string') {
-        globalError = globalError ? `${globalError}; ${msg}` : msg;
+  const addMappedFieldError = (field: unknown, code: unknown) => {
+    if (typeof code !== 'string') return;
+    const mapped = STABLE_ERROR_CODE_MAP[code.trim().toUpperCase()];
+    const message = resolveCode(code);
+    if (!mapped || !message) {
+      hasUnmappedValidationError = true;
+      return;
+    }
+    const targetField = typeof field === 'string' && field.trim() ? field : mapped.field;
+    fieldErrors[targetField] = message;
+  };
+
+  const fieldErrorData = isRecord(data.fieldErrors) ? data.fieldErrors : undefined;
+  if (fieldErrorData) {
+    for (const [field, value] of Object.entries(fieldErrorData)) {
+      if (typeof value === 'string') {
+        addMappedFieldError(field, value);
+      } else if (isRecord(value)) {
+        addMappedFieldError(field, value.code);
+      } else {
+        hasUnmappedValidationError = true;
       }
     }
-  } else if (typeof topMessage === 'string' && Object.keys(fieldErrors).length === 0) {
-    const mapped = STABLE_ERROR_CODE_MAP[topMessage.toUpperCase()];
-    if (mapped) {
-      const translated = t(mapped.i18nKey);
-      fieldErrors[mapped.field] = translated !== mapped.i18nKey ? translated : mapped.fallback;
-    } else {
-      globalError = topMessage;
+  }
+
+  if (Array.isArray(data.errors)) {
+    for (const item of data.errors) {
+      if (!isRecord(item)) {
+        if (typeof item === 'string') addMappedFieldError(undefined, item);
+        else hasUnmappedValidationError = true;
+        continue;
+      }
+      addMappedFieldError(item.field ?? item.path, item.code);
     }
   }
 
-  // If still no fieldErrors and no globalError, use fallback
-  if (Object.keys(fieldErrors).length === 0 && !globalError) {
-    globalError = getErrorMessage(error, t);
+  addMappedFieldError(data.field ?? data.path, data.code);
+  if (
+    Object.keys(fieldErrors).length === 0 &&
+    response?.status === 409 &&
+    Array.isArray(data.availableSlots)
+  ) {
+    addMappedFieldError(undefined, 'APPOINTMENT_CONFLICT');
   }
 
-  return { fieldErrors, globalError };
+  if (Object.keys(fieldErrors).length === 0) {
+    const topLevelCode = resolveCode(data.code);
+    if (topLevelCode) {
+      const mapped = typeof data.code === 'string'
+        ? STABLE_ERROR_CODE_MAP[data.code.trim().toUpperCase()]
+        : undefined;
+      if (mapped) fieldErrors[mapped.field] = topLevelCode;
+    }
+  }
+
+  return {
+    fieldErrors,
+    globalError:
+      hasUnmappedValidationError || Object.keys(fieldErrors).length === 0
+        ? getErrorMessage(error, t)
+        : null,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 export function focusFirstInvalidField(

@@ -183,6 +183,32 @@
       "notConnected": "Wallet not connected",
       "notInstalled": "Freighter wallet not installed",
       "installFreighter": "Please install Freighter wallet extension"
+    },
+    "api": {
+      "unknown": "Não foi possível concluir a solicitação. Tente novamente.",
+      "unknownWithCorrelation": "Não foi possível concluir a solicitação. Tente novamente. ID de referência: {{correlationId}}",
+      "network": "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.",
+      "unauthorized": "Entre na sua conta para continuar.",
+      "forbidden": "Você não tem permissão para realizar esta ação.",
+      "notFound": "O item solicitado não foi encontrado.",
+      "conflict": "A solicitação conflita com o estado atual. Atualize e tente novamente.",
+      "rateLimited": "Muitas solicitações foram feitas. Aguarde um momento e tente novamente.",
+      "server": "O serviço está temporariamente indisponível. Tente novamente mais tarde.",
+      "correlationIdLabel": "ID de referência",
+      "correlationIdAccessibleLabel": "ID de referência de suporte selecionável",
+      "copyCorrelationId": "Copiar ID",
+      "correlationIdCopied": "ID de referência copiado.",
+      "correlationIdCopyFailed": "Não foi possível copiar o ID. Selecione-o e copie manualmente.",
+      "validation": {
+        "invalidId": "Identificador inválido.",
+        "petNameRequired": "O nome do animal é obrigatório.",
+        "invalidDosage": "Informe uma dosagem válida.",
+        "appointmentConflict": "O horário selecionado para a consulta não está mais disponível.",
+        "staleVersion": "O registro foi alterado em outro lugar. Atualize e tente novamente.",
+        "invalidPetId": "Selecione um animal válido.",
+        "invalidVetId": "Selecione um veterinário válido.",
+        "invalidDate": "Informe uma data válida."
+      }
     }
   },
   "accessibility": {
@@ -269,5 +295,27 @@
     "invalidNumber": "Please enter a valid number",
     "minValue": "Must be at least {{min}}",
     "maxValue": "Must be no more than {{max}}"
+  },
+  "settings": {
+    "save": "Salvar Alterações",
+    "cancel": "Cancelar",
+    "units": {
+      "title": "Preferências de Unidades",
+      "description": "Escolha seu sistema de unidades preferido para exibir medidas como peso, temperatura e volume.",
+      "systemLabel": "Sistema de Unidades Preferido",
+      "metric": "Métrico",
+      "metricExamples": "Quilogramas (kg), Celsius (°C), Mililitros (ml)",
+      "customary": "Sistema Americano",
+      "customaryExamples": "Libras (lb), Fahrenheit (°F), Onças Líquidas (fl oz)",
+      "localeDefault": "Padrão regional",
+      "usingLocaleDefault": "Você está usando o sistema de unidades padrão da sua região.",
+      "usingUserPreference": "Você definiu uma preferência de unidades personalizada.",
+      "saved": "Preferência de unidades salva com sucesso.",
+      "resetToLocale": "Redefinir para Padrão Regional",
+      "explicitUnitNote": {
+        "title": "Nota sobre conversão de dados:",
+        "description": "Quando um registro inclui uma unidade explícita (por exemplo, um resultado de laboratório marcado como 'kg'), esse valor será exibido exatamente como foi registrado, sem conversão. Sua preferência se aplica apenas a registros sem uma unidade explícita."
+      }
+    }
   }
 }
