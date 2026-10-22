@@ -251,3 +251,9 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1095 -->
 - #1095: [Frontend] Add appointment preparation checklists
+
+<!-- handsoff-issue-1101 -->
+- #1101: [Frontend] Add appointment waitlist offer acceptance
+
+<!-- handsoff-issue-1102 -->
+- #1102: [Frontend] Add calendar export for a single appointment
