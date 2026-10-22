@@ -216,3 +216,8 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1078 -->
 - #1078: [Frontend] Add a duplicate-profile review and merge flow
+
+<!-- handsoff-issue-1090 -->
+- #1090: [Frontend] Add a medication administration history calendar
+<!-- handsoff-issue-1110 -->
+- #1110: [Frontend] Add an alert triage view for overdue care tasks
