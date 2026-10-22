@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { NotificationPreferences } from '../components/Settings/NotificationPreferences';
 import { PrivacySettings } from '../components/Settings/PrivacySettings';
+import DataModeSettings from '../components/Settings/DataModeSettings';
 import { UnitPreferences } from '../components/Settings/UnitPreferences';
 import { userAPI, UpdateUserPreferencesDto, UserProfile } from '../lib/api/userAPI';
 import styles from '../styles/pages/PreferencesPage.module.css';
@@ -27,7 +28,7 @@ type PrivacyPreferenceState = {
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy' | 'units'>('notifications');
+  const [activeTab, setActiveTab] = useState<'notifications' | 'privacy' | 'data-mode' | 'units'>('notifications');
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferenceState | null>(
     null
   );
@@ -111,11 +112,12 @@ export default function PreferencesPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [notificationDirty, privacyDirty, unitsDirty]);
 
-  const handleTabChange = (newTab: 'notifications' | 'privacy' | 'units') => {
-    const currentTabDirty = 
+  const handleTabChange = (newTab: 'notifications' | 'privacy' | 'data-mode' | 'units') => {
+    const currentTabDirty =
       activeTab === 'notifications' ? notificationDirty :
       activeTab === 'privacy' ? privacyDirty :
-      unitsDirty;
+      activeTab === 'units' ? unitsDirty :
+      false;
 
     if (currentTabDirty) {
       const confirmed = window.confirm(
@@ -220,6 +222,12 @@ export default function PreferencesPage() {
           Privacy
         </button>
         <button
+          className={`${styles.tab} ${activeTab === 'data-mode' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('data-mode')}
+        >
+          Data Mode
+        </button>
+        <button
           className={`${styles.tab} ${activeTab === 'units' ? styles.activeTab : ''}`}
           onClick={() => handleTabChange('units')}
         >
@@ -258,6 +266,9 @@ export default function PreferencesPage() {
           </div>
         )}
 
+        <div style={{ display: activeTab === 'data-mode' ? 'block' : 'none' }}>
+          <DataModeSettings />
+        </div>
         <div style={{ display: activeTab === 'units' ? 'block' : 'none' }}>
           <UnitPreferences onDirtyChange={setUnitsDirty} />
         </div>

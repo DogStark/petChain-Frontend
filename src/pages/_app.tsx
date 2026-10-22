@@ -13,6 +13,7 @@ import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorB
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DataModeProvider } from "@/contexts/DataModeContext";
 import { I18nProvider } from "@/i18n";
 import { usePWA } from "@/hooks/usePWA";
 import {
@@ -140,21 +141,23 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
     <I18nProvider>
     <AuthProvider>
       <ThemeProvider>
-        <NotificationProvider>
-          <RouteErrorBoundaryWithRouter>
-            <PWAManager />
-            {/* Custom high-performance route transition feedback */}
-            <RouteProgressBar />
-            {/* Global toast queue */}
-            <ToastContainer />
-            {/* Slide-in notification center */}
-            <NotificationCenter />
-            {/* Live-region announcements for assistive technology */}
-            <AccessibilityAnnouncer />
-            {getLayout(<Component {...pageProps} />)}
-            <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
-          </RouteErrorBoundaryWithRouter>
-        </NotificationProvider>
+        <DataModeProvider>
+          <NotificationProvider>
+            <RouteErrorBoundaryWithRouter>
+              <PWAManager />
+              {/* Custom high-performance route transition feedback */}
+              <RouteProgressBar />
+              {/* Global toast queue */}
+              <ToastContainer />
+              {/* Slide-in notification center */}
+              <NotificationCenter />
+              {/* Live-region announcements for assistive technology */}
+              <AccessibilityAnnouncer />
+              {getLayout(<Component {...pageProps} />)}
+              <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
+            </RouteErrorBoundaryWithRouter>
+          </NotificationProvider>
+        </DataModeProvider>
       </ThemeProvider>
     </AuthProvider>
     </I18nProvider>

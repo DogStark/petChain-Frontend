@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
 import { generateAnalyticsData } from '../lib/analyticsUserData';
 import { GetServerSideProps } from 'next';
+import DataModeChart from '@/components/DataModeChart';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), {
   ssr: false,
@@ -264,9 +265,13 @@ const AnalyticsPage = () => {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
           <section className="lg:col-span-8" aria-label="User engagement analytics">
-            <div className="analytics-chart analytics-chart--engagement" aria-hidden="true">
+            <DataModeChart
+              title="User Engagement"
+              summary={`${engagementData[engagementData.length - 1]?.activeUsers || 0} active users today`}
+              minHeight="400px"
+            >
               <UserEngagementChart data={engagementData} />
-            </div>
+            </DataModeChart>
             <AccessibleDataTable
               caption="User engagement"
               columns={['Date', 'Active users', 'New signups']}
@@ -275,9 +280,13 @@ const AnalyticsPage = () => {
           </section>
 
           <section className="lg:col-span-4" aria-label="Pet health analytics">
-            <div className="analytics-chart analytics-chart--health" aria-hidden="true">
+            <DataModeChart
+              title="Pet Health Overview"
+              priority={true}
+              minHeight="400px"
+            >
               <PetHealthChart data={healthData} />
-            </div>
+            </DataModeChart>
             <AccessibleDataTable
               caption="Pet health distribution"
               columns={['Health status', 'Pets', 'Share']}
@@ -290,9 +299,14 @@ const AnalyticsPage = () => {
           </section>
 
           <section className="lg:col-span-6" aria-label="Vaccination analytics">
-            <div className="analytics-chart analytics-chart--vaccination" aria-hidden="true">
+            <DataModeChart
+              title="Vaccination Compliance"
+              priority={true}
+              summary="Track vaccination status across your pets"
+              minHeight="350px"
+            >
               <VaccinationChart data={vaccinationData} />
-            </div>
+            </DataModeChart>
             <AccessibleDataTable
               caption="Vaccination compliance"
               columns={['Month', 'Compliant (%)', 'Non-compliant (%)']}
@@ -301,9 +315,13 @@ const AnalyticsPage = () => {
           </section>
 
           <section className="lg:col-span-6" aria-label="Geographic analytics">
-            <div className="analytics-chart analytics-chart--geographic" aria-hidden="true">
+            <DataModeChart
+              title="Geographic Distribution"
+              summary="User distribution across regions"
+              minHeight="350px"
+            >
               <GeoDistributionChart data={geoData} />
-            </div>
+            </DataModeChart>
             <AccessibleDataTable
               caption="Geographic distribution"
               columns={['Region', 'Users']}
@@ -312,9 +330,13 @@ const AnalyticsPage = () => {
           </section>
 
           <section className="lg:col-span-12" aria-label="API usage analytics">
-            <div className="analytics-chart analytics-chart--api" aria-hidden="true">
+            <DataModeChart
+              title="API Usage & Performance"
+              summary="Monitor system requests and error rates"
+              minHeight="300px"
+            >
               <ApiUsageChart data={apiUsageData} />
-            </div>
+            </DataModeChart>
             <AccessibleDataTable
               caption="API usage"
               columns={['Time', 'Requests', 'Errors']}
