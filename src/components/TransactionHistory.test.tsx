@@ -1,6 +1,8 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import TransactionHistory from './TransactionHistory';
 import * as useTransactionsModule from '@/hooks/useTransactions';
+import * as receiptPdfModule from '@/lib/wallet/transactionReceiptPdf';
 
 const mockTransactions = [
   {
@@ -130,5 +132,121 @@ describe('TransactionHistory', () => {
       const statusBadges = container.querySelectorAll('span[class*="bg-"]');
       expect(statusBadges.length).toBeGreaterThan(0);
     });
+  });
+
+  it('downloads a receipt when the confirmed transaction action is activated by keyboard', async () => {
+    const user = userEvent.setup();
+    const downloadReceipt = jest.spyOn(receiptPdfModule, 'downloadTransactionReceiptPdf');
+    const confirmedTransaction = {
+      ...mockTransactions[0],
+      type: 'transfer' as const,
+      blockNumber: 12345,
+    };
+    jest.spyOn(useTransactionsModule, 'useTransactions').mockReturnValue({
+      transactions: [confirmedTransaction],
+      pending: [],
+      failed: [],
+      loading: false,
+      error: null,
+      fetchTransactions: jest.fn(),
+      getTransaction: jest.fn(),
+      getTransactionReceipt: jest.fn(),
+      getTransactionCost: jest.fn(),
+      retryTransaction: jest.fn(),
+      cancelTransaction: jest.fn(),
+      estimateCost: jest.fn(),
+      fetchPendingTransactions: jest.fn(),
+      fetchFailedTransactions: jest.fn(),
+      getTotalCosts: jest.fn(),
+    });
+
+    render(<TransactionHistory />);
+    await user.tab();
+    await user.tab();
+    const downloadButton = screen.getByRole('button', {
+      name: `Download PDF receipt for transaction ${confirmedTransaction.hash}`,
+    });
+    expect(downloadButton).toHaveFocus();
+    await user.keyboard('{Enter}');
+
+    expect(downloadReceipt).toHaveBeenCalledWith(
+      confirmedTransaction,
+      expect.stringMatching(/^(TESTNET|PUBLIC)$/)
+    );
+  });
+
+  it('shows an explicit empty state', () => {
+    jest.spyOn(useTransactionsModule, 'useTransactions').mockReturnValue({
+      transactions: [],
+      pending: [],
+      failed: [],
+      loading: false,
+      error: null,
+      fetchTransactions: jest.fn(),
+      getTransaction: jest.fn(),
+      getTransactionReceipt: jest.fn(),
+      getTransactionCost: jest.fn(),
+      retryTransaction: jest.fn(),
+      cancelTransaction: jest.fn(),
+      estimateCost: jest.fn(),
+      fetchPendingTransactions: jest.fn(),
+      fetchFailedTransactions: jest.fn(),
+      getTotalCosts: jest.fn(),
+    });
+
+    render(<TransactionHistory />);
+
+    expect(screen.getByText('No transactions to display.')).toBeInTheDocument();
+  });
+
+  it('surfaces an access-denied response and does not provide a receipt', () => {
+    jest.spyOn(useTransactionsModule, 'useTransactions').mockReturnValue({
+      transactions: [],
+      pending: [],
+      failed: [],
+      loading: false,
+      error: 'Access denied',
+      fetchTransactions: jest.fn(),
+      getTransaction: jest.fn(),
+      getTransactionReceipt: jest.fn(),
+      getTransactionCost: jest.fn(),
+      retryTransaction: jest.fn(),
+      cancelTransaction: jest.fn(),
+      estimateCost: jest.fn(),
+      fetchPendingTransactions: jest.fn(),
+      fetchFailedTransactions: jest.fn(),
+      getTotalCosts: jest.fn(),
+    });
+
+    render(<TransactionHistory />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Access denied');
+    expect(screen.queryByRole('button', { name: /Download PDF receipt/ })).not.toBeInTheDocument();
+  });
+
+  it('disables receipt downloads when confirmed ledger data is incomplete', () => {
+    jest.spyOn(useTransactionsModule, 'useTransactions').mockReturnValue({
+      transactions: [{ ...mockTransactions[0], type: 'transfer' as const }],
+      pending: [],
+      failed: [],
+      loading: false,
+      error: null,
+      fetchTransactions: jest.fn(),
+      getTransaction: jest.fn(),
+      getTransactionReceipt: jest.fn(),
+      getTransactionCost: jest.fn(),
+      retryTransaction: jest.fn(),
+      cancelTransaction: jest.fn(),
+      estimateCost: jest.fn(),
+      fetchPendingTransactions: jest.fn(),
+      fetchFailedTransactions: jest.fn(),
+      getTotalCosts: jest.fn(),
+    });
+
+    render(<TransactionHistory />);
+
+    expect(
+      screen.getByRole('button', { name: /Download PDF receipt/ })
+    ).toBeDisabled();
   });
 });
