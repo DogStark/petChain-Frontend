@@ -211,6 +211,47 @@ PetChain is licensed under the MIT License.
 <!-- handsoff-issue-984 -->
 - #984: [Frontend] Add a non-map accessible alternative to clinic search results
 
+<!-- handsoff-issue-1075 -->
+- #1075: [Frontend] Add a cross-pet care workload summary
+
+<!-- handsoff-issue-1080 -->
+- #1080: [Frontend] Add a per-pet role editor for shared households
+
+<!-- handsoff-issue-1081 -->
+- #1081: [Frontend] Add a pet deactivation and reactivation confirmation flow
+
+<!-- handsoff-issue-1082 -->
+- #1082: [Frontend] Add pet-specific document categories and labels
+
+<!-- handsoff-issue-1096 -->
+- #1096: [Frontend] Add post-visit instructions with acknowledgement
+
+<!-- handsoff-issue-1068 -->
+- #1068: [Frontend] Add a household-wide care agenda to the dashboard
+
+<!-- handsoff-issue-1074 -->
+- #1074: [Frontend] Add a dashboard quick action for recording a visit
+
+<!-- handsoff-issue-1076 -->
+- #1076: [Frontend] Show data freshness and source on dashboard summaries
+
+<!-- handsoff-issue-1078 -->
+- #1078: [Frontend] Add a duplicate-profile review and merge flow
+
+<!-- handsoff-issue-1090 -->
+- #1090: [Frontend] Add a medication administration history calendar
+<!-- handsoff-issue-1110 -->
+- #1110: [Frontend] Add an alert triage view for overdue care tasks
+
+<!-- handsoff-issue-1092 -->
+- #1092: [Frontend] Add a record provenance panel for verified entries
+
+<!-- handsoff-issue-1093 -->
+- #1093: [Frontend] Add a clinical note review request workflow
+
+<!-- handsoff-issue-1095 -->
+- #1095: [Frontend] Add appointment preparation checklists
+
 <!-- handsoff-issue-1101 -->
 - #1101: [Frontend] Add appointment waitlist offer acceptance
 
