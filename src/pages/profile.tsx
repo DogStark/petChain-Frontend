@@ -16,6 +16,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [emergencyInfo, setEmergencyInfo] = useState<PetEmergencyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmergencyLoading, setIsEmergencyLoading] = useState(true);
+  const [emergencyLoadError, setEmergencyLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pets, setPets] = useState<any[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
@@ -30,12 +32,25 @@ export default function ProfilePage() {
         const userPets = await petAPI.getUserPets();
         setPets(userPets);
 
-        // If user has pets, fetch emergency info for the first pet
+        // Keep pet-scoped setup links focused on the pet the owner selected.
         if (userPets.length > 0) {
-          const firstPetId = userPets[0].id;
-          setSelectedPetId(firstPetId);
-          const emergency = await petAPI.getPetEmergencyInfo(firstPetId);
-          setEmergencyInfo(emergency);
+          const requestedPetId =
+            typeof router.query.petId === 'string' ? router.query.petId : undefined;
+          const selectedPet =
+            userPets.find((pet) => pet.id === requestedPetId) ?? userPets[0];
+          setSelectedPetId(selectedPet.id);
+          try {
+            const emergency = await petAPI.getPetEmergencyInfo(selectedPet.id);
+            setEmergencyInfo(emergency);
+          } catch (emergencyError) {
+            setEmergencyLoadError(
+              emergencyError instanceof Error
+                ? emergencyError.message
+                : 'Failed to load emergency information'
+            );
+          } finally {
+            setIsEmergencyLoading(false);
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load profile data');
@@ -50,6 +65,22 @@ export default function ProfilePage() {
 
     loadData();
   }, [router]);
+
+  const handlePetChange = async (petId: string) => {
+    setSelectedPetId(petId);
+    setEmergencyInfo(null);
+    setEmergencyLoadError(null);
+    setError(null);
+    setIsEmergencyLoading(true);
+    try {
+      const emergency = await petAPI.getPetEmergencyInfo(petId);
+      setEmergencyInfo(emergency);
+    } catch (err: any) {
+      setEmergencyLoadError(err.message || 'Failed to load emergency information');
+    } finally {
+      setIsEmergencyLoading(false);
+    }
+  };
 
   const handleProfileSubmit = async (data: any) => {
     try {
@@ -70,11 +101,14 @@ export default function ProfilePage() {
       return;
     }
     try {
+      setError(null);
       setIsLoading(true);
       const updated = await petAPI.updatePetEmergencyInfo(selectedPetId, data);
       setEmergencyInfo(updated);
+      setEmergencyLoadError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to save emergency contacts');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -130,18 +164,60 @@ export default function ProfilePage() {
               <p className="text-sm text-blue-700 mt-1">Add a pet to manage emergency information and medical records.</p>
             </div>
           ) : (
-            <EmergencyContactForm
-              initialData={emergencyInfo || undefined}
-              onSave={handleEmergencySave}
-              isLoading={isLoading}
-            />
+            <>
+              {pets.length > 1 && (
+                <label className="block text-sm font-medium text-gray-700">
+                  Pet
+                  <select
+                    value={selectedPetId ?? ''}
+                    onChange={(event) => void handlePetChange(event.target.value)}
+                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2"
+                  >
+                    {pets.map((pet) => (
+                      <option key={pet.id} value={pet.id}>{pet.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {isEmergencyLoading ? (
+                <p role="status" className="text-sm text-gray-600">Loading emergency details…</p>
+              ) : emergencyLoadError ? (
+                <div className="text-sm text-red-700" role="alert">
+                  <p>{emergencyLoadError}</p>
+                  {selectedPetId && (
+                    <button
+                      type="button"
+                      className="mt-2 font-semibold underline"
+                      onClick={() => void handlePetChange(selectedPetId)}
+                    >
+                      Retry
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <EmergencyContactForm
+                  key={selectedPetId ?? 'new-pet'}
+                  initialData={
+                    emergencyInfo ?? {
+                      petId: selectedPetId ?? '',
+                      contacts: [],
+                    }
+                  }
+                  onSave={handleEmergencySave}
+                  isLoading={isLoading}
+                />
+              )}
+            </>
           )}
         </div>
 
         <div className="lg:col-span-1">
           {selectedPetId && pets.length > 0 && (
             <div className="sticky top-24">
-              <EmergencyQR petId={selectedPetId} petName={pets[0].name} />
+              <EmergencyQR
+                petId={selectedPetId}
+                petName={pets.find((pet) => pet.id === selectedPetId)?.name ?? pets[0].name}
+              />
             </div>
           )}
         </div>

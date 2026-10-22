@@ -10,6 +10,7 @@ import { medicalRecordsAPI } from '@/lib/api/medicalRecordsAPI';
 import { petAPI } from '@/lib/api/petAPI';
 import { userAPI } from '@/lib/api/userAPI';
 import { formatNumber } from '@/utils/formatCurrency';
+import PetSharingSummary from '@/components/Pets/PetSharingSummary';
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
@@ -56,6 +57,7 @@ export default function DashboardPage() {
 function DashboardContent({ user }: { user: User }) {
   const { language } = useTranslation();
   const [petCount, setPetCount] = useState<number | null>(null);
+  const [pets, setPets] = useState<Array<{ id: string; name: string }>>([]);
   const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
 
@@ -67,6 +69,7 @@ function DashboardContent({ user }: { user: User }) {
       .then(async (pets) => {
         if (cancelled) return;
         setPetCount(pets.length);
+        setPets(pets.map(({ id, name }) => ({ id, name })));
 
         const recordCounts = await Promise.all(
           pets.map((pet) =>
@@ -81,6 +84,7 @@ function DashboardContent({ user }: { user: User }) {
       .catch(() => {
         if (!cancelled) {
           setPetCount(null);
+          setPets([]);
           setMedicalRecordCount(null);
         }
       });
@@ -185,6 +189,8 @@ function DashboardContent({ user }: { user: User }) {
           </div>
         </div>
       </div>
+
+      <PetSharingSummary pets={pets} />
 
       <div className="mt-8">
         <div className="bg-white shadow rounded-lg">

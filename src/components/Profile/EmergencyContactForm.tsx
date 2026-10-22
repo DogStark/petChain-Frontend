@@ -125,6 +125,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   /**
    * Live-region message for screen-reader announcements after reorder actions.
    * The ref tracks the last message so we can force re-announcement by appending
@@ -237,9 +238,12 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSaveError(null);
     try {
       await onSave(formData);
       announceMutation('Emergency contact information saved.', 'success');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save emergency information.');
     } finally {
       setIsSubmitting(false);
     }
@@ -469,6 +473,7 @@ export const EmergencyContactForm: React.FC<EmergencyContactFormProps> = ({
           </div>
         </div>
 
+        {saveError && <p className="text-sm text-red-700" role="alert">{saveError}</p>}
         <div className={styles.saveActions}>
           <button type="submit" className={styles.saveBtn} disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : 'Save Emergency Info'}

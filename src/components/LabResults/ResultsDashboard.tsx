@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, FlaskConical, CalendarDays, TrendingUp, ArrowRight, Share2, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useLabResults } from '@/hooks/useLabResults';
 import type { LabCategory, LabResultItem } from '@/types/lab-results';
@@ -76,13 +76,23 @@ function Skeleton() {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ResultsDashboard({ petId }: { petId?: string }) {
+export default function ResultsDashboard({
+  petId,
+  selectedTest,
+}: {
+  petId?: string;
+  selectedTest?: string;
+}) {
   const { results, summary, recentResults, loading, error } = useLabResults(petId);
 
   const [activeCategory, setActiveCategory] = useState<LabCategory>('Blood Work');
   const [selectedTestTrend, setSelectedTestTrend] = useState<string | null>('Red Blood Cell Count');
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isShareOpen, setShareOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedTest) setSelectedTestTrend(selectedTest);
+  }, [selectedTest]);
 
   if (loading) return <Skeleton />;
 

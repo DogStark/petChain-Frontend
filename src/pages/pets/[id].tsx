@@ -5,6 +5,9 @@ import { ArrowLeft, QrCode } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import Avatar from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
+import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
+import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
+import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
@@ -27,6 +30,7 @@ interface Pet {
     thumbnailUrl: string;
     isPrimary: boolean;
   }>;
+  createdAt?: string;
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -141,6 +145,16 @@ export default function PetDetailPage() {
             </div>
           </div>
         </div>
+
+        <CareSetupChecklist petId={pet.id} petName={pet.name} createdAt={pet.createdAt} />
+
+        <section className={styles.section} aria-labelledby="pet-health-title">
+          <h2 id="pet-health-title" className={styles.sectionTitle}>Health</h2>
+          <HealthScoreExplanation petId={pet.id} />
+          <div className="mt-6">
+            <ResultsDashboard petId={pet.id} />
+          </div>
+        </section>
 
         {/* QR Code Section */}
         <div className={styles.section}>
