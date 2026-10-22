@@ -269,5 +269,27 @@
     "invalidNumber": "Veuillez entrer un nombre valide",
     "minValue": "Doit être au moins {{min}}",
     "maxValue": "Ne doit pas dépasser {{max}}"
+  },
+  "settings": {
+    "save": "Enregistrer les Modifications",
+    "cancel": "Annuler",
+    "units": {
+      "title": "Préférences d'Unités",
+      "description": "Choisissez votre système d'unités préféré pour afficher les mesures telles que le poids, la température et le volume.",
+      "systemLabel": "Système d'Unités Préféré",
+      "metric": "Métrique",
+      "metricExamples": "Kilogrammes (kg), Celsius (°C), Millilitres (ml)",
+      "customary": "Système Américain",
+      "customaryExamples": "Livres (lb), Fahrenheit (°F), Onces Liquides (fl oz)",
+      "localeDefault": "Valeur par défaut régionale",
+      "usingLocaleDefault": "Vous utilisez le système d'unités par défaut de votre région.",
+      "usingUserPreference": "Vous avez défini une préférence d'unités personnalisée.",
+      "saved": "Préférence d'unités enregistrée avec succès.",
+      "resetToLocale": "Réinitialiser aux Valeurs Régionales",
+      "explicitUnitNote": {
+        "title": "Note sur la conversion des données :",
+        "description": "Lorsqu'un enregistrement inclut une unité explicite (par exemple, un résultat de laboratoire marqué comme 'kg'), cette valeur sera affichée exactement telle qu'enregistrée sans conversion. Votre préférence s'applique uniquement aux enregistrements sans unité explicite."
+      }
+    }
   }
 }
