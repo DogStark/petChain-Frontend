@@ -207,6 +207,32 @@
       "invalidResetToken": "Invalid reset token",
       "resetFailed": "Password reset failed",
       "registrationFailed": "Registration failed"
+    },
+    "api": {
+      "unknown": "We couldn't complete the request. Please try again.",
+      "unknownWithCorrelation": "We couldn't complete the request. Please try again. Reference ID: {{correlationId}}",
+      "network": "We couldn't connect to the service. Check your connection and try again.",
+      "unauthorized": "Please sign in to continue.",
+      "forbidden": "You don't have permission to perform this action.",
+      "notFound": "The requested item could not be found.",
+      "conflict": "The request conflicts with the current state. Refresh and try again.",
+      "rateLimited": "Too many requests were made. Wait a moment and try again.",
+      "server": "The service is temporarily unavailable. Please try again later.",
+      "correlationIdLabel": "Reference ID",
+      "correlationIdAccessibleLabel": "Selectable support reference ID",
+      "copyCorrelationId": "Copy ID",
+      "correlationIdCopied": "Reference ID copied.",
+      "correlationIdCopyFailed": "Could not copy the reference ID. Select and copy it instead.",
+      "validation": {
+        "invalidId": "Invalid identifier.",
+        "petNameRequired": "Pet name is required.",
+        "invalidDosage": "Enter a valid dosage amount.",
+        "appointmentConflict": "The selected appointment time is no longer available.",
+        "staleVersion": "The record changed elsewhere. Refresh and try again.",
+        "invalidPetId": "Select a valid pet.",
+        "invalidVetId": "Select a valid veterinarian.",
+        "invalidDate": "Enter a valid date."
+      }
     }
   },
   "accessibility": {

@@ -183,6 +183,32 @@
       "notConnected": "钱包未连接",
       "notInstalled": "未安装Freighter钱包",
       "installFreighter": "请安装Freighter钱包扩展"
+    },
+    "api": {
+      "unknown": "无法完成请求，请重试。",
+      "unknownWithCorrelation": "无法完成请求，请重试。参考编号：{{correlationId}}",
+      "network": "无法连接到服务。请检查网络连接后重试。",
+      "unauthorized": "请登录后继续。",
+      "forbidden": "您没有权限执行此操作。",
+      "notFound": "找不到请求的项目。",
+      "conflict": "请求与当前状态冲突。请刷新后重试。",
+      "rateLimited": "请求过于频繁。请稍候再试。",
+      "server": "服务暂时不可用，请稍后重试。",
+      "correlationIdLabel": "参考编号",
+      "correlationIdAccessibleLabel": "可选择的支持参考编号",
+      "copyCorrelationId": "复制编号",
+      "correlationIdCopied": "参考编号已复制。",
+      "correlationIdCopyFailed": "无法复制参考编号。请手动选择并复制。",
+      "validation": {
+        "invalidId": "标识符无效。",
+        "petNameRequired": "必须填写宠物名称。",
+        "invalidDosage": "请输入有效的剂量。",
+        "appointmentConflict": "所选预约时间已不可用。",
+        "staleVersion": "记录已在其他位置修改。请刷新后重试。",
+        "invalidPetId": "请选择有效的宠物。",
+        "invalidVetId": "请选择有效的兽医。",
+        "invalidDate": "请输入有效日期。"
+      }
     }
   },
   "accessibility": {

@@ -3,17 +3,17 @@ import { mapServerValidationError } from '../validationMapping';
 describe('validationMapping integration with Appointment booking', () => {
   const mockTranslate = (key: string) => {
     const translations: Record<string, string> = {
-      'errors.validation.petNameRequired': 'Pet name is required (localized)',
-      'errors.validation.invalidDosage': 'Invalid dosage (localized)',
-      'errors.validation.appointmentConflict': 'Slot taken (localized)',
-      'errors.validation.staleVersion': 'Stale version (localized)',
+      'errors.api.validation.petNameRequired': 'Pet name is required (localized)',
+      'errors.api.validation.invalidDosage': 'Invalid dosage (localized)',
+      'errors.api.validation.appointmentConflict': 'Slot taken (localized)',
+      'errors.api.validation.staleVersion': 'Stale version (localized)',
       'errors.general.unknown': 'Unknown error occurred',
     };
     return translations[key] || key;
   };
 
   it('maps 409 conflict with availableSlots to field error', () => {
-    const axiosError: any = {
+    const axiosError = {
       response: {
         status: 409,
         data: {
@@ -31,7 +31,7 @@ describe('validationMapping integration with Appointment booking', () => {
   });
 
   it('maps code SLOT_TAKEN to appointment.date field', () => {
-    const axiosError: any = {
+    const axiosError = {
       response: {
         data: {
           code: 'SLOT_TAKEN',
@@ -47,7 +47,7 @@ describe('validationMapping integration with Appointment booking', () => {
   });
 
   it('maps pet.id validation error from backend class-validator', () => {
-    const axiosError: any = {
+    const axiosError = {
       response: {
         data: {
           errors: [

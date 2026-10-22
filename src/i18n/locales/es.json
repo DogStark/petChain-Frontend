@@ -183,6 +183,32 @@
       "notConnected": "Billetera no conectada",
       "notInstalled": "Billetera Freighter no instalada",
       "installFreighter": "Por favor instala la extensión de billetera Freighter"
+    },
+    "api": {
+      "unknown": "No se pudo completar la solicitud. Inténtalo de nuevo.",
+      "unknownWithCorrelation": "No se pudo completar la solicitud. Inténtalo de nuevo. ID de referencia: {{correlationId}}",
+      "network": "No se pudo conectar al servicio. Comprueba tu conexión e inténtalo de nuevo.",
+      "unauthorized": "Inicia sesión para continuar.",
+      "forbidden": "No tienes permiso para realizar esta acción.",
+      "notFound": "No se encontró el elemento solicitado.",
+      "conflict": "La solicitud entra en conflicto con el estado actual. Actualiza e inténtalo de nuevo.",
+      "rateLimited": "Se recibieron demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "server": "El servicio no está disponible temporalmente. Inténtalo de nuevo más tarde.",
+      "correlationIdLabel": "ID de referencia",
+      "correlationIdAccessibleLabel": "ID de referencia de soporte seleccionable",
+      "copyCorrelationId": "Copiar ID",
+      "correlationIdCopied": "ID de referencia copiado.",
+      "correlationIdCopyFailed": "No se pudo copiar el ID. Selecciónalo y cópialo manualmente.",
+      "validation": {
+        "invalidId": "Identificador no válido.",
+        "petNameRequired": "El nombre de la mascota es obligatorio.",
+        "invalidDosage": "Introduce una dosis válida.",
+        "appointmentConflict": "La hora de la cita seleccionada ya no está disponible.",
+        "staleVersion": "El registro cambió en otro lugar. Actualízalo e inténtalo de nuevo.",
+        "invalidPetId": "Selecciona una mascota válida.",
+        "invalidVetId": "Selecciona un veterinario válido.",
+        "invalidDate": "Introduce una fecha válida."
+      }
     }
   },
   "accessibility": {

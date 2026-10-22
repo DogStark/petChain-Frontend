@@ -183,6 +183,32 @@
       "notConnected": "Wallet nicht verbunden",
       "notInstalled": "Freighter Wallet nicht installiert",
       "installFreighter": "Bitte installieren Sie die Freighter Wallet-Erweiterung"
+    },
+    "api": {
+      "unknown": "Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",
+      "unknownWithCorrelation": "Die Anfrage konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut. Referenz-ID: {{correlationId}}",
+      "network": "Verbindung zum Dienst nicht möglich. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "unauthorized": "Bitte melden Sie sich an, um fortzufahren.",
+      "forbidden": "Sie sind nicht berechtigt, diese Aktion auszuführen.",
+      "notFound": "Das angeforderte Element wurde nicht gefunden.",
+      "conflict": "Die Anfrage steht im Konflikt mit dem aktuellen Zustand. Aktualisieren Sie die Seite und versuchen Sie es erneut.",
+      "rateLimited": "Es wurden zu viele Anfragen gesendet. Warten Sie einen Moment und versuchen Sie es erneut.",
+      "server": "Der Dienst ist vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut.",
+      "correlationIdLabel": "Referenz-ID",
+      "correlationIdAccessibleLabel": "Auswählbare Support-Referenz-ID",
+      "copyCorrelationId": "ID kopieren",
+      "correlationIdCopied": "Referenz-ID kopiert.",
+      "correlationIdCopyFailed": "Die Referenz-ID konnte nicht kopiert werden. Bitte auswählen und kopieren.",
+      "validation": {
+        "invalidId": "Ungültiger Bezeichner.",
+        "petNameRequired": "Der Name des Haustiers ist erforderlich.",
+        "invalidDosage": "Geben Sie eine gültige Dosierung ein.",
+        "appointmentConflict": "Der ausgewählte Termin ist nicht mehr verfügbar.",
+        "staleVersion": "Der Datensatz wurde an anderer Stelle geändert. Aktualisieren Sie ihn und versuchen Sie es erneut.",
+        "invalidPetId": "Wählen Sie ein gültiges Haustier aus.",
+        "invalidVetId": "Wählen Sie eine gültige Tierärztin oder einen gültigen Tierarzt aus.",
+        "invalidDate": "Geben Sie ein gültiges Datum ein."
+      }
     }
   },
   "accessibility": {
