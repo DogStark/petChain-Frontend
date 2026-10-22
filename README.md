@@ -211,6 +211,12 @@ PetChain is licensed under the MIT License.
 <!-- handsoff-issue-984 -->
 - #984: [Frontend] Add a non-map accessible alternative to clinic search results
 
+<!-- handsoff-issue-1068 -->
+- #1068: [Frontend] Add a household-wide care agenda to the dashboard
+
+<!-- handsoff-issue-1074 -->
+- #1074: [Frontend] Add a dashboard quick action for recording a visit
+
 <!-- handsoff-issue-1076 -->
 - #1076: [Frontend] Show data freshness and source on dashboard summaries
 
