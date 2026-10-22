@@ -19,6 +19,27 @@ interface ResultListProps {
 
 const ITEMS_PER_PAGE = 10;
 
+const TEST_EXPLANATIONS: Record<string, string> = {
+  'red blood cell count': 'Measures red blood cells, which carry oxygen around the body.',
+  'rbc': 'Measures red blood cells, which carry oxygen around the body.',
+  'platelet count': 'Counts platelets, blood components that help blood clot.',
+  'hemoglobin': 'Measures the oxygen-carrying protein in red blood cells.',
+  'glucose': 'Measures sugar in the blood.',
+  'urine protein': 'Checks for protein in urine; interpret it with the rest of the lab findings.',
+};
+
+const CATEGORY_EXPLANATIONS: Partial<Record<LabResultItem['category'], string>> = {
+  'Blood Work': 'Tests measured in a blood sample.',
+  'Urinalysis': 'Tests that examine a urine sample.',
+  'Imaging': 'Pictures of the inside of the body, such as X-rays or ultrasound.',
+  'Cytology': 'Examines cells under a microscope.',
+  'Microbiology': 'Checks samples for microorganisms such as bacteria or fungi.',
+};
+
+function getTestExplanation(testName: string): string | undefined {
+  return TEST_EXPLANATIONS[testName.trim().toLowerCase()];
+}
+
 function getCategoryIcon(category: string) {
   switch (category) {
     case 'Blood Work': return <Droplets className="w-4 h-4 text-red-400" />;
@@ -65,12 +86,14 @@ function EmptyState() {
 }
 
 function ResultDetailPanel({ result }: { result: LabResultItem }) {
+  const categoryExplanation = CATEGORY_EXPLANATIONS[result.category];
   return (
     <div className="mt-3 pt-3 border-t border-gray-100 animate-fade-in">
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <span className="text-gray-500">Category</span>
           <p className="font-medium text-gray-800">{result.category}</p>
+          {categoryExplanation && <p className="mt-1 text-xs text-gray-600">{categoryExplanation}</p>}
         </div>
         <div>
           <span className="text-gray-500">Date</span>
@@ -91,6 +114,9 @@ function ResultDetailPanel({ result }: { result: LabResultItem }) {
         </div>
         <div>
           <span className="text-gray-500">Reference Range</span>
+          <p className="mt-1 text-xs text-gray-600">
+            The interval provided by the reporting lab; ranges can vary between labs and patients.
+          </p>
           {result.referenceRange ? (
             <p className="font-medium text-gray-800">
               {result.referenceRange.min} &ndash; {result.referenceRange.max} {result.referenceRange.unit}
@@ -103,13 +129,23 @@ function ResultDetailPanel({ result }: { result: LabResultItem }) {
           <span className="text-gray-500">Status</span>
           <div className="mt-1">
             {result.isAbnormal ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
-                <AlertCircle className="w-3.5 h-3.5" /> Abnormal &ndash; needs attention
-              </span>
+              <div>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+                  <AlertCircle className="w-3.5 h-3.5" /> Abnormal &ndash; needs attention
+                </span>
+                <p className="mt-1 text-xs text-gray-600">
+                  Flagged by the lab or source record; this result alone is not a diagnosis.
+                </p>
+              </div>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Normal
-              </span>
+              <div>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Normal
+                </span>
+                <p className="mt-1 text-xs text-gray-600">
+                  Not flagged as abnormal in the source record; this does not replace veterinary interpretation.
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -182,6 +218,8 @@ export default function ResultList({
 
       {paginated.map((result) => {
         const isExpanded = expandedId === result.id;
+        const testExplanation = getTestExplanation(result.testName);
+        const categoryExplanation = CATEGORY_EXPLANATIONS[result.category];
         return (
           <div
             key={result.id}
@@ -202,12 +240,26 @@ export default function ResultList({
                   {getCategoryIcon(result.category)}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-gray-800 truncate">{result.testName}</h3>
+                  <h3
+                    id={`lab-result-${result.id}-test-name`}
+                    aria-describedby={testExplanation ? `lab-result-${result.id}-test-help` : undefined}
+                    className="font-semibold text-gray-800 truncate"
+                  >
+                    {result.testName}
+                  </h3>
+                  {testExplanation && (
+                    <p id={`lab-result-${result.id}-test-help`} className="mt-1 text-xs text-gray-600">
+                      {testExplanation}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span>{new Date(result.date).toLocaleDateString()}</span>
                     <span className="text-gray-300">&middot;</span>
                     <span className="truncate">{result.category}</span>
                   </div>
+                  {categoryExplanation && (
+                    <p className="mt-1 text-xs text-gray-600">{categoryExplanation}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
