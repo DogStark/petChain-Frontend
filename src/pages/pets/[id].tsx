@@ -8,6 +8,7 @@ import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
 import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
+import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
@@ -153,6 +154,9 @@ export default function PetDetailPage() {
           <HealthScoreExplanation petId={pet.id} />
           <div className="mt-6">
             <ResultsDashboard petId={pet.id} />
+          </div>
+          <div className="mt-8">
+            <AttachmentQueueView petId={pet.id} />
           </div>
         </section>
 

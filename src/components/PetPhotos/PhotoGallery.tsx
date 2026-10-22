@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { ImageIcon } from 'lucide-react';
 import { PhotoCard } from './PhotoCard';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import type { PetPhoto } from '@/lib/api/petPhotosAPI';
 import styles from './PetPhotos.module.css';
 
@@ -31,6 +32,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   onDelete,
   onReorder,
 }) => {
+  const { announce } = useAnnouncement();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -39,6 +41,25 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  /**
+   * Move a photo one position with the keyboard-accessible controls. Screen
+   * readers hear the new position once the parent accepts the reorder.
+   */
+  const movePhoto = (index: number, offset: -1 | 1) => {
+    const nextIndex = index + offset;
+    if (nextIndex < 0 || nextIndex >= photos.length) return;
+
+    const reordered = [...photos];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(nextIndex, 0, moved);
+
+    onReorder(reordered.map((p) => p.id));
+    announce(
+      `Photo moved ${offset === -1 ? 'up' : 'down'} to position ${nextIndex + 1} of ${photos.length}.`,
+      'success',
+    );
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -54,6 +75,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     reordered.splice(newIndex, 0, moved);
 
     onReorder(reordered.map((p) => p.id));
+    announce(`Photo moved to position ${newIndex + 1} of ${photos.length}.`, 'success');
   };
 
   if (photos.length === 0) {
@@ -71,12 +93,16 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className={styles.galleryGrid}>
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <PhotoCard
                 key={photo.id}
                 photo={photo}
+                position={index + 1}
+                total={photos.length}
                 onSetPrimary={onSetPrimary}
                 onDelete={onDelete}
+                onMoveUp={() => movePhoto(index, -1)}
+                onMoveDown={() => movePhoto(index, 1)}
               />
             ))}
           </div>
