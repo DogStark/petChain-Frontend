@@ -15,6 +15,8 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // CSS Modules resolve to their class names so component tests can render.
+    '\\.module\\.css$': '<rootDir>/jest.styleMock.js',
     '^@stellar/stellar-sdk$': '<rootDir>/node_modules/@stellar/stellar-sdk/lib/index.js',
   },
   transform: {
