@@ -114,18 +114,80 @@ describe('TransactionStatusTracker UI', () => {
     render(<TransactionStatusTracker />);
     expect(screen.getByText(/Loading transactions/i)).toBeInTheDocument();
     // loading state uses role=status with aria-busy while initial poll is pending (accessible)
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText(/Loading transactions/i)).toHaveAttribute('role', 'status');
     expect(screen.getByText(/Transaction Status/)).toBeInTheDocument();
   });
 
-  it('returns null when no transactions and no poll error (empty state)', async () => {
+  it('hides the visible tracker and keeps the announcement empty when no transactions exist', async () => {
     mockedAPI.getPendingTransactions.mockResolvedValue([]);
     mockedAPI.getFailedTransactions.mockResolvedValue([]);
 
     const { container } = render(<TransactionStatusTracker />);
     await waitFor(() => expect(mockedAPI.getPendingTransactions).toHaveBeenCalled());
-    // after load completes, should be null (no region)
-    await waitFor(() => expect(container.firstChild).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByText(/Loading transactions/i)).not.toBeInTheDocument()
+    );
+    await waitFor(() => expect(screen.queryByRole('region')).not.toBeInTheDocument());
+    expect(container.querySelector('[aria-live="polite"][aria-atomic="true"]')).toBeEmptyDOMElement();
+  });
+
+  it('announces pending, confirmed, and failed changes without announcing confirmation ticks', async () => {
+    jest.useFakeTimers();
+    const pending = makeTx({ id: 'announce-1', status: 'pending', confirmations: 0 });
+    const confirmationTick = { ...pending, confirmations: 1 };
+    const confirmed = {
+      ...pending,
+      status: 'confirmed' as const,
+      confirmations: 5,
+      blockNumber: 123,
+    };
+    const failed = makeTx({ id: 'announce-2', status: 'failed', errorMessage: 'Private detail' });
+    mockedAPI.getPendingTransactions
+      .mockResolvedValueOnce([pending])
+      .mockResolvedValueOnce([confirmationTick])
+      .mockResolvedValueOnce([confirmed])
+      .mockResolvedValueOnce([confirmed]);
+    mockedAPI.getFailedTransactions
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([failed]);
+
+    const { container } = render(<TransactionStatusTracker />);
+    const liveRegion = container.querySelector<HTMLElement>(
+      '[aria-live="polite"][aria-atomic="true"]'
+    );
+    expect(liveRegion).not.toBeNull();
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(liveRegion).toHaveTextContent('1 transaction is pending.');
+
+    await act(async () => {
+      jest.advanceTimersByTime(BASE_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(liveRegion).toBeEmptyDOMElement();
+
+    await act(async () => {
+      jest.advanceTimersByTime(BASE_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(liveRegion).toHaveTextContent('1 transaction is confirmed.');
+
+    await act(async () => {
+      jest.advanceTimersByTime(BASE_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(liveRegion).toHaveTextContent('1 transaction is failed.');
+    expect(liveRegion).not.toHaveTextContent('announce-1');
+    expect(liveRegion).not.toHaveTextContent('Private detail');
+    jest.useRealTimers();
   });
 
   it('renders distinct guidance for submitted transactions', async () => {
@@ -216,13 +278,14 @@ describe('TransactionStatusTracker UI', () => {
     mockedAPI.getPendingTransactions.mockRejectedValue(new Error('Gateway timeout'));
     mockedAPI.getFailedTransactions.mockRejectedValue(new Error('Gateway timeout'));
 
-    render(<TransactionStatusTracker />);
+    const { container } = render(<TransactionStatusTracker />);
     // first poll fails
     await act(async () => {
       jest.advanceTimersByTime(0);
       await Promise.resolve();
     });
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(container.querySelector('[aria-live="polite"][aria-atomic="true"]')).toBeEmptyDOMElement();
     expect(screen.getByText(/Couldn.t refresh.*retrying/i)).toBeInTheDocument();
     expect(screen.getByText(/Gateway timeout/)).toBeInTheDocument();
 
@@ -353,7 +416,11 @@ describe('TransactionStatusTracker UI', () => {
     mockedAPI.getFailedTransactions.mockResolvedValue([]);
     const { container } = render(<TransactionStatusTracker />);
     await waitFor(() => expect(mockedAPI.getPendingTransactions).toHaveBeenCalled());
-    await waitFor(() => expect(container.firstChild).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByText(/Loading transactions/i)).not.toBeInTheDocument()
+    );
+    await waitFor(() => expect(screen.queryByRole('region')).not.toBeInTheDocument());
+    expect(container.querySelector('[aria-live="polite"][aria-atomic="true"]')).toBeEmptyDOMElement();
   });
 
   it('explorer link encodes hash safely', async () => {

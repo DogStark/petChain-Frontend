@@ -14,6 +14,8 @@ import {
 export const BASE_INTERVAL = 10_000;
 export const MAX_INTERVAL = 160_000;
 
+type AnnouncedStatus = 'pending' | 'confirmed' | 'failed';
+
 const toneClasses: Record<string, string> = {
   warning: 'bg-amber-50 border-amber-200 text-amber-800',
   info: 'bg-blue-50 border-blue-200 text-blue-800',
@@ -40,8 +42,11 @@ export default function TransactionStatusTracker() {
   const [failed, setFailed] = useState<Transaction[]>([]);
   const [pollError, setPollError] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [announcement, setAnnouncement] = useState('');
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const delayRef = useRef(BASE_INTERVAL);
+  const announcedStatusesRef = useRef<Map<string, AnnouncedStatus> | null>(null);
 
   const scheduleNext = (delay: number) => {
     if (intervalRef.current) clearTimeout(intervalRef.current);
@@ -72,6 +77,9 @@ export default function TransactionStatusTracker() {
     poll();
     return () => {
       if (intervalRef.current) clearTimeout(intervalRef.current);
+      if (announcementClearTimeoutRef.current) {
+        clearTimeout(announcementClearTimeoutRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -129,22 +137,79 @@ export default function TransactionStatusTracker() {
 
   const hasAny = reconciled.length > 0;
 
+  useEffect(() => {
+    if (isInitialLoading || pollError) return;
+
+    const currentStatuses = new Map<string, AnnouncedStatus>();
+    for (const { tx, finality } of reconciled) {
+      if (finality === 'submitted' || finality === 'accepted') {
+        currentStatuses.set(tx.id, 'pending');
+      } else if (finality === 'confirmed' || finality === 'failed') {
+        currentStatuses.set(tx.id, finality);
+      }
+    }
+
+    const previousStatuses = announcedStatusesRef.current;
+    announcedStatusesRef.current = currentStatuses;
+    const changedCounts: Record<AnnouncedStatus, number> = {
+      pending: 0,
+      confirmed: 0,
+      failed: 0,
+    };
+
+    for (const [id, status] of currentStatuses) {
+      if (previousStatuses?.get(id) !== status) changedCounts[status] += 1;
+    }
+
+    const nextAnnouncement = (['pending', 'confirmed', 'failed'] as const)
+      .filter((status) => changedCounts[status] > 0)
+      .map((status) => {
+        const count = changedCounts[status];
+        return `${count} transaction${count === 1 ? '' : 's'} ${count === 1 ? 'is' : 'are'} ${status}.`;
+      })
+      .join(' ');
+
+    if (!nextAnnouncement) return;
+
+    setAnnouncement(nextAnnouncement);
+    if (announcementClearTimeoutRef.current) {
+      clearTimeout(announcementClearTimeoutRef.current);
+    }
+    announcementClearTimeoutRef.current = setTimeout(() => {
+      setAnnouncement('');
+      announcementClearTimeoutRef.current = null;
+    }, BASE_INTERVAL / 2);
+  }, [reconciled, isInitialLoading, pollError]);
+
   // Empty state: hide tracker when no data and no error and done loading (matches previous behaviour)
   if (!hasAny && !pollError && isInitialLoading) {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white shadow-lg rounded-lg border p-4"
-      >
-        <h2 className="font-semibold text-sm mb-2">Transaction Status</h2>
-        <p className="text-sm text-gray-500 animate-pulse">Loading transactions…</p>
-      </div>
+      <>
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {announcement}
+        </div>
+        <div
+          aria-busy="true"
+          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white shadow-lg rounded-lg border p-4"
+        >
+          <h2 className="font-semibold text-sm mb-2">Transaction Status</h2>
+          <p className="text-sm text-gray-500 animate-pulse" role="status">
+            Loading transactions…
+          </p>
+        </div>
+      </>
     );
   }
 
-  if (!hasAny && !pollError && !isInitialLoading) return null;
+  if (!hasAny && !pollError && !isInitialLoading) {
+    return (
+      <>
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {announcement}
+        </div>
+      </>
+    );
+  }
 
   const renderSection = (finality: TransactionFinality, items: ReconciledTransaction[]) => {
     if (items.length === 0) return null;
@@ -257,45 +322,50 @@ export default function TransactionStatusTracker() {
   };
 
   return (
-    <div
-      role="region"
-      aria-labelledby="tx-tracker-heading"
-      aria-live="polite"
-      aria-busy={isInitialLoading}
-      className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 max-h-[80vh] overflow-auto bg-white shadow-lg rounded-lg border"
-    >
-      <div className="p-4">
-        <h2 id="tx-tracker-heading" className="font-semibold mb-3 text-gray-900">
-          Transaction Status
-        </h2>
-
-        {isInitialLoading && (
-          <p className="text-sm text-gray-500 animate-pulse mb-3" role="status">
-            Loading transactions…
-          </p>
-        )}
-
-        {pollError && (
-          <div
-            role="alert"
-            className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700"
-          >
-            Couldn&apos;t refresh transaction status — retrying… ({pollError})
-          </div>
-        )}
-
-        {renderSection('submitted', grouped.submitted)}
-        {renderSection('accepted', grouped.accepted)}
-        {renderSection('confirmed', grouped.confirmed)}
-        {renderSection('failed', grouped.failed)}
-        {renderSection('unknown', grouped.unknown)}
-
-        {/* Live guidance for screen readers when empty but error */}
-        {!hasAny && !isInitialLoading && pollError && (
-          <p className="text-xs text-gray-500">No transactions to display. Refresh will retry automatically.</p>
-        )}
+    <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {announcement}
       </div>
-    </div>
+      <div
+        role="region"
+        aria-labelledby="tx-tracker-heading"
+        aria-busy={isInitialLoading}
+        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 max-h-[80vh] overflow-auto bg-white shadow-lg rounded-lg border"
+      >
+        <div className="p-4">
+          <h2 id="tx-tracker-heading" className="font-semibold mb-3 text-gray-900">
+            Transaction Status
+          </h2>
+
+          {isInitialLoading && (
+            <p className="text-sm text-gray-500 animate-pulse mb-3" role="status">
+              Loading transactions…
+            </p>
+          )}
+
+          {pollError && (
+            <div
+              role="alert"
+              className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700"
+            >
+              Couldn&apos;t refresh transaction status — retrying… ({pollError})
+            </div>
+          )}
+
+          {renderSection('submitted', grouped.submitted)}
+          {renderSection('accepted', grouped.accepted)}
+          {renderSection('confirmed', grouped.confirmed)}
+          {renderSection('failed', grouped.failed)}
+          {renderSection('unknown', grouped.unknown)}
+
+          {!hasAny && !isInitialLoading && pollError && (
+            <p className="text-xs text-gray-500">
+              No transactions to display. Refresh will retry automatically.
+            </p>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
