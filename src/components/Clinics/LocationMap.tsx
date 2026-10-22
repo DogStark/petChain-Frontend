@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   MapPin,
   Phone,
@@ -11,11 +10,15 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { ClinicLocation } from "@/types/clinic";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
 import SafeExternalLink from "@/components/SafeExternalLink";
+import type { ClinicLocation, OperatingHours } from "@/types/clinic";
+import { getClinicOpenStatus } from "@/utils/clinicHours";
 
 interface LocationMapProps {
   locations: ClinicLocation[];
+  hours?: OperatingHours[];
 }
 
 type MapState = "idle" | "loading" | "loaded" | "error" | "no-geolocation";
@@ -106,7 +109,10 @@ function projectToPixel(
   };
 }
 
-export default function LocationMap({ locations }: LocationMapProps) {
+export default function LocationMap({
+  locations,
+  hours = [],
+}: LocationMapProps) {
   const [mapState, setMapState] = useState<MapState>("idle");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [geolocationSupported, setGeolocationSupported] = useState(true);
@@ -143,6 +149,19 @@ export default function LocationMap({ locations }: LocationMapProps) {
     : allLocations;
 
   const mapBounds = getMapBounds(locationsWithCoords, userLocation);
+  const selectedLocation = allLocations.find(
+    (location) => location.id === activeLocation
+  );
+  const selectedDistance =
+    selectedLocation?.coordinates && userLocation
+      ? calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          selectedLocation.coordinates.lat,
+          selectedLocation.coordinates.lng
+        )
+      : null;
+  const selectedOpenStatus = getClinicOpenStatus(hours);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -381,8 +400,10 @@ export default function LocationMap({ locations }: LocationMapProps) {
                   onMouseEnter={() => setHoveredLocation(loc.id)}
                   onMouseLeave={() => setHoveredLocation(null)}
                   onKeyDown={(e) => handleKeyDown(e, loc.id)}
-                  aria-label={`View details for ${loc.name}`}
+                  aria-label={`Select ${loc.name} on map`}
                   aria-expanded={isActive}
+                  aria-pressed={isActive}
+                  aria-controls={`location-details-${loc.id}`}
                 >
                   <div
                     className={`p-2 rounded-full shadow-lg transition-colors ${
@@ -527,128 +548,165 @@ export default function LocationMap({ locations }: LocationMapProps) {
         role="region"
         aria-label="Clinic location details"
       >
-        {sortedLocations.map((loc) => {
-          const isExpanded = expandedLocation === loc.id;
-          const isActive = activeLocation === loc.id;
-          const distance =
-            userLocation && loc.coordinates
-              ? calculateDistance(
-                  userLocation.lat,
-                  userLocation.lng,
-                  loc.coordinates.lat,
-                  loc.coordinates.lng
-                )
-              : null;
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {selectedLocation
+            ? [
+                `Selected ${selectedLocation.name}.`,
+                selectedDistance === null
+                  ? "Distance is available after you share your location."
+                  : `${formatDistance(selectedDistance)} away.`,
+                `${selectedOpenStatus.label}.`,
+              ].join(" ")
+            : "No clinic selected."}
+        </p>
+        <ol className="space-y-4" aria-label="Clinic locations">
+          {sortedLocations.map((loc) => {
+            const isExpanded = expandedLocation === loc.id;
+            const isActive = activeLocation === loc.id;
+            const distance =
+              userLocation && loc.coordinates
+                ? calculateDistance(
+                    userLocation.lat,
+                    userLocation.lng,
+                    loc.coordinates.lat,
+                    loc.coordinates.lng
+                  )
+                : null;
 
-          return (
-            <div
-              key={loc.id}
-              className={`p-6 bg-white rounded-3xl border shadow-sm transition-all relative group overflow-hidden ${
-                isActive
-                  ? "border-pink-300 shadow-md"
-                  : "border-gray-100 hover:border-pink-200"
-              }`}
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 rounded-full -mr-12 -mt-12 group-hover:bg-pink-100 transition-colors" />
+            const openStatus = getClinicOpenStatus(hours);
 
-              <div className="relative">
-                <button
-                  type="button"
-                  className="w-full text-left flex items-start justify-between gap-2"
-                  onClick={() => handleLocationClick(loc.id)}
-                  onKeyDown={(e) => handleKeyDown(e, loc.id)}
-                  aria-expanded={isExpanded}
-                  aria-controls={`location-details-${loc.id}`}
-                >
-                  <div className="flex-1">
-                    <h4 className="font-black text-blue-900 text-lg mb-1">
-                      {loc.name}
-                    </h4>
-                    {distance !== null && (
-                      <p className="text-xs text-blue-600 font-semibold mb-2">
-                        {formatDistance(distance)} away
+            return (
+              <li
+                key={loc.id}
+                className={`p-6 bg-white rounded-3xl border shadow-sm transition-all relative group overflow-hidden ${
+                  isActive
+                    ? "border-pink-300 shadow-md"
+                    : "border-gray-100 hover:border-pink-200"
+                }`}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 rounded-full -mr-12 -mt-12 group-hover:bg-pink-100 transition-colors" />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="w-full text-left flex items-start justify-between gap-2"
+                    onClick={() => handleLocationClick(loc.id)}
+                    onKeyDown={(e) => handleKeyDown(e, loc.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`location-details-${loc.id}`}
+                    aria-pressed={isActive}
+                    aria-label={`Select ${loc.name} and ${
+                      isExpanded ? "hide" : "show"
+                    } details. ${
+                      distance === null
+                        ? "Distance available after sharing your location."
+                        : `${formatDistance(distance)} away.`
+                    } ${openStatus.label}.`}
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-black text-blue-900 text-lg mb-1">
+                        {loc.name}
+                      </h4>
+                      {distance !== null && (
+                        <p className="text-xs text-blue-600 font-semibold mb-2">
+                          {formatDistance(distance)} away
+                        </p>
+                      )}
+                      {distance === null && (
+                        <p className="text-xs text-gray-500 font-medium mb-2">
+                          Distance available after sharing your location
+                        </p>
+                      )}
+                      <p
+                        className={`text-xs font-semibold ${
+                          openStatus.isOpen
+                            ? "text-green-700"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {openStatus.label}
                       </p>
-                    )}
-                  </div>
-                  <span className="text-gray-400 mt-1">
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5" />
-                    )}
-                  </span>
-                </button>
-
-                <div className="space-y-3 mt-2">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" />
-                    <p className="text-sm text-gray-600 font-medium">
-                      {loc.address}
-                      <br />
-                      {loc.city}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-blue-500 shrink-0" />
-                    <SafeExternalLink
-                      href={getCallUrl(loc.phone)}
-                      className="text-sm text-gray-600 font-bold hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-                      aria-label={`Call ${loc.name} at ${loc.phone}`}
-                    >
-                      {loc.phone}
-                    </SafeExternalLink>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-blue-500 shrink-0" />
-                    <SafeExternalLink
-                      href={`mailto:${loc.email}`}
-                      className="text-sm text-gray-600 font-medium hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-                      aria-label={`Email ${loc.name} at ${loc.email}`}
-                    >
-                      {loc.email}
-                    </SafeExternalLink>
-                  </div>
-                </div>
-
-                <div
-                  id={`location-details-${loc.id}`}
-                  className={`mt-4 space-y-2 ${
-                    isExpanded ? "block" : "hidden"
-                  }`}
-                  role="region"
-                  aria-label={`Additional details for ${loc.name}`}
-                >
-                  {loc.coordinates && (
-                    <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
-                      <span className="font-semibold">Coordinates:</span>{" "}
-                      {loc.coordinates.lat.toFixed(4)},{" "}
-                      {loc.coordinates.lng.toFixed(4)}
                     </div>
-                  )}
+                    <span className="text-gray-400 mt-1">
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </span>
+                  </button>
 
-                  <div className="flex gap-2">
-                    <SafeExternalLink
-                      href={getNavigateUrl(loc)}
-                      className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      aria-label={`Navigate to ${loc.name}`}
-                    >
-                      <Navigation className="w-3.5 h-3.5" /> Navigate
-                    </SafeExternalLink>
-                    <SafeExternalLink
-                      href={getCallUrl(loc.phone)}
-                      className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-black rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                      aria-label={`Call ${loc.name}`}
-                    >
-                      <Phone className="w-3.5 h-3.5" /> Call Clinic
-                    </SafeExternalLink>
+                  <div className="space-y-3 mt-2">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        {loc.address}
+                        <br />
+                        {loc.city}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-blue-500 shrink-0" />
+                      <SafeExternalLink
+                        href={getCallUrl(loc.phone)}
+                        className="text-sm text-gray-600 font-bold hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                        aria-label={`Call ${loc.name} at ${loc.phone}`}
+                      >
+                        {loc.phone}
+                      </SafeExternalLink>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-blue-500 shrink-0" />
+                      <SafeExternalLink
+                        href={`mailto:${loc.email}`}
+                        className="text-sm text-gray-600 font-medium hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                        aria-label={`Email ${loc.name} at ${loc.email}`}
+                      >
+                        {loc.email}
+                      </SafeExternalLink>
+                    </div>
+                  </div>
+
+                  <div
+                    id={`location-details-${loc.id}`}
+                    className={`mt-4 space-y-2 ${
+                      isExpanded ? "block" : "hidden"
+                    }`}
+                    role="region"
+                    aria-label={`Additional details for ${loc.name}`}
+                  >
+                    {loc.coordinates && (
+                      <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                        <span className="font-semibold">Coordinates:</span>{" "}
+                        {loc.coordinates.lat.toFixed(4)},{" "}
+                        {loc.coordinates.lng.toFixed(4)}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <SafeExternalLink
+                        href={getNavigateUrl(loc)}
+                        className="flex-1 py-2.5 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        aria-label={`Navigate to ${loc.name}`}
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> Navigate
+                      </SafeExternalLink>
+                      <SafeExternalLink
+                        href={getCallUrl(loc.phone)}
+                        className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-black rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        aria-label={`Call ${loc.name}`}
+                      >
+                        <Phone className="w-3.5 h-3.5" /> Call Clinic
+                      </SafeExternalLink>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              </li>
+            );
+          })}
+        </ol>
 
         {locationsWithoutCoords.length > 0 && locationsWithCoords.length > 0 && (
           <div className="text-center py-2">

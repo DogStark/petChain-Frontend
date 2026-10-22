@@ -26,6 +26,7 @@ import StaleIndicator from "@/components/Clinics/StaleIndicator";
 import HeaderComponent from "@/components/Header";
 import { clinicsAPI } from "@/lib/api/clinicsAPI";
 import type { Clinic } from "@/types/clinic";
+import { getClinicOpenStatus } from "@/utils/clinicHours";
 
 type Tab = "services" | "staff" | "reviews" | "location";
 
@@ -35,40 +36,6 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
   { id: "reviews", label: "Reviews" },
   { id: "location", label: "Location" },
 ];
-
-/** Returns the human-friendly "Open Now" or next-opening string for today. */
-function getOpenStatus(clinic: Clinic): { isOpen: boolean; label: string } {
-  const days: Clinic["hours"][0]["day"][] = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const today = days[new Date().getDay()];
-  const todayHours = clinic.hours.find((h) => h.day === today);
-
-  if (!todayHours || todayHours.isClosed) {
-    return { isOpen: false, label: "Closed today" };
-  }
-
-  const now = new Date();
-  const [openH, openM] = todayHours.open.split(":").map(Number);
-  const [closeH, closeM] = todayHours.close.split(":").map(Number);
-  const openMinutes = openH * 60 + openM;
-  const closeMinutes = closeH * 60 + closeM;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  if (nowMinutes >= openMinutes && nowMinutes < closeMinutes) {
-    return { isOpen: true, label: `Open · Closes ${todayHours.close}` };
-  }
-  if (nowMinutes < openMinutes) {
-    return { isOpen: false, label: `Opens ${todayHours.open}` };
-  }
-  return { isOpen: false, label: "Closed now" };
-}
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -269,7 +236,7 @@ export default function ClinicProfile() {
 
   // ── Clinic profile ─────────────────────────────────────────────────────────
   const primaryLocation = clinic.locations[0];
-  const openStatus = getOpenStatus(clinic);
+  const openStatus = getClinicOpenStatus(clinic.hours);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-green-50 flex flex-col font-sans text-gray-900">
@@ -545,7 +512,7 @@ export default function ClinicProfile() {
             hidden={activeTab !== "location"}
           >
             {clinic.locations.length > 0 ? (
-              <LocationMap locations={clinic.locations} />
+              <LocationMap locations={clinic.locations} hours={clinic.hours} />
             ) : (
               <p className="text-center text-gray-400 py-12 font-medium">
                 Location information not available.
