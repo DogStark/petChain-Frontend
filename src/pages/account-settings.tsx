@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { AccountSettings } from '../components/Settings/AccountSettings';
 import TwoFactorSettings from '../components/Settings/TwoFactorSettings';
 import GdprSettings from '../components/Settings/GdprSettings';
+import OfflineStorageBreakdown from '../components/Settings/OfflineStorageBreakdown';
 import { userAPI, UserSession, ActivityLog } from '../lib/api/userAPI';
 import { useAuth } from '../contexts/AuthContext';
 import { twoFactorAPI } from '../lib/api/twoFactorAPI';
@@ -225,6 +226,10 @@ export default function AccountSettingsPage() {
 
       <div className={styles.section}>
         <TwoFactorSettings />
+      </div>
+
+      <div className={styles.section}>
+        <OfflineStorageBreakdown />
       </div>
 
       {auth.user && (

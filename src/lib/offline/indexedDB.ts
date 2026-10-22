@@ -430,3 +430,30 @@ export async function getAllOfflineRecordKeys(): Promise<string[]> {
     request.onerror = () => reject(request.error);
   });
 }
+
+function getAllFromStore(storeName: 'cache' | 'records'): Promise<OfflineCacheEntry[]> {
+  return openDB().then(
+    (db) =>
+      new Promise<OfflineCacheEntry[]>((resolve, reject) => {
+        const request = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+        request.onsuccess = () => {
+          db.close();
+          resolve(request.result as OfflineCacheEntry[]);
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      }),
+  );
+}
+
+/** Returns every entry in the cache store (used for usage reporting). */
+export function getAllCacheEntries(): Promise<OfflineCacheEntry[]> {
+  return getAllFromStore('cache');
+}
+
+/** Returns every offline record snapshot (used for usage reporting). */
+export function getAllRecordEntries(): Promise<OfflineCacheEntry[]> {
+  return getAllFromStore('records');
+}
