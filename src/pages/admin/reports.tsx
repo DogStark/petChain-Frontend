@@ -9,6 +9,7 @@ import { analyticsAPI, UserMetrics } from '@/lib/api/analyticsAPI';
 import { userAPI, ActivityLog } from '@/lib/api/userAPI';
 import { fetchEngagementData, fetchFinancialData, fetchHealthData, fetchVaccinationData } from '@/lib/analyticsUserData';
 import { formatCurrency } from '@/utils/formatCurrency';
+import ScheduledReportsPanel from '@/components/Admin/ScheduledReportsPanel';
 
 // Import Charts with dynamic loading
 const UserEngagementChart = dynamic(() => import('@/components/analytics/UserEngagementChart'), { ssr: false });
@@ -476,14 +477,7 @@ export default function AdminReports() {
 
                         {/* Scheduled Reports */}
                         {activeTab === 'scheduled' && (
-                            <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
-                                <h3 className="text-xl font-bold text-slate-800 mb-6">Automated Report Deliveries</h3>
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <Calendar className="w-8 h-8 text-slate-400 mb-3" />
-                                    <p className="text-slate-600 font-medium">Report scheduling is not available yet</p>
-                                    <p className="text-slate-500 text-sm mt-1">Scheduled deliveries will appear here once the scheduling backend is in place.</p>
-                                </div>
-                            </div>
+                            <ScheduledReportsPanel />
                         )}
 
                         {/* Templates */}
