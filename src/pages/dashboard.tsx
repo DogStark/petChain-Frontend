@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { SkeletonAvatar, SkeletonLine } from '@/components/Skeleton';
+import DataFreshnessPanel from '@/components/DataFreshnessPanel';
 import { useAuth, type User } from '@/contexts/AuthContext';
 import { useTranslation } from '@/i18n';
 import { medicalRecordsAPI } from '@/lib/api/medicalRecordsAPI';
@@ -11,6 +12,7 @@ import { petAPI } from '@/lib/api/petAPI';
 import { userAPI } from '@/lib/api/userAPI';
 import { formatNumber } from '@/utils/formatCurrency';
 import PetSharingSummary from '@/components/Pets/PetSharingSummary';
+import { useDataFreshness } from '@/hooks/useDataFreshness';
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
@@ -61,6 +63,11 @@ function DashboardContent({ user }: { user: User }) {
   const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
 
+  // Data freshness: first pet id (if any) drives per-pet probes
+  const [firstPetId, setFirstPetId] = useState<string | undefined>(undefined);
+  const { freshness, refresh, refreshAll } = useDataFreshness(firstPetId);
+  const isAnyRefreshing = Object.values(freshness).some((f) => f.isRefreshing);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -70,6 +77,9 @@ function DashboardContent({ user }: { user: User }) {
         if (cancelled) return;
         setPetCount(pets.length);
         setPets(pets.map(({ id, name }) => ({ id, name })));
+        if (pets.length > 0) {
+          setFirstPetId(pets[0].id);
+        }
 
         const recordCounts = await Promise.all(
           pets.map((pet) =>
@@ -191,6 +201,15 @@ function DashboardContent({ user }: { user: User }) {
       </div>
 
       <PetSharingSummary pets={pets} />
+
+      <div className="mt-8">
+        <DataFreshnessPanel
+          freshness={freshness}
+          onRefresh={refresh}
+          onRefreshAll={refreshAll}
+          isAnyRefreshing={isAnyRefreshing}
+        />
+      </div>
 
       <div className="mt-8">
         <div className="bg-white shadow rounded-lg">
