@@ -31,6 +31,11 @@ export class AnalyticsController {
     return this.analyticsService.getPetHealthTrends(query);
   }
 
+  @Get('health/comparison')
+  async getPetHealthComparison(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.getPetHealthComparison(query);
+  }
+
   @Get('vaccinations/compliance')
   async getVaccinationCompliance(@Query() query: AnalyticsQueryDto) {
     return this.analyticsService.getVaccinationCompliance(query);
