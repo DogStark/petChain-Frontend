@@ -17,6 +17,19 @@ export interface StellarConfig {
     provider?: 'aws-cloudhsm' | 'azure-keyvault' | 'custom';
     config?: Record<string, unknown>;
   };
+  /**
+   * Trustline and reserve policy used by the payment flow to report whether a
+   * recipient can receive an asset. Values mirror Stellar network reserve rules
+   * and are overridable per environment.
+   */
+  trustline: {
+    /** Base reserve in stroops (XLM * 10^-7) per Stellar protocol */
+    baseReserveStroops: string;
+    /** Subentry count multiplier: each trustline/offer/signer adds one base reserve */
+    subentryMultiplier: number;
+    /** Whether to surface trustline status to the payment form by default */
+    exposeStatusByDefault: boolean;
+  };
 }
 
 export const stellarConfig = registerAs(
@@ -51,6 +64,15 @@ export const stellarConfig = registerAs(
       config: process.env.HSM_CONFIG
         ? JSON.parse(process.env.HSM_CONFIG)
         : undefined,
+    },
+    trustline: {
+      baseReserveStroops:
+        process.env.STELLAR_BASE_RESERVE_STROOPS || '5000000',
+      subentryMultiplier: Number(
+        process.env.STELLAR_SUBENTRY_MULTIPLIER || '1',
+      ),
+      exposeStatusByDefault:
+        process.env.STELLAR_TRUSTLINE_STATUS_DEFAULT !== 'false',
     },
   }),
 );
