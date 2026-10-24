@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { CATEGORY_LABELS, CATEGORY_ICONS, type NotificationCategory } from '@/types/notification';
 import { getSupportedTimezones } from '@/utils/dndSchedule';
+import { NotificationPreferencePreview } from '@/components/Notifications/NotificationPreferencePreview';
 
 function Toggle({
   checked,
@@ -236,6 +237,8 @@ export default function NotificationPreferencesPanel() {
           ))}
         </div>
       </section>
+
+      <NotificationPreferencePreview preferences={preferences} />
 
       <button
         onClick={syncPreferences}
