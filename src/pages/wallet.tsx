@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Plus,
   Send,
+  Link2,
   Shield,
   Download,
   RotateCcw,
@@ -19,11 +20,12 @@ import WalletBackup from '../components/Wallet/WalletBackup';
 import MultiSigSetup from '../components/Wallet/MultiSigSetup';
 import TransactionSigning from '../components/Wallet/TransactionSigning';
 import WalletRecovery from '../components/Wallet/WalletRecovery';
+import PaymentRequestGenerator from '../components/Wallet/PaymentRequestGenerator';
 import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-type Tab = 'overview' | 'setup' | 'send' | 'multisig' | 'backup' | 'recovery';
+type Tab = 'overview' | 'setup' | 'send' | 'request' | 'multisig' | 'backup' | 'recovery';
 
 interface NavItem {
   id: Tab;
@@ -41,6 +43,7 @@ const NAV: NavItem[] = [
   },
   { id: 'setup', label: 'Add Wallet', icon: <Plus size={18} />, description: 'Create or import' },
   { id: 'send', label: 'Send', icon: <Send size={18} />, description: 'Sign & broadcast' },
+  { id: 'request', label: 'Request', icon: <Link2 size={18} />, description: 'Payment request link' },
   {
     id: 'multisig',
     label: 'Multi-Sig',
@@ -235,6 +238,12 @@ export default function WalletPage() {
                     onClearError={clearError}
                     isTestnet={IS_TESTNET}
                   />
+                </div>
+              )}
+
+              {activeTab === 'request' && (
+                <div>
+                  <PaymentRequestGenerator defaultDestination={selectedWallet?.publicKey || ''} />
                 </div>
               )}
 
