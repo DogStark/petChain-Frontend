@@ -166,6 +166,17 @@ export class QRCodeAPI {
     }
   }
 
+  /**
+   * Fetches the wallet pass for a QR code. The backend owns authorization and
+   * consent and builds the pass from public fields only; it may refuse for
+   * expired or revoked codes.
+   */
+  async getWalletPass(qrCodeId: string): Promise<Blob> {
+    const safe = safeQrId(qrCodeId);
+    const { data } = await this.api.get(`/${safe}/wallet-pass`, { responseType: 'blob' });
+    return data;
+  }
+
   getImageUrl(qrCodeId: string): string {
     const safe = safeQrId(qrCodeId);
     return `${getApiBaseUrl()}/qrcodes/${safe}/image`;
