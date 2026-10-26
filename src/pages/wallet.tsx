@@ -18,12 +18,13 @@ import WalletSetup from '../components/Wallet/WalletSetup';
 import WalletBackup from '../components/Wallet/WalletBackup';
 import MultiSigSetup from '../components/Wallet/MultiSigSetup';
 import TransactionSigning from '../components/Wallet/TransactionSigning';
+import RecurringPaymentReview from '../components/Wallet/RecurringPaymentReview';
 import WalletRecovery from '../components/Wallet/WalletRecovery';
 import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-type Tab = 'overview' | 'setup' | 'send' | 'multisig' | 'backup' | 'recovery';
+type Tab = 'overview' | 'setup' | 'send' | 'recurring' | 'multisig' | 'backup' | 'recovery';
 
 interface NavItem {
   id: Tab;
@@ -41,6 +42,12 @@ const NAV: NavItem[] = [
   },
   { id: 'setup', label: 'Add Wallet', icon: <Plus size={18} />, description: 'Create or import' },
   { id: 'send', label: 'Send', icon: <Send size={18} />, description: 'Sign & broadcast' },
+  {
+    id: 'recurring',
+    label: 'Recurring Review',
+    icon: <RotateCcw size={18} />,
+    description: 'Inspect & review intents',
+  },
   {
     id: 'multisig',
     label: 'Multi-Sig',
@@ -233,6 +240,21 @@ export default function WalletPage() {
                     loading={loading}
                     error={error}
                     onClearError={clearError}
+                    isTestnet={IS_TESTNET}
+                  />
+                </div>
+              )}
+
+              {activeTab === 'recurring' && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Recurring Payment Review
+                  </h2>
+                  <RecurringPaymentReview
+                    sourcePublicKey={selectedWallet?.publicKey || ''}
+                    onProceedToSign={(intent) => {
+                      setActiveTab('send');
+                    }}
                     isTestnet={IS_TESTNET}
                   />
                 </div>
