@@ -403,4 +403,61 @@ export class AnalyticsService {
       );
     });
   }
+
+  async getVaccinationCompliance(query: AnalyticsQueryDto) {
+    return this.getCachedResult('vaccination-compliance', query, async () => {
+      const { startDate, endDate } = this.getDateRange(query);
+      const vaccinations = await this.vaccinationRepository.find(
+        query.petId ? { where: { petId: query.petId } } : undefined,
+      );
+      const now = new Date();
+      const dueSoonCutoff = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const administered = vaccinations.filter((vaccination) => {
+        return (
+          vaccination.administeredDate >= startDate &&
+          vaccination.administeredDate <= endDate
+        );
+      });
+
+      const groupedByStatus = vaccinations.reduce(
+        (acc, vaccination) => {
+          if (
+            !vaccination.nextDueDate ||
+            vaccination.nextDueDate >= dueSoonCutoff
+          ) {
+            acc.compliant += 1;
+          } else if (vaccination.nextDueDate < now) {
+            acc.overdue += 1;
+          } else {
+            acc.dueSoon += 1;
+          }
+          return acc;
+        },
+        { compliant: 0, dueSoon: 0, overdue: 0 },
+      );
+
+      const groupedByVaccine = vaccinations.reduce(
+        (acc, vaccination) => {
+          const name = vaccination.vaccineName || 'Unknown';
+          acc[name] = (acc[name] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      return {
+        summary: {
+          totalVaccinations: vaccinations.length,
+          administeredInRange: administered.length,
+          ...groupedByStatus,
+        },
+        breakdown: {
+          byVaccine: groupedByVaccine,
+        },
+        startDate,
+        endDate,
+      };
+    });
+  }
+
 }
