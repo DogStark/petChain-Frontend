@@ -67,6 +67,44 @@ export class StellarService implements OnModuleInit {
     }
   }
 
+  /**
+   * Reports whether a recipient account can receive the given asset.
+   * Authorization and consent decisions remain owned by the backend.
+   */
+  async checkTrustline(
+    accountId: string,
+    assetCode: string,
+    assetIssuer: string,
+  ): Promise<{
+    canReceive: boolean;
+    reason: 'ok' | 'account_not_found' | 'no_trustline' | 'not_authorized';
+    reserveRequiredStroops: number;
+  }> {
+    try {
+      const account = await this.server.loadAccount(accountId);
+      const balances: any[] = (account as any).balances ?? [];
+      const line = balances.find(
+        (b) =>
+          b.asset_type !== 'native' &&
+          b.asset_code === assetCode &&
+          b.asset_issuer === assetIssuer,
+      );
+      if (!line) {
+        return { canReceive: false, reason: 'no_trustline', reserveRequiredStroops: 5000000 };
+      }
+      if (line.is_authorized === false) {
+        return { canReceive: false, reason: 'not_authorized', reserveRequiredStroops: 0 };
+      }
+      return { canReceive: true, reason: 'ok', reserveRequiredStroops: 0 };
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        return { canReceive: false, reason: 'account_not_found', reserveRequiredStroops: 0 };
+      }
+      this.logger.error(`Trustline check failed: ${error.message}`);
+      throw error;
+    }
+  }
+
   async verifyOnChain(recordHash: string): Promise<string | null> {
     try {
       const account = await this.server.loadAccount(this.keypair.publicKey());
