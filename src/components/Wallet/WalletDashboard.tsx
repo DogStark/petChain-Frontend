@@ -13,6 +13,7 @@ import {
 import type { WalletAccount, WalletMonitoringData } from '../../types/wallet';
 import { formatBalance } from '../../utils/formatCurrency';
 import ConfirmationDialog from './ConfirmationDialog';
+import WalletAssetList from './WalletAssetList';
 import SafeExternalLink from '@/components/SafeExternalLink';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
 
@@ -94,7 +95,6 @@ export default function WalletDashboard({
   }
 
   const xlmBalance = accountData?.balances.find((b) => b.asset_type === 'native');
-  const otherBalances = accountData?.balances.filter((b) => b.asset_type !== 'native') ?? [];
 
   if (wallets.length === 0) {
     return (
@@ -240,31 +240,15 @@ export default function WalletDashboard({
           )}
 
           {accountData && (
+            <WalletAssetList
+              balances={accountData.balances}
+              walletId={selectedWallet.id}
+              network={selectedWallet.network}
+            />
+          )}
+
+          {accountData && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* XLM */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                  XLM Balance
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {xlmBalance ? formatBalance(xlmBalance.balance) : '0'}
-                </p>
-                <p className="text-sm text-gray-400 mt-1">Stellar Lumens</p>
-              </div>
-
-              {/* Other assets */}
-              {otherBalances.map((b, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                    {b.asset_code ?? 'Unknown'}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {formatBalance(b.balance)}
-                  </p>
-                  {b.limit && <p className="text-sm text-gray-400 mt-1">Limit: {b.limit}</p>}
-                </div>
-              ))}
-
               {/* Sequence */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
