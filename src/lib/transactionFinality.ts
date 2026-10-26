@@ -1,6 +1,13 @@
 import type { Transaction } from '@/lib/api/transactionAPI';
 
-export type TransactionFinality = 'submitted' | 'accepted' | 'confirmed' | 'failed' | 'unknown';
+export type TransactionFinality =
+  | 'submitted'
+  | 'accepted'
+  | 'confirmed'
+  | 'failed'
+  | 'replaced'
+  | 'expired'
+  | 'unknown';
 
 export interface FinalityMeta {
   label: string;
@@ -34,6 +41,18 @@ export const FINALITY_META: Record<TransactionFinality, FinalityMeta> = {
     guidance: 'Transaction failed — it was not applied. Review the error, then retry. Check explorer for reason code if available.',
     tone: 'error',
   },
+  replaced: {
+    label: 'Replaced',
+    guidance:
+      'This transaction was superseded and will not be applied. Its replacement may still settle, so check the ledger before retrying. A retry refreshes the sequence and is rechecked by the server.',
+    tone: 'warning',
+  },
+  expired: {
+    label: 'Expired',
+    guidance:
+      'This transaction expired before ledger inclusion and cannot be applied. A retry refreshes the sequence and is rechecked by the server.',
+    tone: 'error',
+  },
   unknown: {
     label: 'Unknown',
     guidance:
@@ -45,6 +64,7 @@ export const FINALITY_META: Record<TransactionFinality, FinalityMeta> = {
 /**
  * Derive explicit finality from canonical transaction fields.
  * - failed/cancelled => failed (terminal)
+ * - replaced/expired => their own terminal explanation
  * - confirmed => confirmed (or accepted if confirmations < threshold — still confirmed status is authoritative)
  * - pending with 0 confirmations => submitted
  * - pending with >=1 confirmations or blockNumber => accepted
@@ -57,6 +77,8 @@ export function getFinality(tx: Transaction): TransactionFinality {
   const confirmations = typeof tx?.confirmations === 'number' ? tx.confirmations : 0;
 
   if (status === 'failed' || status === 'cancelled') return 'failed';
+  if (status === 'replaced') return 'replaced';
+  if (status === 'expired') return 'expired';
   if (status === 'confirmed') return 'confirmed';
   if (status === 'pending') {
     if (!Number.isFinite(confirmations) || confirmations < 0) return 'unknown';
@@ -124,13 +146,15 @@ export function reconcileTransactions(
     reconciled.push({ tx, finality, isConflict, sources: sourceList });
   }
 
-  // Stable sort: submitted → accepted → confirmed → failed → unknown, then timestamp desc
+  // Stable sort: active → confirmed → failed outcomes → unknown, then timestamp desc
   const order: Record<TransactionFinality, number> = {
     submitted: 0,
     accepted: 1,
     confirmed: 2,
     failed: 3,
-    unknown: 4,
+    replaced: 4,
+    expired: 5,
+    unknown: 6,
   };
   reconciled.sort((a, b) => {
     if (order[a.finality] !== order[b.finality]) return order[a.finality] - order[b.finality];

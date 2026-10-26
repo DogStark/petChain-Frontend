@@ -29,6 +29,19 @@ type SummaryRow = {
   value: string | number;
 };
 
+/**
+ * Coverage metadata describing how much underlying data backs a trend.
+ * Consumers should surface this next to averages so sparse data is not
+ * presented as a complete trend.
+ */
+export type TrendCoverage = {
+  sampleCount: number;
+  bucketCount: number;
+  bucketsWithData: number;
+  missingBuckets: string[];
+  coverageRatio: number;
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -129,6 +142,84 @@ export class AnalyticsService {
     }
 
     return `${year}-${month}-${day}`;
+  }
+
+  /**
+   * Enumerates every bucket key between startDate and endDate (inclusive)
+   * using the same bucketing rules as groupDate, so missing intervals can be
+   * reported explicitly rather than silently omitted.
+   */
+  private enumerateBuckets(
+    startDate: Date,
+    endDate: Date,
+    groupBy: AnalyticsGroupBy,
+  ): string[] {
+    const buckets: string[] = [];
+    const seen = new Set<string>();
+    const cursor = new Date(
+      Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
+      ),
+    );
+    const limit = endDate.getTime();
+
+    // Guard against unbounded iteration on malformed or huge ranges.
+    const maxIterations = 10000;
+    let iterations = 0;
+
+    while (cursor.getTime() <= limit && iterations < maxIterations) {
+      const key = this.groupDate(cursor, groupBy);
+      if (!seen.has(key)) {
+        seen.add(key);
+        buckets.push(key);
+      }
+      if (groupBy === AnalyticsGroupBy.MONTH) {
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      } else if (groupBy === AnalyticsGroupBy.WEEK) {
+        cursor.setUTCDate(cursor.getUTCDate() + 7);
+      } else {
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+      iterations += 1;
+    }
+
+    return buckets;
+  }
+
+  /**
+   * Builds coverage metadata for a grouped trend. Sample count is the sum of
+   * grouped values; missing buckets are those in the requested range with no
+   * observations. Coverage ratio is 0 when the range has no buckets.
+   */
+  private buildCoverage(
+    grouped: Record<string, number>,
+    startDate: Date,
+    endDate: Date,
+    groupBy: AnalyticsGroupBy,
+  ): TrendCoverage {
+    const allBuckets = this.enumerateBuckets(startDate, endDate, groupBy);
+    const missingBuckets = allBuckets.filter(
+      (bucket) => !(grouped[bucket] > 0),
+    );
+    const bucketCount = allBuckets.length;
+    const bucketsWithData = bucketCount - missingBuckets.length;
+    const sampleCount = Object.values(grouped).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0,
+    );
+
+    return {
+      sampleCount,
+      bucketCount,
+      bucketsWithData,
+      missingBuckets,
+      coverageRatio:
+        bucketCount === 0
+          ? 0
+          : Number((bucketsWithData / bucketCount).toFixed(4)),
+    };
   }
 
   private parseMetrics(query: AnalyticsQueryDto): AnalyticsMetric[] {
@@ -236,13 +327,14 @@ export class AnalyticsService {
   async getPetRegistrationTrends(query: AnalyticsQueryDto) {
     return this.getCachedResult('pet-registrations', query, async () => {
       const { startDate, endDate } = this.getDateRange(query);
+      const groupBy = this.getGroupBy(query);
       const pets = await this.petRepository.find({
         where: { createdAt: Between(startDate, endDate) },
       });
       const totalPets = await this.petRepository.count();
       const grouped = pets.reduce(
         (acc, pet) => {
-          const bucket = this.groupDate(pet.createdAt, this.getGroupBy(query));
+          const bucket = this.groupDate(pet.createdAt, groupBy);
           acc[bucket] = (acc[bucket] || 0) + 1;
           return acc;
         },
@@ -276,6 +368,7 @@ export class AnalyticsService {
             }),
           ),
         },
+        coverage: this.buildCoverage(grouped, startDate, endDate, groupBy),
         startDate,
         endDate,
       };
@@ -285,6 +378,7 @@ export class AnalyticsService {
   async getPetHealthTrends(query: AnalyticsQueryDto) {
     return this.getCachedResult('pet-health', query, async () => {
       const { startDate, endDate } = this.getDateRange(query);
+      const groupBy = this.getGroupBy(query);
       const where: Record<string, any> = {
         visitDate: Between(startDate, endDate),
       };
@@ -301,61 +395,12 @@ export class AnalyticsService {
 
       const trend = records.reduce(
         (acc, record) => {
-          const bucket = this.groupDate(
-            record.visitDate,
-            this.getGroupBy(query),
-          );
+          const bucket = this.groupDate(record.visitDate, groupBy);
           acc[bucket] = (acc[bucket] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>,
       );
-
-      const byType = records.reduce(
-        (acc, record) => {
-          acc[record.recordType] = (acc[record.recordType] || 0) + 1;
-          return acc;
-        },
-        {} as Record<RecordType, number>,
-      );
-
-      const diagnoses = records.reduce(
-        (acc, record) => {
-          const diagnosis = record.diagnosis?.trim() || 'Unspecified';
-          acc[diagnosis] = (acc[diagnosis] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      return {
-        summary: {
-          totalRecords: records.length,
-          totalPets,
-          verifiedRecords,
-          criticalEvents:
-            (byType[RecordType.EMERGENCY] || 0) +
-            (byType[RecordType.SURGERY] || 0),
-        },
-        breakdown: {
-          byRecordType: byType,
-          topDiagnoses: Object.entries(diagnoses)
-            .sort(([, left], [, right]) => right - left)
-            .slice(0, 5)
-            .map(([diagnosis, count]) => ({ diagnosis, count })),
-        },
-        visualization: {
-          trend: this.toChartSeries(trend, 'records', 'Health records'),
-          recordTypeDistribution: Object.entries(byType).map(
-            ([recordType, count]) => ({
-              recordType,
-              count,
-            }),
-          ),
-        },
-        startDate,
-        endDate,
-      };
     });
   }
 
@@ -404,9 +449,7 @@ export class AnalyticsService {
         summary: {
           totalVaccinations: vaccinations.length,
           administeredInRange: administered.length,
-          compliant: groupedByStatus.compliant,
-          dueSoon: groupedByStatus.dueSoon,
-          overdue: groupedByStatus.overdue,
+          ...groupedByStatus,
         },
         breakdown: {
           byVaccine: groupedByVaccine,
@@ -416,4 +459,5 @@ export class AnalyticsService {
       };
     });
   }
+          ...groupedByStatus,
 }

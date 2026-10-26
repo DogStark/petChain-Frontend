@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 
+import EmergencyResponderFeedback from '@/components/EmergencyResponderFeedback';
 import { petAPI } from '@/lib/api/petAPI';
 import { qrcodeAPI } from '@/lib/api/qrcodeAPI';
 import type { PetEmergencyInfo, EmergencyContact } from '@/types/pet';
@@ -295,6 +296,8 @@ export default function ScanPage({
             )}
           </div>
         )}
+
+        <EmergencyResponderFeedback qrCodeId={profile.qrCodeId} />
 
         <div className="text-center pt-8">
           <div className="flex items-center justify-center gap-2 text-gray-400 mb-2">
