@@ -50,6 +50,10 @@ describe('transaction finality model - pure logic (characterizes lifecycle)', ()
     expect(getFinality(makeTx({ status: 'failed' }))).toBe('failed');
     expect(getFinality(makeTx({ status: 'cancelled' as never }))).toBe('failed');
   });
+  it('keeps replaced and expired outcomes distinct from ordinary failures', () => {
+    expect(getFinality(makeTx({ status: 'replaced' }))).toBe('replaced');
+    expect(getFinality(makeTx({ status: 'expired' }))).toBe('expired');
+  });
   it('maps pending 0 confirmations to submitted', () => {
     expect(getFinality(makeTx({ status: 'pending', confirmations: 0 }))).toBe('submitted');
   });
@@ -233,6 +237,57 @@ describe('TransactionStatusTracker UI', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /Failed/i })).toBeInTheDocument());
     expect(screen.getByText(/Transaction failed.*not applied/i)).toBeInTheDocument();
     expect(screen.getByText(/Insufficient funds/)).toBeInTheDocument();
+  });
+
+  it('explains replaced and expired ledger outcomes and offers server-side retry', async () => {
+    const user = userEvent.setup();
+    const replaced = makeTx({ id: 'r1', status: 'replaced' });
+    const expired = makeTx({ id: 'e1', status: 'expired' });
+    mockedAPI.getPendingTransactions.mockResolvedValue([]);
+    mockedAPI.getFailedTransactions.mockResolvedValue([replaced, expired]);
+    mockedAPI.retryFailedTransaction.mockResolvedValue(makeTx({ id: 'retry-result' }));
+
+    const { container } = render(<TransactionStatusTracker />);
+
+    const retryReplaced = await screen.findByRole('button', {
+      name: 'Retry replaced transaction r1',
+    });
+    const retryExpired = screen.getByRole('button', {
+      name: 'Retry expired transaction e1',
+    });
+
+    expect(screen.getByRole('heading', { name: 'Replaced' })).toBeInTheDocument();
+    expect(screen.getByText(/superseded and will not be applied/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Expired' })).toBeInTheDocument();
+    expect(screen.getByText(/expired before ledger inclusion and cannot be applied/)).toBeInTheDocument();
+    expect(screen.getAllByText(/refreshes the sequence and is rechecked by the server/)).toHaveLength(2);
+
+    const liveRegion = container.querySelector('[aria-live="polite"][aria-atomic="true"]');
+    await waitFor(() => expect(liveRegion).toHaveTextContent(/replaced.*expired/i));
+
+    retryReplaced.focus();
+    await user.keyboard('{Enter}');
+    await user.click(retryExpired);
+
+    expect(mockedAPI.retryFailedTransaction).toHaveBeenNthCalledWith(1, 'r1');
+    expect(mockedAPI.retryFailedTransaction).toHaveBeenNthCalledWith(2, 'e1');
+  });
+
+  it('shows a safe accessible error when the backend denies or cannot complete retry', async () => {
+    const replaced = makeTx({ id: 'r-denied', status: 'replaced' });
+    mockedAPI.getPendingTransactions.mockResolvedValue([]);
+    mockedAPI.getFailedTransactions.mockResolvedValue([replaced]);
+    mockedAPI.retryFailedTransaction.mockRejectedValue(new Error('private backend detail'));
+
+    render(<TransactionStatusTracker />);
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Retry replaced transaction r-denied' })
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Retry was not completed. Refresh transaction status before trying again.'
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent('private backend detail');
   });
 
   it('renders distinct guidance for unknown transactions', async () => {

@@ -2,7 +2,13 @@ import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
 
-export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
+export type TransactionStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'failed'
+  | 'cancelled'
+  | 'replaced'
+  | 'expired';
 export type TransactionType =
   | 'record_creation'
   | 'record_update'
