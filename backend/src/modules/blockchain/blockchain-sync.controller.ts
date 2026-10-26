@@ -12,6 +12,8 @@ import { StellarService } from './stellar.service';
 import { IPFSService } from './ipfs.service';
 import { RecordType } from './entities/blockchain-sync.entity';
 import { xdr } from '@stellar/stellar-sdk';
+// Trustline status for the payment form is computed client-side from the
+// Horizon account record; authorization and consent remain backend-owned.
 
 @Controller('blockchain-sync')
 export class BlockchainSyncController {

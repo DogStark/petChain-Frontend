@@ -257,3 +257,9 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1102 -->
 - #1102: [Frontend] Add calendar export for a single appointment
+
+<!-- handsoff-issue-1138 -->
+- #1138: [Frontend] Add analytics chart annotations for policy changes
+
+<!-- handsoff-issue-1139 -->
+- #1139: [Frontend] Add data-quality queue for incomplete records

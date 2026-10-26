@@ -42,6 +42,8 @@ export interface ScanEventMeta {
   emergencyContact?: string;
 }
 
+export type EmergencyResponderFeedbackType = 'contact_details_stale' | 'pet_safe';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QRID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
 const ALLOWED_DEVICE_TYPES = new Set(['mobile', 'desktop', 'tablet', 'unknown']);
@@ -125,6 +127,14 @@ export class QRCodeAPI {
       }
       throw err;
     }
+  }
+
+  async submitEmergencyFeedback(
+    qrCodeId: string,
+    feedbackType: EmergencyResponderFeedbackType
+  ): Promise<void> {
+    const safe = safeQrId(qrCodeId);
+    await this.api.post(`/${safe}/feedback`, { feedbackType });
   }
 
   async update(

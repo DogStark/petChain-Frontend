@@ -19,13 +19,14 @@ import WalletSetup from '../components/Wallet/WalletSetup';
 import WalletBackup from '../components/Wallet/WalletBackup';
 import MultiSigSetup from '../components/Wallet/MultiSigSetup';
 import TransactionSigning from '../components/Wallet/TransactionSigning';
+import RecurringPaymentReview from '../components/Wallet/RecurringPaymentReview';
 import WalletRecovery from '../components/Wallet/WalletRecovery';
 import PaymentRequestGenerator from '../components/Wallet/PaymentRequestGenerator';
 import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-type Tab = 'overview' | 'setup' | 'send' | 'request' | 'multisig' | 'backup' | 'recovery';
+type Tab = 'overview' | 'setup' | 'send' | 'request' | 'recurring' | 'multisig' | 'backup' | 'recovery';
 
 interface NavItem {
   id: Tab;
@@ -44,6 +45,12 @@ const NAV: NavItem[] = [
   { id: 'setup', label: 'Add Wallet', icon: <Plus size={18} />, description: 'Create or import' },
   { id: 'send', label: 'Send', icon: <Send size={18} />, description: 'Sign & broadcast' },
   { id: 'request', label: 'Request', icon: <Link2 size={18} />, description: 'Payment request link' },
+  {
+    id: 'recurring',
+    label: 'Recurring Review',
+    icon: <RotateCcw size={18} />,
+    description: 'Inspect & review intents',
+  },
   {
     id: 'multisig',
     label: 'Multi-Sig',
@@ -244,6 +251,21 @@ export default function WalletPage() {
               {activeTab === 'request' && (
                 <div>
                   <PaymentRequestGenerator defaultDestination={selectedWallet?.publicKey || ''} />
+                </div>
+              )}
+
+              {activeTab === 'recurring' && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Recurring Payment Review
+                  </h2>
+                  <RecurringPaymentReview
+                    sourcePublicKey={selectedWallet?.publicKey || ''}
+                    onProceedToSign={(intent) => {
+                      setActiveTab('send');
+                    }}
+                    isTestnet={IS_TESTNET}
+                  />
                 </div>
               )}
 

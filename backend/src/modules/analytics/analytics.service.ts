@@ -29,6 +29,19 @@ type SummaryRow = {
   value: string | number;
 };
 
+/**
+ * Coverage metadata describing how much underlying data backs a trend.
+ * Consumers should surface this next to averages so sparse data is not
+ * presented as a complete trend.
+ */
+export type TrendCoverage = {
+  sampleCount: number;
+  bucketCount: number;
+  bucketsWithData: number;
+  missingBuckets: string[];
+  coverageRatio: number;
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -129,6 +142,84 @@ export class AnalyticsService {
     }
 
     return `${year}-${month}-${day}`;
+  }
+
+  /**
+   * Enumerates every bucket key between startDate and endDate (inclusive)
+   * using the same bucketing rules as groupDate, so missing intervals can be
+   * reported explicitly rather than silently omitted.
+   */
+  private enumerateBuckets(
+    startDate: Date,
+    endDate: Date,
+    groupBy: AnalyticsGroupBy,
+  ): string[] {
+    const buckets: string[] = [];
+    const seen = new Set<string>();
+    const cursor = new Date(
+      Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
+      ),
+    );
+    const limit = endDate.getTime();
+
+    // Guard against unbounded iteration on malformed or huge ranges.
+    const maxIterations = 10000;
+    let iterations = 0;
+
+    while (cursor.getTime() <= limit && iterations < maxIterations) {
+      const key = this.groupDate(cursor, groupBy);
+      if (!seen.has(key)) {
+        seen.add(key);
+        buckets.push(key);
+      }
+      if (groupBy === AnalyticsGroupBy.MONTH) {
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      } else if (groupBy === AnalyticsGroupBy.WEEK) {
+        cursor.setUTCDate(cursor.getUTCDate() + 7);
+      } else {
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+      iterations += 1;
+    }
+
+    return buckets;
+  }
+
+  /**
+   * Builds coverage metadata for a grouped trend. Sample count is the sum of
+   * grouped values; missing buckets are those in the requested range with no
+   * observations. Coverage ratio is 0 when the range has no buckets.
+   */
+  private buildCoverage(
+    grouped: Record<string, number>,
+    startDate: Date,
+    endDate: Date,
+    groupBy: AnalyticsGroupBy,
+  ): TrendCoverage {
+    const allBuckets = this.enumerateBuckets(startDate, endDate, groupBy);
+    const missingBuckets = allBuckets.filter(
+      (bucket) => !(grouped[bucket] > 0),
+    );
+    const bucketCount = allBuckets.length;
+    const bucketsWithData = bucketCount - missingBuckets.length;
+    const sampleCount = Object.values(grouped).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0,
+    );
+
+    return {
+      sampleCount,
+      bucketCount,
+      bucketsWithData,
+      missingBuckets,
+      coverageRatio:
+        bucketCount === 0
+          ? 0
+          : Number((bucketsWithData / bucketCount).toFixed(4)),
+    };
   }
 
   private parseMetrics(query: AnalyticsQueryDto): AnalyticsMetric[] {
@@ -236,13 +327,14 @@ export class AnalyticsService {
   async getPetRegistrationTrends(query: AnalyticsQueryDto) {
     return this.getCachedResult('pet-registrations', query, async () => {
       const { startDate, endDate } = this.getDateRange(query);
+      const groupBy = this.getGroupBy(query);
       const pets = await this.petRepository.find({
         where: { createdAt: Between(startDate, endDate) },
       });
       const totalPets = await this.petRepository.count();
       const grouped = pets.reduce(
         (acc, pet) => {
-          const bucket = this.groupDate(pet.createdAt, this.getGroupBy(query));
+          const bucket = this.groupDate(pet.createdAt, groupBy);
           acc[bucket] = (acc[bucket] || 0) + 1;
           return acc;
         },
@@ -276,6 +368,7 @@ export class AnalyticsService {
             }),
           ),
         },
+        coverage: this.buildCoverage(grouped, startDate, endDate, groupBy),
         startDate,
         endDate,
       };
@@ -285,6 +378,7 @@ export class AnalyticsService {
   async getPetHealthTrends(query: AnalyticsQueryDto) {
     return this.getCachedResult('pet-health', query, async () => {
       const { startDate, endDate } = this.getDateRange(query);
+      const groupBy = this.getGroupBy(query);
       const where: Record<string, any> = {
         visitDate: Between(startDate, endDate),
       };
@@ -301,61 +395,12 @@ export class AnalyticsService {
 
       const trend = records.reduce(
         (acc, record) => {
-          const bucket = this.groupDate(
-            record.visitDate,
-            this.getGroupBy(query),
-          );
+          const bucket = this.groupDate(record.visitDate, groupBy);
           acc[bucket] = (acc[bucket] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>,
       );
-
-      const byType = records.reduce(
-        (acc, record) => {
-          acc[record.recordType] = (acc[record.recordType] || 0) + 1;
-          return acc;
-        },
-        {} as Record<RecordType, number>,
-      );
-
-      const diagnoses = records.reduce(
-        (acc, record) => {
-          const diagnosis = record.diagnosis?.trim() || 'Unspecified';
-          acc[diagnosis] = (acc[diagnosis] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      return {
-        summary: {
-          totalRecords: records.length,
-          totalPets,
-          verifiedRecords,
-          criticalEvents:
-            (byType[RecordType.EMERGENCY] || 0) +
-            (byType[RecordType.SURGERY] || 0),
-        },
-        breakdown: {
-          byRecordType: byType,
-          topDiagnoses: Object.entries(diagnoses)
-            .sort(([, left], [, right]) => right - left)
-            .slice(0, 5)
-            .map(([diagnosis, count]) => ({ diagnosis, count })),
-        },
-        visualization: {
-          trend: this.toChartSeries(trend, 'records', 'Health records'),
-          recordTypeDistribution: Object.entries(byType).map(
-            ([recordType, count]) => ({
-              recordType,
-              count,
-            }),
-          ),
-        },
-        startDate,
-        endDate,
-      };
     });
   }
 
@@ -400,292 +445,19 @@ export class AnalyticsService {
         {} as Record<string, number>,
       );
 
-      const trend = administered.reduce(
-        (acc, vaccination) => {
-          const bucket = this.groupDate(
-            vaccination.administeredDate,
-            this.getGroupBy(query),
-          );
-          acc[bucket] = (acc[bucket] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      const complianceRate =
-        vaccinations.length > 0
-          ? (groupedByStatus.compliant / vaccinations.length) * 100
-          : 100;
-
       return {
         summary: {
           totalVaccinations: vaccinations.length,
           administeredInRange: administered.length,
-          upcomingDue: groupedByStatus.dueSoon,
-          overdue: groupedByStatus.overdue,
-          complianceRate: Math.round(complianceRate * 100) / 100,
+          ...groupedByStatus,
         },
         breakdown: {
-          byStatus: groupedByStatus,
-          byVaccine: Object.entries(groupedByVaccine).map(
-            ([vaccineName, count]) => ({
-              vaccineName,
-              count,
-            }),
-          ),
-        },
-        visualization: {
-          trend: this.toChartSeries(trend, 'administered', 'Vaccinations'),
-          complianceDistribution: Object.entries(groupedByStatus).map(
-            ([status, count]) => ({
-              status,
-              count,
-            }),
-          ),
+          byVaccine: groupedByVaccine,
         },
         startDate,
         endDate,
       };
     });
   }
-
-  async getAppointmentStatistics(query: AnalyticsQueryDto) {
-    return this.getCachedResult('appointments', query, async () => {
-      const { startDate, endDate } = this.getDateRange(query);
-
-      const appointments = await this.appointmentRepository.find({
-        where: { createdAt: Between(startDate, endDate) },
-      });
-
-      const statusCounts = appointments.reduce(
-        (acc, apt) => {
-          acc[apt.status] = (acc[apt.status] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      return {
-        summary: {
-          total: appointments.length,
-          completed: statusCounts.completed || 0,
-          scheduled: statusCounts.scheduled || 0,
-          cancelled: statusCounts.cancelled || 0,
-        },
-        breakdown: {
-          byStatus: statusCounts,
-        },
-        visualization: {
-          statusDistribution: Object.entries(statusCounts).map(
-            ([status, count]) => ({
-              status,
-              count,
-            }),
-          ),
-        },
-        startDate,
-        endDate,
-      };
-    });
-  }
-
-  async getSystemUsageAnalytics(query: AnalyticsQueryDto) {
-    return this.getCachedResult('system-usage', query, async () => {
-      const { startDate, endDate } = this.getDateRange(query);
-      const logs = await this.userActivityLogRepository.find({
-        where: { createdAt: Between(startDate, endDate) },
-      });
-      const activeUsers = new Set(logs.map((log) => log.userId)).size;
-      const activityCounts = logs.reduce(
-        (acc, log) => {
-          acc[log.activityType] = (acc[log.activityType] || 0) + 1;
-          return acc;
-        },
-        {} as Record<ActivityType, number>,
-      );
-      const trend = logs.reduce(
-        (acc, log) => {
-          const bucket = this.groupDate(log.createdAt, this.getGroupBy(query));
-          acc[bucket] = (acc[bucket] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-      const suspiciousActivityCount = logs.filter(
-        (log) => log.isSuspicious,
-      ).length;
-      const exportRequests = activityCounts[ActivityType.DATA_EXPORT] || 0;
-      const appointmentVolume = await this.appointmentRepository.count({
-        where: { createdAt: Between(startDate, endDate) },
-      });
-
-      return {
-        summary: {
-          totalEvents: logs.length,
-          activeUsers,
-          suspiciousActivityCount,
-          exportRequests,
-          appointmentVolume,
-        },
-        breakdown: {
-          byActivityType: Object.entries(activityCounts).map(
-            ([activityType, count]) => ({
-              activityType,
-              count,
-            }),
-          ),
-        },
-        visualization: {
-          trend: this.toChartSeries(trend, 'events', 'System usage'),
-          activityDistribution: Object.entries(activityCounts).map(
-            ([activityType, count]) => ({
-              activityType,
-              count,
-            }),
-          ),
-        },
-        startDate,
-        endDate,
-      };
-    });
-  }
-
-  async getGeographicDistribution(query: AnalyticsQueryDto) {
-    return this.getCachedResult('geographic-distribution', query, async () => {
-      const users = await this.userRepository.find();
-      const distribution = users.reduce(
-        (acc, user) => {
-          const location = user.country || user.city || 'Unknown';
-          acc[location] = (acc[location] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      return {
-        summary: {
-          totalLocations: Object.keys(distribution).length,
-          usersWithLocation: users.filter((user) => user.country || user.city)
-            .length,
-        },
-        visualization: {
-          distribution: Object.entries(distribution).map(
-            ([location, count]) => ({
-              location,
-              count,
-            }),
-          ),
-        },
-      };
-    });
-  }
-
-  async generateCustomReport(query: AnalyticsQueryDto) {
-    return this.getCachedResult('custom-report', query, async () => {
-      const metrics = this.parseMetrics(query);
-      const sections: Record<string, unknown> = {};
-
-      for (const metric of metrics) {
-        if (metric === AnalyticsMetric.PET_HEALTH) {
-          sections.petHealth = await this.getPetHealthTrends(query);
-        }
-        if (metric === AnalyticsMetric.VACCINATION_COMPLIANCE) {
-          sections.vaccinationCompliance =
-            await this.getVaccinationCompliance(query);
-        }
-        if (metric === AnalyticsMetric.SYSTEM_USAGE) {
-          sections.systemUsage = await this.getSystemUsageAnalytics(query);
-        }
-        if (metric === AnalyticsMetric.USER_OVERVIEW) {
-          sections.users = await this.getUserMetrics(query);
-        }
-        if (metric === AnalyticsMetric.PET_REGISTRATIONS) {
-          sections.petRegistrations =
-            await this.getPetRegistrationTrends(query);
-        }
-        if (metric === AnalyticsMetric.APPOINTMENT_OVERVIEW) {
-          sections.appointments = await this.getAppointmentStatistics(query);
-        }
-      }
-
-      const { startDate, endDate } = this.getDateRange(query);
-
-      return {
-        reportName: query.reportName || 'analytics-report',
-        generatedAt: new Date().toISOString(),
-        metrics,
-        dateRange: {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        },
-        sections,
-        visualization: {
-          cards: Object.entries(sections).flatMap(([section, payload]) => {
-            const summary = (payload as Record<string, any>).summary || {};
-            return Object.entries(summary)
-              .filter(([, value]) => typeof value !== 'object')
-              .slice(0, 2)
-              .map(([label, value]) => ({
-                section,
-                label,
-                value,
-              }));
-          }),
-        },
-      };
-    });
-  }
-
-  async exportReport(query: AnalyticsQueryDto) {
-    const report = await this.generateCustomReport(query);
-    const baseFilename = `${query.reportName || 'analytics-report'}-${Date.now()}`;
-
-    if ((query.format || ExportFormat.JSON) === ExportFormat.CSV) {
-      const parser = new Parser<SummaryRow>({
-        fields: ['section', 'metric', 'value'],
-      });
-
-      return {
-        filename: `${baseFilename}.csv`,
-        contentType: 'text/csv',
-        body: parser.parse(this.flattenReportRows(report)),
-      };
-    }
-
-    return {
-      filename: `${baseFilename}.json`,
-      contentType: 'application/json',
-      body: report,
-    };
-  }
-
-  async getDashboardOverview(query: AnalyticsQueryDto) {
-    const [
-      userMetrics,
-      petTrends,
-      petHealth,
-      vaccinationCompliance,
-      appointmentStats,
-      systemUsage,
-      geoDistribution,
-    ] = await Promise.all([
-      this.getUserMetrics(query),
-      this.getPetRegistrationTrends(query),
-      this.getPetHealthTrends(query),
-      this.getVaccinationCompliance(query),
-      this.getAppointmentStatistics(query),
-      this.getSystemUsageAnalytics(query),
-      this.getGeographicDistribution(query),
-    ]);
-
-    return {
-      users: userMetrics,
-      pets: petTrends,
-      petHealth,
-      vaccinations: vaccinationCompliance,
-      appointments: appointmentStats,
-      systemUsage,
-      geographic: geoDistribution,
-    };
-  }
+          ...groupedByStatus,
 }
