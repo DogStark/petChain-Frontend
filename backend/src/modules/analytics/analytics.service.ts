@@ -459,5 +459,5 @@ export class AnalyticsService {
       };
     });
   }
-
+          ...groupedByStatus,
 }
