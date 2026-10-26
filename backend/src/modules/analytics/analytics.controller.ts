@@ -28,7 +28,8 @@ export class AnalyticsController {
 
   @Get('health/trends')
   async getPetHealthTrends(@Query() query: AnalyticsQueryDto) {
-    return this.analyticsService.getPetHealthTrends(query);
+    const result = await this.analyticsService.getPetHealthTrends(query);
+    return this.withCoverage(result);
   }
 
   @Get('health/comparison')
@@ -81,5 +82,16 @@ export class AnalyticsController {
     }
 
     return res.status(HttpStatus.OK).send(exportResult.body);
+  }
+
+  private withCoverage<T extends { series?: unknown[] }>(result: T): T & {
+    coverage: { sampleCount: number; missingIntervals: number };
+  } {
+    const series = Array.isArray(result?.series) ? result.series : [];
+    const sampleCount = series.length;
+    const missingIntervals = series.filter(
+      (point: any) => point == null || point.value == null,
+    ).length;
+    return { ...result, coverage: { sampleCount, missingIntervals } };
   }
 }

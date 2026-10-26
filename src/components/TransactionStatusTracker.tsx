@@ -14,7 +14,7 @@ import {
 export const BASE_INTERVAL = 10_000;
 export const MAX_INTERVAL = 160_000;
 
-type AnnouncedStatus = 'pending' | 'confirmed' | 'failed';
+type AnnouncedStatus = 'pending' | 'confirmed' | 'failed' | 'replaced' | 'expired';
 
 const toneClasses: Record<string, string> = {
   warning: 'bg-amber-50 border-amber-200 text-amber-800',
@@ -41,6 +41,8 @@ export default function TransactionStatusTracker() {
   const [pending, setPending] = useState<Transaction[]>([]);
   const [failed, setFailed] = useState<Transaction[]>([]);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [announcement, setAnnouncement] = useState('');
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,33 +87,38 @@ export default function TransactionStatusTracker() {
   }, []);
 
   const loadTransactions = async () => {
-    try {
-      const [pendingTxs, failedTxs] = await Promise.all([
-        transactionAPI.getPendingTransactions(),
-        transactionAPI.getFailedTransactions(),
-      ]);
-      setPending(pendingTxs);
-      setFailed(failedTxs);
-    } catch (error) {
-      console.error('Failed to load transaction status:', error);
-    }
+    const [pendingTxs, failedTxs] = await Promise.all([
+      transactionAPI.getPendingTransactions(),
+      transactionAPI.getFailedTransactions(),
+    ]);
+    setPending(pendingTxs);
+    setFailed(failedTxs);
   };
 
   const handleCancel = async (id: string) => {
+    setActionError(null);
+    setPendingActionId(id);
     try {
       await transactionAPI.cancelPendingTransaction(id);
       await loadTransactions();
-    } catch (error) {
-      console.error('Failed to cancel transaction:', error);
+    } catch {
+      setActionError('Could not cancel this transaction. Refresh its status and try again if appropriate.');
+    } finally {
+      setPendingActionId(null);
     }
   };
 
   const handleRetry = async (id: string) => {
+    setActionError(null);
+    setPendingActionId(id);
     try {
+      // The server owns authorization and consent checks and refreshes sequence data.
       await transactionAPI.retryFailedTransaction(id);
       await loadTransactions();
-    } catch (error) {
-      console.error('Failed to retry transaction:', error);
+    } catch {
+      setActionError('Retry was not completed. Refresh transaction status before trying again.');
+    } finally {
+      setPendingActionId(null);
     }
   };
 
@@ -144,7 +151,12 @@ export default function TransactionStatusTracker() {
     for (const { tx, finality } of reconciled) {
       if (finality === 'submitted' || finality === 'accepted') {
         currentStatuses.set(tx.id, 'pending');
-      } else if (finality === 'confirmed' || finality === 'failed') {
+      } else if (
+        finality === 'confirmed' ||
+        finality === 'failed' ||
+        finality === 'replaced' ||
+        finality === 'expired'
+      ) {
         currentStatuses.set(tx.id, finality);
       }
     }
@@ -155,13 +167,15 @@ export default function TransactionStatusTracker() {
       pending: 0,
       confirmed: 0,
       failed: 0,
+      replaced: 0,
+      expired: 0,
     };
 
     for (const [id, status] of currentStatuses) {
       if (previousStatuses?.get(id) !== status) changedCounts[status] += 1;
     }
 
-    const nextAnnouncement = (['pending', 'confirmed', 'failed'] as const)
+    const nextAnnouncement = (['pending', 'confirmed', 'failed', 'replaced', 'expired'] as const)
       .filter((status) => changedCounts[status] > 0)
       .map((status) => {
         const count = changedCounts[status];
@@ -240,7 +254,9 @@ export default function TransactionStatusTracker() {
             const itemMeta = getFinalityMeta(f);
             const explorerUrl = tx.hash ? getExplorerTxUrl(tx.hash) : null;
             const showCancel = f === 'submitted' || f === 'accepted';
-            const showRetry = f === 'failed';
+            const showRetry = f === 'failed' || f === 'replaced' || f === 'expired';
+            const isActionPending = pendingActionId === tx.id;
+            const isAnyActionPending = pendingActionId !== null;
             return (
               <li
                 key={tx.id}
@@ -293,20 +309,24 @@ export default function TransactionStatusTracker() {
                     <button
                       type="button"
                       onClick={() => handleCancel(tx.id)}
+                      disabled={isAnyActionPending}
+                      aria-busy={isActionPending}
                       className="inline-flex items-center text-xs text-red-600 hover:text-red-800 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 rounded px-1"
                       aria-label={`Cancel transaction ${tx.id}`}
                     >
-                      Cancel
+                      {isActionPending ? 'Cancelling…' : 'Cancel'}
                     </button>
                   )}
                   {showRetry && (
                     <button
                       type="button"
                       onClick={() => handleRetry(tx.id)}
+                      disabled={isAnyActionPending}
+                      aria-busy={isActionPending}
                       className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded px-1"
-                      aria-label={`Retry transaction ${tx.id}`}
+                      aria-label={`Retry${f === 'failed' ? '' : ` ${f}`} transaction ${tx.id}`}
                     >
-                      Retry
+                      {isActionPending ? 'Retrying…' : 'Retry'}
                     </button>
                   )}
                   {f === 'confirmed' && explorerUrl && (
@@ -352,10 +372,18 @@ export default function TransactionStatusTracker() {
             </div>
           )}
 
+          {actionError && (
+            <p role="alert" className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+              {actionError}
+            </p>
+          )}
+
           {renderSection('submitted', grouped.submitted)}
           {renderSection('accepted', grouped.accepted)}
           {renderSection('confirmed', grouped.confirmed)}
           {renderSection('failed', grouped.failed)}
+          {renderSection('replaced', grouped.replaced)}
+          {renderSection('expired', grouped.expired)}
           {renderSection('unknown', grouped.unknown)}
 
           {!hasAny && !isInitialLoading && pollError && (
