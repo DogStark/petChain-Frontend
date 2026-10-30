@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Download, Share2, ExternalLink } from 'lucide-react';
+import { qrcodeAPI, QRCodeRecord } from '@/lib/api/qrcodeAPI';
+import { EmergencyPassOptions } from './EmergencyPassOptions';
 
 interface EmergencyQRProps {
   petId: string;
@@ -8,6 +10,23 @@ interface EmergencyQRProps {
 }
 
 export const EmergencyQR: React.FC<EmergencyQRProps> = ({ petId, petName }) => {
+  const [record, setRecord] = useState<QRCodeRecord | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    qrcodeAPI
+      .getByPetId(petId)
+      .then((list) => {
+        if (!cancelled) setRecord(list.find((r) => r.isActive) ?? list[0] ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setRecord(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [petId]);
+
   const emergencyUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/pets/${petId}/emergency`;
 
   const downloadQR = () => {
@@ -76,6 +95,14 @@ export const EmergencyQR: React.FC<EmergencyQRProps> = ({ petId, petName }) => {
           <ExternalLink size={16} /> Preview
         </a>
       </div>
+
+      <EmergencyPassOptions
+        petId={petId}
+        petName={petName}
+        emergencyUrl={emergencyUrl}
+        record={record}
+        onRequestWalletPass={record ? () => qrcodeAPI.getWalletPass(record.qrCodeId) : undefined}
+      />
 
       <div className="mt-2 text-xs text-gray-400 flex items-center gap-1">
         <Share2 size={12} /> Share this link with pet sitters or family
