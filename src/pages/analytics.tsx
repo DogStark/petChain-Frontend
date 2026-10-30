@@ -5,6 +5,7 @@ import { Download, RefreshCw } from 'lucide-react';
 import { generateAnalyticsData } from '../lib/analyticsUserData';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
+import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), {
   ssr: false,
@@ -101,6 +102,7 @@ const AnalyticsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -127,51 +129,9 @@ const AnalyticsPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleExport = () => {
-    if (!data) return;
-
-    const toCSV = (arr: any[], headers: string[]) => {
-      const headerRow = headers.join(',');
-
-      const rows = arr.map((obj: any) =>
-        headers.map((header) => JSON.stringify(obj[header])).join(',')
-      );
-      return [headerRow, ...rows].join('\n');
-    };
-
-    const engagementCSV = toCSV(data.engagementData, ['date', 'activeUsers', 'newSignups']);
-    const healthCSV = toCSV(data.healthData, ['name', 'value']);
-    const vaccinationCSV = toCSV(data.vaccinationData, ['month', 'compliant', 'nonCompliant']);
-    const geoCSV = toCSV(data.geoData, ['region', 'users']);
-    const apiCSV = toCSV(data.apiUsageData, ['time', 'requests', 'errors']);
-
-    const finalCSV = [
-      `Report Generated,${new Date().toISOString()}`,
-      '',
-      'User Engagement',
-      engagementCSV,
-      '',
-      'Pet Health ',
-      healthCSV,
-      '',
-      'Vaccination Compliance ',
-      vaccinationCSV,
-      '',
-      'Geographic Distribution ',
-      geoCSV,
-      '',
-      'API Usage ',
-      apiCSV,
-    ].join('\n');
-
-    const blob = new Blob([finalCSV], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `analytics_report_${new Date().toISOString()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  // Exporting goes through the privacy-aware preview dialog: it shows the
+  // exact fields and date range, masks identifiers by default, and only
+  // unmounts personal data once the backend authorises it.
 
   // Memoize each chart's data so unrelated charts skip re-renders when their
   // slice hasn't changed between 30s polls.
@@ -254,7 +214,7 @@ const AnalyticsPage = () => {
               Refresh
             </button>
             <button
-              onClick={handleExport}
+              onClick={() => setExportPreviewOpen(true)}
               className="flex items-center cursor-pointer justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 md:py-2.5 text-sm font-semibold text-white shadow-md hover:bg-blue-700 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 w-full sm:w-auto"
             >
               <Download className="h-4 w-4" />
@@ -345,6 +305,12 @@ const AnalyticsPage = () => {
           </section>
         </div>
       </div>
+
+      <AnalyticsExportPreview
+        isOpen={exportPreviewOpen}
+        onClose={() => setExportPreviewOpen(false)}
+        data={data}
+      />
       <style jsx global>{`
         .analytics-chart .recharts-cartesian-grid line {
           stroke: #9ca3af !important;

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import AnalyticsPage from '../analytics';
 import { generateAnalyticsData } from '@/lib/analyticsUserData';
+import { DataModeProvider } from '@/contexts/DataModeContext';
 
 jest.mock('next/dynamic', () => {
   const ReactModule = jest.requireActual<typeof import('react')>('react');
@@ -31,6 +32,14 @@ const sampleData: Awaited<ReturnType<typeof generateAnalyticsData>> = {
 };
 
 describe('AnalyticsPage accessibility', () => {
+  /** The page renders inside providers that _app supplies in production. */
+  const renderPage = () =>
+    render(
+      <DataModeProvider>
+        <AnalyticsPage />
+      </DataModeProvider>,
+    );
+
   beforeEach(() => {
     generateAnalyticsDataMock.mockResolvedValue(sampleData);
   });
@@ -42,7 +51,7 @@ describe('AnalyticsPage accessibility', () => {
 
   it('exposes the chart values and semantic health/vaccination labels in keyboard-accessible tables', async () => {
     const user = userEvent.setup();
-    render(<AnalyticsPage />);
+    renderPage();
 
     const engagementSection = await screen.findByRole('region', { name: 'User engagement analytics' });
     const engagementSummary = within(engagementSection).getByText('View data table: User engagement');
@@ -81,7 +90,7 @@ describe('AnalyticsPage accessibility', () => {
       apiUsageData: [],
     };
     generateAnalyticsDataMock.mockResolvedValueOnce(emptyData);
-    const { unmount } = render(<AnalyticsPage />);
+    const { unmount } = renderPage();
 
     const engagementSection = await screen.findByRole('region', { name: 'User engagement analytics' });
     fireEvent.click(within(engagementSection).getByText('View data table: User engagement'));
@@ -92,10 +101,31 @@ describe('AnalyticsPage accessibility', () => {
 
     generateAnalyticsDataMock.mockRejectedValueOnce(new Error('network unavailable'));
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    render(<AnalyticsPage />);
+    renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('Analytics data could not be loaded.');
     generateAnalyticsDataMock.mockResolvedValueOnce(sampleData);
     await user.click(screen.getByRole('button', { name: 'Try Again' }));
     expect(await screen.findByText('View data table: User engagement')).toBeInTheDocument();
+  });
+
+  it('opens a privacy-aware export preview instead of downloading immediately', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('View data table: User engagement');
+    await user.click(screen.getByRole('button', { name: /Export Report/i }));
+
+    expect(await screen.findByRole('dialog', { name: /Export preview/i })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: /Export preview/i });
+    expect(screen.getByTestId('export-date-range')).toHaveTextContent(
+      '2026-01-01 to 2026-01-01 (1 day)',
+    );
+
+    // Privacy by default: personal data stays masked until explicitly requested.
+    expect(screen.getByRole('checkbox', { name: /include personal data/i })).not.toBeChecked();
+    expect(within(dialog).getByText('Nor•••')).toBeInTheDocument();
+    expect(within(dialog).queryByText('North America')).not.toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: /Download CSV/i })).toBeEnabled();
   });
 });
