@@ -10,6 +10,8 @@ import {
 } from '../lib/api/userAPI';
 import styles from '../styles/pages/OnboardingPage.module.css';
 import { GetServerSideProps } from 'next';
+import axios from 'axios';
+import { getErrorMessage, getHttpStatus } from '../lib/api/errorUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,7 @@ const DEFAULT_STATUS: OnboardingStatus = {
   startedAt: new Date().toISOString(),
 };
 
-const is404 = (err: any) => err?.response?.status === 404;
+const is404 = (err: unknown) => axios.isAxiosError(err) && err.response?.status === 404;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -60,12 +62,12 @@ export default function OnboardingPage() {
           setAnalytics(onboardingAnalytics.value);
         }
         // 404 on analytics is fine — panel simply won't render
-      } catch (err: any) {
-        if (err?.response?.status === 401) {
+      } catch (err: unknown) {
+        if (getHttpStatus(err) === 401) {
           router.replace('/login');
           return;
         }
-        setError(err?.message || 'Failed to load onboarding.');
+        setError(getErrorMessage(err, 'Failed to load onboarding.'));
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +81,7 @@ export default function OnboardingPage() {
       const updated = await userAPI.completeOnboardingStep(stepId);
       setStatus(updated);
       return updated;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (is404(err)) {
         // Backend not yet implemented — update state locally
         const totalSteps = status?.steps?.length || ONBOARDING_STEP_IDS.length;
@@ -100,7 +102,7 @@ export default function OnboardingPage() {
   const handleSkip = async () => {
     try {
       await userAPI.skipOnboarding();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (!is404(err)) throw err;
       // 404 — backend not ready, skip locally
     }

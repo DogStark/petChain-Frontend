@@ -56,7 +56,7 @@ export default function EmergencyAccessPage() {
         } else {
           setData(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err.message || 'Failed to load emergency records');
       } finally {
         setIsLoading(false);
@@ -87,7 +87,7 @@ export default function EmergencyAccessPage() {
       await petAPI.updatePetEmergencyInfo(id, data);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to save visibility settings');
     } finally {
       setIsSaving(false);
