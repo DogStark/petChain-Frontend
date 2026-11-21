@@ -4,6 +4,11 @@ import { AvatarUpload } from './AvatarUpload';
 import { ProfileCompletion } from './ProfileCompletion';
 import { isValidEmail, isValidPhone } from '@/utils/validation';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
+import type {
+  ProfileCompletionState,
+  UserProfile,
+  UserProfileData,
+} from '@/lib/api/userAPI';
 
 interface ProfileEditFormProps {
   user?: UserProfile;
@@ -39,15 +44,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        avatarUrl: user.avatarUrl || '',
-        dateOfBirth: user.dateOfBirth || '',
-        address: user.address || '',
-        city: user.city || '',
-        country: user.country || '',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone ?? '',
+        avatarUrl: user.avatarUrl ?? '',
+        dateOfBirth: user.dateOfBirth ?? '',
+        address: user.address ?? '',
+        city: user.city ?? '',
+        country: user.country ?? '',
       });
 
       // Simulate profile completion data
@@ -61,7 +66,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
   }, [user]);
 
-  const calculateCompletion = (userData: UserProfileData): number => {
+  const calculateCompletion = (userData: Partial<UserProfileData>): number => {
     let score = 0;
     const fields = [
       userData.firstName,
@@ -80,7 +85,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     return score;
   };
 
-  const calculateMissingFields = (userData: UserProfileData): string[] => {
+  const calculateMissingFields = (userData: Partial<UserProfileData>): string[] => {
     const missing = [];
     if (!userData.firstName) missing.push('firstName');
     if (!userData.lastName) missing.push('lastName');
