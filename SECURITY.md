@@ -64,6 +64,18 @@ We appreciate security researchers and will:
 - Keep emergency QR scan analytics minimized: no raw IPs, no precise coordinates, no contact details, no user identifiers in analytics payloads
 - Only store coarse, consented location fields (for example country/region) when explicitly granted, and keep analytics retention bounded to 30 days
 
+### 🔐 Authorization model (admin access)
+
+Admin access is enforced **server-side** at the API boundary. Client-side route guards (for example `ProtectedRoute` and `src/lib/api/requireAdmin.ts`) are a UX convenience only and must never be treated as a security control.
+
+- Every admin endpoint MUST verify the caller's authenticated session and role on the server before returning data or performing mutations.
+- Protected endpoints MUST return consistent status codes:
+  - `401 Unauthorized` when the request is unauthenticated (missing/invalid/expired session).
+  - `403 Forbidden` when the caller is authenticated but lacks the required role.
+- Never trust client-supplied role, `isAdmin`, or similar state. Roles are derived from the server-side session/identity only.
+- Object-level access (IDOR) MUST be checked per resource: a caller may only read or mutate records they own or are authorized to access, regardless of what the client UI displays.
+- Regression tests MUST cover forged client-state attempts (e.g. tampered `isAdmin`/role in local storage or request payloads) and IDOR attempts against admin and user-scoped resources.
+
 ### 🔎 Emergency QR scan analytics privacy
 
 Emergency scan events are intentionally designed as low-risk telemetry. The frontend sends only a minimal device class for trend analysis and, when a user has explicitly consented, a coarse region or country code; it never includes raw IP addresses, exact coordinates, phone numbers, contact names, or other personal identifiers. Analytics records are limited to a short retention window to reduce long-term tracking risk.
