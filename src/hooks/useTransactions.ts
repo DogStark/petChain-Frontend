@@ -9,6 +9,7 @@ import {
 import {
   generateIdempotencyKey,
   samePayload,
+  IDEMPOTENCY_HEADER,
   type IdempotencyPayload,
 } from '@/utils/idempotencyKey';
 
@@ -94,6 +95,15 @@ export function useTransactions() {
       hash = (hash * 0x01000193) >>> 0;
     }
     return hash.toString(16).padStart(8, '0');
+  }
+
+  /**
+   * Build the request headers for a submission, attaching the idempotency key.
+   * The key is sent via the `Idempotency-Key` header so the backend can detect
+   * duplicate submissions on retry.
+   */
+  function buildSubmissionHeaders(idempotencyKey: string): Record<string, string> {
+    return { [IDEMPOTENCY_HEADER]: idempotencyKey };
   }
 
   /**
@@ -231,7 +241,7 @@ export function useTransactions() {
     try {
       const data = await transactionAPI.getPendingTransactions();
       setPending(data);
-      // Reconcile: remove in-flight records that the server already knows about.
+      // Reconcile: remove in-flight submissions that the server has accepted.
       reconcilePendingSubmissions(data);
       return data;
     } catch (err) {
@@ -240,127 +250,68 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchFailedTransactions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await transactionAPI.getFailedTransactions();
-      setFailed(data);
-      return data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch failed transactions');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
   }, []);
-
-  const getTotalCosts = useCallback(async (startDate?: string, endDate?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      return await transactionAPI.getTotalCosts(startDate, endDate);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch costs');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ── Submit payment with idempotency guard ────────────────────────────────
 
   /**
-   * Submit a payment transaction with full duplicate-submission protection:
+   * Submit a send-payment transaction with idempotency protection.
    *
-   * 1. **In-flight ref guard** – if `submittingRef.current` is already `true`
-   *    the call returns immediately with `{ duplicate: true }`.  This blocks
-   *    concurrent executions (e.g. rapid double-clicks) at the JS layer.
-   *
-   * 2. **Payload dedup** – `isDuplicateSubmission` checks whether an identical
-   *    payload is already in-flight via `pendingSubmissionsRef`.  Two calls
-   *    with the same `(source, destination, amount, asset, memo, fee)` while
-   *    the first is still awaiting a response will be collapsed into one.
-   *
-   * 3. **Idempotency key** – a SHA-256-derived key is generated from the
-   *    canonical payload and forwarded as the `Idempotency-Key` HTTP header so
-   *    the backend can de-duplicate at the network level.
-   *
-   * @returns The idempotency key that was used, so the caller can surface it
-   *          for debugging or store it alongside the result.
+   * - Generates a fresh idempotency key per attempt.
+   * - Attaches the key via the `Idempotency-Key` request header.
+   * - Detects duplicate submissions of the same payload and reuses the
+   *   in-flight key so a retry is treated as the same attempt.
    */
-  const submitPayment = useCallback(
-    async (
-      payload: SendPaymentPayload,
-      /** Async function that actually sends the payment, called only when the
-       *  submission is not a duplicate.  Receives the generated idempotency key
-       *  so it can attach it to its own request (e.g. wallet signing layer). */
-      sender: (idempotencyKey: string) => Promise<void>
-    ): Promise<{ idempotencyKey: string; skipped: boolean }> => {
-      // ── Guard 1: in-flight mutex ──────────────────────────────────────────
+  const submitSendPayment = useCallback(
+    async (payload: SendPaymentPayload): Promise<Transaction> => {
       if (submittingRef.current) {
-        return { idempotencyKey: '', skipped: true };
+        throw new Error('A transaction submission is already in progress');
       }
 
-      // ── Guard 2: same-payload dedup ───────────────────────────────────────
-      if (isDuplicateSubmission(payload)) {
-        return { idempotencyKey: '', skipped: true };
+      // Duplicate detection: reuse the existing key for the same payload.
+      const existing = pendingSubmissionsRef.current.find((ps) =>
+        samePayload(
+          `idempotency:0:${_fnv32aPayload(payload)}`,
+          `idempotency:0:${_fnv32aPayload(ps.payload)}`
+        )
+      );
+
+      const idempotencyKey = existing
+        ? existing.idempotencyKey
+        : generateIdempotencyKey(payload as IdempotencyPayload).key;
+
+      if (!existing) {
+        pendingSubmissionsRef.current.push({
+          idempotencyKey,
+          payload,
+          startedAt: Date.now(),
+        });
       }
 
-      // ── Generate idempotency key ──────────────────────────────────────────
-      const idpPayload: IdempotencyPayload = {
-        sourcePublicKey: payload.sourcePublicKey,
-        destination: payload.destination,
-        amount: payload.amount,
-        asset: payload.asset,
-        memo: payload.memo,
-        fee: payload.fee,
-      };
-      const idempotencyKey = await generateIdempotencyKey(idpPayload);
-
-      // ── Register in-flight submission ─────────────────────────────────────
       submittingRef.current = true;
-      const submission: PendingSubmission = {
-        idempotencyKey,
-        payload,
-        startedAt: Date.now(),
-      };
-      pendingSubmissionsRef.current = [...pendingSubmissionsRef.current, submission];
-
+      setLoading(true);
+      setError(null);
       try {
-        setError(null);
-        await sender(idempotencyKey);
-        return { idempotencyKey, skipped: false };
+        const result = await transactionAPI.submitTransaction(payload, {
+          headers: buildSubmissionHeaders(idempotencyKey),
+        });
+        setTransactions((prev) => [result, ...prev]);
+        return result;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Transaction failed');
+        setError(err instanceof Error ? err.message : 'Failed to submit transaction');
         throw err;
       } finally {
-        // ── Release guards ────────────────────────────────────────────────
         submittingRef.current = false;
-        pendingSubmissionsRef.current = pendingSubmissionsRef.current.filter(
-          (ps) => ps.idempotencyKey !== idempotencyKey
-        );
+        setLoading(false);
       }
     },
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+    []
   );
 
-  // ── Exposed state derived from refs ──────────────────────────────────────
-
-  /** Whether any send-payment call is currently in-flight. */
-  const isSubmitting = submittingRef.current;
-
   return {
-    // State
     transactions,
     pending,
     failed,
     loading,
     error,
-    isSubmitting,
-    // Actions
     fetchTransactions,
     getTransaction,
     getTransactionReceipt,
@@ -369,8 +320,6 @@ export function useTransactions() {
     cancelTransaction,
     estimateCost,
     fetchPendingTransactions,
-    fetchFailedTransactions,
-    getTotalCosts,
-    submitPayment,
+    submitSendPayment,
   };
 }

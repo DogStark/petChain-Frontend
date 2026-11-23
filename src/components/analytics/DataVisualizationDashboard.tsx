@@ -9,6 +9,7 @@ import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, ComposedChart, RadialBarChart, RadialBar,
+  type PieLabelRenderProps,
 } from 'recharts';
 import {
   Download, Calendar, Weight, Activity, Syringe,
@@ -372,7 +373,12 @@ function VetLocationChart({ data, onExport }: VetLocationChartProps) {
               fill="#8884d8"
               dataKey="pets"
               nameKey="region"
-              label={({ region, percent }) => `${region} ${(percent * 100).toFixed(0)}%`}
+              label={(props: PieLabelRenderProps) => {
+                const name = String(props.name ?? 'Unknown');
+                return typeof props.percent === 'number' && Number.isFinite(props.percent)
+                  ? `${name} ${(props.percent * 100).toFixed(0)}%`
+                  : name;
+              }}
             >
               {chartData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

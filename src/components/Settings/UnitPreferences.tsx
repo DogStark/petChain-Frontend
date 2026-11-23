@@ -10,7 +10,7 @@ export interface UnitPreferencesProps {
 
 export function UnitPreferences({ onDirtyChange }: UnitPreferencesProps) {
   const { t } = useTranslation();
-  const { system, source, setSystem, resetToLocale } = useUnitPreference();
+  const { system, source, setSystem, resetToLocale, error } = useUnitPreference();
   
   const [selectedSystem, setSelectedSystem] = useState<UnitSystem>(system);
   const [isDirty, setIsDirty] = useState(false);
@@ -32,23 +32,33 @@ export function UnitPreferences({ onDirtyChange }: UnitPreferencesProps) {
     setSelectedSystem(newSystem);
   };
   
-  const handleSave = () => {
-    setSystem(selectedSystem);
-    setAnnouncement(t('settings.units.saved'));
-    // Clear announcement after 3 seconds
-    setTimeout(() => setAnnouncement(''), 3000);
+  const handleSave = async () => {
+    try {
+      await setSystem(selectedSystem);
+      setAnnouncement(t('settings.units.saved'));
+      // Clear announcement after 3 seconds
+      setTimeout(() => setAnnouncement(''), 3000);
+    } catch {
+      setAnnouncement(t('settings.units.saveError'));
+      setTimeout(() => setAnnouncement(''), 3000);
+    }
   };
   
-  const handleReset = () => {
-    resetToLocale();
-    setAnnouncement(t('settings.units.resetToLocale'));
-    setTimeout(() => setAnnouncement(''), 3000);
+  const handleReset = async () => {
+    try {
+      await resetToLocale();
+      setAnnouncement(t('settings.units.resetToLocale'));
+      setTimeout(() => setAnnouncement(''), 3000);
+    } catch {
+      setAnnouncement(t('settings.units.saveError'));
+      setTimeout(() => setAnnouncement(''), 3000);
+    }
   };
   
   const getLocaleDefault = (): UnitSystem => {
     if (typeof window === 'undefined') return 'metric';
     const locale = navigator.language || 'en-US';
-    return locale.toLowerCase().startsWith('en-us') ? 'customary' : 'metric';
+    return locale.toLowerCase().startsWith('en-us') ? 'imperial' : 'metric';
   };
   
   const localeDefault = getLocaleDefault();
@@ -87,19 +97,19 @@ export function UnitPreferences({ onDirtyChange }: UnitPreferencesProps) {
             <input
               type="radio"
               name="unitSystem"
-              value="customary"
-              checked={selectedSystem === 'customary'}
-              onChange={() => handleSystemChange('customary')}
+              value="imperial"
+              checked={selectedSystem === 'imperial'}
+              onChange={() => handleSystemChange('imperial')}
               className={styles.radio}
             />
             <span className={styles.radioText}>
-              {t('settings.units.customary')}
-              {localeDefault === 'customary' && (
+              {t('settings.units.imperial')}
+              {localeDefault === 'imperial' && (
                 <span className={styles.badge}>{t('settings.units.localeDefault')}</span>
               )}
             </span>
             <span className={styles.radioDescription}>
-              {t('settings.units.customaryExamples')}
+              {t('settings.units.imperialExamples')}
             </span>
           </label>
         </div>
@@ -113,6 +123,13 @@ export function UnitPreferences({ onDirtyChange }: UnitPreferencesProps) {
           <p>{t('settings.units.usingUserPreference')}</p>
         )}
       </div>
+      
+      {/* Error message */}
+      {error && (
+        <div className={styles.error} role="alert">
+          {t('settings.units.saveError')}
+        </div>
+      )}
       
       {/* Explicit unit note */}
       <div className={styles.note}>

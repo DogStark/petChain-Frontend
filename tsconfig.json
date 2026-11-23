@@ -32,12 +32,16 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
     "backend",
+    "frontend",
+    "petChain-Frontend",
     ".next",
     "out",
     "dist"

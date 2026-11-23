@@ -1,7 +1,8 @@
 /**
  * @file exifUtils.ts
  * Utilities for verifying that EXIF / XMP / IPTC metadata has been stripped
- * from image files before they are uploaded.
+ * from image files before they are uploaded, and for reading the EXIF
+ * orientation tag so uploaded photos can be displayed upright (#1439).
  *
  * ## Why metadata matters
  * JPEG and other image formats embed rich metadata headers (EXIF, XMP, IPTC).
@@ -19,7 +20,8 @@
  * is discarded along with all other metadata.  To prevent rotated images,
  * `browser-image-compression` applies the orientation transform to the pixel
  * data itself before encoding — the visual appearance is preserved even though
- * the tag is gone.  No additional rotation logic is required on the frontend.
+ * the tag is gone.  The helpers below read the orientation value so callers
+ * can apply the same transform to the preview (#1439).
  */
 
 /**
@@ -39,6 +41,18 @@ const EXIF_SIGNATURE = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00] as const;
  * "http://ns.adobe.com/xap/1.0/\0"
  */
 const XMP_SIGNATURE = 'http://ns.adobe.com/xap/1.0/\0';
+
+/**
+ * EXIF orientation tag id (0x0112).
+ */
+const ORIENTATION_TAG = 0x0112;
+
+/**
+ * EXIF orientation values 1–8 as defined by the EXIF specification.
+ * 1 = normal, 2 = flip horizontal, 3 = rotate 180, 4 = flip vertical,
+ * 5 = transpose, 6 = rotate 90 CW, 7 = transverse, 8 = rotate 270 CW.
+ */
+export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /**
  * Return the first N bytes of a File or Blob as a Uint8Array.
@@ -151,6 +165,86 @@ function hasXmpSegment(data: Uint8Array): boolean {
   return false;
 }
 
+/**
+ * Locate the TIFF header inside the first EXIF APP1 segment of a JPEG.
+ *
+ * @returns The byte offset of the TIFF header ("II" or "MM"), or -1.
+ */
+function findTiffHeaderOffset(data: Uint8Array): number {
+  if (!containsBytes(data, JPEG_SOI_MARKER)) return -1;
+
+  let offset = 2;
+  while (offset < data.length - 1) {
+    if (data[offset] !== 0xff) break;
+
+    const marker = data[offset + 1];
+    offset += 2;
+
+    if (marker === 0xff) { offset--; continue; }
+    if (marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 1 >= data.length) break;
+
+    const segLength = (data[offset] << 8) | data[offset + 1];
+    if (segLength < 2) break;
+
+    if (marker === 0xe1 && segLength > 8 && containsBytes(data, EXIF_SIGNATURE, offset + 2)) {
+      // TIFF header starts right after the 6-byte "Exif\0\0" signature
+      return offset + 2 + EXIF_SIGNATURE.length;
+    }
+
+    offset += segLength;
+  }
+
+  return -1;
+}
+
+/**
+ * Read the EXIF orientation tag (0x0112) from a JPEG file.
+ *
+ * Returns `1` (normal) when the file is not a JPEG, has no EXIF data, or the
+ * orientation tag is missing/invalid.  This is safe to call on any upload.
+ *
+ * @param file  The image `File` to inspect.
+ * @returns     The EXIF orientation value (1–8).
+ */
+export async function readExifOrientation(file: File): Promise<ExifOrientation> {
+  if (file.type !== 'image/jpeg' && !file.name.toLowerCase().match(/\.jpe?g$/)) {
+    return 1;
+  }
+
+  const data = await readAllBytes(file);
+  const tiff = findTiffHeaderOffset(data);
+  if (tiff < 0 || tiff + 8 > data.length) return 1;
+
+  const littleEndian = data[tiff] === 0x49 && data[tiff + 1] === 0x49;
+  const bigEndian = data[tiff] === 0x4d && data[tiff + 1] === 0x4d;
+  if (!littleEndian && !bigEndian) return 1;
+
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const u16 = (o: number) => view.getUint16(o, littleEndian);
+  const u32 = (o: number) => view.getUint32(o, littleEndian);
+
+  // Verify the 42 magic number
+  if (u16(tiff + 2) !== 0x002a) return 1;
+
+  const ifd0 = tiff + u32(tiff + 4);
+  if (ifd0 + 2 > data.length) return 1;
+
+  const entryCount = u16(ifd0);
+  for (let i = 0; i < entryCount; i++) {
+    const entry = ifd0 + 2 + i * 12;
+    if (entry + 12 > data.length) break;
+
+    if (u16(entry) === ORIENTATION_TAG) {
+      const value = u16(entry + 8);
+      if (value >= 1 && value <= 8) return value as ExifOrientation;
+      return 1;
+    }
+  }
+
+  return 1;
+}
+
 export interface MetadataCheckResult {
   /** `true` when the file passes the metadata-free check. */
   clean: boolean;
@@ -208,6 +302,8 @@ export const _internal = {
   hasExifSegment,
   hasXmpSegment,
   containsBytes,
+  findTiffHeaderOffset,
   EXIF_SIGNATURE,
   JPEG_SOI_MARKER,
+  ORIENTATION_TAG,
 };

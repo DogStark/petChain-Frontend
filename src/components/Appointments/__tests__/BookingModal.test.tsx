@@ -11,6 +11,21 @@ jest.mock('@/lib/api/appointmentsAPI', () => ({
   appointmentsAPI: {
     createAppointment: jest.fn(),
   },
+  normalizeAppointmentBookingError: jest.fn((error: unknown) => {
+    if (typeof error !== 'object' || error === null) return { status: 0, availableSlots: [] };
+    const response = 'response' in error ? error.response : undefined;
+    if (typeof response !== 'object' || response === null) return { status: 0, availableSlots: [] };
+    const status = 'status' in response && typeof response.status === 'number' ? response.status : 0;
+    const data = 'data' in response ? response.data : undefined;
+    const availableSlots =
+      typeof data === 'object' &&
+      data !== null &&
+      'availableSlots' in data &&
+      Array.isArray(data.availableSlots)
+        ? data.availableSlots.filter((slot): slot is string => typeof slot === 'string' && /^\d{2}:\d{2}$/.test(slot))
+        : [];
+    return { status, availableSlots };
+  }),
 }));
 
 jest.mock('@/hooks/useHaptic', () => ({

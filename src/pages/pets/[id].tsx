@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode, Printer } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import Avatar from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
@@ -10,6 +10,7 @@ import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
 import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
+import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
@@ -45,6 +46,7 @@ export default function PetDetailPage() {
   const [pet, setPet] = useState<Pet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Router not yet hydrated — stay in loading state until id is available
@@ -79,7 +81,7 @@ export default function PetDetailPage() {
         const data = await res.json();
         if (cancelled) return;
         setPet(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (cancelled || err?.name === 'AbortError') return;
         setError(err.message);
       } finally {
@@ -119,6 +121,11 @@ export default function PetDetailPage() {
 
   const primaryPhoto = pet.photos?.find((p) => p.isPrimary);
   const age = getAge(pet.dateOfBirth);
+
+  const handlePrintCard = () => {
+    if (typeof window === 'undefined') return;
+    window.print();
+  };
 
   return (
     <div className={styles.container}>
@@ -173,6 +180,52 @@ export default function PetDetailPage() {
             </button>
           </div>
           <EmergencyQR petId={pet.id} petName={pet.name} />
+        </div>
+
+        {/* Pet Identity Card Section */}
+        <div className={styles.section}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={styles.sectionTitle}>Identity Card</h2>
+            <button
+              onClick={handlePrintCard}
+              className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-all"
+            >
+              <Printer size={14} /> Print / Download Card
+            </button>
+          </div>
+          <div ref={cardRef} className="pet-identity-card-print">
+            <PetIdentityCard
+              pet={{
+                id: pet.id,
+                name: pet.name,
+                species: capitalize(pet.species),
+                breed: pet.breed,
+                photoUrl: primaryPhoto?.photoUrl || primaryPhoto?.thumbnailUrl || null,
+                microchipNumber: pet.microchipNumber,
+              }}
+              format="credit-card"
+            />
+          </div>
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .pet-identity-card-print,
+              .pet-identity-card-print * {
+                visibility: visible;
+              }
+              .pet-identity-card-print {
+                position: absolute;
+                top: 0;
+                left: 0;
+              }
+              @page {
+                size: auto;
+                margin: 8mm;
+              }
+            }
+          `}</style>
         </div>
 
         {/* Pet Photos Section */}
@@ -238,6 +291,11 @@ export default function PetDetailPage() {
       </div>
     </div>
   );
+}
+
+function capitalize(str: string): string {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function getAge(dateOfBirth: string): string | null {

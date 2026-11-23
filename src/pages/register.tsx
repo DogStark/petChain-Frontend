@@ -11,6 +11,50 @@ import { useTranslation } from '../i18n';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Normalize a post-authentication redirect target to a safe same-origin
+ * application path. Returns null for anything that could navigate off-site
+ * (absolute URLs, protocol-relative URLs, backslash/encoded bypasses,
+ * javascript:/data: schemes) so callers can fall back to a default route.
+ */
+export function sanitizeRedirectTarget(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  let value = raw.trim();
+  if (!value) return null;
+
+  // Decode repeatedly to catch double-encoded payloads (e.g. %252F%252Fevil).
+  for (let i = 0; i < 3; i++) {
+    try {
+      const decoded = decodeURIComponent(value);
+      if (decoded === value) break;
+      value = decoded;
+    } catch {
+      return null;
+    }
+  }
+
+  // Reject control characters and whitespace that can smuggle schemes.
+  if (/[\u0000-\u001f\u007f\s]/.test(value)) return null;
+  // Reject backslashes (browsers treat \ as / in some contexts).
+  if (value.includes('\\')) return null;
+  // Must be a root-relative path; reject protocol-relative (//host) and schemes.
+  if (!value.startsWith('/') || value.startsWith('//')) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null;
+
+  // Resolve against a fixed origin and confirm it stays same-origin.
+  const base = 'https://app.invalid';
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
+    return null;
+  }
+  if (url.origin !== base) return null;
+
+  // Preserve safe deep links: path + query + hash.
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: '',
@@ -76,7 +120,12 @@ export default function RegisterPage() {
         formData.phone
       );
       await savePasswordToHistory(formData.password, formData.email.trim().toLowerCase());
-      router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
+      const redirect = sanitizeRedirectTarget(router.query.redirect);
+      if (redirect) {
+        router.push(redirect);
+      } else {
+        router.push(`/verify-account?email=${encodeURIComponent(formData.email)}`);
+      }
     } catch {
       setSubmitError(t('errors.auth.registrationFailed'));
     } finally {

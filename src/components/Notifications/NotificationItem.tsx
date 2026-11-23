@@ -14,7 +14,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
-import type { NotificationMetadata } from '../../types/notification';
+import type { AppNotification } from '../../types/notification';
 import { useSwipe } from '../../hooks/useSwipe';
 
 const formatTimeAgo = (date: Date): string => {
@@ -28,16 +28,7 @@ const formatTimeAgo = (date: Date): string => {
   return date.toLocaleDateString();
 };
 export interface NotificationItemProps {
-  notification: {
-    id: string;
-    title: string;
-    message: string;
-    category: string;
-    isRead: boolean;
-    createdAt: string;
-    actionUrl?: string | null;
-    metadata?: NotificationMetadata | null;
-  };
+  notification: AppNotification;
   onMarkAsRead: (id: string) => void;
   onActionClick?: (url: string) => void;
   onDelete?: (id: string) => void;
@@ -73,6 +64,14 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onDelete,
 }) => {
   const { id, title, message, category, isRead, createdAt, actionUrl, metadata } = notification;
+  const imageUrl =
+    typeof metadata === 'object' &&
+    metadata !== null &&
+    'imageUrl' in metadata &&
+    typeof metadata.imageUrl === 'string' &&
+    metadata.imageUrl
+      ? metadata.imageUrl
+      : null;
 
   const date = new Date(createdAt);
   const timeAgo = formatTimeAgo(date);
@@ -168,6 +167,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         >
           {getCategoryIcon(category)}
         </div>
+
+        {/* Rich Notification: Image Display */}
+        {imageUrl && (
+          <div className={styles.imageContainer}>
+            <img src={imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
+          </div>
+        )}
 
         <div className={styles.content}>
           <div className={styles.header}>
