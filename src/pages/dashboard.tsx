@@ -12,6 +12,12 @@ import { petAPI } from '@/lib/api/petAPI';
 import { userAPI } from '@/lib/api/userAPI';
 import { formatNumber } from '@/utils/formatCurrency';
 import PetSharingSummary from '@/components/Pets/PetSharingSummary';
+import {
+  HealthSparkline,
+  buildPetHealthTrend,
+  type HealthScorePoint,
+  type PetHealthTrend,
+} from '@/components/analytics/PetHealthChart';
 import { useDataFreshness } from '@/hooks/useDataFreshness';
 
 export default function DashboardPage() {
@@ -62,6 +68,7 @@ function DashboardContent({ user }: { user: User }) {
   const [pets, setPets] = useState<Array<{ id: string; name: string }>>([]);
   const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
+  const [healthTrends, setHealthTrends] = useState<PetHealthTrend[]>([]);
 
   // Data freshness: first pet id (if any) drives per-pet probes
   const [firstPetId, setFirstPetId] = useState<string | undefined>(undefined);
@@ -90,6 +97,16 @@ function DashboardContent({ user }: { user: User }) {
           )
         );
         if (!cancelled) setMedicalRecordCount(recordCounts.reduce((a, b) => a + b, 0));
+
+        const trends = await Promise.all(
+          pets.map((pet) =>
+            petAPI
+              .getHealthScoreHistory(pet.id)
+              .then((history: HealthScorePoint[]) => buildPetHealthTrend(pet.id, pet.name, history))
+              .catch(() => buildPetHealthTrend(pet.id, pet.name, []))
+          )
+        );
+        if (!cancelled) setHealthTrends(trends);
       })
       .catch(() => {
         if (!cancelled) {
