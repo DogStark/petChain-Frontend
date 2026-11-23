@@ -5,6 +5,9 @@ import { EmergencyContactForm } from '../components/Profile/EmergencyContactForm
 import { EmergencyQR } from '../components/Profile/EmergencyQR';
 import { userAPI, UserProfile } from '../lib/api/userAPI';
 import { petAPI } from '../lib/api/petAPI';
+import { getErrorMessage, getHttpStatus } from '../lib/api/errorUtils';
+import type { Pet } from '../types/pet';
+import type { UpdateUserProfileDto } from '../lib/api/userAPI';
 import { PetEmergencyInfo } from '../types/pet';
 import styles from '../styles/pages/ProfilePage.module.css';
 import { GetServerSideProps } from 'next';
@@ -19,7 +22,7 @@ export default function ProfilePage() {
   const [isEmergencyLoading, setIsEmergencyLoading] = useState(true);
   const [emergencyLoadError, setEmergencyLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pets, setPets] = useState<any[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,10 +55,10 @@ export default function ProfilePage() {
             setIsEmergencyLoading(false);
           }
         }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load profile data');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Failed to load profile data'));
         // Redirect to login if unauthorized
-        if (err.response?.status === 401) {
+        if (getHttpStatus(err) === 401) {
           router.push('/login');
         }
       } finally {
@@ -75,20 +78,20 @@ export default function ProfilePage() {
     try {
       const emergency = await petAPI.getPetEmergencyInfo(petId);
       setEmergencyInfo(emergency);
-    } catch (err: any) {
-      setEmergencyLoadError(err.message || 'Failed to load emergency information');
+    } catch (err: unknown) {
+      setEmergencyLoadError(getErrorMessage(err, 'Failed to load emergency information'));
     } finally {
       setIsEmergencyLoading(false);
     }
   };
 
-  const handleProfileSubmit = async (data: any) => {
+  const handleProfileSubmit = async (data: UpdateUserProfileDto) => {
     try {
       setIsLoading(true);
       const updated = await userAPI.updateProfile(data);
       setUser(updated);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to update profile'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -106,8 +109,8 @@ export default function ProfilePage() {
       const updated = await petAPI.updatePetEmergencyInfo(selectedPetId, data);
       setEmergencyInfo(updated);
       setEmergencyLoadError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save emergency contacts');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to save emergency contacts'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -119,9 +122,8 @@ export default function ProfilePage() {
       setIsLoading(true);
       const result = await userAPI.uploadAvatar(file);
       setUser(result.user);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload avatar');
-      throw err;
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to upload avatar'));
     } finally {
       setIsLoading(false);
     }

@@ -32,7 +32,7 @@ export default function AccountSettingsPage() {
         setSessions(allSessions);
         setComplianceActivities(activity);
         setIsTwoFactorEnabled(twoFactorStatus.isEnabled);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err.message || 'Failed to load sessions and compliance activities');
         if (err.response?.status === 401) {
           router.push('/login');
@@ -76,7 +76,7 @@ export default function AccountSettingsPage() {
         );
         setError(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to revoke session');
       console.error('Failed to revoke session:', err);
     } finally {
@@ -92,7 +92,7 @@ export default function AccountSettingsPage() {
         prev.map((s) => (s.id !== currentSessionId ? { ...s, isActive: false } : s))
       );
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to revoke other sessions');
       throw err;
     } finally {
@@ -105,7 +105,7 @@ export default function AccountSettingsPage() {
       setIsLoading(true);
       await userAPI.deactivateAccount(password, totpToken);
       await auth.logout();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to deactivate account');
       throw err;
     } finally {
@@ -118,7 +118,7 @@ export default function AccountSettingsPage() {
       setIsLoading(true);
       await userAPI.deleteAccount(password, totpToken);
       await auth.logout();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to delete account');
       throw err;
     } finally {
@@ -145,7 +145,7 @@ export default function AccountSettingsPage() {
 
       const mostRecent = await userAPI.getActivity(1, 0);
       setComplianceActivities((prev) => [...mostRecent, ...prev].slice(0, 10));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to export data');
       throw err;
     } finally {
@@ -174,7 +174,7 @@ export default function AccountSettingsPage() {
         ...prev,
       ]);
       window.location.href = '/';
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to request data erasure');
       throw err;
     } finally {
@@ -189,7 +189,7 @@ export default function AccountSettingsPage() {
       setError(null);
       const mostRecent = await userAPI.getActivity(1, 0);
       setComplianceActivities((prev) => [...mostRecent, ...prev].slice(0, 10));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to accept policy consent');
       throw err;
     } finally {
