@@ -45,3 +45,26 @@ export interface WaitlistEntry {
   preferredVetId?: string;
   createdAt: string;
 }
+
+/** Tab selector for the pet profile appointment history panel. */
+export type AppointmentHistoryTab = 'upcoming' | 'past';
+
+/** A single appointment row rendered in the pet profile history list. */
+export interface AppointmentHistoryEntry {
+  appointment: Appointment;
+  petName: string;
+  vetName: string;
+}
+
+/** Paginated payload backing the pet profile appointment history list. */
+export interface AppointmentHistoryPage {
+  entries: AppointmentHistoryEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** Route to the appointment detail page for a given appointment id. */
+export function getAppointmentDetailHref(appointmentId: string): string {
+  return `/appointments/${encodeURIComponent(appointmentId)}`;
+}

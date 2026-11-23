@@ -1,4 +1,5 @@
 import { Clock, User, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
 
 import { useTranslation } from '@/i18n';
@@ -9,9 +10,16 @@ interface AppointmentCardProps {
   appointment: Appointment;
   vetName: string;
   petName: string;
+  /** When provided, the card links to the appointment detail page. */
+  href?: string;
 }
 
-export default function AppointmentCard({ appointment, vetName, petName }: AppointmentCardProps) {
+export default function AppointmentCard({
+  appointment,
+  vetName,
+  petName,
+  href,
+}: AppointmentCardProps) {
   const { language } = useTranslation();
   const statusColors = {
     Scheduled: 'bg-blue-100 text-blue-700',
@@ -32,7 +40,13 @@ export default function AppointmentCard({ appointment, vetName, petName }: Appoi
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-bold text-blue-900 group-hover:text-blue-600 transition-colors uppercase text-xs tracking-wider">
-            {appointment.appointmentType}
+            {href ? (
+              <Link href={href} className="hover:underline">
+                {appointment.appointmentType}
+              </Link>
+            ) : (
+              appointment.appointmentType
+            )}
           </h3>
           <p className="text-sm font-semibold text-gray-800">{petName}</p>
         </div>
@@ -63,6 +77,15 @@ export default function AppointmentCard({ appointment, vetName, petName }: Appoi
         <p className="mt-3 text-[10px] text-gray-400 italic bg-gray-50 p-2 rounded-lg">
           &quot;{appointment.notes}&quot;
         </p>
+      )}
+
+      {href && (
+        <Link
+          href={href}
+          className="mt-3 inline-block text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          View appointment details
+        </Link>
       )}
     </div>
   );
