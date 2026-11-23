@@ -263,3 +263,6 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-1139 -->
 - #1139: [Frontend] Add data-quality queue for incomplete records
+
+<!-- handsoff-issue-1130 -->
+- #1130: [Frontend] Add a wallet activity export with ledger verification
