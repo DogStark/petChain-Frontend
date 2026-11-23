@@ -19,16 +19,23 @@ interface PetHealthChartProps {
 }
 
 interface PieLabelProps {
-  cx: number;
-  cy: number;
-  midAngle: number;
-  innerRadius: number;
-  outerRadius: number;
-  percent: number;
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  percent?: number;
 }
 
 const renderCustomizedLabel = (props: PieLabelProps) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+  const {
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    percent = 0,
+  } = props;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -223,9 +230,13 @@ const PetHealthChart: React.FC<PetHealthChartProps> = ({
                     <li key={record.id} className="rounded-lg border border-gray-200 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <h5 className="font-medium text-gray-900">{record.title}</h5>
-                        {record.date && <time className="text-xs text-gray-500">{record.date}</time>}
+                        {record.date && (
+                          <span className="text-xs text-gray-500">{record.date}</span>
+                        )}
                       </div>
-                      {record.petName && <p className="mt-1 text-sm text-gray-600">{record.petName}</p>}
+                      {record.petName && (
+                        <p className="mt-1 text-sm text-gray-600">Pet: {record.petName}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
