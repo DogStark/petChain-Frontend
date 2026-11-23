@@ -6,6 +6,23 @@
 - **npm**: v10+ (comes with Node.js)
 - **Git**: Latest version
 
+## Supported Frontend Toolchain Matrix
+
+The root frontend workspace supports the following compatible toolchain majors:
+
+| Tool | Supported version | Compatibility rule |
+|------|-------------------|--------------------|
+| Node.js | 20.19.0 (pinned in `.nvmrc`) | Next.js 16 requires Node.js 20.9 or newer |
+| Next.js | 16.x (`^16.2.4`) | React 19.x |
+| `eslint-config-next` | 16.x (`^16.2.4`) | Keep its major aligned with Next.js |
+| `@next/bundle-analyzer` | 16.x (`^16.2.4`) | Keep its major aligned with Next.js |
+| ESLint | 9.x | Meets the Next.js 16 config peer requirement |
+| TypeScript | 5.x (5.7.3 currently resolved) | Next.js ESLint config accepts TypeScript 3.3.1+ |
+
+When upgrading Next.js, update both Next-specific tooling packages to the same
+major in `package.json` and `package-lock.json`. The focused
+`frameworkToolchainCompatibility.test.ts` regression test checks this invariant.
+
 ## Quick Start
 
 ### Frontend Setup
@@ -69,7 +86,7 @@
 - `npm run lint:fix` - Fix ESLint errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
-- `npm run type-check` - Run TypeScript type checking
+- `npm run type-check` - Run TypeScript type checking for root/frontend files only
 - `npm run validate` - Run all checks (type-check, lint, format)
 - `npm run test` - Run the standalone password-policy unit tests
 - `npm run test:unit` - Run all Jest unit tests (single discovery convention)
@@ -194,7 +211,7 @@ See [contributing.md](./contributing.md) for detailed guidelines.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
 - **Backend**: NestJS, TypeScript
 - **Blockchain**: Stellar
 - **Deployment**: Vercel (Frontend), Heroku (Backend)
@@ -204,3 +221,11 @@ See [contributing.md](./contributing.md) for detailed guidelines.
 - **Telegram**: [@PetChain Group](https://t.me/+Jw8HkvUhinw2YjE0)
 - **Issues**: [GitHub Issues](https://github.com/DogStark/petChain-Frontend/issues)
 - **Contact**: [@llins_x](https://t.me/llins_x)
+
+### Appointment bookings
+
+The frontend sends bookings to `POST /appointments` using `petId`, `vetClinicId`, `scheduledDate`, `duration`, `type`, `reason`, and `notes`. The backend response is normalized into the frontend `Appointment` domain type. Booking failures are privacy-safe and conflicts include only validated `HH:mm` alternate slots.
+
+---
+
+The root `tsconfig.json` includes the root frontend `src/` and `tests/` trees only. Backend NestJS code is checked from `backend/` with its own `tsconfig.json` and Jest configuration.

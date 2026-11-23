@@ -53,6 +53,15 @@ const TYPE_MAP: Record<string, AppointmentType> = {
   OTHER: 'Consultation',
 };
 
+const CREATE_TYPE_MAP: Record<AppointmentType, CreateAppointmentPayload['type']> = {
+  Checkup: 'CHECKUP',
+  Emergency: 'EMERGENCY',
+  Surgery: 'OTHER',
+  Vaccination: 'VACCINATION',
+  Dental: 'GROOMING',
+  Consultation: 'OTHER',
+};
+
 function mapAppointment(item: BackendAppointment): UpcomingAppointmentView {
   const appointment: Appointment = {
     id: item.id,
@@ -84,6 +93,61 @@ export interface CreateAppointmentDto {
   notes?: string;
 }
 
+export interface CreateAppointmentPayload {
+  petId: string;
+  vetClinicId: string;
+  scheduledDate: string;
+  duration: 30;
+  type: 'VACCINATION' | 'CHECKUP' | 'EMERGENCY' | 'GROOMING' | 'OTHER';
+  reason?: string;
+  notes?: string;
+}
+
+export class AppointmentBookingError extends Error {
+  readonly status: number;
+  readonly code?: string;
+  readonly availableSlots: string[];
+
+  constructor(status: number, code?: string, availableSlots: string[] = []) {
+    super(code === 'APPOINTMENT_CONFLICT' || status === 409
+      ? 'The selected appointment time is unavailable'
+      : 'Unable to book appointment');
+    this.name = 'AppointmentBookingError';
+    this.status = status;
+    this.code = code;
+    this.availableSlots = availableSlots;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeBookingError(error: unknown): AppointmentBookingError {
+  if (error instanceof AppointmentBookingError) return error;
+
+  const response = isRecord(error) ? error.response : undefined;
+  const status = isRecord(response) && typeof response.status === 'number'
+    ? response.status
+    : 0;
+  const data = isRecord(response) ? response.data : undefined;
+  const code = isRecord(data) && typeof data.code === 'string'
+    ? data.code
+    : status === 409
+      ? 'APPOINTMENT_CONFLICT'
+      : undefined;
+  const availableSlots = isRecord(data) && Array.isArray(data.availableSlots)
+    ? data.availableSlots.filter((slot): slot is string =>
+        typeof slot === 'string' && /^\d{2}:\d{2}$/.test(slot))
+    : [];
+
+  return new AppointmentBookingError(status, code, availableSlots);
+}
+
+export function normalizeAppointmentBookingError(error: unknown): AppointmentBookingError {
+  return normalizeBookingError(error);
+}
+
 class AppointmentsAPI {
   private api: AxiosInstance;
 
@@ -112,16 +176,22 @@ class AppointmentsAPI {
   }
 
   async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
-    // Map camelCase DTO to the backend's expected shape
-    const payload = {
+    const payload: CreateAppointmentPayload = {
       petId: dto.petId,
       vetClinicId: dto.vetId,
-      type: dto.appointmentType.toUpperCase(),
-      scheduledDate: `${dto.date}T${dto.time}:00`,
+      type: CREATE_TYPE_MAP[dto.appointmentType],
+      scheduledDate: `${dto.date}T${dto.time}:00.000`,
+      duration: 30,
+      reason: dto.notes,
       notes: dto.notes,
     };
-    const response = await this.api.post<BackendAppointment>('/', payload);
-    return mapAppointment(response.data).appointment;
+
+    try {
+      const response = await this.api.post<BackendAppointment>('/', payload);
+      return mapAppointment(response.data).appointment;
+    } catch (error: unknown) {
+      throw normalizeBookingError(error);
+    }
   }
 
   async getWaitlist(): Promise<Array<{ id: string; petName: string; type: string; joinedAt: string }>> {

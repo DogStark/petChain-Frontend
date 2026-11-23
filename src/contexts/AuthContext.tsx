@@ -104,6 +104,30 @@ function anySignal(signals: AbortSignal[]): AbortSignal {
   return controller.signal;
 }
 
+/**
+ * Reads a cookie value by name. Used to read the non-HttpOnly CSRF token that
+ * the backend sets alongside the HttpOnly session cookie.
+ */
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Session cookies are HttpOnly and therefore not readable from JavaScript.
+ * The only client-readable auth artifact is the CSRF token cookie, which is
+ * echoed back in the `X-CSRF-Token` header on state-changing requests.
+ */
+const CSRF_COOKIE_NAME = 'csrf_token';
+const CSRF_HEADER_NAME = 'X-CSRF-Token';
+
+/**
+ * Legacy localStorage keys that previously held bearer tokens. They are purged
+ * on mount so existing sessions are migrated off JavaScript-readable storage.
+ */
+const LEGACY_TOKEN_KEYS = ['auth_tokens', 'auth_user', 'authToken'];
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -133,31 +157,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return sessionGenerationRef.current;
   }, []);
 
-  // Load tokens from localStorage on mount
+  // Restore session from the HttpOnly cookie on mount. Tokens are never read
+  // from or written to localStorage; the browser attaches the session cookie
+  // automatically and the server is the source of truth for the session.
   useEffect(() => {
-    const loadStoredAuth = () => {
+    const loadStoredAuth = async () => {
+      // Purge any legacy bearer tokens left in localStorage by older builds.
       try {
-        const storedTokens = localStorage.getItem('auth_tokens');
-        const storedUser = localStorage.getItem('auth_user');
-
-        if (storedTokens && storedUser) {
-          const tokens = JSON.parse(storedTokens);
-          const user = JSON.parse(storedUser);
-
-          setState((prev) => ({
-            ...prev,
-            user,
-            tokens,
-            isAuthenticated: true,
-            isLoading: false,
-          }));
-
-          // Set up automatic token refresh
-          setupTokenRefresh();
-        } else {
-          setState((prev) => ({ ...prev, isLoading: false }));
+        for (const key of LEGACY_TOKEN_KEYS) {
+          localStorage.removeItem(key);
         }
+      } catch {
+        // localStorage may be unavailable (private mode) — ignore.
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/session`, {
+          method: 'GET',
+          credentials: 'include',
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const user: User | null = data?.user ?? null;
+          if (user) {
+            setState((prev) => ({
+              ...prev,
+              user,
+              tokens: null,
+              isAuthenticated: true,
+              isLoading: false,
+            }));
+            setupTokenRefresh();
+            return;
+          }
+        }
+
+        setState((prev) => ({ ...prev, isLoading: false }));
       } catch (error) {
+        if ((error as Error)?.name === 'AbortError') return;
         console.error('Error loading auth state:', error);
         setState((prev) => ({ ...prev, isLoading: false }));
       }
@@ -227,7 +266,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const setAuth = (user: User, tokens: AuthTokens) => {
+  const setAuth = (user: User, tokens: AuthTokens | null) => {
     // A new account/session is being established — invalidate any in-flight
     // refresh that belongs to the previous session.
     bumpSessionGeneration();
@@ -240,11 +279,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       error: null,
     }));
 
-    // Store in localStorage
-    localStorage.setItem('auth_tokens', JSON.stringify(tokens));
-    localStorage.setItem('auth_user', JSON.stringify(user));
-    localStorage.setItem('authToken', tokens.accessToken);
-
+    // Tokens are held only in memory for the lifetime of the tab. The durable
+    // session lives in an HttpOnly cookie set by the backend, which JavaScript
+    // cannot read. Never persist tokens to localStorage.
     setupTokenRefresh();
   };
 
@@ -264,9 +301,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       error: null,
     }));
 
-    localStorage.removeItem('auth_tokens');
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('authToken');
+    // Purge any legacy bearer tokens from localStorage.
+    for (const key of LEGACY_TOKEN_KEYS) {
+      localStorage.removeItem(key);
+    }
 
     // Clear wallet data from localStorage so other tabs cannot read it
     localStorage.removeItem('petchain_wallets');
@@ -281,6 +319,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [bumpSessionGeneration]);
 
+  // ── CSRF-protected fetch helper ────────────────────────────────────────────
+  // All state-changing requests must include the CSRF token from the
+  // non-HttpOnly `csrf_token` cookie in the `X-CSRF-Token` header. The session
+  // cookie itself is HttpOnly and sent automatically via `credentials: 'include'`.
+  const authFetch = useCallback((input: string, init: RequestInit = {}) => {
+    const method = (init.method ?? 'GET').toUpperCase();
+    const headers = new Headers(init.headers);
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      const csrfToken = readCookie(CSRF_COOKIE_NAME);
+      if (csrfToken) {
+        headers.set(CSRF_HEADER_NAME, csrfToken);
+      }
+    }
+    return fetch(input, {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: init.signal ?? abortControllerRef.current.signal,
+    });
+  }, []);
+
   const refreshTokens = useCallback(async (): Promise<boolean> => {
     const currentTokens = state.tokens;
     if (!currentTokens?.refreshToken) {
@@ -294,7 +353,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const isStale = () => sessionGenerationRef.current !== generation;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await authFetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
@@ -351,7 +410,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error refreshing tokens:', error);
       return false;
     }
-  }, [state.tokens, clearAuth]);
+  }, [state.tokens, clearAuth, authFetch]);
 
   const clearTokenRefresh = () => {
     if (refreshTimerRef.current) {
@@ -378,7 +437,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await authFetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -443,7 +502,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await authFetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, firstName, lastName, phone }),
@@ -471,7 +530,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearTokenRefresh();
     try {
       if (state.tokens?.refreshToken) {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
+        await authFetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
@@ -495,7 +554,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const resetPassword = async (token: string, newPassword: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword }),
@@ -507,7 +566,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const forgotPassword = async (email: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -519,7 +578,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyEmail = async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/verify-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
@@ -532,7 +591,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyPhone = async (email: string, code: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-phone`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/verify-phone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code }),
@@ -545,7 +604,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const resendEmailVerification = async (email: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/resend-email-verification`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/resend-email-verification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -557,7 +616,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const resendPhoneVerification = async (email: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/resend-phone-verification`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/resend-phone-verification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
