@@ -68,11 +68,34 @@ const getSafeApiUsageData = () =>
     errors: 0,
   }));
 
+const getDemoApiEndpointUsage = () => [
+  { endpoint: '/api/pets', calls: 18420, errors: 132 },
+  { endpoint: '/api/appointments', calls: 12980, errors: 214 },
+  { endpoint: '/api/vaccinations', calls: 9640, errors: 58 },
+  { endpoint: '/api/auth/login', calls: 8120, errors: 341 },
+  { endpoint: '/api/records', calls: 7350, errors: 96 },
+  { endpoint: '/api/search', calls: 6210, errors: 187 },
+  { endpoint: '/api/notifications', calls: 4980, errors: 42 },
+  { endpoint: '/api/payments', calls: 3120, errors: 265 },
+];
+
+const getSafeApiEndpointUsage = () => [
+  { endpoint: '/api/pets', calls: 0, errors: 0 },
+  { endpoint: '/api/appointments', calls: 0, errors: 0 },
+  { endpoint: '/api/vaccinations', calls: 0, errors: 0 },
+  { endpoint: '/api/auth/login', calls: 0, errors: 0 },
+  { endpoint: '/api/records', calls: 0, errors: 0 },
+  { endpoint: '/api/search', calls: 0, errors: 0 },
+  { endpoint: '/api/notifications', calls: 0, errors: 0 },
+  { endpoint: '/api/payments', calls: 0, errors: 0 },
+];
+
 export const generateAnalyticsData = async () => {
   let engagementData: Array<{ date: string; activeUsers: number; newSignups: number }>;
   let healthData: Array<{ name: string; value: number; color: string }>;
   let geoData: Array<{ region: string; users: number }>;
   let apiUsageData: Array<{ time: string; requests: number; errors: number }>;
+  let apiEndpointUsage: Array<{ endpoint: string; calls: number; errors: number }>;
 
   // DEMO MODE
   if (DEMO_MODE_ENABLED) {
@@ -80,6 +103,7 @@ export const generateAnalyticsData = async () => {
     healthData = getDemoHealthData();
     geoData = getDemoGeoData();
     apiUsageData = getDemoApiUsageData();
+    apiEndpointUsage = getDemoApiEndpointUsage();
   } else {
     try {
       // Fetch real engagement data from backend
@@ -100,12 +124,14 @@ export const generateAnalyticsData = async () => {
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
+      apiEndpointUsage = getSafeApiEndpointUsage();
     } catch (error) {
       // Fetch failed, return safe zero values
       engagementData = getSafeEngagementData();
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
+      apiEndpointUsage = getSafeApiEndpointUsage();
     }
   }
 
@@ -125,6 +151,7 @@ export const generateAnalyticsData = async () => {
     vaccinationData,
     geoData,
     apiUsageData,
+    apiEndpointUsage,
     timestamp: new Date().toISOString(),
   };
 };

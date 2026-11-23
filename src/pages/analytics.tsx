@@ -3,6 +3,8 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
 import { generateAnalyticsData } from '../lib/analyticsUserData';
+import { useAuth } from '../contexts/AuthContext';
+import type { ApiEndpointUsage, ApiUsageTimePeriod } from '../components/analytics/ApiUsageChart';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
 import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
@@ -29,7 +31,28 @@ interface AnalyticsData {
   vaccinationData: { month: string; compliant: number; nonCompliant: number }[];
   geoData: { region: string; users: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
+  apiEndpointUsage?: ApiEndpointUsage[];
   timestamp: string;
+}
+
+const API_USAGE_PERIOD_DAYS: Record<ApiUsageTimePeriod, number> = {
+  '24h': 1,
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+};
+
+/** Scales endpoint call counts to the selected reporting window. */
+function scaleEndpointUsage(
+  endpoints: ApiEndpointUsage[],
+  period: ApiUsageTimePeriod,
+): ApiEndpointUsage[] {
+  const factor = API_USAGE_PERIOD_DAYS[period] / API_USAGE_PERIOD_DAYS['7d'];
+  return endpoints.map((entry) => ({
+    ...entry,
+    calls: Math.round(entry.calls * factor),
+    errors: Math.round(entry.errors * factor),
+  }));
 }
 
 const HEALTH_STATUS_COLORS: Record<string, string> = {
@@ -98,11 +121,14 @@ function AccessibleDataTable({
 }
 
 const AnalyticsPage = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [apiUsagePeriod, setApiUsagePeriod] = useState<ApiUsageTimePeriod>('7d');
+  const isAdmin = user?.role === 'admin';
 
   const fetchData = async () => {
     try {
@@ -155,6 +181,33 @@ const AnalyticsPage = () => {
   const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
+  const apiEndpointUsage = useMemo(
+    () => data?.apiEndpointUsage ?? [],
+    [JSON.stringify(data?.apiEndpointUsage)],
+  );
+  const filteredApiEndpointUsage = useMemo(
+    () => scaleEndpointUsage(apiEndpointUsage, apiUsagePeriod),
+    [apiEndpointUsage, apiUsagePeriod],
+  );
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-xl font-medium text-gray-500">Checking access...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div role="alert" className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access denied</h1>
+          <p className="text-gray-700">The analytics dashboard is restricted to administrators.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -303,6 +356,30 @@ const AnalyticsPage = () => {
               rows={apiUsageData.map((entry) => [entry.time, entry.requests, entry.errors])}
             />
           </section>
+
+          <section className="lg:col-span-12" aria-label="API usage by endpoint">
+            <DataModeChart
+              title="API Usage by Endpoint"
+              summary={`Top ${filteredApiEndpointUsage.length} endpoints by call count`}
+              minHeight="300px"
+            >
+              <ApiUsageChart
+                data={filteredApiEndpointUsage}
+                period={apiUsagePeriod}
+                onPeriodChange={setApiUsagePeriod}
+              />
+            </DataModeChart>
+            <AccessibleDataTable
+              caption="API usage by endpoint"
+              columns={['Endpoint', 'Calls', 'Errors', 'Error rate']}
+              rows={filteredApiEndpointUsage.map((entry) => [
+                entry.endpoint,
+                entry.calls,
+                entry.errors,
+                `${entry.calls > 0 ? ((entry.errors / entry.calls) * 100).toFixed(2) : '0.00'}%`,
+              ])}
+            />
+          </section>
         </div>
       </div>
 
@@ -350,6 +427,13 @@ const AnalyticsPage = () => {
         .analytics-chart--api .recharts-area-area[fill="#ef4444"] {
           fill: #b91c1c !important;
           stroke: #b91c1c !important;
+        }
+        .analytics-chart--api .recharts-bar-rectangle[fill="#8884d8"] {
+          fill: #1d4ed8 !important;
+        }
+        .analytics-chart--api .recharts-line-curve[stroke="#ef4444"] {
+          stroke: #b91c1c !important;
+          stroke-width: 3px;
         }
         .analytics-chart--health .recharts-pie-label-text {
           fill: #111827 !important;
