@@ -68,6 +68,42 @@ We appreciate security researchers and will:
 
 Emergency scan events are intentionally designed as low-risk telemetry. The frontend sends only a minimal device class for trend analysis and, when a user has explicitly consented, a coarse region or country code; it never includes raw IP addresses, exact coordinates, phone numbers, contact names, or other personal identifiers. Analytics records are limited to a short retention window to reduce long-term tracking risk.
 
+## Content Security Policy (CSP)
+
+The frontend ships a least-privilege Content Security Policy emitted as an HTTP response header from `next.config.ts`. The policy is intentionally strict: it avoids wildcard (`*`) sources and only allows the specific origins required by the Stellar wallet integration, PWA/service-worker features, and first-party assets. `src/pages/_document.tsx` does **not** declare a `<meta http-equiv="Content-Security-Policy">` tag, so the response header is the single source of truth and cannot be weakened by a conflicting meta policy.
+
+### Directive rationale
+
+| Directive | Value (summary) | Why |
+| --------- | --------------- | --- |
+| `default-src` | `'self'` | Deny-by-default for any resource type not listed below. |
+| `script-src` | `'self'` (+ `'unsafe-inline'` only where Next.js requires it) | First-party bundles only; no third-party script CDNs. |
+| `style-src` | `'self' 'unsafe-inline'` | Next.js and component libraries inject inline styles at runtime. |
+| `img-src` | `'self' data: blob:` | Local assets, inline data URIs, and user-uploaded previews via `blob:`. |
+| `font-src` | `'self' data:` | Self-hosted fonts and inlined font data. |
+| `connect-src` | `'self'` + Stellar Horizon/Soroban RPC origins | Wallet balance, transaction submission, and contract calls. |
+| `frame-src` | Stellar wallet provider origins | Wallet connect flows that render in an iframe. |
+| `worker-src` | `'self' blob:` | PWA service worker registration and blob-based workers. |
+| `manifest-src` | `'self'` | PWA web app manifest. |
+| `frame-ancestors` | `'none'` | Prevent clickjacking of wallet and upload flows. |
+| `object-src` | `'none'` | Disallow legacy plugin content. |
+| `base-uri` | `'self'` | Prevent `<base>` tag hijacking. |
+| `form-action` | `'self'` | Restrict where forms can submit. |
+
+### Required origins
+
+- **Stellar Horizon / Soroban RPC**: the public network endpoints used by the app (e.g. `https://horizon.stellar.org`, `https://soroban-testnet.stellar.org`). Add any additional network you support to `connect-src`.
+- **Wallet providers**: only the specific wallet SDK origins that render connect UI in an iframe belong in `frame-src`. Do not add broad `https://*` entries.
+
+### Extending the policy
+
+When adding a new integration:
+
+1. Identify the exact origin(s) the feature needs — never use `*` or scheme-only wildcards.
+2. Add the origin to the narrowest matching directive (`connect-src` for XHR/fetch/WebSocket, `frame-src` for iframes, `img-src` for images, etc.).
+3. Update the table above and add a regression test asserting the header contains the new origin and still omits wildcards.
+4. Verify the PWA service worker still registers and the Stellar wallet connect flow still works in a browser before merging.
+
 **For Users:**
 - Keep your software updated
 - Use strong passwords
