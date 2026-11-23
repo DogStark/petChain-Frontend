@@ -146,6 +146,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ── Abort in-flight requests on logout ─────────────────────────────────────
   const abortControllerRef = useRef<AbortController>(new AbortController());
 
+  // ── Session generation guard ───────────────────────────────────────────────
+  // Incremented on every logout and account switch. Any async refresh that
+  // resolves after the generation has changed is stale and must be discarded
+  // so it cannot restore a logged-out session or overwrite a new account.
+  const sessionGenerationRef = useRef(0);
+
+  const bumpSessionGeneration = useCallback(() => {
+    sessionGenerationRef.current += 1;
+    return sessionGenerationRef.current;
+  }, []);
+
   // Restore session from the HttpOnly cookie on mount. Tokens are never read
   // from or written to localStorage; the browser attaches the session cookie
   // automatically and the server is the source of truth for the session.
@@ -256,6 +267,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const setAuth = (user: User, tokens: AuthTokens | null) => {
+    // A new account/session is being established — invalidate any in-flight
+    // refresh that belongs to the previous session.
+    bumpSessionGeneration();
+
     setState((prev) => ({
       ...prev,
       user,
@@ -271,6 +286,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const clearAuth = useCallback(() => {
+    // Invalidate any in-flight refresh so its response cannot restore the session
+    bumpSessionGeneration();
+
     // Abort any in-flight requests so stale responses cannot restore the session
     abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
@@ -293,9 +311,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Clear IndexedDB offline caches (best-effort)
     if (typeof indexedDB !== 'undefined') {
-      // (existing IndexedDB cleanup continues below)
+      try {
+        indexedDB.deleteDatabase('petchain-offline');
+      } catch {
+        // ignore
+      }
     }
-  }, []);
+  }, [bumpSessionGeneration]);
 
   // ── CSRF-protected fetch helper ────────────────────────────────────────────
   // All state-changing requests must include the CSRF token from the
@@ -318,43 +340,311 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   }, []);
 
-  // Expose the CSRF-aware fetch for consumers that need to make authenticated
-  // requests without handling cookies or CSRF headers themselves.
-  void authFetch;
+  const refreshTokens = useCallback(async (): Promise<boolean> => {
+    const currentTokens = state.tokens;
+    if (!currentTokens?.refreshToken) {
+      return false;
+    }
 
-  // (remaining provider implementation — login, logout, refresh, verification
-  // helpers — continues unchanged below and uses `authFetch` for mutations.)
+    // Capture the generation this refresh belongs to. If logout or an account
+    // switch happens while the request is in flight, the generation will have
+    // changed and the response must be discarded.
+    const generation = sessionGenerationRef.current;
+    const isStale = () => sessionGenerationRef.current !== generation;
 
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login: async () => {},
-        loginWith2FA: async () => {},
-        recoverWith2FA: async () => {},
-        register: async () => {},
-        logout: async () => {},
-        refreshTokens: async () => false,
-        clearError: () => {},
-        resetPassword: async () => {},
-        forgotPassword: async () => {},
-        verifyEmail: async () => ({
-          message: '',
-          emailVerified: false,
-          phoneVerified: false,
-          isVerified: false,
-        }),
-        verifyPhone: async () => ({
-          message: '',
-          emailVerified: false,
-          phoneVerified: false,
-          isVerified: false,
-        }),
-        resendEmailVerification: async () => {},
-        resendPhoneVerification: async () => {},
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+    try {
+      const response = await authFetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
+        signal: anySignal([abortControllerRef.current.signal]),
+      });
+
+      if (isStale()) {
+        return false;
+      }
+
+      if (!response.ok) {
+        // Refresh failed (e.g. token expired) — clear the session.
+        clearAuth();
+        return false;
+      }
+
+      const data = await response.json();
+
+      // Re-check after parsing: logout/account switch may have happened while
+      // the body was being read.
+      if (isStale()) {
+        return false;
+      }
+
+      const newTokens: AuthTokens = {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken ?? currentTokens.refreshToken,
+      };
+
+      setState((prev) => {
+        if (sessionGenerationRef.current !== generation) {
+          return prev;
+        }
+        return { ...prev, tokens: newTokens, isAuthenticated: true };
+      });
+
+      if (sessionGenerationRef.current !== generation) {
+        return false;
+      }
+
+      localStorage.setItem('auth_tokens', JSON.stringify(newTokens));
+      localStorage.setItem('authToken', newTokens.accessToken);
+
+      setupTokenRefresh();
+      return true;
+    } catch (error) {
+      // Aborted requests are expected on logout — do not surface them.
+      if (isStale()) {
+        return false;
+      }
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return false;
+      }
+      console.error('Error refreshing tokens:', error);
+      return false;
+    }
+  }, [state.tokens, clearAuth, authFetch]);
+
+  const clearTokenRefresh = () => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  };
+
+  const setupTokenRefresh = () => {
+    clearTokenRefresh();
+    // Refresh 1 minute before the access token expires (assumes 15m tokens).
+    refreshTimerRef.current = setTimeout(() => {
+      void refreshTokens();
+    }, 14 * 60 * 1000);
+  };
+
+  const forceLogout = (message: string) => {
+    clearTokenRefresh();
+    clearAuth();
+    setState((prev) => ({ ...prev, error: message }));
+    void router.push('/login');
+  };
+
+  const login = async (email: string, password: string) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const response = await authFetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const data = await response.json();
+      setAuth(data.user, data.tokens);
+      setState((prev) => ({ ...prev, isLoading: false }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      throw error;
+    }
+  };
+
+  const loginWith2FA = async (email: string, password: string, totpToken: string) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const data = await twoFactorAPI.verifyLogin(email, password, totpToken);
+      setAuth(data.user, data.tokens);
+      setState((prev) => ({ ...prev, isLoading: false }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      throw error;
+    }
+  };
+
+  const recoverWith2FA = async (email: string, password: string, backupCode: string) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const data = await twoFactorAPI.recoverLogin(email, password, backupCode);
+      setAuth(data.user, data.tokens);
+      setState((prev) => ({ ...prev, isLoading: false }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      throw error;
+    }
+  };
+
+  const register = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone: string
+  ) => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const response = await authFetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, firstName, lastName, phone }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      setAuth(data.user, data.tokens);
+      setState((prev) => ({ ...prev, isLoading: false }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Registration failed',
+      }));
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    clearTokenRefresh();
+    try {
+      if (state.tokens?.refreshToken) {
+        await authFetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: state.tokens.refreshToken }),
+        });
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      clearAuth();
+      try {
+        broadcastChannelRef.current?.postMessage({ type: 'LOGOUT' });
+      } catch {
+        // ignore
+      }
+      void router.push('/login');
+    }
+  };
+
+  const clearError = () => {
+    setState((prev) => ({ ...prev, error: null }));
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Password reset failed');
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to send reset email');
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Email verification failed');
+    }
+    return response.json();
+  };
+
+  const verifyPhone = async (email: string, code: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/verify-phone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Phone verification failed');
+    }
+    return response.json();
+  };
+
+  const resendEmailVerification = async (email: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/resend-email-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to resend verification email');
+    }
+  };
+
+  const resendPhoneVerification = async (email: string) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/resend-phone-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to resend verification code');
+    }
+  };
+
+  const value: AuthContextType = {
+    ...state,
+    login,
+    loginWith2FA,
+    recoverWith2FA,
+    register,
+    logout,
+    refreshTokens,
+    clearError,
+    resetPassword,
+    forgotPassword,
+    verifyEmail,
+    verifyPhone,
+    resendEmailVerification,
+    resendPhoneVerification,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;
