@@ -1,16 +1,62 @@
 export type ApiErrorKind = "network" | "http" | "auth" | "abort";
 
-export class ApiError extends Error {
-  readonly kind: ApiErrorKind;
-  readonly status?: number;
-  readonly body?: unknown;
+export interface ApiErrorMetadata {
+  status: number;
+  statusText?: string;
+  correlationId?: string;
+  requestId?: string;
+  code?: string;
+  contentType?: string;
+}
 
-  constructor(kind: ApiErrorKind, message: string, status?: number, body?: unknown) {
+export class ApiError extends Error {
+  readonly kind?: ApiErrorKind;
+  readonly status?: number;
+  readonly statusText?: string;
+  readonly correlationId?: string;
+  readonly requestId?: string;
+  readonly code?: string;
+  readonly contentType?: string;
+  readonly body?: unknown;
+  readonly details?: unknown;
+
+  constructor(
+    kindOrMessage: ApiErrorKind | string,
+    messageOrMetadata: string | ApiErrorMetadata,
+    statusOrDetails?: number | unknown,
+    body?: unknown,
+  ) {
+    let kind: ApiErrorKind | undefined;
+    let message: string;
+    let status: number | undefined;
+    let details: unknown;
+    let metadata: ApiErrorMetadata | undefined;
+
+    if (typeof kindOrMessage === "string") {
+      // Legacy signature: new ApiError(message, metadata, details)
+      message = kindOrMessage;
+      metadata = messageOrMetadata as ApiErrorMetadata;
+      details = statusOrDetails;
+      status = metadata.status;
+    } else {
+      // New signature: new ApiError(kind, message, status?, body?)
+      kind = kindOrMessage;
+      message = messageOrMetadata as string;
+      status = statusOrDetails as number | undefined;
+      details = body;
+    }
+
     super(message);
     this.name = "ApiError";
     this.kind = kind;
     this.status = status;
-    this.body = body;
+    this.statusText = metadata?.statusText;
+    this.correlationId = metadata?.correlationId;
+    this.requestId = metadata?.requestId;
+    this.code = metadata?.code;
+    this.contentType = metadata?.contentType;
+    this.body = details;
+    this.details = details;
   }
 }
 
@@ -36,6 +82,77 @@ export interface RequestClient {
   put<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T>;
   patch<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T>;
   delete<T = unknown>(path: string, options?: RequestOptions): Promise<T>;
+}
+
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+const MAX_TEXT_LENGTH = 500;
+
+function readHeader(headers: Headers | undefined, name: string): string | undefined {
+  if (!headers) return undefined;
+  const value = headers.get(name);
+  return value && value.trim() ? value.trim() : undefined;
+}
+
+function sanitizeMessage(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  // Never surface stack traces or internal server details to users.
+  if (/\bat\s+\S+\s*\(/.test(trimmed) || /\bstack\b/i.test(trimmed)) {
+    return undefined;
+  }
+  return trimmed.length > MAX_TEXT_LENGTH ? `${trimmed.slice(0, MAX_TEXT_LENGTH)}…` : trimmed;
+}
+
+function extractMessageFromJson(body: unknown): { message?: string; code?: string } {
+  if (!body || typeof body !== 'object') return {};
+  const record = body as Record<string, unknown>;
+  const message =
+    sanitizeMessage(record.message) ??
+    sanitizeMessage(record.error) ??
+    sanitizeMessage(record.detail) ??
+    sanitizeMessage(record.title);
+  const code = typeof record.code === 'string' ? record.code : undefined;
+  return { message, code };
+}
+
+async function readBody(response: Response): Promise<{ message?: string; code?: string; details?: unknown }> {
+  const contentType = response.headers.get('content-type') ?? '';
+  try {
+    if (contentType.includes('application/json') || contentType.includes('+json')) {
+      const body = await response.json();
+      const { message, code } = extractMessageFromJson(body);
+      return { message, code, details: body };
+    }
+    if (contentType.includes('text/') || contentType.includes('application/xml')) {
+      const text = await response.text();
+      return { message: sanitizeMessage(text), details: text };
+    }
+    if (contentType.includes('application/octet-stream') || contentType.includes('blob')) {
+      const blob = await response.blob();
+      return { details: blob };
+    }
+    // Unknown content type: attempt text, fall back to blob.
+    const text = await response.text();
+    return { message: sanitizeMessage(text), details: text };
+  } catch {
+    return {};
+  }
+}
+
+export async function parseApiError(response: Response): Promise<ApiError> {
+  const { message, code, details } = await readBody(response);
+  const metadata: ApiErrorMetadata = {
+    status: response.status,
+    statusText: response.statusText || undefined,
+    correlationId:
+      readHeader(response.headers, 'x-correlation-id') ??
+      readHeader(response.headers, 'x-request-id'),
+    requestId: readHeader(response.headers, 'x-request-id'),
+    code,
+    contentType: response.headers.get('content-type') ?? undefined,
+  };
+  return new ApiError(message ?? GENERIC_ERROR_MESSAGE, metadata, details);
 }
 
 function isAbortError(error: unknown): boolean {
@@ -149,4 +266,13 @@ export function createRequestClient(options: RequestClientOptions): RequestClien
     delete: <T = unknown>(path: string, requestOptions?: RequestOptions) =>
       request<T>(path, { ...requestOptions, method: "DELETE" }),
   };
+}
+
+export async function request(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    throw await parseApiError(response);
+  }
+  return response;
+}
 }
