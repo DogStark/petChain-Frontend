@@ -82,6 +82,90 @@ export type NotificationMetadata =
   | ConsultationMetadata
   | SystemMetadata;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function optionalString(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = metadata[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+export function parseNotificationMetadata(value: unknown): NotificationMetadata | null {
+  if (!isRecord(value)) return null;
+
+  const metadata = value;
+  switch (metadata.type) {
+    case 'APPOINTMENT':
+      return {
+        type: 'APPOINTMENT',
+        appointmentId: optionalString(metadata, 'appointmentId'),
+        petName: optionalString(metadata, 'petName'),
+        vetName: optionalString(metadata, 'vetName'),
+        dateTime: optionalString(metadata, 'dateTime'),
+      };
+    case 'MEDICATION':
+      return {
+        type: 'MEDICATION',
+        petName: optionalString(metadata, 'petName'),
+        medicationName: optionalString(metadata, 'medicationName'),
+        dueDate: optionalString(metadata, 'dueDate'),
+      };
+    case 'VACCINATION':
+      return {
+        type: 'VACCINATION',
+        petName: optionalString(metadata, 'petName'),
+        vaccineName: optionalString(metadata, 'vaccineName'),
+        dueDate: optionalString(metadata, 'dueDate'),
+      };
+    case 'ALERT':
+      return {
+        type: 'ALERT',
+        alertType: optionalString(metadata, 'alertType'),
+        petName: optionalString(metadata, 'petName'),
+      };
+    case 'MESSAGE':
+      return {
+        type: 'MESSAGE',
+        senderId: optionalString(metadata, 'senderId'),
+        senderName: optionalString(metadata, 'senderName'),
+        preview: optionalString(metadata, 'preview'),
+      };
+    case 'MEDICAL_RECORD':
+      return {
+        type: 'MEDICAL_RECORD',
+        petName: optionalString(metadata, 'petName'),
+        recordType: optionalString(metadata, 'recordType'),
+        doctorName: optionalString(metadata, 'doctorName'),
+      };
+    case 'LOST_PET':
+      return {
+        type: 'LOST_PET',
+        petName: optionalString(metadata, 'petName'),
+        petId: optionalString(metadata, 'petId'),
+        imageUrl: optionalString(metadata, 'imageUrl'),
+        lastSeen: optionalString(metadata, 'lastSeen'),
+      };
+    case 'CONSULTATION':
+      return {
+        type: 'CONSULTATION',
+        vetName: optionalString(metadata, 'vetName'),
+        petName: optionalString(metadata, 'petName'),
+        scheduledAt: optionalString(metadata, 'scheduledAt'),
+      };
+    case 'SYSTEM':
+      return {
+        type: 'SYSTEM',
+        imageUrl: optionalString(metadata, 'imageUrl'),
+      };
+    default:
+      return null;
+  }
+}
+
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface AppNotification {

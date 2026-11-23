@@ -113,12 +113,29 @@ export interface UserProfile {
   country?: string;
   createdAt: string;
   updatedAt: string;
-  profileCompletion?: {
-    completionScore: number;
-    isComplete: boolean;
-    missingFields: string[];
-  };
+  profileCompletion?: ProfileCompletionState;
 }
+
+export interface ProfileCompletionState {
+  completionScore: number;
+  isComplete: boolean;
+  missingFields: string[];
+}
+
+type UserProfileEditableField =
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'avatarUrl'
+  | 'dateOfBirth'
+  | 'address'
+  | 'city'
+  | 'country';
+
+export type UserProfileData = {
+  [Field in UserProfileEditableField]-?: NonNullable<UserProfile[Field]>;
+};
 
 export interface UserSession {
   id: string;
