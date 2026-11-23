@@ -1,49 +1,14 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import importPlugin from "eslint-plugin-import";
-import jsxA11y from "eslint-plugin-jsx-a11y";
-import reactPlugin from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  // Next.js recommended rules (includes React, TypeScript, and web vitals)
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // Use Next.js 16's native flat configs to avoid adapting legacy shareable configs.
+  ...nextCoreWebVitals,
+  ...nextTypeScript,
 
-  // TypeScript + React source files
+  // Project-specific TypeScript + React rules
   {
     files: ["**/*.{ts,tsx}"],
-    plugins: {
-      "@typescript-eslint": tsPlugin,
-      import: importPlugin,
-      "jsx-a11y": jsxA11y,
-      react: reactPlugin,
-      "react-hooks": reactHooks,
-    },
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: { jsx: true },
-      },
-    },
-    settings: {
-      react: { version: "detect" },
-      "import/resolver": {
-        typescript: { alwaysTryTypes: true },
-        node: { extensions: [".js", ".jsx", ".ts", ".tsx"] },
-      },
-    },
     rules: {
       // TypeScript
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
