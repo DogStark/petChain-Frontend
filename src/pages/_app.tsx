@@ -18,7 +18,7 @@ import { I18nProvider } from "@/i18n";
 import { usePWA } from "@/hooks/usePWA";
 import {
   OfflineBanner,
-  PWAInstallPrompt,
+  PWAInstallGate,
   PWAUpdateBanner,
 } from "@/components/PWAInstallPrompt";
 import RouteMetadata from "@/components/RouteMetadata";
@@ -71,13 +71,7 @@ function initBrowserCapabilities(): void {
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
-  const [installDismissed, setInstallDismissed] = useState(false);
   const [updateDismissed, setUpdateDismissed] = useState(false);
-
-  const handleInstall = async () => {
-    await promptInstall();
-    setInstallDismissed(true);
-  };
 
   return (
     <>
@@ -88,12 +82,7 @@ function PWAManager() {
           onDismiss={() => setUpdateDismissed(true)}
         />
       )}
-      {isInstallable && !installDismissed && (
-        <PWAInstallPrompt
-          onInstall={handleInstall}
-          onDismiss={() => setInstallDismissed(true)}
-        />
-      )}
+      <PWAInstallGate isInstallable={isInstallable} onInstall={promptInstall} />
     </>
   );
 }
