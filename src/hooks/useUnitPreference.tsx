@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'petchain-unit-preference';
+const API_ENDPOINT = '/api/user/preferences/units';
 
 export type UnitSystem = 'metric' | 'customary';
 export type UnitPreferenceSource = 'locale' | 'user';
@@ -74,10 +75,29 @@ function clearStoredPreference(): void {
 }
 
 /**
+ * Persist preference to the backend. Fire-and-forget: failures are logged
+ * but do not block the UI, since localStorage already holds the value.
+ */
+async function persistToBackend(system: UnitSystem | null): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    await fetch(API_ENDPOINT, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ unitSystem: system }),
+    });
+  } catch {
+    // Network failure: local preference remains the source of truth
+  }
+}
+
+/**
  * Hook for managing unit preference (metric vs customary).
  * 
  * - Default derived from locale (en-US → customary, others → metric)
- * - User can override, persisted in localStorage
+ * - User can override, persisted in localStorage and to the backend
  * - SSR-safe: initializes with locale default, hydrates on mount
  * - Returns current system, source, setters
  * 
@@ -119,6 +139,7 @@ export function useUnitPreference(): UnitPreferenceState {
     setSystemState(newSystem);
     setSource('user');
     writeStoredPreference(newSystem);
+    void persistToBackend(newSystem);
   }, []);
   
   const resetToLocale = useCallback(() => {
@@ -126,6 +147,7 @@ export function useUnitPreference(): UnitPreferenceState {
     setSystemState(localeDefault);
     setSource('locale');
     clearStoredPreference();
+    void persistToBackend(null);
   }, []);
   
   return {

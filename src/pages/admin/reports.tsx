@@ -46,6 +46,10 @@ interface FinancialMonth {
     profit: number;
 }
 
+interface EngagementPoint { date: string; activeUsers: number; newSignups: number }
+interface HealthPoint { name: string; value: number; color: string }
+interface VaccinationPoint { month: string; compliant: number; nonCompliant: number }
+
 export default function AdminReports() {
     const [activeTab, setActiveTab] = useState<ReportTab>('activity');
     const reportRef = useRef<HTMLDivElement>(null);
@@ -96,7 +100,7 @@ export default function AdminReports() {
         loadAnalyticsData();
     }, []);
 
-    const [engagementData, setEngagementData] = useState<any>(null);
+    const [engagementData, setEngagementData] = useState<EngagementPoint[] | null>(null);
     const [engagementLoading, setEngagementLoading] = useState(true);
     const [engagementError, setEngagementError] = useState<string | null>(null);
 
@@ -112,11 +116,11 @@ export default function AdminReports() {
     const [userMetricsLoading, setUserMetricsLoading] = useState(true);
     const [userMetricsError, setUserMetricsError] = useState<string | null>(null);
 
-    const [healthData, setHealthData] = useState<any>(null);
+    const [healthData, setHealthData] = useState<HealthPoint[] | null>(null);
     const [healthLoading, setHealthLoading] = useState(true);
     const [healthError, setHealthError] = useState<string | null>(null);
 
-    const [vaccinationData, setVaccinationData] = useState<any>(null);
+    const [vaccinationData, setVaccinationData] = useState<VaccinationPoint[] | null>(null);
     const [vaccinationLoading, setVaccinationLoading] = useState(true);
     const [vaccinationError, setVaccinationError] = useState<string | null>(null);
 

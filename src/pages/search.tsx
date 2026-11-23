@@ -390,7 +390,7 @@ export default function SearchPage() {
               </div>
             )
           ) : (
-            <SearchResults<any>
+            <SearchResults<Pet | Vet | MedicalRecord | EmergencyService>
               results={searchResults?.results || []}
               total={searchResults?.total || 0}
               page={searchResults?.page || 1}

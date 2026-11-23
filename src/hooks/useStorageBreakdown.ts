@@ -10,14 +10,29 @@ import {
 
 export type StorageBreakdownStatus = 'loading' | 'ready' | 'error' | 'unauthenticated';
 
+/** Usage ratio (0–1) at or above which offline caching is considered at risk. */
+export const STORAGE_PRESSURE_THRESHOLD = 0.85;
+
 export interface UseStorageBreakdown {
   status: StorageBreakdownStatus;
   breakdown: StorageBreakdown | null;
   cleaningId: StorageCategoryId | null;
   cleanupError: string | null;
+  /** True when usage has crossed the pressure threshold and caching may be affected. */
+  isLowStorage: boolean;
+  /** Fraction of the storage quota in use (0–1), or null when unknown. */
+  usageRatio: number | null;
   refresh: () => Promise<void>;
   /** Clears one category; resolves to null when the cleanup failed. */
   cleanup: (id: StorageCategoryId) => Promise<CleanupResult | null>;
+}
+
+function computeUsageRatio(breakdown: StorageBreakdown | null): number | null {
+  if (!breakdown) return null;
+  const used = breakdown.totalBytes;
+  const quota = breakdown.quotaBytes;
+  if (typeof used !== 'number' || typeof quota !== 'number' || quota <= 0) return null;
+  return Math.min(1, Math.max(0, used / quota));
 }
 
 /** Reads offline storage usage for the signed-in account and exposes per-category cleanup. */
@@ -68,5 +83,17 @@ export function useStorageBreakdown(): UseStorageBreakdown {
     [ownerId, refresh]
   );
 
-  return { status, breakdown, cleaningId, cleanupError, refresh, cleanup };
+  const usageRatio = computeUsageRatio(breakdown);
+  const isLowStorage = usageRatio !== null && usageRatio >= STORAGE_PRESSURE_THRESHOLD;
+
+  return {
+    status,
+    breakdown,
+    cleaningId,
+    cleanupError,
+    isLowStorage,
+    usageRatio,
+    refresh,
+    cleanup,
+  };
 }

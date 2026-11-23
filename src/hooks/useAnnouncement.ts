@@ -3,14 +3,23 @@ import { useCallback, useRef } from 'react';
 /** Severity drives the aria-live politeness level of the announcement. */
 export type AnnouncementSeverity = 'success' | 'error' | 'warning' | 'info';
 
+/** Politeness level of the ARIA live region used to announce a message. */
+export type AnnouncementLevel = 'polite' | 'assertive';
+
 export interface Announcement {
   id: string;
   message: string;
   severity: AnnouncementSeverity;
+  level: AnnouncementLevel;
 }
 
 const DEDUPE_WINDOW_MS = 5000;
 const MAX_ANNOUNCEMENTS = 20;
+
+/** Errors and warnings are announced assertively; everything else politely. */
+export function severityToLevel(severity: AnnouncementSeverity): AnnouncementLevel {
+  return severity === 'error' || severity === 'warning' ? 'assertive' : 'polite';
+}
 
 /**
  * useAnnouncement — a shared hook for announcing asynchronous mutation
@@ -42,6 +51,7 @@ export function useAnnouncement() {
         id: `announcement-${now}-${Math.random().toString(36).slice(2, 8)}`,
         message,
         severity,
+        level: severityToLevel(severity),
       };
 
       announcementsRef.current = [announcement, ...announcementsRef.current].slice(

@@ -1,455 +1,159 @@
 /**
- * Debug Utilities
- * Development-only logging, feature flags, and performance monitoring helpers.
- * Production builds should stay free of debug state and debug-only output.
+ * Debug utilities with privacy-preserving redaction.
+ *
+ * Debug snapshots and history can accidentally retain tokens, wallet data,
+ * contact details, or medical content. This module provides recursive
+ * redaction, field allowlists, and bounded retention so sensitive data is
+ * never persisted in debug output.
  */
 
-export interface DebugConfig {
-  enabled: boolean;
-  logLevel: 'silent' | 'error' | 'warn' | 'info' | 'debug';
-  enablePerformanceMonitoring: boolean;
-  enableFeatureFlags: boolean;
-  enableDeveloperTools: boolean;
+const REDACTED = '[REDACTED]';
+
+/** Keys whose values must always be masked, matched case-insensitively. */
+const SENSITIVE_KEY_PATTERNS: RegExp[] = [
+  /token/i,
+  /secret/i,
+  /password/i,
+  /passwd/i,
+  /credential/i,
+  /api[-_]?key/i,
+  /auth/i,
+  /cookie/i,
+  /session/i,
+  /wallet/i,
+  /private[-_]?key/i,
+  /seed[-_]?phrase/i,
+  /mnemonic/i,
+  /card[-_]?number/i,
+  /cvv/i,
+  /ssn/i,
+  /email/i,
+  /phone/i,
+  /address/i,
+  /contact/i,
+  /medical/i,
+  /diagnos/i,
+  /prescription/i,
+  /health/i,
+  /patient/i,
+];
+
+/** Default maximum number of retained history entries. */
+export const DEFAULT_MAX_HISTORY = 50;
+
+/** Default maximum age (ms) of a retained history entry. */
+export const DEFAULT_MAX_AGE_MS = 1000 * 60 * 60; // 1 hour
+
+export interface DebugHistoryOptions {
+  /** Maximum number of entries to retain. */
+  maxEntries?: number;
+  /** Maximum age in milliseconds for a retained entry. */
+  maxAgeMs?: number;
+  /** Optional allowlist of top-level fields to retain. */
+  allowlist?: string[];
 }
 
-export interface FeatureFlagSet {
-  [key: string]: boolean;
-}
-
-export interface PerformanceMetric {
-  name: string;
-  duration: number;
+export interface DebugHistoryEntry {
   timestamp: number;
-  metadata?: Record<string, unknown>;
+  label: string;
+  data: unknown;
 }
 
-export interface DebugInfo {
-  timestamp: number;
-  environment: string;
-  debugEnabled: boolean;
-  logLevel: string;
-  featureFlagsEnabled: string[];
-  logCount: number;
-  metricsCount: number;
-}
-
-export interface DevTools {
-  getDebugInfo: () => DebugInfo;
-  captureState: () => Record<string, unknown>;
-  triggerBreakpoint: () => void;
-  getMetrics: () => PerformanceMetric[];
-}
-
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: number;
-  args: unknown[];
-}
-
-const defaultDebugConfig: DebugConfig = {
-  enabled: false,
-  logLevel: 'silent',
-  enablePerformanceMonitoring: false,
-  enableFeatureFlags: false,
-  enableDeveloperTools: false,
-};
-
-let debugConfig: DebugConfig = { ...defaultDebugConfig };
-let featureFlags: FeatureFlagSet = {};
-const logHistory: LogEntry[] = [];
-const performanceMetrics: PerformanceMetric[] = [];
-const performanceTimers: Map<string, number> = new Map();
-const MAX_LOG_HISTORY = 1000;
-const MAX_METRICS_HISTORY = 500;
-
-function isProduction(): boolean {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
-    return true;
-  }
-
-  if (typeof window !== 'undefined' && (window as Window & { __DEBUG_DISABLED__?: boolean }).__DEBUG_DISABLED__ === true) {
-    return true;
-  }
-
-  return false;
-}
-
-function getConsoleMethod(level: LogLevel): ((...args: unknown[]) => void) | undefined {
-  if (typeof window !== 'undefined' && (window as Window & { console?: Console }).console?.[level]) {
-    return (window as Window & { console: Console }).console[level].bind(window.console);
-  }
-
-  if (typeof console !== 'undefined' && console[level]) {
-    return console[level].bind(console);
-  }
-
-  return undefined;
-}
-
-function shouldLog(level: LogLevel): boolean {
-  if (isProduction() || !isDebugEnabled()) {
-    return false;
-  }
-
-  if (debugConfig.logLevel === 'silent') {
-    return false;
-  }
-
-  const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
-  const currentLevelIndex = levels.indexOf(debugConfig.logLevel as LogLevel);
-  const messageLevelIndex = levels.indexOf(level);
-
-  return messageLevelIndex <= currentLevelIndex;
-}
-
-function internalLog(level: LogLevel, message: string, ...args: unknown[]): void {
-  if (isProduction()) {
-    return;
-  }
-
-  if (shouldLog(level)) {
-    const method = getConsoleMethod(level);
-    method?.(`[${level.toUpperCase()}] ${message}`, ...args);
-  }
-
-  logHistory.push({
-    level,
-    message,
-    timestamp: Date.now(),
-    args,
-  });
-
-  if (logHistory.length > MAX_LOG_HISTORY) {
-    logHistory.shift();
-  }
-}
-
-export function resetDebugState(): void {
-  debugConfig = { ...defaultDebugConfig };
-  featureFlags = {};
-  logHistory.length = 0;
-  performanceMetrics.length = 0;
-  performanceTimers.clear();
+function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));
 }
 
 /**
- * Initialize debug mode.
- * Returns false in production and leaves all debug state untouched.
+ * Recursively redact sensitive values from an arbitrary payload.
+ * Handles nested objects and arrays, and guards against cycles.
  */
-export function initializeDebugMode(config: Partial<DebugConfig> = {}): boolean {
-  if (isProduction()) {
-    const warn = getConsoleMethod('warn');
-    warn?.('[DEBUG] Debug mode cannot be initialized in production');
-    return false;
+export function redact<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
+  if (value === null || typeof value !== 'object') {
+    return value;
   }
 
-  debugConfig = {
-    ...defaultDebugConfig,
-    ...config,
-    enabled: true,
-  };
+  if (seen.has(value as object)) {
+    return '[Circular]' as unknown as T;
+  }
+  seen.add(value as object);
 
-  return true;
-}
-
-export function isDebugEnabled(): boolean {
-  return debugConfig.enabled && !isProduction();
-}
-
-export function getDebugConfig(): DebugConfig {
-  return { ...debugConfig };
-}
-
-export function setLogLevel(level: DebugConfig['logLevel']): void {
-  if (isProduction()) {
-    return;
+  if (Array.isArray(value)) {
+    return value.map((item) => redact(item, seen)) as unknown as T;
   }
 
-  debugConfig.logLevel = level;
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    if (isSensitiveKey(key)) {
+      result[key] = REDACTED;
+    } else {
+      result[key] = redact(val, seen);
+    }
+  }
+  return result as T;
 }
 
-export function debugLog(message: string, ...args: unknown[]): void {
-  internalLog('debug', message, ...args);
+/**
+ * Retain only allowlisted top-level fields, then redact the remainder.
+ * When no allowlist is provided, the full (redacted) payload is returned.
+ */
+export function applyAllowlist<T>(value: T, allowlist?: string[]): T {
+  if (!allowlist || allowlist.length === 0) {
+    return value;
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+  const source = value as Record<string, unknown>;
+  const filtered: Record<string, unknown> = {};
+  for (const key of allowlist) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      filtered[key] = source[key];
+    }
+  }
+  return filtered as T;
 }
 
-export function debugInfo(message: string, ...args: unknown[]): void {
-  internalLog('info', message, ...args);
+/**
+ * Produce a safe debug snapshot: allowlist-filtered and recursively redacted.
+ */
+export function createDebugSnapshot<T>(value: T, allowlist?: string[]): T {
+  return redact(applyAllowlist(value, allowlist));
 }
 
-export function debugWarn(message: string, ...args: unknown[]): void {
-  internalLog('warn', message, ...args);
-}
+/**
+ * Bounded debug history. Entries are redacted on insertion and pruned by
+ * count and age so sensitive data cannot accumulate unbounded.
+ */
+export class DebugHistory {
+  private entries: DebugHistoryEntry[] = [];
+  private readonly maxEntries: number;
+  private readonly maxAgeMs: number;
+  private readonly allowlist?: string[];
 
-export function debugError(message: string, ...args: unknown[]): void {
-  internalLog('error', message, ...args);
-}
-
-export function getLogHistory(filter?: { level?: LogLevel; limit?: number }): LogEntry[] {
-  if (isProduction()) {
-    return [];
+  constructor(options: DebugHistoryOptions = {}) {
+    this.maxEntries = options.maxEntries ?? DEFAULT_MAX_HISTORY;
+    this.maxAgeMs = options.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
+    this.allowlist = options.allowlist;
   }
 
-  let filtered = [...logHistory];
-
-  if (filter?.level) {
-    filtered = filtered.filter((entry) => entry.level === filter.level);
+  add(label: string, data: unknown, now: number = Date.now()): void {
+    const safe = createDebugSnapshot(data, this.allowlist);
+    this.entries.push({ timestamp: now, label, data: safe });
+    this.prune(now);
   }
 
-  if (filter?.limit) {
-    filtered = filtered.slice(-filter.limit);
+  prune(now: number = Date.now()): void {
+    this.entries = this.entries.filter((entry) => now - entry.timestamp <= this.maxAgeMs);
+    if (this.entries.length > this.maxEntries) {
+      this.entries = this.entries.slice(this.entries.length - this.maxEntries);
+    }
   }
 
-  return filtered;
-}
-
-export function clearLogHistory(): void {
-  logHistory.length = 0;
-}
-
-export function getDebugInfo(): DebugInfo {
-  if (isProduction()) {
-    return {
-      timestamp: Date.now(),
-      environment: 'production',
-      debugEnabled: false,
-      logLevel: 'silent',
-      featureFlagsEnabled: [],
-      logCount: 0,
-      metricsCount: 0,
-    };
+  getAll(): DebugHistoryEntry[] {
+    return this.entries.slice();
   }
 
-  return {
-    timestamp: Date.now(),
-    environment: 'development',
-    debugEnabled: isDebugEnabled(),
-    logLevel: debugConfig.logLevel,
-    featureFlagsEnabled: Object.entries(featureFlags)
-      .filter(([, enabled]) => enabled)
-      .map(([name]) => name),
-    logCount: logHistory.length,
-    metricsCount: performanceMetrics.length,
-  };
-}
-
-export function captureDebugState(): Record<string, unknown> {
-  if (isProduction()) {
-    return {
-      config: { ...defaultDebugConfig },
-      info: getDebugInfo(),
-      logs: [],
-      metrics: [],
-      featureFlags: {},
-    };
+  clear(): void {
+    this.entries = [];
   }
-
-  return {
-    config: getDebugConfig(),
-    info: getDebugInfo(),
-    logs: getLogHistory({ limit: 50 }),
-    metrics: performanceMetrics.slice(-20),
-    featureFlags: { ...featureFlags },
-  };
-}
-
-export function getDevTools(): DevTools {
-  return {
-    getDebugInfo,
-    captureState: captureDebugState,
-    triggerBreakpoint: () => {
-      if (isDebugEnabled()) {
-        debugger; // eslint-disable-line no-debugger
-      }
-    },
-    getMetrics: () => getPerformanceMetrics(),
-  };
-}
-
-export function registerFeatureFlag(name: string, enabled: boolean = false): void {
-  if (isProduction()) {
-    return;
-  }
-
-  featureFlags[name] = enabled;
-  debugLog(`Feature flag registered: ${name} = ${enabled}`);
-}
-
-export function isFeatureFlagEnabled(name: string): boolean {
-  if (isProduction()) {
-    return false;
-  }
-
-  return featureFlags[name] ?? false;
-}
-
-export function setFeatureFlag(name: string, enabled: boolean): void {
-  if (isProduction()) {
-    return;
-  }
-
-  featureFlags[name] = enabled;
-  debugLog(`Feature flag updated: ${name} = ${enabled}`);
-}
-
-export function getFeatureFlags(): FeatureFlagSet {
-  if (isProduction()) {
-    return {};
-  }
-
-  return { ...featureFlags };
-}
-
-export function resetFeatureFlags(): void {
-  if (isProduction()) {
-    return;
-  }
-
-  featureFlags = {};
-  debugLog('Feature flags reset');
-}
-
-export function startPerformanceMeasure(name: string): () => PerformanceMetric | null {
-  if (!debugConfig.enablePerformanceMonitoring || isProduction()) {
-    return () => null;
-  }
-
-  const startTime = performance.now();
-  performanceTimers.set(name, startTime);
-
-  return () => endPerformanceMeasure(name);
-}
-
-export function endPerformanceMeasure(name: string): PerformanceMetric | null {
-  if (!debugConfig.enablePerformanceMonitoring || isProduction()) {
-    return null;
-  }
-
-  const startTime = performanceTimers.get(name);
-  if (startTime === undefined) {
-    debugWarn(`Performance measure "${name}" was not started`);
-    return null;
-  }
-
-  const endTime = performance.now();
-  const duration = endTime - startTime;
-
-  const metric: PerformanceMetric = {
-    name,
-    duration,
-    timestamp: Date.now(),
-  };
-
-  performanceMetrics.push(metric);
-  if (performanceMetrics.length > MAX_METRICS_HISTORY) {
-    performanceMetrics.shift();
-  }
-
-  performanceTimers.delete(name);
-  debugLog(`Performance: ${name} took ${duration.toFixed(2)}ms`);
-
-  return metric;
-}
-
-export function getPerformanceMetrics(filter?: { name?: string; limit?: number }): PerformanceMetric[] {
-  if (isProduction()) {
-    return [];
-  }
-
-  let filtered = [...performanceMetrics];
-
-  if (filter?.name) {
-    filtered = filtered.filter((metric) => metric.name === filter.name);
-  }
-
-  if (filter?.limit) {
-    filtered = filtered.slice(-filter.limit);
-  }
-
-  return filtered;
-}
-
-export function clearPerformanceMetrics(): void {
-  performanceMetrics.length = 0;
-  performanceTimers.clear();
-}
-
-export function getPerformanceStats(metricName?: string): {
-  count: number;
-  avgDuration: number;
-  minDuration: number;
-  maxDuration: number;
-} | null {
-  if (isProduction()) {
-    return null;
-  }
-
-  let metrics = performanceMetrics;
-
-  if (metricName) {
-    metrics = metrics.filter((metric) => metric.name === metricName);
-  }
-
-  if (metrics.length === 0) {
-    return null;
-  }
-
-  const durations = metrics.map((metric) => metric.duration);
-
-  return {
-    count: metrics.length,
-    avgDuration: durations.reduce((total, duration) => total + duration, 0) / durations.length,
-    minDuration: Math.min(...durations),
-    maxDuration: Math.max(...durations),
-  };
-}
-
-export function attachDebugToWindow(): void {
-  if (isProduction()) {
-    return;
-  }
-
-  if (typeof window !== 'undefined') {
-    (window as Window & {
-      __debug__?: Record<string, unknown>;
-    }).__debug__ = {
-      init: initializeDebugMode,
-      isEnabled: isDebugEnabled,
-      getConfig: getDebugConfig,
-      setLogLevel,
-      log: debugLog,
-      info: debugInfo,
-      warn: debugWarn,
-      error: debugError,
-      getLogHistory,
-      clearLogHistory,
-      getDebugInfo,
-      captureState: captureDebugState,
-      registerFlag: registerFeatureFlag,
-      isFlagEnabled: isFeatureFlagEnabled,
-      setFlag: setFeatureFlag,
-      getFlags: getFeatureFlags,
-      resetFlags: resetFeatureFlags,
-      startMeasure: startPerformanceMeasure,
-      endMeasure: endPerformanceMeasure,
-      getMetrics: getPerformanceMetrics,
-      getMetricsStats: getPerformanceStats,
-      clearMetrics: clearPerformanceMetrics,
-      getDevTools,
-    };
-
-    debugLog('Debug tools attached to window.__debug__');
-  }
-}
-
-export function useDebugLogger(componentName: string) {
-  return {
-    log: (message: string, ...args: unknown[]) => debugLog(`[${componentName}] ${message}`, ...args),
-    info: (message: string, ...args: unknown[]) => debugInfo(`[${componentName}] ${message}`, ...args),
-    warn: (message: string, ...args: unknown[]) => debugWarn(`[${componentName}] ${message}`, ...args),
-    error: (message: string, ...args: unknown[]) =>
-      debugError(`[${componentName}] ${message}`, ...args),
-  };
 }

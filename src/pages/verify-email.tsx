@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,34 @@ export default function VerifyEmailPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const { verifyEmail } = useAuth();
   const router = useRouter();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const handleVerification = useCallback(
+    async (verificationToken: string) => {
+      try {
+        const result = await verifyEmail(verificationToken);
+        if (!isMountedRef.current) return;
+        setVerifiedEmail(result.email || '');
+        setPhoneVerified(result.phoneVerified);
+        setSuccess(true);
+      } catch (err) {
+        if (!isMountedRef.current) return;
+        setError(err instanceof Error ? err.message : 'Email verification failed');
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [verifyEmail]
+  );
 
   useEffect(() => {
     // Get token from URL query parameters
@@ -24,20 +52,7 @@ export default function VerifyEmailPage() {
       setIsLoading(false);
       setError('No verification token provided');
     }
-  }, [router.query.token]);
-
-  const handleVerification = async (verificationToken: string) => {
-    try {
-      const result = await verifyEmail(verificationToken);
-      setVerifiedEmail(result.email || '');
-      setPhoneVerified(result.phoneVerified);
-      setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Email verification failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [router.query.token, handleVerification]);
 
   if (isLoading) {
     return (
