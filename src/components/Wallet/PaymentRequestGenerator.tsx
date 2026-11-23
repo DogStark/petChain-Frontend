@@ -228,7 +228,7 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
             >
               {loading ? 'Creating Request Link...' : 'Generate Shareable Link'}
-              <ArrowRight size={16} aria-hidden="true" />
+              <ArrowRight size={16} aria-hidden="true" className="rtl-flip" />
             </button>
           </div>
         </form>
