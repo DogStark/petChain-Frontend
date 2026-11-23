@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertTriangle, HardDrive, X } from 'lucide-react';
+import { AlertTriangle, HardDrive, Settings, X } from 'lucide-react';
 import {
   subscribeToStorageEvents,
   estimateStorageUsage,
@@ -7,6 +7,7 @@ import {
 } from '@/lib/offline/storageManager';
 import type { StorageUsageEstimate } from '@/lib/offline/storageManager';
 import { evictCacheEntries, evictRecordEntries, clearExpiredCache } from '@/lib/offline/indexedDB';
+import { useStorageBreakdown } from '@/hooks/useStorageBreakdown';
 
 interface BannerState {
   message: string;
@@ -14,6 +15,7 @@ interface BannerState {
 }
 
 const WARN_THRESHOLD_PERCENT = 80;
+const OFFLINE_SETTINGS_HREF = '/settings/offline-storage';
 
 /**
  * Surfaces actionable feedback when the browser's storage quota is nearly
@@ -24,6 +26,8 @@ const WARN_THRESHOLD_PERCENT = 80;
 export default function StoragePressureBanner() {
   const [banner, setBanner] = useState<BannerState | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const { usage: breakdownUsage, isLowStorage } = useStorageBreakdown(WARN_THRESHOLD_PERCENT);
 
   const applyUsage = useCallback((usage: StorageUsageEstimate | null) => {
     if (usage && usage.percentUsed >= WARN_THRESHOLD_PERCENT) {
@@ -60,6 +64,14 @@ export default function StoragePressureBanner() {
     };
   }, [applyUsage]);
 
+  // Surface the low-storage signal from the breakdown hook even if no event
+  // has fired yet (e.g. storage was already low on mount).
+  useEffect(() => {
+    if (isLowStorage && breakdownUsage) {
+      applyUsage(breakdownUsage);
+    }
+  }, [isLowStorage, breakdownUsage, applyUsage]);
+
   const handleFreeSpace = useCallback(async () => {
     setIsClearing(true);
     try {
@@ -84,7 +96,7 @@ export default function StoragePressureBanner() {
     }
   }, []);
 
-  if (!banner) return null;
+  if (!banner || dismissed) return null;
 
   return (
     <div
@@ -95,6 +107,13 @@ export default function StoragePressureBanner() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" aria-hidden="true" />
         <p className="text-sm text-amber-800 flex-1 min-w-[16rem]">{banner.message}</p>
+        <a
+          href={OFFLINE_SETTINGS_HREF}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-300 text-amber-800 text-xs font-medium hover:bg-amber-100 transition-colors"
+        >
+          <Settings size={13} aria-hidden="true" />
+          Offline storage settings
+        </a>
         <button
           type="button"
           onClick={handleFreeSpace}
@@ -106,7 +125,7 @@ export default function StoragePressureBanner() {
         </button>
         <button
           type="button"
-          onClick={() => setBanner(null)}
+          onClick={() => setDismissed(true)}
           aria-label="Dismiss storage warning"
           className="p-1 rounded text-amber-600 hover:bg-amber-100 transition-colors"
         >

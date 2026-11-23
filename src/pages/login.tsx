@@ -10,6 +10,67 @@ import { GetServerSideProps } from 'next';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Normalize a post-authentication redirect target to a same-origin
+ * application path. Returns null when the value is not a safe target.
+ *
+ * Rejects external URLs, protocol-relative URLs, backslash/encoded bypass
+ * payloads, and javascript:/data: schemes. Preserves safe deep links
+ * (path + query + hash) after normalization.
+ */
+export function normalizeRedirectTarget(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+
+  let value = raw.trim();
+  if (!value) return null;
+
+  // Decode percent-encoded payloads (possibly multiple layers) so that
+  // encoded open-redirect attempts are evaluated on their real value.
+  for (let i = 0; i < 3; i++) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(value);
+    } catch {
+      return null;
+    }
+    if (decoded === value) break;
+    value = decoded;
+  }
+
+  value = value.trim();
+  if (!value) return null;
+
+  // Reject control characters and whitespace that can smuggle schemes.
+  if (/[\u0000-\u001f\u007f\s]/.test(value)) return null;
+
+  // Reject backslashes (browsers treat them as slashes in some contexts).
+  if (value.includes('\\')) return null;
+
+  // Must be an absolute application path.
+  if (!value.startsWith('/')) return null;
+
+  // Reject protocol-relative URLs (//evil.com) and their variants.
+  if (value.startsWith('//')) return null;
+
+  // Reject any scheme-like prefix (javascript:, data:, http:, etc.).
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null;
+
+  // Resolve against a fixed origin to normalize dot segments and confirm
+  // the result stays same-origin.
+  let resolved: URL;
+  try {
+    resolved = new URL(value, 'https://app.local');
+  } catch {
+    return null;
+  }
+  if (resolved.origin !== 'https://app.local') return null;
+
+  const normalized = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  if (!normalized.startsWith('/') || normalized.startsWith('//')) return null;
+
+  return normalized;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +82,9 @@ export default function LoginPage() {
 
   const getRedirectTarget = () => {
     const next = router.query.next;
-    if (typeof next === 'string' && isSafeRedirectPath(next)) return next;
+    const candidate = Array.isArray(next) ? next[0] : next;
+    const normalized = normalizeRedirectTarget(candidate);
+    if (normalized && isSafeRedirectPath(normalized)) return normalized;
     return '/dashboard';
   };
 

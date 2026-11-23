@@ -5,6 +5,52 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 })
 
+// Least-privilege Content Security Policy.
+//
+// Required origins (documented in SECURITY.md):
+// - https://www.gstatic.com: Firebase compat SDK loaded via importScripts in the SW.
+// - https://fonts.gstatic.com: Firebase web fonts (font-src only).
+// - Stellar Horizon (testnet + mainnet) and Soroban RPC (testnet + mainnet):
+//   wallet balance, transaction submission, and contract calls (connect-src).
+// - https://fcm.googleapis.com: Firebase Cloud Messaging push (connect-src).
+//
+// PWA: the service worker is same-origin, so worker-src 'self' and
+// manifest-src 'self' are sufficient. No wildcard (*) sources are used.
+// Extend the arrays below when adding new trusted origins.
+const CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'", "https://www.gstatic.com"];
+const CSP_STYLE_SRC = ["'self'", "'unsafe-inline'"];
+const CSP_IMG_SRC = ["'self'", "data:", "blob:"];
+const CSP_FONT_SRC = ["'self'", "https://fonts.gstatic.com"];
+const CSP_CONNECT_SRC = [
+  "'self'",
+  "https://horizon-testnet.stellar.org",
+  "https://horizon.stellar.org",
+  "https://soroban-testnet.stellar.org",
+  "https://soroban.stellar.org",
+  "https://fcm.googleapis.com",
+];
+const CSP_WORKER_SRC = ["'self'"];
+const CSP_MANIFEST_SRC = ["'self'"];
+const CSP_FRAME_SRC = ["'none'"];
+const CSP_OBJECT_SRC = ["'none'"];
+const CSP_BASE_URI = ["'self'"];
+const CSP_FORM_ACTION = ["'self'"];
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src ${CSP_SCRIPT_SRC.join(' ')}`,
+  `style-src ${CSP_STYLE_SRC.join(' ')}`,
+  `img-src ${CSP_IMG_SRC.join(' ')}`,
+  `font-src ${CSP_FONT_SRC.join(' ')}`,
+  `connect-src ${CSP_CONNECT_SRC.join(' ')}`,
+  `worker-src ${CSP_WORKER_SRC.join(' ')}`,
+  `manifest-src ${CSP_MANIFEST_SRC.join(' ')}`,
+  `frame-src ${CSP_FRAME_SRC.join(' ')}`,
+  `object-src ${CSP_OBJECT_SRC.join(' ')}`,
+  `base-uri ${CSP_BASE_URI.join(' ')}`,
+  `form-action ${CSP_FORM_ACTION.join(' ')}`,
+].join('; ');
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typescript: {
@@ -19,39 +65,13 @@ const nextConfig: NextConfig = {
     remotePatterns: REMOTE_IMAGE_HOSTS,
   },
   async headers() {
-    // Allowed origins for CSP — extend as needed for your deployment.
-    // gstatic.com is required for Firebase compat SDK via importScripts in the SW.
-    const csp = [
-      "default-src 'self'",
-      // Scripts: self + inline Next.js bootstrap + Firebase SDK from gstatic CDN
-      "script-src 'self' 'unsafe-inline' https://www.gstatic.com",
-      // Styles: self + inline (Next.js inlines critical CSS)
-      "style-src 'self' 'unsafe-inline'",
-      // Images: self + data URIs (for SVG inlining)
-      "img-src 'self' data: blob:",
-      // Fonts: self + gstatic for Firebase web fonts if ever used
-      "font-src 'self' https://fonts.gstatic.com",
-      // Connect: self + Stellar Horizon + Soroban RPC + Firebase FCM
-      "connect-src 'self' https://horizon-testnet.stellar.org https://horizon.stellar.org https://soroban-testnet.stellar.org https://soroban.stellar.org https://fcm.googleapis.com",
-      // Workers: self (SW must be same-origin)
-      "worker-src 'self'",
-      // Frames: none
-      "frame-src 'none'",
-      // Objects: none
-      "object-src 'none'",
-      // Base URI: self
-      "base-uri 'self'",
-      // Form action: self
-      "form-action 'self'",
-    ].join('; ');
-
     return [
       {
         source: '/(.*)',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: csp,
+            value: contentSecurityPolicy,
           },
           {
             key: 'X-Content-Type-Options',

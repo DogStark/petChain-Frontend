@@ -1,140 +1,78 @@
 /**
- * Idempotency key utilities for preventing duplicate transaction submissions.
+ * Idempotency key handling for transaction submissions.
  *
- * A key is derived from the stable, user-visible fields of a transaction
- * payload rather than from a pure random UUID.  This means:
- *
- *  - A true double-click / rapid re-submit on the same form data produces the
- *    *same* key, so the server (and the client-side guard) can detect and
- *    suppress the duplicate.
- *  - Changing any field (destination, amount, asset, memo) produces a new key,
- *    so a legitimate second transaction is never suppressed.
- *
- * Key format: `idempotency:<nonce>:<hex-digest>`
- *   - nonce:      base-36 timestamp (ms) – makes keys time-scoped so the server
- *                 can implement a short expiry window (e.g. 24 h) without
- *                 storing keys forever.
- *   - hex-digest: SHA-256 of the canonical payload JSON.
- *
- * If the Web Crypto API is unavailable (SSR / very old environments) the
- * function falls back to a deterministic FNV-32a hash, which gives the same
- * collision-prevention semantics without async I/O.
+ * A key is generated once per transaction attempt and reused for retries of
+ * that same attempt so the backend can detect and reject duplicates.
  */
 
-export interface IdempotencyPayload {
-  sourcePublicKey: string;
-  destination: string;
-  amount: string;
-  asset: string;
-  memo?: string;
-  fee?: string;
+export interface IdempotencyKey {
+  /** The opaque key value sent in the request header. */
+  key: string;
+  /** Timestamp (ms) when the key was generated. */
+  createdAt: number;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+export interface IdempotencyAttempt {
+  /** Stable identifier for the logical transaction attempt. */
+  attemptId: string;
+  /** Idempotency key attached to every request for this attempt. */
+  idempotencyKey: IdempotencyKey;
+}
+
+export const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 
 /**
- * Canonical JSON: keys are sorted so `{a,b}` and `{b,a}` produce the same
- * string.  Values are lowercased where they are free-form text so that
- * "XLM" and "xlm" don't produce different keys.
+ * Generate a new idempotency key for a transaction attempt.
+ * Uses crypto.randomUUID when available, with a safe fallback.
  */
-function canonicalize(payload: IdempotencyPayload): string {
-  const normalized: Record<string, string> = {
-    sourcePublicKey: payload.sourcePublicKey.trim(),
-    destination: payload.destination.trim(),
-    amount: parseFloat(payload.amount).toFixed(7),
-    asset: payload.asset.trim().toUpperCase(),
-    memo: (payload.memo ?? '').trim(),
-    fee: (payload.fee ?? '').trim(),
+export function generateIdempotencyKey(): IdempotencyKey {
+  const cryptoObj = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
+
+  let key: string;
+  if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+    key = cryptoObj.randomUUID();
+  } else if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    cryptoObj.getRandomValues(bytes);
+    key = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    key = `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  return { key, createdAt: Date.now() };
+}
+
+/**
+ * Create a new transaction attempt with its own idempotency key.
+ */
+export function createIdempotencyAttempt(attemptId?: string): IdempotencyAttempt {
+  return {
+    attemptId: attemptId ?? generateIdempotencyKey().key,
+    idempotencyKey: generateIdempotencyKey(),
   };
-  return JSON.stringify(
-    Object.keys(normalized)
-      .sort()
-      .reduce<Record<string, string>>((acc, k) => {
-        acc[k] = normalized[k];
-        return acc;
-      }, {})
-  );
 }
 
-/** FNV-32a – deterministic fallback when Web Crypto is unavailable. */
-function fnv32a(str: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = (hash * 0x01000193) >>> 0; // keep unsigned 32-bit
+/**
+ * Build request headers carrying the idempotency key.
+ */
+export function buildIdempotencyHeaders(
+  attempt: IdempotencyAttempt,
+  baseHeaders: Record<string, string> = {},
+): Record<string, string> {
+  return { ...baseHeaders, [IDEMPOTENCY_HEADER]: attempt.idempotencyKey.key };
+}
+
+/**
+ * Detect whether a retry would duplicate an already-submitted attempt.
+ * Returns true when the same key has already been used for a submission.
+ */
+export function isDuplicateSubmission(
+  attempt: IdempotencyAttempt,
+  submittedKeys: ReadonlySet<string> | readonly string[],
+): boolean {
+  const key = attempt.idempotencyKey.key;
+  if (Array.isArray(submittedKeys)) {
+    return submittedKeys.includes(key);
   }
-  return hash.toString(16).padStart(8, '0');
-}
-
-async function sha256hex(str: string): Promise<string> {
-  const data = new TextEncoder().encode(str);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/**
- * Generate an idempotency key for a payment transaction.
- *
- * The returned promise always resolves; it never rejects.  On crypto failure
- * it falls back to the FNV-32a synchronous hash.
- *
- * @example
- * const key = await generateIdempotencyKey({
- *   sourcePublicKey: 'GABC…',
- *   destination:     'GXYZ…',
- *   amount:          '10.5',
- *   asset:           'XLM',
- * });
- * // → "idempotency:lkz4g7r:a3f9c1…"
- */
-export async function generateIdempotencyKey(
-  payload: IdempotencyPayload
-): Promise<string> {
-  const nonce = Date.now().toString(36); // base-36 ms timestamp
-  const canonical = canonicalize(payload);
-  let digest: string;
-  try {
-    digest = await sha256hex(canonical);
-  } catch {
-    digest = fnv32a(canonical);
-  }
-  return `idempotency:${nonce}:${digest}`;
-}
-
-/**
- * Synchronous variant — useful in tests and SSR contexts where async is
- * inconvenient.  Uses FNV-32a rather than SHA-256.
- */
-export function generateIdempotencyKeySync(payload: IdempotencyPayload): string {
-  const nonce = Date.now().toString(36);
-  const canonical = canonicalize(payload);
-  const digest = fnv32a(canonical);
-  return `idempotency:${nonce}:${digest}`;
-}
-
-/**
- * Extract the digest portion of an idempotency key so two keys produced from
- * the same payload (but at different timestamps) can be compared.
- *
- * Returns `null` if the string is not a valid idempotency key.
- */
-export function extractDigest(key: string): string | null {
-  const parts = key.split(':');
-  // format: "idempotency:<nonce>:<digest>"
-  if (parts.length !== 3 || parts[0] !== 'idempotency') return null;
-  return parts[2];
-}
-
-/**
- * Return `true` if two keys were derived from identical payload fields
- * (ignoring when they were generated).
- */
-export function samePayload(keyA: string, keyB: string): boolean {
-  const a = extractDigest(keyA);
-  const b = extractDigest(keyB);
-  return a !== null && b !== null && a === b;
+  return (submittedKeys as ReadonlySet<string>).has(key);
 }

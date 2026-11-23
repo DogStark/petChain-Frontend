@@ -51,7 +51,8 @@ export function getSummary(): WebVitalsSummary {
   const summary = {} as WebVitalsSummary;
   for (const [key, vals] of Object.entries(byMetric)) {
     const s = computeMetricSummary(vals);
-    (summary as any)[key.toLowerCase()] = s;
+    const metricKey = key.toLowerCase() as keyof Omit<WebVitalsSummary, 'totalReports'>;
+    summary[metricKey] = s;
   }
   summary.totalReports = reports.length;
 
