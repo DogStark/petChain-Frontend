@@ -24,6 +24,7 @@
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
@@ -32,8 +33,10 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "*.ts",
+    "*.tsx"
   ],
   "exclude": [
     "node_modules",
