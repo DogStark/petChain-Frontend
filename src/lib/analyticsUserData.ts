@@ -1,4 +1,5 @@
 import { analyticsAPI } from './api/analyticsAPI';
+import type { RevenueBreakdownPoint } from '@/components/analytics/FinancialReportChart';
 
 const DEMO_MODE_ENABLED = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -66,6 +67,24 @@ const getSafeApiUsageData = () =>
     time: `${i}:00`,
     requests: 0,
     errors: 0,
+  }));
+
+export const getDemoRevenueBreakdown = (): RevenueBreakdownPoint[] => [
+  { month: 'Jan', subscriptions: 18000, transactions: 21000, services: 4500, other: 1500 },
+  { month: 'Feb', subscriptions: 19500, transactions: 24500, services: 5200, other: 1800 },
+  { month: 'Mar', subscriptions: 21000, transactions: 22800, services: 4900, other: 1300 },
+  { month: 'Apr', subscriptions: 22500, transactions: 27600, services: 6100, other: 2100 },
+  { month: 'May', subscriptions: 24000, transactions: 26400, services: 5800, other: 1900 },
+  { month: 'Jun', subscriptions: 25800, transactions: 31200, services: 6900, other: 2400 },
+];
+
+export const getSafeRevenueBreakdown = (): RevenueBreakdownPoint[] =>
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month) => ({
+    month,
+    subscriptions: 0,
+    transactions: 0,
+    services: 0,
+    other: 0,
   }));
 
 export const generateAnalyticsData = async (dateRange?: { startDate: string; endDate: string }) => {
@@ -140,6 +159,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
     vaccinationData,
     geoData,
     apiUsageData,
+    revenueData: DEMO_MODE_ENABLED ? getDemoRevenueBreakdown() : getSafeRevenueBreakdown(),
     timestamp: new Date().toISOString(),
   };
 };

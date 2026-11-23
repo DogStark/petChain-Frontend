@@ -18,6 +18,7 @@ const PetHealthChart = dynamic(() => import('@/components/analytics/PetHealthCha
 const VaccinationChart = dynamic(() => import('@/components/analytics/VaccinationChart'), { ssr: false });
 const GeoDistributionChart = dynamic(() => import('@/components/analytics/GeoDistributionChart'), { ssr: false });
 const FinancialReportChart = dynamic(() => import('@/components/analytics/FinancialReportChart'), { ssr: false });
+import type { RevenueBreakdownPoint } from '@/components/analytics/FinancialReportChart';
 
 // Mock Data for Reports
 const MOCK_API_DATA = [
@@ -45,6 +46,15 @@ interface FinancialMonth {
     expenses: number;
     profit: number;
 }
+
+const toRevenueBreakdown = (months: FinancialMonth[]): RevenueBreakdownPoint[] =>
+    months.map(({ month, revenue }) => ({
+        month,
+        subscriptions: Math.round(revenue * 0.4),
+        transactions: Math.round(revenue * 0.45),
+        services: Math.round(revenue * 0.1),
+        other: revenue - Math.round(revenue * 0.4) - Math.round(revenue * 0.45) - Math.round(revenue * 0.1),
+    }));
 
 interface EngagementPoint { date: string; activeUsers: number; newSignups: number }
 interface HealthPoint { name: string; value: number; color: string }
@@ -397,7 +407,7 @@ export default function AdminReports() {
                                         </div>
                                     </div>
                                 ) : financialData ? (
-                                    <FinancialReportChart data={financialData} />
+                                    <FinancialReportChart data={toRevenueBreakdown(financialData)} />
                                 ) : null}
 
                                 {financialTotals && (

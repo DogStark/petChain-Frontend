@@ -6,6 +6,7 @@ import { generateAnalyticsData } from '../lib/analyticsUserData';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
 import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
+import type { RevenueBreakdownPoint } from '@/components/analytics/FinancialReportChart';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), {
   ssr: false,
@@ -22,6 +23,9 @@ const GeoDistributionChart = dynamic(() => import('../components/analytics/GeoDi
 const ApiUsageChart = dynamic(() => import('../components/analytics/ApiUsageChart'), {
   ssr: false,
 });
+const FinancialReportChart = dynamic(() => import('../components/analytics/FinancialReportChart'), {
+  ssr: false,
+});
 
 interface AnalyticsData {
   engagementData: { date: string; activeUsers: number; newSignups: number }[];
@@ -29,6 +33,7 @@ interface AnalyticsData {
   vaccinationData: { month: string; compliant: number; nonCompliant: number }[];
   geoData: { region: string; users: number; pets?: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
+  revenueData: RevenueBreakdownPoint[];
   timestamp: string;
 }
 
@@ -177,6 +182,8 @@ const AnalyticsPage = () => {
   const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const revenueData = useMemo(() => data?.revenueData ?? [], [JSON.stringify(data?.revenueData)]);
 
   if (loading) {
     return (
@@ -313,6 +320,27 @@ const AnalyticsPage = () => {
               caption="Geographic distribution"
               columns={['Region', 'Users', 'Pets']}
               rows={geoData.map((entry) => [entry.region, entry.users, entry.pets ?? 0])}
+            />
+          </section>
+
+          <section className="lg:col-span-12" aria-label="Financial report analytics">
+            <DataModeChart
+              title="Revenue Breakdown"
+              summary="Revenue by category over time"
+              minHeight="350px"
+            >
+              <FinancialReportChart data={revenueData} />
+            </DataModeChart>
+            <AccessibleDataTable
+              caption="Revenue breakdown"
+              columns={['Period', 'Subscriptions', 'Transactions', 'Services', 'Other']}
+              rows={revenueData.map((entry) => [
+                entry.month,
+                entry.subscriptions,
+                entry.transactions,
+                entry.services,
+                entry.other,
+              ])}
             />
           </section>
 
