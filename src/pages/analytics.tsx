@@ -27,7 +27,7 @@ interface AnalyticsData {
   engagementData: { date: string; activeUsers: number; newSignups: number }[];
   healthData: { name: string; value: number; color: string }[];
   vaccinationData: { month: string; compliant: number; nonCompliant: number }[];
-  geoData: { region: string; users: number }[];
+  geoData: { region: string; users: number; pets?: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
   timestamp: string;
 }
@@ -103,6 +103,11 @@ const AnalyticsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [geoDateRange, setGeoDateRange] = useState<{ startDate: string; endDate: string }>({
+    startDate: '',
+    endDate: '',
+  });
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -116,6 +121,23 @@ const AnalyticsPage = () => {
       setError('Analytics data could not be loaded. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGeoDateRangeChange = async (range: { startDate: string; endDate: string }) => {
+    setGeoDateRange(range);
+    if (!range.startDate || !range.endDate) {
+      return;
+    }
+    try {
+      setGeoLoading(true);
+      const filtered = await generateAnalyticsData(range);
+      setData((previous) => (previous ? { ...previous, geoData: filtered.geoData } : filtered));
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to fetch geographic distribution:', error);
+    } finally {
+      setGeoLoading(false);
     }
   };
 
@@ -280,12 +302,17 @@ const AnalyticsPage = () => {
               summary="User distribution across regions"
               minHeight="350px"
             >
-              <GeoDistributionChart data={geoData} />
+              <GeoDistributionChart
+                data={geoData}
+                dateRange={geoDateRange}
+                onDateRangeChange={handleGeoDateRangeChange}
+                loading={geoLoading}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="Geographic distribution"
-              columns={['Region', 'Users']}
-              rows={geoData.map((entry) => [entry.region, entry.users])}
+              columns={['Region', 'Users', 'Pets']}
+              rows={geoData.map((entry) => [entry.region, entry.users, entry.pets ?? 0])}
             />
           </section>
 

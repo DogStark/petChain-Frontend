@@ -37,12 +37,12 @@ const getSafeHealthData = () => [
 ];
 
 const getDemoGeoData = () => [
-  { region: 'North America', users: 850 },
-  { region: 'Europe', users: 620 },
-  { region: 'Asia', users: 480 },
-  { region: 'South America', users: 220 },
-  { region: 'Africa', users: 110 },
-  { region: 'Oceania', users: 85 },
+  { region: 'North America', users: 850, pets: 1240 },
+  { region: 'Europe', users: 620, pets: 910 },
+  { region: 'Asia', users: 480, pets: 705 },
+  { region: 'South America', users: 220, pets: 330 },
+  { region: 'Africa', users: 110, pets: 165 },
+  { region: 'Oceania', users: 85, pets: 120 },
 ];
 
 const getDemoApiUsageData = () =>
@@ -53,12 +53,12 @@ const getDemoApiUsageData = () =>
   }));
 
 const getSafeGeoData = () => [
-  { region: 'North America', users: 0 },
-  { region: 'Europe', users: 0 },
-  { region: 'Asia', users: 0 },
-  { region: 'South America', users: 0 },
-  { region: 'Africa', users: 0 },
-  { region: 'Oceania', users: 0 },
+  { region: 'North America', users: 0, pets: 0 },
+  { region: 'Europe', users: 0, pets: 0 },
+  { region: 'Asia', users: 0, pets: 0 },
+  { region: 'South America', users: 0, pets: 0 },
+  { region: 'Africa', users: 0, pets: 0 },
+  { region: 'Oceania', users: 0, pets: 0 },
 ];
 
 const getSafeApiUsageData = () =>
@@ -68,10 +68,10 @@ const getSafeApiUsageData = () =>
     errors: 0,
   }));
 
-export const generateAnalyticsData = async () => {
+export const generateAnalyticsData = async (dateRange?: { startDate: string; endDate: string }) => {
   let engagementData: Array<{ date: string; activeUsers: number; newSignups: number }>;
   let healthData: Array<{ name: string; value: number; color: string }>;
-  let geoData: Array<{ region: string; users: number }>;
+  let geoData: Array<{ region: string; users: number; pets?: number }>;
   let apiUsageData: Array<{ time: string; requests: number; errors: number }>;
 
   // DEMO MODE
@@ -100,6 +100,21 @@ export const generateAnalyticsData = async () => {
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
+
+      // Geographic distribution is optional: fall back to the safe zeros above
+      // when the backend does not expose it.
+      try {
+        const distribution = await analyticsAPI.getGeographicDistribution(dateRange);
+        if (Array.isArray(distribution) && distribution.length) {
+          geoData = distribution.map((entry) => ({
+            region: entry.region || entry.country,
+            users: entry.users ?? 0,
+            pets: entry.pets ?? 0,
+          }));
+        }
+      } catch {
+        // Keep safe zeros.
+      }
     } catch (error) {
       // Fetch failed, return safe zero values
       engagementData = getSafeEngagementData();

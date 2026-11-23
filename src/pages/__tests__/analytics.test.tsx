@@ -26,7 +26,7 @@ const sampleData: Awaited<ReturnType<typeof generateAnalyticsData>> = {
     { name: 'Critical', value: 2, color: '#EF4444' },
   ],
   vaccinationData: [{ month: 'Jan', compliant: 85, nonCompliant: 15 }],
-  geoData: [{ region: 'North America', users: 42 }],
+  geoData: [{ region: 'North America', users: 42, pets: 60 }],
   apiUsageData: [{ time: '9:00', requests: 100, errors: 3 }],
   timestamp: '2026-01-01T00:00:00.000Z',
 };
