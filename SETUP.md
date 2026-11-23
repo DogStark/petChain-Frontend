@@ -86,7 +86,7 @@ major in `package.json` and `package-lock.json`. The focused
 - `npm run lint:fix` - Fix ESLint errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
-- `npm run type-check` - Run TypeScript type checking
+- `npm run type-check` - Run TypeScript type checking for root/frontend files only
 - `npm run validate` - Run all checks (type-check, lint, format)
 - `npm run test` - Run the standalone password-policy unit tests
 - `npm run test:unit` - Run all Jest unit tests (single discovery convention)
@@ -221,3 +221,7 @@ See [contributing.md](./contributing.md) for detailed guidelines.
 - **Telegram**: [@PetChain Group](https://t.me/+Jw8HkvUhinw2YjE0)
 - **Issues**: [GitHub Issues](https://github.com/DogStark/petChain-Frontend/issues)
 - **Contact**: [@llins_x](https://t.me/llins_x)
+
+---
+
+The root `tsconfig.json` includes the root frontend `src/` and `tests/` trees only. Backend NestJS code is checked from `backend/` with its own `tsconfig.json` and Jest configuration.
