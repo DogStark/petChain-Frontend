@@ -1,125 +1,154 @@
-'use client';
+import React, { useCallback, useEffect, useState } from 'react';
 
-import { useEffect, useState } from 'react';
+export type ServiceHealthStatus = 'up' | 'degraded' | 'down';
 
-interface Alert { name: string; severity: string; message: string; firedAt: string }
-interface PerformanceStatus {
-  system?: {
-    cpuUsagePercent: number;
-    eventLoopLagMs: number;
-    memory: { heapUtilizationRatio: number };
-  };
-  http?: {
-    totalRequests: number;
-    errorRate: number;
-    averageLatencyMs: number;
+export interface ServiceHealth {
+  id: string;
+  name: string;
+  status: ServiceHealthStatus;
+  message?: string;
+}
+
+export interface HealthReport {
+  services: ServiceHealth[];
+  checkedAt: string;
+}
+
+const REFRESH_INTERVAL_MS = 30000;
+
+const STATUS_LABEL: Record<ServiceHealthStatus, string> = {
+  up: 'Operational',
+  degraded: 'Degraded',
+  down: 'Down',
+};
+
+const STATUS_STYLES: Record<ServiceHealthStatus, string> = {
+  up: 'bg-green-100 text-green-800 border-green-300',
+  degraded: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  down: 'bg-red-100 text-red-800 border-red-300',
+};
+
+const STATUS_DOT: Record<ServiceHealthStatus, string> = {
+  up: 'bg-green-500',
+  degraded: 'bg-yellow-500',
+  down: 'bg-red-500',
+};
+
+async function fetchHealthReport(): Promise<HealthReport> {
+  const response = await fetch('/api/health', {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Health check failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const services: ServiceHealth[] = Array.isArray(data?.services)
+    ? data.services.map((service: Partial<ServiceHealth>, index: number) => ({
+        id: service.id ?? `service-${index}`,
+        name: service.name ?? `Service ${index + 1}`,
+        status:
+          service.status === 'up' || service.status === 'degraded' || service.status === 'down'
+            ? service.status
+            : 'down',
+        message: service.message,
+      }))
+    : [];
+
+  return {
+    services,
+    checkedAt: data?.checkedAt ?? new Date().toISOString(),
   };
 }
 
-interface Status {
-  health: { status: string; timestamp: string };
-  alerts: Alert[];
-  performance?: PerformanceStatus;
-}
-
-export default function ObservabilityStatus() {
-  const [status, setStatus] = useState<Status | null>(null);
+const ObservabilityStatus: React.FC = () => {
+  const [report, setReport] = useState<HealthReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let active = true;
-    const load = () => {
+  const loadHealth = useCallback(async () => {
+    try {
+      const nextReport = await fetchHealthReport();
+      setReport(nextReport);
       setError(null);
-      fetch('/api/observability/status')
-        .then((r) => r.json())
-        .then((data) => { if (active) setStatus(data); })
-        .catch((e) => { if (active) setError(e.message); });
-    };
-    load();
-    const id = setInterval(load, 30_000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load service health');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (!status && !error) return <div className="text-sm text-gray-400">Loading…</div>;
+  useEffect(() => {
+    loadHealth();
+    const interval = setInterval(loadHealth, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [loadHealth]);
 
-  const isError = !!error;
-  const isUp = !isError && status?.health?.status === 'ok';
-  const performance = status?.performance;
-
-  const badge = (() => {
-    if (isError) return { bg: 'bg-yellow-50 dark:bg-yellow-900/20', dot: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-300', label: 'Status Unknown' };
-    return {
-      bg: isUp ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20',
-      dot: isUp ? 'bg-green-500' : 'bg-red-500',
-      text: isUp ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300',
-      label: `Backend ${isUp ? 'Healthy' : 'Degraded'}`,
-    };
-  })();
+  const lastChecked = report ? new Date(report.checkedAt) : null;
 
   return (
-    <div className="space-y-4">
-      <div className={`flex items-center gap-2 rounded-lg px-4 py-3 ${badge.bg}`}>
-        <span className={`h-2.5 w-2.5 rounded-full ${badge.dot}`} />
-        <span className={`text-sm font-medium ${badge.text}`}>
-          {badge.label}
-        </span>
-        <span className="ml-auto text-xs text-gray-400">
-          {status?.health?.timestamp ? new Date(status.health.timestamp).toLocaleTimeString() : ''}
-        </span>
+    <div className="mx-auto max-w-3xl p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">System Status</h1>
+        <button
+          type="button"
+          onClick={loadHealth}
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Refresh
+        </button>
       </div>
 
-      {!isError && status?.alerts?.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Alerts</p>
-          {status.alerts.map((a, i) => (
-            <div
-              key={i}
-              className={`rounded-lg px-3 py-2 text-sm ${a.severity === 'critical' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300'}`}
+      <p className="mb-4 text-sm text-gray-500" aria-live="polite">
+        {lastChecked
+          ? `Last checked: ${lastChecked.toLocaleString()}`
+          : 'Checking service health…'}
+      </p>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800"
+        >
+          {error}
+        </div>
+      )}
+
+      {loading && !report ? (
+        <p className="text-sm text-gray-500">Loading service health…</p>
+      ) : (
+        <ul className="space-y-3">
+          {(report?.services ?? []).map((service) => (
+            <li
+              key={service.id}
+              className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
             >
-              <span className="font-medium">{a.name}</span> — {a.message}
-            </div>
+              <div>
+                <p className="font-medium text-gray-900">{service.name}</p>
+                {service.message && (
+                  <p className="text-sm text-gray-500">{service.message}</p>
+                )}
+              </div>
+              <span
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[service.status]}`}
+                aria-label={`${service.name} status: ${STATUS_LABEL[service.status]}`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${STATUS_DOT[service.status]}`}
+                  aria-hidden="true"
+                />
+                {STATUS_LABEL[service.status]}
+              </span>
+            </li>
           ))}
-        </div>
+          {report && report.services.length === 0 && (
+            <li className="text-sm text-gray-500">No services reported.</li>
+          )}
+        </ul>
       )}
-
-      {!isError && performance?.http && performance?.system && (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="Avg Latency"
-            value={`${performance.http.averageLatencyMs.toFixed(0)} ms`}
-          />
-          <MetricCard
-            label="Error Rate"
-            value={`${(performance.http.errorRate * 100).toFixed(1)}%`}
-          />
-          <MetricCard
-            label="CPU"
-            value={`${performance.system.cpuUsagePercent.toFixed(1)}%`}
-          />
-          <MetricCard
-            label="Heap Utilization"
-            value={`${(performance.system.memory.heapUtilizationRatio * 100).toFixed(1)}%`}
-          />
-        </div>
-      )}
-
-      <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <a href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? 'http://localhost:3001'} target="_blank" rel="noreferrer" className="hover:underline">Grafana →</a>
-        <a href={process.env.NEXT_PUBLIC_KIBANA_URL ?? 'http://localhost:5601'} target="_blank" rel="noreferrer" className="hover:underline">Kibana →</a>
-        <a href={process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? 'http://localhost:9090'} target="_blank" rel="noreferrer" className="hover:underline">Prometheus →</a>
-      </div>
     </div>
   );
-}
+};
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</p>
-    </div>
-  );
-}
+export default ObservabilityStatus;

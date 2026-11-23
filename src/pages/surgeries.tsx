@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { surgeryAPI, Surgery, CreateSurgeryDto } from '../lib/api/surgeryAPI';
 import { petAPI } from '../lib/api/petAPI';
@@ -18,14 +18,8 @@ export default function SurgeriesPage() {
   const [loading, setLoading] = useState(true);
   const [petDateOfBirth, setPetDateOfBirth] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    if (petId) {
-      loadSurgeries();
-      loadPetDateOfBirth();
-    }
-  }, [petId]);
-
-  const loadSurgeries = async () => {
+  const loadSurgeries = useCallback(async () => {
+    if (!petId) return;
     try {
       const data = await surgeryAPI.findAll(petId as string);
       setSurgeries(data);
@@ -34,16 +28,24 @@ export default function SurgeriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [petId]);
 
-  const loadPetDateOfBirth = async () => {
+  const loadPetDateOfBirth = useCallback(async () => {
+    if (!petId) return;
     try {
       const pet = await petAPI.getPet(petId as string);
       setPetDateOfBirth(pet.dateOfBirth);
     } catch {
       // Pet data unavailable — birth date ordering validation will be skipped
     }
-  };
+  }, [petId]);
+
+  useEffect(() => {
+    if (!petId) return;
+    setLoading(true);
+    loadSurgeries();
+    loadPetDateOfBirth();
+  }, [petId, loadSurgeries, loadPetDateOfBirth]);
 
   const handleCreate = async (data: CreateSurgeryDto, photos?: File[]) => {
     await surgeryAPI.create(data, photos);

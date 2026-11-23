@@ -1,21 +1,10 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
+import { parseBlobError } from './errorUtils';
 
-async function parseBlobError(error: AxiosError): Promise<never> {
-  const data = error.response?.data;
-  const contentType = (error.response?.headers?.['content-type'] as string) ?? '';
-  if (data instanceof Blob && contentType.includes('application/json')) {
-    try {
-      const text = await data.text();
-      const parsed = JSON.parse(text);
-      error.message = parsed?.message ?? error.message;
-      (error.response as any).data = parsed;
-    } catch {
-      // leave error as-is if parsing fails
-    }
-  }
-  return Promise.reject(error);
+async function parseUserBlobError(error: import('axios').AxiosError<unknown>): Promise<never> {
+  return parseBlobError(error);
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -113,12 +102,29 @@ export interface UserProfile {
   country?: string;
   createdAt: string;
   updatedAt: string;
-  profileCompletion?: {
-    completionScore: number;
-    isComplete: boolean;
-    missingFields: string[];
-  };
+  profileCompletion?: ProfileCompletionState;
 }
+
+export interface ProfileCompletionState {
+  completionScore: number;
+  isComplete: boolean;
+  missingFields: string[];
+}
+
+type UserProfileEditableField =
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'avatarUrl'
+  | 'dateOfBirth'
+  | 'address'
+  | 'city'
+  | 'country';
+
+export type UserProfileData = {
+  [Field in UserProfileEditableField]-?: NonNullable<UserProfile[Field]>;
+};
 
 export interface UserSession {
   id: string;
@@ -145,9 +151,13 @@ export interface ActivityLog {
   ipAddress?: string;
   userAgent?: string;
   deviceId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   isSuspicious: boolean;
   createdAt: string;
+}
+
+export interface DataExport {
+  [key: string]: unknown;
 }
 
 class UserManagementAPI {
@@ -170,7 +180,7 @@ class UserManagementAPI {
 
     attachCorrelationInterceptor(this.api);
 
-    this.api.interceptors.response.use((r) => r, parseBlobError);
+    this.api.interceptors.response.use((r) => r, parseUserBlobError);
   }
 
   private getAccessToken(): string | null {
@@ -436,8 +446,8 @@ class UserManagementAPI {
     await this.api.delete('/me', { data: body });
   }
 
-  async exportData(): Promise<any> {
-    const response = await this.api.get('/me/export');
+  async exportData(): Promise<DataExport> {
+    const response = await this.api.get<DataExport>('/me/export');
     return response.data;
   }
 

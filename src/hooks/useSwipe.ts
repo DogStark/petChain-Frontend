@@ -20,7 +20,16 @@ interface TouchPoint {
   t: number;
 }
 
-export function useSwipe(options: SwipeOptions = {}) {
+export interface SwipeResult {
+  onTouchStart: (e: React.TouchEvent) => void;
+  onTouchMove: (e: React.TouchEvent) => void;
+  onTouchEnd: (e: React.TouchEvent) => void;
+  isSwiping: boolean;
+  /** Horizontal offset in px from the gesture start (negative = swiped left) */
+  deltaX: number;
+}
+
+export function useSwipe(options: SwipeOptions = {}): SwipeResult {
   const {
     threshold = 50,
     timeout = 400,
@@ -31,16 +40,25 @@ export function useSwipe(options: SwipeOptions = {}) {
   } = options;
   const start = useRef<TouchPoint | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [deltaX, setDeltaX] = useState(0);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0];
     start.current = { x: t.clientX, y: t.clientY, t: Date.now() };
     setIsSwiping(true);
+    setDeltaX(0);
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!start.current) return;
+    const t = e.touches[0];
+    setDeltaX(t.clientX - start.current.x);
   }, []);
 
   const onTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       setIsSwiping(false);
+      setDeltaX(0);
       if (!start.current) return;
       const t = e.changedTouches[0];
       const dx = t.clientX - start.current.x;
@@ -62,5 +80,5 @@ export function useSwipe(options: SwipeOptions = {}) {
     [threshold, timeout, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown]
   );
 
-  return { onTouchStart, onTouchEnd, isSwiping };
+  return { onTouchStart, onTouchMove, onTouchEnd, isSwiping, deltaX };
 }

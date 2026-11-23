@@ -88,7 +88,7 @@ export default function ActivityLogPage() {
           setOffset((prev) => prev + LIMIT);
         }
         setHasMore(data.length === LIMIT);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err?.response?.status === 401) {
           router.push('/login');
           return;
@@ -122,7 +122,7 @@ export default function ActivityLogPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err?.message || 'Export failed');
     } finally {
       setExporting(false);

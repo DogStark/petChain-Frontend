@@ -1,6 +1,7 @@
 /**
  * @file imageOrientationService.ts
  * Issue #963 — Safe image orientation and EXIF handling in previews.
+ * Issue #1439 — EXIF orientation correction on pet photo upload.
  *
  * ## Problem
  * Uploaded pet and medical images can render rotated or expose EXIF
@@ -15,6 +16,9 @@
  * - `decodeWithMemoryLimit` — wraps HTMLImageElement decoding with a hard
  *   memory-limit check (pixelCount × 4 bytes) and returns a typed failure
  *   so callers can surface it in the UI instead of crashing silently.
+ * - `correctImageOrientation` — one-shot helper for upload flows: reads the
+ *   EXIF orientation, normalizes the pixels, and returns a preview-ready
+ *   `File`/object URL (issue #1439).
  *
  * ## Security notes
  * - Orientation is always applied to pixels before presenting a preview.
@@ -224,186 +228,174 @@ export interface DecodedImage {
 }
 
 /**
- * Load a `File` into an `HTMLImageElement`, enforcing memory limits before
- * the browser allocates the full decoded bitmap.
+ * Load a `File` into an `HTMLImageElement`, enforcing the memory and
+ * dimension limits before the browser allocates the decoded bitmap.
  *
- * The check is conservative: it uses the JPEG-decoded natural dimensions
- * (read from the element itself after partial load) multiplied by 4 bytes/pixel.
- * If the bitmap would exceed `MAX_DECODED_BYTES` the function returns an
- * `OrientationFailure` with `reason: 'oversized'` so the UI can surface it.
+ * Returns a typed failure instead of throwing so callers can surface the
+ * reason in the UI.
  */
 export async function decodeWithMemoryLimit(
   file: File,
   signal?: AbortSignal
-): Promise<DecodedImage | OrientationFailure> {
+): Promise<{ ok: true; image: DecodedImage } | OrientationFailure> {
   if (signal?.aborted) {
-    return { ok: false, reason: 'aborted', message: 'Decode cancelled by caller.' };
+    return { ok: false, reason: 'aborted', message: 'Image decode aborted.' };
   }
 
-  return new Promise<DecodedImage | OrientationFailure>((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
+  const objectUrl = URL.createObjectURL(file);
 
-    const cleanup = () => {
-      img.onload = null;
-      img.onerror = null;
-    };
+  try {
+    const element = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('decode'));
+      img.src = objectUrl;
+    });
 
-    const onAbort = () => {
-      cleanup();
+    if (signal?.aborted) {
       URL.revokeObjectURL(objectUrl);
-      resolve({ ok: false, reason: 'aborted', message: 'Decode cancelled by caller.' });
-    };
-
-    if (signal) {
-      signal.addEventListener('abort', onAbort, { once: true });
+      return { ok: false, reason: 'aborted', message: 'Image decode aborted.' };
     }
 
-    img.onload = () => {
-      if (signal) signal.removeEventListener('abort', onAbort);
-      cleanup();
+    const { naturalWidth: width, naturalHeight: height } = element;
 
-      const { naturalWidth: w, naturalHeight: h } = img;
-
-      // Dimension guard
-      if (w > MAX_DIMENSION_PX || h > MAX_DIMENSION_PX) {
-        URL.revokeObjectURL(objectUrl);
-        resolve({
-          ok: false,
-          reason: 'dimension',
-          message: `Image dimension ${w}×${h} exceeds the maximum ${MAX_DIMENSION_PX}px per side.`,
-        });
-        return;
-      }
-
-      // Memory guard
-      const bytes = w * h * 4;
-      if (bytes > MAX_DECODED_BYTES) {
-        URL.revokeObjectURL(objectUrl);
-        resolve({
-          ok: false,
-          reason: 'oversized',
-          message:
-            `Image (${w}×${h}) would require ~${Math.round(bytes / 1024 / 1024)} MB decoded — ` +
-            `exceeds the ${Math.round(MAX_DECODED_BYTES / 1024 / 1024)} MB limit.`,
-        });
-        return;
-      }
-
-      resolve({ element: img, width: w, height: h, objectUrl });
-    };
-
-    img.onerror = () => {
-      if (signal) signal.removeEventListener('abort', onAbort);
-      cleanup();
+    if (width > MAX_DIMENSION_PX || height > MAX_DIMENSION_PX) {
       URL.revokeObjectURL(objectUrl);
-      resolve({ ok: false, reason: 'decode', message: `Failed to decode image: ${file.name}` });
-    };
+      return {
+        ok: false,
+        reason: 'dimension',
+        message: `Image dimensions ${width}×${height} exceed the ${MAX_DIMENSION_PX}px limit.`,
+      };
+    }
 
-    img.src = objectUrl;
-  });
+    if (width * height * 4 > MAX_DECODED_BYTES) {
+      URL.revokeObjectURL(objectUrl);
+      return {
+        ok: false,
+        reason: 'oversized',
+        message: `Image ${width}×${height} exceeds the decoded memory limit.`,
+      };
+    }
+
+    return { ok: true, image: { element, width, height, objectUrl } };
+  } catch {
+    URL.revokeObjectURL(objectUrl);
+    return { ok: false, reason: 'decode', message: 'Failed to decode image.' };
+  }
 }
 
-// ─── Main entry point ─────────────────────────────────────────────────────────
+// ─── Orientation normalisation ────────────────────────────────────────────────
 
 /**
- * Normalize the orientation of a `File`:
+ * Normalise the orientation of an image `File` by re-encoding its pixels
+ * through a canvas at the correct rotation/flip.
  *
- * 1. Read the raw EXIF orientation tag (never trusted for UI transforms directly).
- * 2. Enforce memory limits via `decodeWithMemoryLimit`.
- * 3. Draw the image through a canvas with the correct affine transform.
- * 4. Return a fresh `Blob` with canonical orientation and **no metadata tags**.
- *
- * @param file    The source `File` (JPEG, PNG, or WebP).
- * @param signal  Optional `AbortSignal` for cancellation.
- * @returns       `OrientationResult` — either success with the corrected blob, or
- *                a typed failure the UI can render as an error state.
+ * The returned Blob has no EXIF metadata and canonically-oriented pixels,
+ * so it can be shown in a preview or uploaded directly.
  */
 export async function normalizeOrientation(
   file: File,
   signal?: AbortSignal
 ): Promise<OrientationResult> {
-  if (signal?.aborted) {
-    return { ok: false, reason: 'aborted', message: 'Cancelled before orientation read.' };
-  }
+  const orientation = await readExifOrientation(file);
 
-  // Step 1 — read EXIF orientation (pure byte-scan, no canvas involved)
-  let orientation: ExifOrientation = 1;
-  try {
-    orientation = await readExifOrientation(file);
-  } catch {
-    // Treat parse errors as orientation=1 (no rotation), not a hard failure
-    orientation = 1;
-  }
-
-  if (signal?.aborted) {
-    return { ok: false, reason: 'aborted', message: 'Cancelled after orientation read.' };
-  }
-
-  // Step 2 — decode with memory limits
   const decoded = await decodeWithMemoryLimit(file, signal);
-  if (!('element' in decoded)) {
-    return decoded; // already an OrientationFailure
-  }
+  if (!decoded.ok) return decoded;
 
-  const { element: img, width: naturalW, height: naturalH, objectUrl } = decoded;
+  const { element, width, height, objectUrl } = decoded.image;
 
   try {
-    // Step 3 — determine canvas output dimensions
-    const outW = isTransposed(orientation) ? naturalH : naturalW;
-    const outH = isTransposed(orientation) ? naturalW : naturalH;
+    const outW = isTransposed(orientation) ? height : width;
+    const outH = isTransposed(orientation) ? width : height;
 
-    // Prefer OffscreenCanvas (no DOM round-trip, worker-safe) but fall back to
-    // a regular <canvas> in environments that don't support it (some test runners).
-    let blob: Blob | null = null;
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
 
-    if (typeof OffscreenCanvas !== 'undefined') {
-      const oc = new OffscreenCanvas(outW, outH);
-      const ctx = oc.getContext('2d') as OffscreenCanvasRenderingContext2D | null;
-      if (!ctx) {
-        return { ok: false, reason: 'canvas', message: 'OffscreenCanvas 2D context unavailable.' };
-      }
-      applyOrientationTransform(ctx, orientation, naturalW, naturalH);
-      ctx.drawImage(img, 0, 0);
-      blob = await oc.convertToBlob({ type: file.type || 'image/jpeg', quality: 0.92 });
-    } else {
-      const canvas = document.createElement('canvas');
-      canvas.width = outW;
-      canvas.height = outH;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        return { ok: false, reason: 'canvas', message: 'Canvas 2D context unavailable.' };
-      }
-      applyOrientationTransform(ctx, orientation, naturalW, naturalH);
-      ctx.drawImage(img, 0, 0);
-      blob = await new Promise<Blob | null>((res) =>
-        canvas.toBlob((b) => res(b), file.type || 'image/jpeg', 0.92)
-      );
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return { ok: false, reason: 'canvas', message: 'Canvas 2D context unavailable.' };
     }
 
+    applyOrientationTransform(ctx, orientation, width, height);
+    ctx.drawImage(element, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+    });
+
     if (!blob) {
-      return { ok: false, reason: 'canvas', message: 'Canvas toBlob produced null.' };
+      return { ok: false, reason: 'canvas', message: 'Failed to encode corrected image.' };
     }
 
     return { ok: true, blob, orientation };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { ok: false, reason: 'canvas', message: `Canvas draw error: ${msg}` };
+  } catch {
+    return { ok: false, reason: 'canvas', message: 'Failed to apply orientation correction.' };
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
 }
 
+// ─── Upload helper (issue #1439) ──────────────────────────────────────────────
+
 /**
- * Exported for unit testing only.
- * @internal
+ * Result of correcting an uploaded pet photo for preview.
+ *
+ * `file` is the corrected, EXIF-stripped image ready for upload;
+ * `previewUrl` is an object URL for the corrected image that the caller
+ * must revoke when the preview is no longer needed.
  */
-export const _internal = {
-  readExifOrientation,
-  applyOrientationTransform,
-  isTransposed,
-  matchBytes,
-  ORIENTATION_TAG,
-  MAX_DECODED_BYTES,
-  MAX_DIMENSION_PX,
-};
+export interface CorrectedImage {
+  file: File;
+  previewUrl: string;
+  orientation: ExifOrientation;
+  /** True when the pixels were actually rotated/flipped. */
+  corrected: boolean;
+}
+
+/**
+ * Read EXIF orientation from an uploaded pet photo, rotate/flip the pixels
+ * as needed, and return a preview-ready `File` plus object URL.
+ *
+ * On any failure (oversized, decode error, canvas unavailable) the original
+ * file is returned unchanged so the upload flow can continue — the preview
+ * simply shows the uncorrected image.
+ */
+export async function correctImageOrientation(
+  file: File,
+  signal?: AbortSignal
+): Promise<CorrectedImage> {
+  const orientation = await readExifOrientation(file);
+
+  if (orientation === 1) {
+    return {
+      file,
+      previewUrl: URL.createObjectURL(file),
+      orientation,
+      corrected: false,
+    };
+  }
+
+  const result = await normalizeOrientation(file, signal);
+
+  if (!result.ok) {
+    return {
+      file,
+      previewUrl: URL.createObjectURL(file),
+      orientation,
+      corrected: false,
+    };
+  }
+
+  const correctedFile = new File([result.blob], file.name, {
+    type: result.blob.type || 'image/jpeg',
+    lastModified: file.lastModified,
+  });
+
+  return {
+    file: correctedFile,
+    previewUrl: URL.createObjectURL(correctedFile),
+    orientation: result.orientation,
+    corrected: result.orientation !== 1,
+  };
+}

@@ -33,7 +33,7 @@ export default function SessionsPage() {
       if (activeSessions.length > 0) {
         setCurrentSessionId(activeSessions[0].id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMsg = err.response?.data?.message || err.message || 'Failed to load sessions';
       setError(errorMsg);
       console.error('Failed to load sessions:', err);
@@ -63,7 +63,7 @@ export default function SessionsPage() {
       } else {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMsg = err.response?.data?.message || err.message || 'Failed to revoke session';
       setError(errorMsg);
       console.error('Failed to revoke session:', err);
@@ -84,7 +84,7 @@ export default function SessionsPage() {
         await userAPI.revokeOtherSessions(currentSessionId);
         setSessions((prev) => prev.filter((s) => s.id === currentSessionId));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMsg = err.response?.data?.message || err.message || 'Failed to revoke sessions';
       setError(errorMsg);
       console.error('Failed to revoke all sessions:', err);

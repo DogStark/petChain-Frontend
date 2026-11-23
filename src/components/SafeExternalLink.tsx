@@ -15,52 +15,51 @@ interface SafeExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorEle
 
 /**
  * Wraps an <a> tag so that:
- * 1. Unknown origins are blocked or confirmed via a dialog.
- * 2. Sensitive query / hash parameters are stripped before navigation.
- * 3. External links are announced to assistive technology.
+ * 1. External destinations show a warning dialog before navigating away.
+ * 2. Unknown origins are blocked or confirmed via a dialog.
+ * 3. Sensitive query / hash parameters are stripped before navigation.
+ * 4. External links are announced to assistive technology.
  */
 export default function SafeExternalLink({
   href,
   children,
-  confirmMessage = 'You are about to open an external link. Do you want to continue?',
+  confirmMessage = 'You are about to leave the app and open an external link. Do you want to continue?',
   externalAnnouncement = ' (opens external link)',
   ...rest
 }: SafeExternalLinkProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
+  const policy = checkUrlPolicy(href);
+  const isExternal =
+    policy.allowed &&
+    !href.startsWith('/') &&
+    !href.startsWith('#') &&
+    !href.startsWith('?');
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      const policy = checkUrlPolicy(href);
+      const currentPolicy = checkUrlPolicy(href);
 
       // Relative / same-origin / safe links pass through unchanged.
-      if (policy.allowed && policy.cleanedHref === href) {
+      if (currentPolicy.allowed && !isExternal) {
         return;
       }
 
-      // Unknown origin — block and show confirmation.
-      if (!policy.allowed) {
-        e.preventDefault();
-        setPendingHref(href);
-        setDialogOpen(true);
-        return;
-      }
-
-      // Known external origin — strip sensitive params and open normally.
+      // External or unknown origin — intercept and show the warning dialog.
       e.preventDefault();
-      if (policy.cleanedHref) {
-        window.open(policy.cleanedHref, '_blank', 'noopener,noreferrer');
-      }
+      setPendingHref(href);
+      setDialogOpen(true);
     },
-    [href],
+    [href, isExternal],
   );
 
   const handleConfirm = useCallback(() => {
     setDialogOpen(false);
     if (pendingHref) {
-      const policy = checkUrlPolicy(pendingHref);
-      if (policy.allowed && policy.cleanedHref) {
-        window.open(policy.cleanedHref, '_blank', 'noopener,noreferrer');
+      const pendingPolicy = checkUrlPolicy(pendingHref);
+      if (pendingPolicy.allowed && pendingPolicy.cleanedHref) {
+        window.open(pendingPolicy.cleanedHref, '_blank', 'noopener,noreferrer');
       }
       setPendingHref(null);
     }
@@ -70,13 +69,6 @@ export default function SafeExternalLink({
     setDialogOpen(false);
     setPendingHref(null);
   }, []);
-
-  const policy = checkUrlPolicy(href);
-  const isExternal =
-    policy.allowed &&
-    !href.startsWith('/') &&
-    !href.startsWith('#') &&
-    !href.startsWith('?');
 
   return (
     <>
@@ -88,8 +80,8 @@ export default function SafeExternalLink({
         aria-label={
           isExternal
             ? rest['aria-label']
-              ? `${rest['aria-label']} (opens external link)`
-              : 'Opens external link'
+              ? `${rest['aria-label']}${externalAnnouncement}`
+              : `Opens external link${externalAnnouncement}`
             : rest['aria-label']
         }
         {...rest}
@@ -99,9 +91,18 @@ export default function SafeExternalLink({
 
       <ConfirmationDialog
         open={dialogOpen}
-        title="External Link"
-        description={confirmMessage}
-        confirmLabel="Open Link"
+        title="Leaving this app"
+        description={
+          <>
+            <span>{confirmMessage}</span>
+            {pendingHref && (
+              <span className="mt-2 block break-all text-sm font-mono text-gray-600">
+                {pendingHref}
+              </span>
+            )}
+          </>
+        }
+        confirmLabel="Continue"
         cancelLabel="Cancel"
         onConfirm={handleConfirm}
         onCancel={handleCancel}

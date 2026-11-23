@@ -9,10 +9,12 @@ import React, {
 } from 'react';
 import {
   AppNotification,
+  CATEGORY_LABELS,
   ToastNotification,
   NotificationPreferences,
   DEFAULT_PREFERENCES,
   NotificationCategory,
+  parseNotificationMetadata,
 } from '@/types/notification';
 import { notificationsAPI } from '@/lib/api/notificationsAPI';
 import { notificationService } from '@/services/notificationService';
@@ -150,6 +152,31 @@ const PREFS_KEY = 'petchain-notif-prefs';
 const PERSIST_KEY = 'petchain-notifications';
 const MAX_PERSISTED = 100;
 
+const notificationCategories = Object.keys(CATEGORY_LABELS);
+const notificationPriorities = ['low', 'normal', 'high', 'urgent'] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isAppNotification(value: unknown): value is AppNotification {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.id === 'string' &&
+    (value.userId === undefined || typeof value.userId === 'string') &&
+    typeof value.title === 'string' &&
+    typeof value.message === 'string' &&
+    notificationCategories.some((category) => category === value.category) &&
+    notificationPriorities.some((priority) => priority === value.priority) &&
+    typeof value.isRead === 'boolean' &&
+    (value.readAt === null || typeof value.readAt === 'string') &&
+    (value.actionUrl === null || typeof value.actionUrl === 'string') &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
+
 function loadPrefs(): NotificationPreferences {
   if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
   try {
@@ -180,7 +207,13 @@ function loadPersisted(): AppNotification[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(PERSIST_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isAppNotification).map((notification) => ({
+      ...notification,
+      metadata: parseNotificationMetadata(notification.metadata),
+    }));
   } catch {
     return [];
   }
@@ -255,7 +288,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const ns: AppNotification[] = res.data.map((n) => ({
           ...n,
           priority: n.priority ?? 'normal',
-          metadata: n.metadata as AppNotification['metadata'],
+          metadata: parseNotificationMetadata(n.metadata),
         }));
         dispatch({ type: 'SET_NOTIFICATIONS', payload: ns });
         dispatch({ type: 'SET_UNREAD', count: res.unreadCount });
@@ -307,10 +340,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       ws.onmessage = (event) => {
         try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'notification') {
-            const notif: AppNotification = msg.payload;
-            handleIncoming(notif);
+          const message: unknown = JSON.parse(event.data);
+          if (isRecord(message) && message.type === 'notification' && isAppNotification(message.payload)) {
+            handleIncoming(message.payload);
           }
         } catch {
           /* ignore malformed */
@@ -386,11 +418,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   // ── Incoming notification handler ───────────────────────────────────────────
-  const handleIncoming = useCallback((notif: AppNotification) => {
+  const handleIncoming = useCallback((incoming: AppNotification) => {
+    const notif = {
+      ...incoming,
+      metadata: parseNotificationMetadata(incoming.metadata),
+    };
     const prefs = preferencesRef.current;
 
     // Category filter
-    if (!prefs.categories[notif.category as NotificationCategory]) return;
+    if (!prefs.categories[notif.category]) return;
 
     // De-duplicate: skip if this notification id is already present (e.g. rapid reconnects)
     if (notificationsRef.current.some((n) => n.id === notif.id)) return;
