@@ -1,6 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import styles from './NotificationPreferences.module.css';
 
+export type NotificationLanguage =
+  | 'en'
+  | 'es'
+  | 'fr'
+  | 'de'
+  | 'pt'
+  | 'it'
+  | 'nl'
+  | 'ja'
+  | 'zh'
+  | 'ko';
+
+export const NOTIFICATION_LANGUAGES: { code: NotificationLanguage; label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'pt', label: 'Português' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'nl', label: 'Nederlands' },
+  { code: 'ja', label: '日本語' },
+  { code: 'zh', label: '中文' },
+  { code: 'ko', label: '한국어' },
+];
+
+const EMAIL_PREVIEW_SUBJECTS: Record<NotificationLanguage, string> = {
+  en: 'Your account activity summary',
+  es: 'Resumen de actividad de tu cuenta',
+  fr: "Résumé de l'activité de votre compte",
+  de: 'Zusammenfassung Ihrer Kontoaktivität',
+  pt: 'Resumo da atividade da sua conta',
+  it: 'Riepilogo delle attività del tuo account',
+  nl: 'Overzicht van uw accountactiviteit',
+  ja: 'アカウントアクティビティの概要',
+  zh: '您的账户活动摘要',
+  ko: '계정 활동 요약',
+};
+
+const EMAIL_PREVIEW_BODIES: Record<NotificationLanguage, string> = {
+  en: 'Hi there, here is a summary of recent activity on your account.',
+  es: 'Hola, aquí tienes un resumen de la actividad reciente de tu cuenta.',
+  fr: 'Bonjour, voici un résumé de l’activité récente de votre compte.',
+  de: 'Hallo, hier ist eine Zusammenfassung der letzten Aktivitäten Ihres Kontos.',
+  pt: 'Olá, aqui está um resumo da atividade recente da sua conta.',
+  it: 'Ciao, ecco un riepilogo delle attività recenti del tuo account.',
+  nl: 'Hallo, hier is een overzicht van de recente activiteit op uw account.',
+  ja: 'こんにちは。アカウントの最近のアクティビティの概要です。',
+  zh: '您好，这是您账户近期活动的摘要。',
+  ko: '안녕하세요. 계정의 최근 활동 요약입니다.',
+};
+
 type NotificationSettings = {
   emailNotifications: boolean;
   smsNotifications: boolean;
@@ -9,6 +60,7 @@ type NotificationSettings = {
   pushNotifications: boolean;
   marketingEmails: boolean;
   activityEmails: boolean;
+  emailLanguage: NotificationLanguage;
 };
 
 interface NotificationPreferencesProps {
@@ -36,6 +88,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
     pushNotifications: false,
     marketingEmails: false,
     activityEmails: true,
+    emailLanguage: 'en',
   });
 
   const [savedSettings, setSavedSettings] = useState<NotificationSettings | null>(null);
@@ -52,6 +105,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
         pushNotifications: preferences.pushNotifications ?? false,
         marketingEmails: preferences.marketingEmails ?? false,
         activityEmails: preferences.activityEmails ?? true,
+        emailLanguage: preferences.emailLanguage ?? 'en',
       };
       setSettings(newSettings);
       setSavedSettings(newSettings);
@@ -69,6 +123,13 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
     setSettings((prev) => ({
       ...prev,
       [key]: !prev[key],
+    }));
+  };
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSettings((prev) => ({
+      ...prev,
+      emailLanguage: e.target.value as NotificationLanguage,
     }));
   };
 
@@ -152,6 +213,38 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
               <span className={styles.toggleSlider} />
             </label>
           </div>
+
+          <div className={styles.preference}>
+            <div className={styles.preferenceContent}>
+              <div className={styles.preferenceName}>Email Language</div>
+              <p className={styles.preferenceDescription}>
+                Choose the language used for your email notifications.
+              </p>
+            </div>
+            <select
+              className={styles.languageSelect}
+              value={settings.emailLanguage}
+              onChange={handleLanguageChange}
+              disabled={isSubmitting || isLoading}
+              aria-label="Email notification language"
+            >
+              {NOTIFICATION_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.emailPreview} aria-live="polite">
+            <div className={styles.emailPreviewLabel}>Email Preview</div>
+            <div className={styles.emailPreviewSubject}>
+              {EMAIL_PREVIEW_SUBJECTS[settings.emailLanguage]}
+            </div>
+            <p className={styles.emailPreviewBody}>
+              {EMAIL_PREVIEW_BODIES[settings.emailLanguage]}
+            </p>
+          </div>
         </div>
 
         <div className={styles.section}>
@@ -213,44 +306,17 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
               </div>
             </>
           )}
-
-          {smsUsage != null && settings.smsNotifications && (
-            <p className={styles.preferenceDescription} style={{ marginTop: 8 }}>
-              This month: {smsUsage.sent} sent, {smsUsage.delivered} delivered
-              {smsUsage.limitCents != null && ` · Limit $${(smsUsage.limitCents / 100).toFixed(2)}`}
-            </p>
-          )}
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Other Notifications</h3>
+        {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
 
-          <div className={styles.preference}>
-            <div className={styles.preferenceContent}>
-              <div className={styles.preferenceName}>Push Notifications</div>
-              <p className={styles.preferenceDescription}>
-                Receive browser and mobile app push notifications.
-              </p>
-            </div>
-            <label className={styles.toggle}>
-              <input
-                type="checkbox"
-                checked={settings.pushNotifications}
-                onChange={() => handleToggle('pushNotifications')}
-                disabled={isSubmitting || isLoading}
-              />
-              <span className={styles.toggleSlider} />
-            </label>
-          </div>
-        </div>
-
-        {successMessage && <div className={styles.success}>{successMessage}</div>}
-
-        <div className={styles.actions}>
-          <button type="submit" className={styles.submitBtn} disabled={isSubmitting || isLoading}>
-            {isSubmitting ? 'Saving...' : 'Save Preferences'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          className={styles.submitButton}
+          disabled={isSubmitting || isLoading}
+        >
+          {isSubmitting ? 'Saving...' : 'Save Preferences'}
+        </button>
       </form>
     </div>
   );

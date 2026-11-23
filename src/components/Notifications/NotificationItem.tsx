@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bell,
   Calendar,
@@ -10,9 +10,12 @@ import {
   Info,
   CheckCircle2,
   ExternalLink,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
 import type { AppNotification } from '../../types/notification';
+import { useSwipe } from '../../hooks/useSwipe';
 
 const formatTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -28,6 +31,7 @@ export interface NotificationItemProps {
   notification: AppNotification;
   onMarkAsRead: (id: string) => void;
   onActionClick?: (url: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -57,6 +61,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
   onActionClick,
+  onDelete,
 }) => {
   const { id, title, message, category, isRead, createdAt, actionUrl, metadata } = notification;
   const imageUrl =
@@ -71,6 +76,32 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   const date = new Date(createdAt);
   const timeAgo = formatTimeAgo(date);
 
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [showUndo, setShowUndo] = useState(false);
+
+  const handleDelete = () => {
+    if (!onDelete || isDeleted) return;
+    setIsDeleted(true);
+    setShowUndo(true);
+    onDelete(id);
+  };
+
+  const { offset, isDragging, isRevealed, reset, handlers } = useSwipe({
+    onSwipeLeft: handleDelete,
+  });
+
+  useEffect(() => {
+    if (!showUndo) return;
+    const timer = setTimeout(() => setShowUndo(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showUndo]);
+
+  const handleUndo = () => {
+    setIsDeleted(false);
+    setShowUndo(false);
+    reset();
+  };
+
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (actionUrl && onActionClick) {
@@ -78,23 +109,64 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  return (
-    <div
-      className={`${styles.container} ${!isRead ? styles.unread : ''}`}
-      onClick={() => !isRead && onMarkAsRead(id)}
-    >
-      <div
-        className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}
-      >
-        {getCategoryIcon(category)}
-      </div>
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
+      e.preventDefault();
+      handleDelete();
+    }
+  };
 
-      <div className={styles.content}>
-        <div className={styles.header}>
-          <h4 className={styles.title}>{title}</h4>
-          <span className={styles.time}>{timeAgo}</span>
+  if (isDeleted) {
+    return (
+      <div className={styles.container} role="status" aria-live="polite">
+        <div className={styles.content}>
+          <p className={styles.message}>Notification deleted.</p>
+          {showUndo && (
+            <div className={styles.actions}>
+              <button className={styles.actionBtn} onClick={handleUndo}>
+                <Undo2 size={14} className={styles.btnIcon} />
+                Undo
+              </button>
+            </div>
+          )}
         </div>
-        <p className={styles.message}>{message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.swipeWrapper}>
+      {onDelete && (
+        <button
+          type="button"
+          className={styles.deleteAction}
+          aria-label={`Delete notification: ${title}`}
+          aria-hidden={!isRevealed}
+          tabIndex={isRevealed ? 0 : -1}
+          onClick={handleDelete}
+        >
+          <Trash2 size={18} />
+          Delete
+        </button>
+      )}
+      <div
+        className={`${styles.container} ${!isRead ? styles.unread : ''}`}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease',
+        }}
+        onClick={() => !isRead && onMarkAsRead(id)}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={`${title}. ${isRead ? 'Read' : 'Unread'} notification. Press Delete to remove.`}
+        {...handlers}
+      >
+        <div
+          className={`${styles.iconContainer} ${styles[category.toLowerCase()] || styles.default}`}
+        >
+          {getCategoryIcon(category)}
+        </div>
 
         {/* Rich Notification: Image Display */}
         {imageUrl && (
@@ -103,31 +175,60 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className={styles.actions}>
-          {actionUrl && (
-            <button className={styles.actionBtn} onClick={handleAction}>
-              <ExternalLink size={14} className={styles.btnIcon} />
-              View Details
-            </button>
+        <div className={styles.content}>
+          <div className={styles.header}>
+            <h4 className={styles.title}>{title}</h4>
+            <span className={styles.time}>{timeAgo}</span>
+          </div>
+          <p className={styles.message}>{message}</p>
+
+          {/* Rich Notification: Image Display */}
+          {metadata && 'imageUrl' in metadata && metadata.imageUrl && (
+            <div className={styles.imageContainer}>
+              <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
+            </div>
           )}
 
-          {!isRead && (
-            <button
-              className={styles.markReadBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onMarkAsRead(id);
-              }}
-            >
-              <CheckCircle2 size={14} className={styles.btnIcon} />
-              Mark as read
-            </button>
-          )}
+          {/* Action Buttons */}
+          <div className={styles.actions}>
+            {actionUrl && (
+              <button className={styles.actionBtn} onClick={handleAction}>
+                <ExternalLink size={14} className={styles.btnIcon} />
+                View Details
+              </button>
+            )}
+
+            {!isRead && (
+              <button
+                className={styles.markReadBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkAsRead(id);
+                }}
+              >
+                <CheckCircle2 size={14} className={styles.btnIcon} />
+                Mark as read
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                className={styles.markReadBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+                aria-label={`Delete notification: ${title}`}
+              >
+                <Trash2 size={14} className={styles.btnIcon} />
+                Delete
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {!isRead && <div className={styles.unreadDot} />}
+        {!isRead && <div className={styles.unreadDot} />}
+      </div>
     </div>
   );
 };

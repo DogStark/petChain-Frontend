@@ -34,6 +34,38 @@ export interface RegisterDeviceTokenDto {
   platform?: string;
 }
 
+// Supported locales for email notification templates.
+export type NotificationLocale =
+  | 'en'
+  | 'es'
+  | 'fr'
+  | 'de'
+  | 'pt'
+  | 'it'
+  | 'ja'
+  | 'zh'
+  | 'ko'
+  | 'ar';
+
+export const NOTIFICATION_LOCALES: { value: NotificationLocale; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'pt', label: 'Português' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'ja', label: '日本語' },
+  { value: 'zh', label: '中文' },
+  { value: 'ko', label: '한국어' },
+  { value: 'ar', label: 'العربية' },
+];
+
+export interface EmailTemplatePreview {
+  locale: NotificationLocale;
+  subject: string;
+  body: string;
+}
+
 // The backend's notification_settings table only stores per-category
 // booleans (+ a global switch) — it has no columns for sound/vibration/
 // browserPush/DND, which stay client-only (localStorage). This maps
@@ -49,11 +81,12 @@ export interface NotificationSettingsDto {
   lostPet?: boolean;
   medicalRecord?: boolean;
   system?: boolean;
+  emailLocale?: NotificationLocale;
 }
 
 const CATEGORY_TO_SETTINGS_FIELD: Record<
   keyof NotificationPreferences['categories'],
-  keyof Omit<NotificationSettingsDto, 'globalEnabled'>
+  keyof Omit<NotificationSettingsDto, 'globalEnabled' | 'emailLocale'>
 > = {
   APPOINTMENT: 'appointment',
   MEDICATION: 'medication',
@@ -155,11 +188,37 @@ class NotificationsAPI {
     return {
       ...fallback,
       categories: settingsDtoToCategories(response.data, fallback.categories),
+      emailLocale: response.data.emailLocale ?? fallback.emailLocale,
     };
   }
 
   async updatePreferences(userId: string, preferences: NotificationPreferences): Promise<void> {
-    await this.api.patch(`/${userId}/settings`, categoriesToSettingsDto(preferences.categories));
+    await this.api.patch(`/${userId}/settings`, {
+      ...categoriesToSettingsDto(preferences.categories),
+      emailLocale: preferences.emailLocale,
+    });
+  }
+
+  /**
+   * Persists only the email notification language for the user.
+   */
+  async updateEmailLocale(userId: string, locale: NotificationLocale): Promise<void> {
+    await this.api.patch(`/${userId}/settings`, { emailLocale: locale });
+  }
+
+  /**
+   * Fetches a rendered preview of the email notification template in the
+   * requested locale.
+   */
+  async getEmailTemplatePreview(
+    userId: string,
+    locale: NotificationLocale
+  ): Promise<EmailTemplatePreview> {
+    const response = await this.api.get<EmailTemplatePreview>(
+      `/${userId}/settings/email-preview`,
+      { params: { locale } }
+    );
+    return response.data;
   }
 }
 

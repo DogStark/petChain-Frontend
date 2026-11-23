@@ -9,6 +9,7 @@ import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
 import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
+import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
 import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
@@ -232,6 +233,11 @@ export default function PetDetailPage() {
           <PetPhotosManager petId={pet.id} />
         </div>
 
+        {/* Pet Documents Section */}
+        <div className={styles.section}>
+          <PetDocumentsManager petId={pet.id} />
+        </div>
+
         {/* Pet Details Section */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Details</h2>
@@ -307,7 +313,12 @@ function getAge(dateOfBirth: string): string | null {
       0,
       (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
     );
-    return `${months} mo`;
+    return `${months} month${months === 1 ? '' : 's'} old`;
   }
-  return `${years} yr`;
+  return `${years} year${years === 1 ? '' : 's'} old`;
+}
+
+function capitalize(value: string): string {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
