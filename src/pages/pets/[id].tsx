@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode, Printer } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import Avatar from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
@@ -9,6 +9,7 @@ import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
 import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
+import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
@@ -44,6 +45,7 @@ export default function PetDetailPage() {
   const [pet, setPet] = useState<Pet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Router not yet hydrated — stay in loading state until id is available
@@ -119,6 +121,11 @@ export default function PetDetailPage() {
   const primaryPhoto = pet.photos?.find((p) => p.isPrimary);
   const age = getAge(pet.dateOfBirth);
 
+  const handlePrintCard = () => {
+    if (typeof window === 'undefined') return;
+    window.print();
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
@@ -172,6 +179,52 @@ export default function PetDetailPage() {
             </button>
           </div>
           <EmergencyQR petId={pet.id} petName={pet.name} />
+        </div>
+
+        {/* Pet Identity Card Section */}
+        <div className={styles.section}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={styles.sectionTitle}>Identity Card</h2>
+            <button
+              onClick={handlePrintCard}
+              className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-all"
+            >
+              <Printer size={14} /> Print / Download Card
+            </button>
+          </div>
+          <div ref={cardRef} className="pet-identity-card-print">
+            <PetIdentityCard
+              pet={{
+                id: pet.id,
+                name: pet.name,
+                species: capitalize(pet.species),
+                breed: pet.breed,
+                photoUrl: primaryPhoto?.photoUrl || primaryPhoto?.thumbnailUrl || null,
+                microchipNumber: pet.microchipNumber,
+              }}
+              format="credit-card"
+            />
+          </div>
+          <style jsx global>{`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .pet-identity-card-print,
+              .pet-identity-card-print * {
+                visibility: visible;
+              }
+              .pet-identity-card-print {
+                position: absolute;
+                top: 0;
+                left: 0;
+              }
+              @page {
+                size: auto;
+                margin: 8mm;
+              }
+            }
+          `}</style>
         </div>
 
         {/* Pet Photos Section */}
@@ -236,37 +289,25 @@ export default function PetDetailPage() {
 
 function capitalize(str: string): string {
   if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function getAge(dateOfBirth: string): string | null {
-  const dob = new Date(dateOfBirth);
-  if (isNaN(dob.getTime())) return null;
-
+  if (!dateOfBirth) return null;
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return null;
   const now = new Date();
-  let years = now.getFullYear() - dob.getFullYear();
-  let months = now.getMonth() - dob.getMonth();
-
-  if (months < 0 || (months === 0 && now.getDate() < dob.getDate())) {
+  let years = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
     years--;
-    months += 12;
   }
-
-  if (years > 0) return `${years} yr${years !== 1 ? 's' : ''} old`;
-  if (months > 0) return `${months} mo${months !== 1 ? 's' : ''} old`;
-  return 'Newborn';
+  if (years < 1) {
+    const months = Math.max(
+      0,
+      (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+    );
+    return `${months} mo`;
+  }
+  return `${years} yr`;
 }
-
-export const getStaticPaths: GetStaticPaths = async () => {
-  return {
-    paths: [],
-    fallback: 'blocking',
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
-  return {
-    props: {},
-    revalidate: false,
-  };
-};
