@@ -266,3 +266,9 @@ PetChain is licensed under the MIT License.
 
 <!-- handsoff-issue-845 -->
 - #845: [Frontend] Add AbortSignal support to every read API and consuming hook
+
+<!-- handsoff-issue-831 -->
+- #831: [Frontend] Make lint fail on warnings after establishing a clean baseline
+
+<!-- handsoff-issue-1130 -->
+- #1130: [Frontend] Add a wallet activity export with ledger verification

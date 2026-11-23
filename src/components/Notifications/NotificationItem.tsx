@@ -12,7 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import styles from './NotificationItem.module.css';
-import type { NotificationMetadata } from '../../types/notification';
+import type { AppNotification } from '../../types/notification';
 
 const formatTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -25,16 +25,7 @@ const formatTimeAgo = (date: Date): string => {
   return date.toLocaleDateString();
 };
 export interface NotificationItemProps {
-  notification: {
-    id: string;
-    title: string;
-    message: string;
-    category: string;
-    isRead: boolean;
-    createdAt: string;
-    actionUrl?: string | null;
-    metadata?: NotificationMetadata | null;
-  };
+  notification: AppNotification;
   onMarkAsRead: (id: string) => void;
   onActionClick?: (url: string) => void;
 }
@@ -68,6 +59,14 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onActionClick,
 }) => {
   const { id, title, message, category, isRead, createdAt, actionUrl, metadata } = notification;
+  const imageUrl =
+    typeof metadata === 'object' &&
+    metadata !== null &&
+    'imageUrl' in metadata &&
+    typeof metadata.imageUrl === 'string' &&
+    metadata.imageUrl
+      ? metadata.imageUrl
+      : null;
 
   const date = new Date(createdAt);
   const timeAgo = formatTimeAgo(date);
@@ -98,9 +97,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         <p className={styles.message}>{message}</p>
 
         {/* Rich Notification: Image Display */}
-        {metadata && 'imageUrl' in metadata && metadata.imageUrl && (
+        {imageUrl && (
           <div className={styles.imageContainer}>
-            <img src={metadata.imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
+            <img src={imageUrl} alt="Notification attachment" className={styles.image} loading="lazy" width={300} height={200} />
           </div>
         )}
 

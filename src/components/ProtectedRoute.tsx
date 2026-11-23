@@ -42,6 +42,60 @@ export function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
 }
 
+/**
+ * Route-level authorization matrix.
+ *
+ * Maps each protected route prefix to the minimum role required to view it.
+ * This is the single source of truth used by ProtectedRoute and by the
+ * route-level authorization tests, so guest/user/staff/admin behavior is
+ * verified consistently across admin, wallet, records, settings, and
+ * analytics pages.
+ */
+export type RouteRole = 'guest' | 'user' | 'staff' | 'admin';
+
+export interface RouteAuthRule {
+  /** Route prefix (matched against the pathname) */
+  pattern: RegExp;
+  /** Minimum role required to access the route */
+  minRole: RouteRole;
+}
+
+export const ROUTE_AUTH_MATRIX: readonly RouteAuthRule[] = [
+  { pattern: /^\/admin(\/|$)/, minRole: 'admin' },
+  { pattern: /^\/analytics(\/|$)/, minRole: 'staff' },
+  { pattern: /^\/wallet(\/|$)/, minRole: 'user' },
+  { pattern: /^\/records(\/|$)/, minRole: 'user' },
+  { pattern: /^\/settings(\/|$)/, minRole: 'user' },
+] as const;
+
+const ROLE_RANK: Record<RouteRole, number> = {
+  guest: 0,
+  user: 1,
+  staff: 2,
+  admin: 3,
+};
+
+/**
+ * Resolves the minimum role required for a given pathname.
+ * Returns `null` when the route is not part of the protected matrix.
+ */
+export function getRequiredRole(pathname: string): RouteRole | null {
+  const rule = ROUTE_AUTH_MATRIX.find((entry) => entry.pattern.test(pathname));
+  return rule ? rule.minRole : null;
+}
+
+/**
+ * Determines whether a user role satisfies the required role.
+ */
+export function hasRequiredRole(
+  userRole: RouteRole | undefined,
+  requiredRole: RouteRole | null
+): boolean {
+  if (!requiredRole) return true;
+  const current = userRole ?? 'guest';
+  return ROLE_RANK[current] >= ROLE_RANK[requiredRole];
+}
+
 export default function ProtectedRoute({
   children,
   requireAuth = true,
@@ -59,6 +113,11 @@ export default function ProtectedRoute({
   // Check if this is a public route that should bypass auth
   const isPublic = allowPublic && isPublicRoute(pathname);
 
+  // Resolve the minimum role required by the route matrix (if any)
+  const requiredRole = getRequiredRole(pathname);
+  const userRole = (user?.role as RouteRole | undefined) ?? 'guest';
+  const roleAllowed = hasRequiredRole(userRole, requiredRole);
+
   // Handle initial auth check and bfcache restoration
   useEffect(() => {
     const checkAuth = () => {
@@ -69,6 +128,10 @@ export default function ProtectedRoute({
         return;
       }
       if (requireAdmin && !isAdmin) {
+        router.push('/dashboard');
+        return;
+      }
+      if (isAuthenticated && !roleAllowed) {
         router.push('/dashboard');
         return;
       }
@@ -102,6 +165,7 @@ export default function ProtectedRoute({
     router,
     isPublic,
     pathname,
+    roleAllowed,
   ]);
 
   // Show loading state while auth is being checked (including after bfcache restore)
@@ -124,6 +188,7 @@ export default function ProtectedRoute({
   // If auth is required but user is not authenticated and not a public route, don't render children
   if (requireAuth && !isAuthenticated && !isPublic) return null;
   if (requireAdmin && !isAdmin) return null;
+  if (isAuthenticated && !roleAllowed) return null;
 
   return <>{children}</>;
 }

@@ -11,7 +11,10 @@ import {
 } from '@/components/TouchUI';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
 import { useHaptic } from '@/hooks/useHaptic';
-import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
+import {
+  appointmentsAPI,
+  normalizeAppointmentBookingError,
+} from '@/lib/api/appointmentsAPI';
 import {
   validateNotFuture,
   validateDateOrdering,
@@ -138,37 +141,30 @@ export default function BookingModal({
       trigger('success');
       announce('Appointment booked successfully.', 'success');
       onClose();
-    } catch (err) {
-      const response =
-        typeof err === 'object' && err !== null && 'response' in err
-          ? err.response
-          : undefined;
-      const data =
-        typeof response === 'object' && response !== null && 'data' in response
-          ? response.data
-          : undefined;
-      const availableSlots =
-        typeof data === 'object' &&
-        data !== null &&
-        'availableSlots' in data &&
-        Array.isArray(data.availableSlots)
-          ? data.availableSlots.filter(
-              (slot): slot is string => typeof slot === 'string' && /^\d{2}:\d{2}$/.test(slot),
-            )
-          : [];
-      const isConflict =
-        typeof response === 'object' && response !== null && 'status' in response
-          ? response.status === 409
-          : false;
+    } catch (err: unknown) {
+      const bookingError = normalizeAppointmentBookingError(err);
+      const availableSlots = bookingError.availableSlots;
 
-      if (isConflict && availableSlots.length > 0) {
+      if (bookingError.status === 409 && availableSlots.length > 0) {
         setConflictSlots(availableSlots);
         announce('Booking conflict: the selected time slot is no longer available.', 'warning');
       } else {
         setConflictSlots([]);
         announce('Booking failed. Please try again.', 'error');
       }
-      setSubmitError(err);
+      setSubmitError(
+        bookingError.status === 409
+          ? {
+              response: {
+                status: 409,
+                data: {
+                  code: 'APPOINTMENT_CONFLICT',
+                  availableSlots: bookingError.availableSlots,
+                },
+              },
+            }
+          : bookingError,
+      );
       trigger('error');
     } finally {
       setIsSubmitting(false);

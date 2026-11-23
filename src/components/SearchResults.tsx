@@ -20,7 +20,7 @@ export function SearchEmptyState({ message = 'No results found' }: { message?: s
   );
 }
 
-interface SearchResultsProps<T = any> {
+interface SearchResultsProps<T = unknown> {
   results: T[];
   total: number;
   page: number;
@@ -33,7 +33,7 @@ interface SearchResultsProps<T = any> {
   emptyMessage?: string;
 }
 
-export default function SearchResults<T = any>({
+export default function SearchResults<T = unknown>({
   results,
   total,
   page,

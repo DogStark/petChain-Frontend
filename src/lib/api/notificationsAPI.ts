@@ -1,19 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
-import type { NotificationPreferences } from '@/types/notification';
-export type { NotificationPriority } from '@/types/notification';
-
-export type NotificationCategory =
-  | 'APPOINTMENT'
-  | 'MEDICATION'
-  | 'CONSULTATION'
-  | 'ALERT'
-  | 'MESSAGE'
-  | 'VACCINATION'
-  | 'LOST_PET'
-  | 'MEDICAL_RECORD'
-  | 'SYSTEM';
+import type {
+  AppNotification,
+  NotificationCategory,
+  NotificationPreferences,
+} from '@/types/notification';
+export type { NotificationCategory, NotificationPriority } from '@/types/notification';
 
 export interface NotificationQuery {
   category?: NotificationCategory;
@@ -31,22 +24,10 @@ export interface DeviceToken {
   updatedAt: string;
 }
 
-export interface Notification {
-  id: string;
+export type Notification = Omit<AppNotification, 'metadata'> & {
   userId: string;
-  title: string;
-  message: string;
-  category: NotificationCategory;
-  priority: NotificationPriority;
-  isRead: boolean;
-  readAt: string | null;
-  actionUrl: string | null;
-  metadata: Record<string, unknown> | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+  metadata: unknown;
+};
 
 export interface RegisterDeviceTokenDto {
   token: string;

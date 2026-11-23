@@ -78,7 +78,7 @@ export default function PetDetailPage() {
         const data = await res.json();
         if (cancelled) return;
         setPet(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (cancelled || err?.name === 'AbortError') return;
         setError(err.message);
       } finally {
