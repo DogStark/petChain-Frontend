@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
-import { generateAnalyticsData } from '../lib/analyticsUserData';
+import { generateAnalyticsData, generateUserEngagement, ENGAGEMENT_RANGE_OPTIONS } from '../lib/analyticsUserData';
+import type { EngagementRange } from '../lib/analyticsUserData';
+import type { UserEngagement } from '../lib/api/analyticsAPI';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
 import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
@@ -113,6 +115,8 @@ const AnalyticsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [engagementRange, setEngagementRange] = useState<EngagementRange>('7d');
+  const [engagement, setEngagement] = useState<UserEngagement | null>(null);
 
   const fetchData = async () => {
     try {
@@ -139,6 +143,20 @@ const AnalyticsPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    generateUserEngagement(engagementRange)
+      .then((result) => {
+        if (!cancelled) setEngagement(result);
+      })
+      .catch(() => {
+        if (!cancelled) setEngagement(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [engagementRange]);
+
   // Exporting goes through the privacy-aware preview dialog: it shows the
   // exact fields and date range, masks identifiers by default, and only
   // unmounts personal data once the backend authorises it.
@@ -147,6 +165,13 @@ const AnalyticsPage = () => {
   // slice hasn't changed between 30s polls.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const engagementData = useMemo(() => data?.engagementData ?? [], [JSON.stringify(data?.engagementData)]);
+  const engagementTrends = useMemo(
+    () =>
+      engagement?.trends ??
+      engagementData.map((entry) => ({ date: entry.date, dau: entry.activeUsers, wau: entry.newSignups })),
+    [engagement, engagementData],
+  );
+  const featureUsage = useMemo(() => engagement?.featureUsage ?? [], [engagement]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const healthData = useMemo(
     () =>
@@ -250,13 +275,26 @@ const AnalyticsPage = () => {
               summary={`${engagementData[engagementData.length - 1]?.activeUsers || 0} active users today`}
               minHeight="400px"
             >
-              <UserEngagementChart data={engagementData} />
+              <UserEngagementChart
+                data={engagementTrends}
+                featureUsage={featureUsage}
+                range={engagementRange}
+                onRangeChange={(value) => setEngagementRange(value as EngagementRange)}
+                rangeOptions={ENGAGEMENT_RANGE_OPTIONS.map(({ value, label }) => ({ value, label }))}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="User engagement"
-              columns={['Date', 'Active users', 'New signups']}
-              rows={engagementData.map((entry) => [entry.date, entry.activeUsers, entry.newSignups])}
+              columns={['Date', 'Daily active users', 'Weekly active users']}
+              rows={engagementTrends.map((entry) => [entry.date, entry.dau, entry.wau])}
             />
+            {featureUsage.length > 0 && (
+              <AccessibleDataTable
+                caption="Feature usage"
+                columns={['Feature', 'Users']}
+                rows={featureUsage.map((entry) => [entry.feature, entry.users])}
+              />
+            )}
           </section>
 
           <section className="lg:col-span-4" aria-label="Pet health analytics">
