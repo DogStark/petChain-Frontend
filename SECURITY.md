@@ -104,6 +104,37 @@ When adding a new integration:
 3. Update the table above and add a regression test asserting the header contains the new origin and still omits wildcards.
 4. Verify the PWA service worker still registers and the Stellar wallet connect flow still works in a browser before merging.
 
+## CSRF defenses for cookie-authenticated state changes
+
+Because authentication cookies are `Secure`/`SameSite`-scoped, every state-changing request (`POST`, `PUT`, `PATCH`, `DELETE`) that relies on cookie auth must also be protected against cross-site request forgery. The frontend enforces this in `src/lib/api` and the route handlers under `src/pages/api`.
+
+### Origin / Referer validation
+
+- For cookie-authenticated mutations, the request `Origin` header must match the app's own origin (derived from the configured site URL / request host).
+- When `Origin` is absent (some same-origin form posts and older clients), the `Referer` origin is used as a fallback.
+- If neither header is present or the resolved origin does not match, the request is rejected with `403 Forbidden` before any mutation runs.
+- Safe methods (`GET`, `HEAD`, `OPTIONS`) are not subject to this check.
+
+### CSRF tokens
+
+- A per-session CSRF token is issued to the client and must be echoed back on cookie-authenticated mutations (via the `X-CSRF-Token` header or a form field).
+- Tokens are compared in constant time; missing or mismatched tokens are rejected with `403 Forbidden`.
+- This applies to profile, wallet, GDPR, notification, and admin mutations.
+
+### Testing expectations
+
+- Regression tests characterize the vulnerability first: a cross-site form post and a cross-site `fetch` (with a foreign `Origin`) must be rejected.
+- Same-origin requests with a valid token must continue to succeed, and missing/invalid tokens must fail with the documented error responses.
+- Authorization checks, TypeScript strictness, and existing error shapes are preserved; CSRF rejection happens before business logic and never leaks sensitive data in the response.
+
+### Contributor notes
+
+When adding a new cookie-authenticated mutation:
+
+1. Route it through the shared CSRF guard in `src/lib/api` rather than hand-rolling checks.
+2. Ensure the client sends the CSRF token on the request.
+3. Add a regression test covering both the cross-site rejection and the same-origin success path.
+
 **For Users:**
 - Keep your software updated
 - Use strong passwords
