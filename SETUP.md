@@ -222,6 +222,10 @@ See [contributing.md](./contributing.md) for detailed guidelines.
 - **Issues**: [GitHub Issues](https://github.com/DogStark/petChain-Frontend/issues)
 - **Contact**: [@llins_x](https://t.me/llins_x)
 
+### Appointment bookings
+
+The frontend sends bookings to `POST /appointments` using `petId`, `vetClinicId`, `scheduledDate`, `duration`, `type`, `reason`, and `notes`. The backend response is normalized into the frontend `Appointment` domain type. Booking failures are privacy-safe and conflicts include only validated `HH:mm` alternate slots.
+
 ---
 
 The root `tsconfig.json` includes the root frontend `src/` and `tests/` trees only. Backend NestJS code is checked from `backend/` with its own `tsconfig.json` and Jest configuration.
