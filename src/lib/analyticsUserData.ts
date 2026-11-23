@@ -68,6 +68,62 @@ const getSafeApiUsageData = () =>
     errors: 0,
   }));
 
+const getVaccinationBreakdown = () => [
+  { vaccineType: 'Rabies', compliant: 96, nonCompliant: 4 },
+  { vaccineType: 'Distemper', compliant: 91, nonCompliant: 9 },
+  { vaccineType: 'Parvovirus', compliant: 88, nonCompliant: 12 },
+  { vaccineType: 'Leptospirosis', compliant: 82, nonCompliant: 18 },
+  { vaccineType: 'Bordetella', compliant: 79, nonCompliant: 21 },
+];
+
+const getNonCompliantPets = () => [
+  {
+    id: 'pet-1001',
+    name: 'Bella',
+    species: 'Dog',
+    ownerName: 'A. Rivera',
+    vaccineType: 'Rabies',
+    dueDate: '2026-08-14',
+    daysOverdue: 12,
+  },
+  {
+    id: 'pet-1002',
+    name: 'Milo',
+    species: 'Cat',
+    ownerName: 'J. Chen',
+    vaccineType: 'Distemper',
+    dueDate: '2026-09-02',
+    daysOverdue: 5,
+  },
+  {
+    id: 'pet-1003',
+    name: 'Luna',
+    species: 'Dog',
+    ownerName: 'S. Okafor',
+    vaccineType: 'Parvovirus',
+    dueDate: '2026-07-21',
+    daysOverdue: 36,
+  },
+  {
+    id: 'pet-1004',
+    name: 'Rocky',
+    species: 'Dog',
+    ownerName: 'M. Novak',
+    vaccineType: 'Leptospirosis',
+    dueDate: '2026-09-10',
+    daysOverdue: 2,
+  },
+  {
+    id: 'pet-1005',
+    name: 'Cleo',
+    species: 'Cat',
+    ownerName: 'P. Adeyemi',
+    vaccineType: 'Bordetella',
+    dueDate: '2026-06-30',
+    daysOverdue: 57,
+  },
+];
+
 export const generateAnalyticsData = async () => {
   let engagementData: Array<{ date: string; activeUsers: number; newSignups: number }>;
   let healthData: Array<{ name: string; value: number; color: string }>;
@@ -123,6 +179,8 @@ export const generateAnalyticsData = async () => {
     engagementData,
     healthData,
     vaccinationData,
+    vaccinationBreakdown: getVaccinationBreakdown(),
+    nonCompliantPets: getNonCompliantPets(),
     geoData,
     apiUsageData,
     timestamp: new Date().toISOString(),

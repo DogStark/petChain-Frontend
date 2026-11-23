@@ -27,6 +27,16 @@ interface AnalyticsData {
   engagementData: { date: string; activeUsers: number; newSignups: number }[];
   healthData: { name: string; value: number; color: string }[];
   vaccinationData: { month: string; compliant: number; nonCompliant: number }[];
+  vaccinationBreakdown: { vaccineType: string; compliant: number; nonCompliant: number }[];
+  nonCompliantPets: {
+    id: string;
+    name: string;
+    species: string;
+    ownerName: string;
+    vaccineType: string;
+    dueDate: string;
+    daysOverdue: number;
+  }[];
   geoData: { region: string; users: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
   timestamp: string;
@@ -152,6 +162,16 @@ const AnalyticsPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const vaccinationData = useMemo(() => data?.vaccinationData ?? [], [JSON.stringify(data?.vaccinationData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vaccinationBreakdown = useMemo(
+    () => data?.vaccinationBreakdown ?? [],
+    [JSON.stringify(data?.vaccinationBreakdown)],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const nonCompliantPets = useMemo(
+    () => data?.nonCompliantPets ?? [],
+    [JSON.stringify(data?.nonCompliantPets)],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
@@ -265,7 +285,11 @@ const AnalyticsPage = () => {
               summary="Track vaccination status across your pets"
               minHeight="350px"
             >
-              <VaccinationChart data={vaccinationData} />
+              <VaccinationChart
+                data={vaccinationData}
+                breakdown={vaccinationBreakdown}
+                nonCompliantPets={nonCompliantPets}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="Vaccination compliance"
@@ -339,6 +363,14 @@ const AnalyticsPage = () => {
         }
         .analytics-chart--vaccination .recharts-rectangle[fill="#ef4444"] {
           fill: #b91c1c !important;
+        }
+        .analytics-chart--vaccination .recharts-line-curve[stroke="#10b981"] {
+          stroke: #166534 !important;
+          stroke-width: 3px;
+        }
+        .analytics-chart--vaccination .recharts-line-curve[stroke="#ef4444"] {
+          stroke: #b91c1c !important;
+          stroke-width: 3px;
         }
         .analytics-chart--geographic .recharts-rectangle[fill="#8884d8"] {
           fill: #1d4ed8 !important;
