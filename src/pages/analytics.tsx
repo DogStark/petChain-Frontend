@@ -228,6 +228,19 @@ const AnalyticsPage = () => {
             <DataModeChart
               title="User Engagement"
               summary={`${engagementData[engagementData.length - 1]?.activeUsers || 0} active users today`}
+              textSummary={
+                <ul className="space-y-1">
+                  <li>
+                    Active users today:{' '}
+                    <strong>{engagementData[engagementData.length - 1]?.activeUsers || 0}</strong>
+                  </li>
+                  <li>
+                    New signups today:{' '}
+                    <strong>{engagementData[engagementData.length - 1]?.newSignups || 0}</strong>
+                  </li>
+                  <li>Days tracked: <strong>{engagementData.length}</strong></li>
+                </ul>
+              }
               minHeight="400px"
             >
               <UserEngagementChart data={engagementData} />
@@ -243,6 +256,15 @@ const AnalyticsPage = () => {
             <DataModeChart
               title="Pet Health Overview"
               priority={true}
+              textSummary={
+                <ul className="space-y-1">
+                  {healthData.map((entry) => (
+                    <li key={entry.name}>
+                      {entry.name}: <strong>{entry.value}</strong> pets
+                    </li>
+                  ))}
+                </ul>
+              }
               minHeight="400px"
             >
               <PetHealthChart data={healthData} />
@@ -263,6 +285,16 @@ const AnalyticsPage = () => {
               title="Vaccination Compliance"
               priority={true}
               summary="Track vaccination status across your pets"
+              textSummary={
+                <ul className="space-y-1">
+                  {vaccinationData.map((entry) => (
+                    <li key={entry.month}>
+                      {entry.month}: <strong>{entry.compliant}%</strong> compliant,{' '}
+                      <strong>{entry.nonCompliant}%</strong> non-compliant
+                    </li>
+                  ))}
+                </ul>
+              }
               minHeight="350px"
             >
               <VaccinationChart data={vaccinationData} />
@@ -278,6 +310,15 @@ const AnalyticsPage = () => {
             <DataModeChart
               title="Geographic Distribution"
               summary="User distribution across regions"
+              textSummary={
+                <ul className="space-y-1">
+                  {geoData.map((entry) => (
+                    <li key={entry.region}>
+                      {entry.region}: <strong>{entry.users}</strong> users
+                    </li>
+                  ))}
+                </ul>
+              }
               minHeight="350px"
             >
               <GeoDistributionChart data={geoData} />
@@ -293,6 +334,16 @@ const AnalyticsPage = () => {
             <DataModeChart
               title="API Usage & Performance"
               summary="Monitor system requests and error rates"
+              textSummary={
+                <ul className="space-y-1">
+                  {apiUsageData.map((entry) => (
+                    <li key={entry.time}>
+                      {entry.time}: <strong>{entry.requests}</strong> requests,{' '}
+                      <strong>{entry.errors}</strong> errors
+                    </li>
+                  ))}
+                </ul>
+              }
               minHeight="300px"
             >
               <ApiUsageChart data={apiUsageData} />

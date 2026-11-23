@@ -119,6 +119,42 @@ describe('DataModeImage Component', () => {
     });
   });
 
+  describe('Reduced Mode - Lower Resolution', () => {
+    it('should use reducedSrc in reduced mode', () => {
+      renderWithDataMode(
+        <DataModeImage
+          src="/large.jpg"
+          reducedSrc="/large-small.jpg"
+          alt="Large image"
+          width={800}
+          height={600}
+          priority
+        />,
+        'reduced'
+      );
+
+      expect(screen.getByTestId('safe-image')).toHaveAttribute('src', '/large-small.jpg');
+    });
+
+    it('should cap rendered width in reduced mode', () => {
+      renderWithDataMode(
+        <DataModeImage src="/large.jpg" alt="Large image" width={800} height={600} priority />,
+        'reduced'
+      );
+
+      expect(screen.getByTestId('safe-image')).toHaveAttribute('width', '320');
+    });
+
+    it('should keep original width in full mode', () => {
+      renderWithDataMode(
+        <DataModeImage src="/large.jpg" alt="Large image" width={800} height={600} />,
+        'full'
+      );
+
+      expect(screen.getByTestId('safe-image')).toHaveAttribute('width', '800');
+    });
+  });
+
   describe('Reduced Mode - Priority Images', () => {
     it('should always load priority images', () => {
       renderWithDataMode(
