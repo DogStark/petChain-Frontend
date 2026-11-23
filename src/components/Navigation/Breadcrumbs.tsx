@@ -1,6 +1,20 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
+export interface BreadcrumbItem {
+  /** Human-readable crumb label */
+  label: string;
+  /** Resolved href for the crumb (dynamic params substituted) */
+  href: string;
+}
+
+export interface BreadcrumbsProps {
+  /** Optional label overrides keyed by path segment (e.g. { '[id]': 'Details' }) */
+  labels?: Record<string, string>;
+  /** Optional className appended to the nav element */
+  className?: string;
+}
+
 // Map path segments to human-readable labels
 const SEGMENT_LABELS: Record<string, string> = {
   pets: 'My Pets',
@@ -11,6 +25,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   profile: 'Profile',
   search: 'Search',
   clinics: 'Clinics',
+  appointments: 'Appointments',
   'lab-results': 'Lab Results',
   surgeries: 'Surgeries',
   dental: 'Dental',
@@ -23,13 +38,14 @@ const SEGMENT_LABELS: Record<string, string> = {
   reports: 'Reports',
 };
 
-function labelFor(segment: string) {
+function labelFor(segment: string, overrides?: Record<string, string>) {
+  if (overrides && overrides[segment]) return overrides[segment];
   // Dynamic segments like [id] — show as "Details"
   if (segment.startsWith('[')) return 'Details';
   return SEGMENT_LABELS[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
 }
 
-export default function Breadcrumbs() {
+export default function Breadcrumbs({ labels, className }: BreadcrumbsProps = {}) {
   const { pathname, asPath } = useRouter();
 
   // pathname  → route pattern: /pets/[id]/emergency  (used for labels)
@@ -42,8 +58,8 @@ export default function Breadcrumbs() {
 
   if (patternSegments.length === 0) return null;
 
-  const crumbs = patternSegments.map((seg, i) => ({
-    label: labelFor(seg),
+  const crumbs: BreadcrumbItem[] = patternSegments.map((seg, i) => ({
+    label: labelFor(seg, labels),
     // Build href from resolved segments so dynamic params are substituted.
     // Fall back to the pattern segment if asPath somehow has fewer parts.
     href: '/' + resolvedSegments.slice(0, i + 1).join('/'),
@@ -52,7 +68,7 @@ export default function Breadcrumbs() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex items-center gap-1 text-sm text-gray-500 px-4 py-2 overflow-x-auto no-scrollbar"
+      className={`flex items-center gap-1 text-sm text-gray-500 px-4 py-2 overflow-x-auto no-scrollbar${className ? ` ${className}` : ''}`}
     >
       <Link href="/" className="hover:text-blue-600 transition-colors shrink-0">
         Home
