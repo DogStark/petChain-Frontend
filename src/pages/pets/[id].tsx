@@ -9,6 +9,7 @@ import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
 import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
+import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 
@@ -179,6 +180,11 @@ export default function PetDetailPage() {
           <PetPhotosManager petId={pet.id} />
         </div>
 
+        {/* Pet Documents Section */}
+        <div className={styles.section}>
+          <PetDocumentsManager petId={pet.id} />
+        </div>
+
         {/* Pet Details Section */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Details</h2>
@@ -234,39 +240,27 @@ export default function PetDetailPage() {
   );
 }
 
-function capitalize(str: string): string {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-
 function getAge(dateOfBirth: string): string | null {
-  const dob = new Date(dateOfBirth);
-  if (isNaN(dob.getTime())) return null;
-
+  if (!dateOfBirth) return null;
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return null;
   const now = new Date();
-  let years = now.getFullYear() - dob.getFullYear();
-  let months = now.getMonth() - dob.getMonth();
-
-  if (months < 0 || (months === 0 && now.getDate() < dob.getDate())) {
+  let years = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
     years--;
-    months += 12;
   }
-
-  if (years > 0) return `${years} yr${years !== 1 ? 's' : ''} old`;
-  if (months > 0) return `${months} mo${months !== 1 ? 's' : ''} old`;
-  return 'Newborn';
+  if (years < 1) {
+    const months = Math.max(
+      0,
+      (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+    );
+    return `${months} month${months === 1 ? '' : 's'} old`;
+  }
+  return `${years} year${years === 1 ? '' : 's'} old`;
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  return {
-    paths: [],
-    fallback: 'blocking',
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
-  return {
-    props: {},
-    revalidate: false,
-  };
-};
+function capitalize(value: string): string {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
