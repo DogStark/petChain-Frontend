@@ -3,6 +3,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import DataModeToggle from '@/components/DataModeToggle';
 import OfflineStatusIndicator from '@/components/OfflineStatusIndicator';
 import StoragePressureBanner from '@/components/StoragePressureBanner';
+import BlockchainSyncStatus from '@/components/BlockchainSyncStatus';
 import Link from 'next/link';
 
 export default function HeaderComponent() {
@@ -64,6 +65,7 @@ export default function HeaderComponent() {
                 </li>
               </>
             )}
+            <li><BlockchainSyncStatus /></li>
             <li><ThemeToggle /></li>
             <li><DataModeToggle /></li>
             <li><OfflineStatusIndicator /></li>
