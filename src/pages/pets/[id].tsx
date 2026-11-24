@@ -7,6 +7,7 @@ import Avatar from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
 import CareSetupChecklist from '@/components/Pets/CareSetupChecklist';
 import HealthScoreExplanation from '@/components/Pets/HealthScoreExplanation';
+import PetSharingSummary from '@/components/Pets/PetSharingSummary';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
 import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
@@ -168,6 +169,11 @@ export default function PetDetailPage() {
           </div>
         </section>
 
+        {/* Sharing Section */}
+        <div className={styles.section}>
+          <PetSharingSummary petId={pet.id} />
+        </div>
+
         {/* QR Code Section */}
         <div className={styles.section}>
           <div className="flex items-center justify-between mb-4">
@@ -243,26 +249,14 @@ export default function PetDetailPage() {
           <h2 className={styles.sectionTitle}>Details</h2>
           <div className={styles.detailGrid}>
             <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Species</span>
-              <span className={styles.detailValue}>{capitalize(pet.species)}</span>
-            </div>
-            {pet.breed && (
-              <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Breed</span>
-                <span className={styles.detailValue}>{pet.breed.name}</span>
-              </div>
-            )}
-            <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gender</span>
               <span className={styles.detailValue}>{capitalize(pet.gender)}</span>
             </div>
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Date of Birth</span>
-              <span className={styles.detailValue}>
-                {new Date(pet.dateOfBirth).toLocaleDateString()}
-              </span>
+              <span className={styles.detailValue}>{formatDate(pet.dateOfBirth)}</span>
             </div>
-            {pet.weight && (
+            {pet.weight != null && (
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Weight</span>
                 <span className={styles.detailValue}>{pet.weight} kg</span>
@@ -293,32 +287,34 @@ export default function PetDetailPage() {
   );
 }
 
-function capitalize(str: string): string {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
+function capitalize(value: string): string {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatDate(value: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
 }
 
 function getAge(dateOfBirth: string): string | null {
   if (!dateOfBirth) return null;
-  const birth = new Date(dateOfBirth);
-  if (Number.isNaN(birth.getTime())) return null;
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) return null;
   const now = new Date();
-  let years = now.getFullYear() - birth.getFullYear();
-  const monthDiff = now.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+  let years = now.getFullYear() - dob.getFullYear();
+  const monthDiff = now.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) {
     years--;
   }
   if (years < 1) {
     const months = Math.max(
       0,
-      (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+      (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth())
     );
-    return `${months} month${months === 1 ? '' : 's'} old`;
+    return `${months} mo`;
   }
-  return `${years} year${years === 1 ? '' : 's'} old`;
-}
-
-function capitalize(value: string): string {
-  if (!value) return '';
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return `${years} yr`;
 }
