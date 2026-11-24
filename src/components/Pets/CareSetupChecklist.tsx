@@ -13,6 +13,17 @@ interface CareSetupChecklistProps {
   createdAt?: string;
 }
 
+interface CareSetupStep {
+  id: 'vet' | 'emergency' | 'vaccinations' | 'appointments';
+  label: string;
+  description: string;
+  href: string;
+  linkLabel: string;
+  complete: boolean;
+}
+
+const DISMISSED_STORAGE_PREFIX = 'care-setup-dismissed:';
+
 function isRecentlyRegistered(createdAt?: string): boolean {
   if (!createdAt) return false;
   const registeredAt = new Date(createdAt).getTime();
@@ -37,6 +48,7 @@ export default function CareSetupChecklist({
   const [administeredDate, setAdministeredDate] = useState('');
   const [isSavingVaccination, setIsSavingVaccination] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   const loadChecklist = useCallback(async () => {
     setIsLoading(true);
@@ -68,19 +80,67 @@ export default function CareSetupChecklist({
     void loadChecklist();
   }, [loadChecklist]);
 
-  if (!isRecentlyRegistered(createdAt)) return null;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      setIsDismissed(window.localStorage.getItem(`${DISMISSED_STORAGE_PREFIX}${petId}`) === 'true');
+    } catch {
+      setIsDismissed(false);
+    }
+  }, [petId]);
+
+  const dismissChecklist = useCallback(() => {
+    setIsDismissed(true);
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(`${DISMISSED_STORAGE_PREFIX}${petId}`, 'true');
+    } catch {
+      // Ignore storage failures; dismissal still applies for this session.
+    }
+  }, [petId]);
+
+  if (!isRecentlyRegistered(createdAt) || isDismissed) return null;
 
   const hasVet = Boolean(emergencyInfo?.emergencyVet?.name && emergencyInfo.emergencyVet.phone);
   const hasEmergencyContact = Boolean(
     emergencyInfo?.contacts?.some((contact) => contact.name.trim() && contact.phone.trim())
   );
-  const steps = [
-    { label: 'Add a veterinarian', complete: hasVet },
-    { label: 'Add an emergency contact', complete: hasEmergencyContact },
-    { label: 'Add vaccination history', complete: vaccinations.length > 0 },
-    { label: 'Schedule the next appointment', complete: hasUpcomingAppointment },
+  const steps: CareSetupStep[] = [
+    {
+      id: 'vet',
+      label: 'Schedule the first vet visit',
+      description: 'Book an initial checkup with a veterinarian.',
+      href: '/appointments',
+      linkLabel: 'Schedule',
+      complete: hasUpcomingAppointment,
+    },
+    {
+      id: 'vaccinations',
+      label: 'Add vaccinations',
+      description: 'Record your pet&apos;s vaccination history.',
+      href: `/pets/${encodeURIComponent(petId)}#vaccinations`,
+      linkLabel: 'Add',
+      complete: vaccinations.length > 0,
+    },
+    {
+      id: 'emergency',
+      label: 'Add an emergency contact',
+      description: 'Keep a reachable contact on file for emergencies.',
+      href: `/profile?petId=${encodeURIComponent(petId)}`,
+      linkLabel: 'Add',
+      complete: hasEmergencyContact,
+    },
+    {
+      id: 'vet',
+      label: 'Add a veterinarian',
+      description: 'Save your primary vet&apos;s details for quick access.',
+      href: `/profile?petId=${encodeURIComponent(petId)}`,
+      linkLabel: 'Add',
+      complete: hasVet,
+    },
   ];
   const completedCount = steps.filter((step) => step.complete).length;
+  const allComplete = completedCount === steps.length;
 
   const saveVaccination = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -139,33 +199,26 @@ export default function CareSetupChecklist({
           </button>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {steps.map((step) => (
-              <li key={step.label} className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-sm">
+              <li key={step.label} className="flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-sm">
                 <span aria-hidden="true" className={step.complete ? 'text-green-700' : 'text-gray-400'}>
                   {step.complete ? '✓' : '○'}
                 </span>
-                <span className={step.complete ? 'text-gray-600 line-through' : 'font-medium text-gray-800'}>
-                  {step.label}
-                </span>
-                {step.label === 'Add a veterinarian' && !step.complete && (
-                  <Link className="ml-auto text-blue-700 underline" href={`/profile?petId=${encodeURIComponent(petId)}`}>
-                    Add
-                  </Link>
-                )}
-                {step.label === 'Add an emergency contact' && !step.complete && (
-                  <Link className="ml-auto text-blue-700 underline" href={`/profile?petId=${encodeURIComponent(petId)}`}>
-                    Add
-                  </Link>
-                )}
-                {step.label === 'Schedule the next appointment' && !step.complete && (
-                  <Link className="ml-auto text-blue-700 underline" href="/appointments">
-                    Schedule
+                <div className="flex-1">
+                  <p className={step.complete ? 'text-gray-600 line-through' : 'font-medium text-gray-800'}>
+                    {step.label}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">{step.description}</p>
+                </div>
+                {!step.complete && (
+                  <Link className="ml-auto text-blue-700 underline" href={step.href}>
+                    {step.linkLabel}
                   </Link>
                 )}
               </li>
             ))}
           </ul>
 
-          {!steps[2].complete && (
+          {!steps.find((step) => step.id === 'vaccinations')?.complete && (
             <form onSubmit={saveVaccination} className="mt-4 grid gap-3 rounded-xl border border-gray-200 p-4 sm:grid-cols-[1fr_180px_auto] sm:items-end">
               <label className="text-sm font-medium text-gray-700">
                 Vaccine
@@ -197,10 +250,18 @@ export default function CareSetupChecklist({
               {saveError && <p className="text-sm text-red-700 sm:col-span-3" role="alert">{saveError}</p>}
             </form>
           )}
-          {completedCount === steps.length && (
-            <p className="mt-4 text-sm font-medium text-green-800" role="status">
-              Care setup is complete. All four items are confirmed in saved records.
-            </p>
+
+          {allComplete && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-green-50 p-3 text-sm text-green-800">
+              <p>All care setup steps are complete. Nice work!</p>
+              <button
+                type="button"
+                onClick={dismissChecklist}
+                className="rounded-lg bg-green-700 px-3 py-1.5 font-semibold text-white"
+              >
+                Dismiss checklist
+              </button>
+            </div>
           )}
         </>
       )}
