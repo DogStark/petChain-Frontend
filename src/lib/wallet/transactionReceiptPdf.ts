@@ -4,12 +4,9 @@ export type ReceiptNetwork = 'TESTNET' | 'PUBLIC';
 
 export function isReceiptEligibleTransaction(transaction: Transaction): boolean {
   return (
-    transaction.type === 'transfer' &&
     transaction.status === 'confirmed' &&
     typeof transaction.hash === 'string' &&
-    Boolean(transaction.hash.trim()) &&
-    Number.isSafeInteger(transaction.blockNumber) &&
-    (transaction.blockNumber ?? 0) > 0
+    Boolean(transaction.hash.trim())
   );
 }
 
@@ -24,42 +21,77 @@ function formatTimestamp(timestamp: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function splitPdfLine(value: string, maxLength = 84): string[] {
+  const safeValue = value.replace(/[^\x20-\x7E]/g, '?');
+  const lines: string[] = [];
+  for (let offset = 0; offset < safeValue.length; offset += maxLength) {
+    lines.push(escapePdfText(safeValue.slice(offset, offset + maxLength)));
+  }
+  return lines.length ? lines : [''];
+}
+
+function metadataForReceipt(metadata?: Record<string, unknown>): string {
+  if (!metadata) return 'Not provided';
+  return JSON.stringify(metadata, (key, value: unknown) =>
+    /secret|password|private.?key|seed|pin|token/i.test(key) ? undefined : value
+  ) ?? 'Not provided';
+}
+
 export function createTransactionReceiptPdf(
   transaction: Transaction,
   network: ReceiptNetwork
 ): Uint8Array {
   if (!isReceiptEligibleTransaction(transaction)) {
-    throw new Error('A receipt is available only for confirmed transactions with a ledger and hash.');
+    throw new Error('A receipt is available only for confirmed transactions with a hash.');
   }
 
   const networkLabel = network === 'TESTNET' ? 'Stellar Testnet' : 'Stellar Mainnet';
-  const timestamp = formatTimestamp(transaction.timestamp);
+  const fields: Array<[string, string]> = [
+    ['Transaction ID', transaction.id],
+    ['Transaction hash', transaction.hash],
+    ['Status', transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)],
+    ['Type', transaction.type],
+    ['From address', transaction.fromAddress],
+    ['To address', transaction.toAddress ?? 'Not provided'],
+    ['Amount', transaction.amount ?? 'Not provided'],
+    ['Fee', transaction.fee],
+    ['Transaction time', formatTimestamp(transaction.timestamp) ?? transaction.timestamp],
+    ['Ledger', transaction.blockNumber == null ? 'Not provided' : String(transaction.blockNumber)],
+    ['Confirmations', String(transaction.confirmations)],
+    ['Metadata', metadataForReceipt(transaction.metadata)],
+    ['Error message', transaction.errorMessage ?? 'None'],
+  ];
   const lines = [
     'PetChain Wallet Transaction Receipt',
-    'Status: Confirmed',
     `Network: ${networkLabel}`,
-    `Transaction hash: ${transaction.hash}`,
-    `Ledger: ${transaction.blockNumber}`,
-    `Confirmations: ${transaction.confirmations}`,
-    ...(timestamp ? [`Transaction time: ${timestamp}`] : []),
+    ...fields.flatMap(([label, value]) => splitPdfLine(`${label}: ${value}`)),
   ];
-
-  const textCommands = lines
-    .map((line, index) => {
-      const fontSize = index === 0 ? 18 : 11;
-      const y = index === 0 ? 750 : 710 - (index - 1) * 24;
-      return `/F1 ${fontSize} Tf 1 0 0 1 50 ${y} Tm (${escapePdfText(line)}) Tj`;
-    })
-    .join('\n');
-  const content = `BT\n${textCommands}\nET`;
+  const linesPerPage = 30;
+  const pages: string[][] = [];
+  for (let offset = 0; offset < lines.length; offset += linesPerPage) {
+    pages.push(lines.slice(offset, offset + linesPerPage));
+  }
 
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    `<< /Type /Pages /Kids [${pages.map((_, index) => `${4 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
   ];
+  pages.forEach((pageLines, pageIndex) => {
+    const textCommands = pageLines
+      .map((line, lineIndex) => {
+        const title = pageIndex === 0 && lineIndex === 0;
+        const fontSize = title ? 18 : 10;
+        const y = title ? 750 : 720 - (lineIndex - (pageIndex === 0 ? 1 : 0)) * 20;
+        return `/F1 ${fontSize} Tf 1 0 0 1 50 ${y} Tm (${line}) Tj`;
+      })
+      .join('\n');
+    const content = `BT\n${textCommands}\nET`;
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + pageIndex * 2} 0 R >>`,
+      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    );
+  });
 
   let pdf = '%PDF-1.4\n';
   const offsets = [0];
@@ -86,9 +118,9 @@ export function downloadTransactionReceiptPdf(
   const blob = new Blob([pdf], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const safeHash = transaction.hash.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16);
+  const safeId = transaction.id.replace(/[^a-zA-Z0-9_-]/g, '') || 'transaction';
   link.href = url;
-  link.download = `petchain-receipt-${safeHash}.pdf`;
+  link.download = `petchain-receipt-${safeId}.pdf`;
   link.style.display = 'none';
   document.body.appendChild(link);
   link.click();

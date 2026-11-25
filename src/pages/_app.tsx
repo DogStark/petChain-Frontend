@@ -10,7 +10,7 @@ import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
 import ToastContainer from "@/components/Notifications/ToastContainer";
 import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DataModeProvider } from "@/contexts/DataModeContext";
@@ -24,6 +24,7 @@ import {
 import RouteMetadata from "@/components/RouteMetadata";
 import AccessibilityAnnouncer from "@/components/Accessibility/AccessibilityAnnouncer";
 import { useWebVitals } from "@/hooks/useWebVitals";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { buildReport, sendToAnalytics, sendToGoogleAnalytics, getRating } from "@/lib/webVitalsReporter";
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
@@ -35,6 +36,8 @@ type AppPropsWithLayout = AppProps & {
 };
 
 const SW_REGISTRATION_KEY = "sw-registered";
+const PUSH_PROMPT_PREFIX = "push-notification-prompted";
+const FIREBASE_VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? "";
 
 /**
  * Browser-only initialization. Safe no-op on the server so that SSR and
@@ -98,6 +101,91 @@ function PWAManager() {
   );
 }
 
+function FirstLoginPushPrompt() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { permission, loading, error, requestPermission } = usePushNotifications(
+    user?.id ?? null,
+    FIREBASE_VAPID_KEY,
+  );
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated || !user) {
+      setVisible(false);
+      return;
+    }
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    if (Notification.permission === "granted") {
+      void requestPermission();
+      return;
+    }
+
+    const storageKey = `${PUSH_PROMPT_PREFIX}:${user.id}`;
+    try {
+      if (window.localStorage.getItem(storageKey)) return;
+      window.localStorage.setItem(storageKey, "shown");
+    } catch (storageError) {
+      console.warn("Unable to persist the push notification prompt state:", storageError);
+    }
+
+    if (Notification.permission === "default") setVisible(true);
+  }, [isAuthenticated, isLoading, requestPermission, user]);
+
+  useEffect(() => {
+    if (permission.granted || permission.denied) setVisible(false);
+  }, [permission.denied, permission.granted]);
+
+  const handleEnable = async () => {
+    await requestPermission();
+    if (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission !== "default"
+    ) {
+      setVisible(false);
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+    <aside
+      role="dialog"
+      aria-labelledby="push-prompt-title"
+      aria-describedby="push-prompt-description"
+      className="fixed bottom-4 right-4 z-[100] w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-blue-100 bg-white p-5 shadow-xl"
+    >
+      <h2 id="push-prompt-title" className="text-lg font-bold text-gray-900">
+        Stay up to date with your pet&apos;s care
+      </h2>
+      <p id="push-prompt-description" className="mt-2 text-sm text-gray-600">
+        Push notifications can remind you about vaccinations and appointments, and alert you to
+        important pet health updates. You can change this permission in your browser settings.
+      </p>
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      <div className="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setVisible(false)}
+          className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+        >
+          Not now
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleEnable()}
+          disabled={loading}
+          className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+        >
+          {loading ? "Enabling…" : "Enable notifications"}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const { reports: _reports } = useWebVitals();
   const router = useRouter();
@@ -140,6 +228,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   return (
     <I18nProvider>
     <AuthProvider>
+      <FirstLoginPushPrompt />
       <ThemeProvider>
         <DataModeProvider>
           <NotificationProvider>

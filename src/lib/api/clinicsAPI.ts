@@ -1,9 +1,15 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
-import { Clinic, ClinicService, OperatingHours } from '@/types/clinic';
+import { Clinic, ClinicReview, ClinicService, OperatingHours } from '@/types/clinic';
 
 const API_BASE_URL = getApiBaseUrl();
+
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 interface BackendVetClinic {
   id: string;
@@ -18,6 +24,9 @@ interface BackendVetClinic {
   operatingHours?: Record<string, { open: string; close: string }>;
   services?: string[];
   notes?: string;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: ClinicReview[];
 }
 
 const DAY_LABELS: OperatingHours['day'][] = [
@@ -84,8 +93,9 @@ export function mapVetClinicToClinic(clinic: BackendVetClinic): Clinic {
     hours: mapOperatingHours(clinic.operatingHours),
     services: mapServices(clinic.id, clinic.services),
     staff: [],
-    rating: 0,
-    reviewCount: 0,
+    rating: clinic.rating ?? 0,
+    reviewCount: clinic.reviewCount ?? clinic.reviews?.length ?? 0,
+    reviews: clinic.reviews ?? [],
   };
 }
 
@@ -130,6 +140,19 @@ class ClinicsAPI {
   async getClinicById(id: string): Promise<Clinic> {
     const response = await this.api.get<BackendVetClinic>(`/${id}`);
     return mapVetClinicToClinic(response.data);
+  }
+
+  async submitReview(
+    clinicId: string,
+    review: { rating: number; comment: string },
+  ): Promise<ClinicReview> {
+    const csrfToken = getCsrfToken();
+    const response = await this.api.post<ClinicReview>(
+      `/${encodeURIComponent(clinicId)}/reviews`,
+      review,
+      { headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : undefined },
+    );
+    return response.data;
   }
 
   async saveAvailability(clinicId: string, availability: Array<{day: string; slots: string; active: boolean}>): Promise<void> {

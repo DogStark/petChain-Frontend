@@ -21,12 +21,55 @@ export interface PetShareSummary {
   };
 }
 
+export interface Breed {
+  id: string;
+  name: string;
+}
+
+export interface PetRecord {
+  id: string;
+  name: string;
+  species: string;
+  breedId?: string | null;
+  breed?: string | { id?: string; name: string } | null;
+  gender: string;
+  dateOfBirth: string;
+  weight: number | null;
+  color: string | null;
+  microchipNumber: string | null;
+  specialNeeds: string | null;
+  photos?: Array<{
+    id: string;
+    photoUrl: string;
+    thumbnailUrl: string;
+    isPrimary: boolean;
+  }>;
+  createdAt?: string;
+}
+
+export interface PetUpsertPayload {
+  name: string;
+  species: string;
+  breedId?: string;
+  gender: string;
+  dateOfBirth: string;
+  weight: number | null;
+  color: string | null;
+  microchipNumber: string | null;
+  specialNeeds: string | null;
+}
+
 class PetAPI {
   private api: AxiosInstance;
+  private breedsApi: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
       baseURL: `${getApiBaseUrl()}/pets`,
+      withCredentials: true,
+    });
+    this.breedsApi = axios.create({
+      baseURL: getApiBaseUrl(),
       withCredentials: true,
     });
 
@@ -39,6 +82,26 @@ class PetAPI {
     });
 
     attachCorrelationInterceptor(this.api);
+    attachCorrelationInterceptor(this.breedsApi);
+  }
+
+  async getBreeds(species: string, signal?: AbortSignal): Promise<Breed[]> {
+    const response = await this.breedsApi.get<Breed[]>('/breeds', {
+      params: { species: species.toUpperCase() },
+      signal,
+    });
+    return response.data;
+  }
+
+  async createPet(pet: PetUpsertPayload): Promise<PetRecord> {
+    const response = await this.api.post<PetRecord>('/', pet);
+    return response.data;
+  }
+
+  async updatePet(petId: string, pet: PetUpsertPayload): Promise<PetRecord> {
+    if (!UUID_RE.test(petId)) throw new ApiError('errors.validation.invalidId', 'Invalid petId');
+    const response = await this.api.put<PetRecord>(`/${petId}`, pet);
+    return response.data;
   }
 
   async getUserPets(): Promise<Pet[]> {

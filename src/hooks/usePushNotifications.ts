@@ -185,6 +185,14 @@ export function usePushNotifications(
 
   const requestPermission = useCallback(async (): Promise<void> => {
     if (!userId) return;
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setError('This browser does not support push notifications.');
+      return;
+    }
+    if (!vapidKeyRef.current.trim()) {
+      setError('Push notifications are not configured for this site.');
+      return;
+    }
 
     // Fast-path: already denied — cannot request again programmatically.
     const current = readPermissionStatus();
