@@ -14,6 +14,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import {
   appointmentsAPI,
   normalizeAppointmentBookingError,
+  type UpcomingAppointmentView,
 } from '@/lib/api/appointmentsAPI';
 import {
   validateNotFuture,
@@ -90,6 +91,9 @@ export default function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [conflictSlots, setConflictSlots] = useState<string[]>([]);
+  const [petConflict, setPetConflict] = useState<UpcomingAppointmentView | null>(null);
+  const [overrideConflict, setOverrideConflict] = useState(false);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointmentView[]>([]);
 
   const dynamicTimeOptions = React.useMemo(() => {
     const options = [...TIME_OPTIONS];
@@ -124,6 +128,10 @@ export default function BookingModal({
     e.preventDefault();
     if (isSubmitting) return;
     if (!validate()) {
+      trigger('error');
+      return;
+    }
+    if (petConflict && !overrideConflict) {
       trigger('error');
       return;
     }
@@ -170,6 +178,30 @@ export default function BookingModal({
       setIsSubmitting(false);
     }
   };
+
+  // Load upcoming appointments once for conflict detection
+  useEffect(() => {
+    appointmentsAPI.getUpcomingAppointments().then(setUpcomingAppointments).catch(() => {});
+  }, []);
+
+  // Detect pet-level appointment conflict whenever pet, date, or time changes
+  useEffect(() => {
+    const { petId, date, time } = formData;
+    if (!petId || !date || !time) {
+      setPetConflict(null);
+      return;
+    }
+    const selectedStart = new Date(`${date}T${time}:00`);
+    const selectedEnd = new Date(selectedStart.getTime() + 30 * 60 * 1000);
+    const conflict = upcomingAppointments.find((entry) => {
+      if (entry.appointment.petId !== petId) return false;
+      const apptStart = new Date(entry.appointment.scheduledAt);
+      const apptEnd = new Date(apptStart.getTime() + (entry.appointment.duration ?? 30) * 60 * 1000);
+      return selectedStart < apptEnd && selectedEnd > apptStart;
+    });
+    setPetConflict(conflict ?? null);
+    if (!conflict) setOverrideConflict(false);
+  }, [formData.petId, formData.date, formData.time, upcomingAppointments]);
 
   // Close on backdrop tap
   const handleBackdrop = (e: React.MouseEvent) => {
@@ -358,6 +390,38 @@ export default function BookingModal({
               }}
             />
           </div>
+
+          {petConflict && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm space-y-2"
+            >
+              <p className="font-semibold text-amber-800">⚠️ Appointment conflict detected</p>
+              <p className="text-amber-700 text-xs">
+                <strong>{petConflict.petName}</strong> already has a{' '}
+                <strong>{petConflict.appointment.appointmentType}</strong> appointment with{' '}
+                <strong>{petConflict.vetName}</strong> at this time (
+                {new Date(petConflict.appointment.scheduledAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+                ).
+              </p>
+              {!overrideConflict ? (
+                <button
+                  type="button"
+                  onClick={() => setOverrideConflict(true)}
+                  className="text-xs font-medium text-amber-800 underline hover:no-underline"
+                >
+                  Book anyway (I understand the conflict)
+                </button>
+              ) : (
+                <p className="text-xs text-amber-600 font-medium">
+                  ✓ You have confirmed the override. Proceeding with booking.
+                </p>
+              )}
+            </div>
+          )}
 
           {initialClinicId && initialClinicName ? (
             /* Clinic pre-selected — show as a read-only "Veterinarian / Clinic" field */
