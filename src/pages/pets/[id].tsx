@@ -13,6 +13,10 @@ import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
 import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
+import ZkpVaccinationProof from '@/components/ZkpVaccinationProof';
+import { vaccinationsAPI, type VaccinationRecord } from '@/lib/api/vaccinationsAPI';
+import { zkpService, type ZkpProof } from '@/lib/zkp';
+import type { PetInsuranceDetails } from '@/types/pet';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +31,7 @@ interface Pet {
   color: string | null;
   microchipNumber: string | null;
   specialNeeds: string | null;
+  insuranceDetails?: PetInsuranceDetails;
   photos: Array<{
     id: string;
     photoUrl: string;
@@ -46,6 +51,15 @@ export default function PetDetailPage() {
   const [pet, setPet] = useState<Pet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [insuranceForm, setInsuranceForm] = useState<PetInsuranceDetails>({});
+  const [isSavingInsurance, setIsSavingInsurance] = useState(false);
+  const [insuranceMessage, setInsuranceMessage] = useState<string | null>(null);
+  const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
+  const [zkpProofs, setZkpProofs] = useState<ZkpProof[]>([]);
+  const [vaccinationLoading, setVaccinationLoading] = useState(true);
+  const [proofLoading, setProofLoading] = useState(true);
+  const [vaccinationError, setVaccinationError] = useState<string | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,6 +95,7 @@ export default function PetDetailPage() {
         const data = await res.json();
         if (cancelled) return;
         setPet(data);
+        setInsuranceForm(data.insuranceDetails ?? {});
       } catch (err: unknown) {
         if (cancelled || err?.name === 'AbortError') return;
         setError(err.message);
@@ -96,6 +111,45 @@ export default function PetDetailPage() {
       controller.abort();
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!pet?.id) return;
+    let cancelled = false;
+    setVaccinationLoading(true);
+    setProofLoading(true);
+    setVaccinationError(null);
+    setProofError(null);
+
+    void vaccinationsAPI.getByPetId(pet.id)
+      .then((records) => {
+        if (!cancelled) setVaccinations(records);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setVaccinationError(err instanceof Error ? err.message : 'Unable to load vaccination records.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setVaccinationLoading(false);
+      });
+
+    void zkpService.getProofsForPet(pet.id)
+      .then((proofs) => {
+        if (!cancelled) setZkpProofs(proofs);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setProofError(err instanceof Error ? err.message : 'Unable to load vaccination proof status.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProofLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pet?.id]);
 
   if (isLoading) {
     return (
@@ -126,6 +180,56 @@ export default function PetDetailPage() {
     if (typeof window === 'undefined') return;
     window.print();
   };
+
+  const handleInsuranceSave = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!pet) return;
+    setIsSavingInsurance(true);
+    setInsuranceMessage(null);
+
+    const insuranceDetails: PetInsuranceDetails = {
+      provider: insuranceForm.provider?.trim() || undefined,
+      policyNumber: insuranceForm.policyNumber?.trim() || undefined,
+      expiryDate: insuranceForm.expiryDate?.trim() || undefined,
+      coverageSummary: insuranceForm.coverageSummary?.trim() || undefined,
+    };
+    const hasInsuranceDetails = Object.values(insuranceDetails).some(Boolean);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/pets/${encodeURIComponent(pet.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          insuranceDetails: hasInsuranceDetails ? insuranceDetails : null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 404
+          ? 'Pet not found'
+          : 'Unable to save insurance details');
+      }
+
+      setPet((current) =>
+        current
+          ? { ...current, insuranceDetails: hasInsuranceDetails ? insuranceDetails : undefined }
+          : current,
+      );
+      setInsuranceForm(insuranceDetails);
+      setInsuranceMessage('Insurance details saved.');
+    } catch (err: unknown) {
+      setInsuranceMessage(err instanceof Error ? err.message : 'Unable to save insurance details.');
+    } finally {
+      setIsSavingInsurance(false);
+    }
+  };
+
+  const insuranceExpiryDays = pet.insuranceDetails?.expiryDate
+    ? getDaysUntil(pet.insuranceDetails.expiryDate)
+    : null;
 
   return (
     <div className={styles.container}>
@@ -166,6 +270,49 @@ export default function PetDetailPage() {
           <div className="mt-8">
             <AttachmentQueueView petId={pet.id} />
           </div>
+        </section>
+
+        <section className={styles.section} aria-labelledby="vaccinations-title">
+          <h2 id="vaccinations-title" className={styles.sectionTitle}>Vaccination records</h2>
+          {vaccinationLoading ? (
+            <p role="status">Loading vaccination records…</p>
+          ) : vaccinationError ? (
+            <p role="alert" className="text-sm text-red-700">{vaccinationError}</p>
+          ) : vaccinations.length === 0 ? (
+            <p className="text-sm text-gray-600">No vaccination records yet.</p>
+          ) : (
+            <ul className="space-y-4">
+              {vaccinations.map((vaccination) => {
+                const proof = zkpProofs.find(
+                  (item) => item.vaccinationId === vaccination.id,
+                );
+                return (
+                  <li
+                    key={vaccination.id}
+                    className="rounded-xl border border-gray-200 bg-white p-4"
+                  >
+                    <p className="font-semibold text-gray-900">{vaccination.vaccineName}</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Administered {new Date(vaccination.administeredDate).toLocaleDateString()}
+                    </p>
+                    <div className="mt-3">
+                      <ZkpVaccinationProof
+                        vaccinationId={vaccination.id}
+                        vaccineName={vaccination.vaccineName}
+                        existingProof={proof}
+                        proofStatusUnavailable={proofLoading || Boolean(proofError)}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {proofError && (
+            <p role="alert" className="mt-3 text-sm text-amber-800">
+              {proofError}
+            </p>
+          )}
         </section>
 
         {/* QR Code Section */}
@@ -287,6 +434,72 @@ export default function PetDetailPage() {
               </div>
             )}
           </div>
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900">Insurance details</h3>
+            {insuranceExpiryDays !== null && insuranceExpiryDays <= 30 && (
+              <p role="alert" className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                {insuranceExpiryDays < 0
+                  ? 'This insurance policy has expired.'
+                  : `This insurance policy expires in ${insuranceExpiryDays} day${insuranceExpiryDays === 1 ? '' : 's'}.`}
+              </p>
+            )}
+            <form onSubmit={handleInsuranceSave} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-gray-700">
+                Provider
+                <input
+                  value={insuranceForm.provider ?? ''}
+                  onChange={(event) =>
+                    setInsuranceForm((form) => ({ ...form, provider: event.target.value }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-gray-300 p-2"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Policy number
+                <input
+                  value={insuranceForm.policyNumber ?? ''}
+                  onChange={(event) =>
+                    setInsuranceForm((form) => ({ ...form, policyNumber: event.target.value }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-gray-300 p-2"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Expiry date
+                <input
+                  type="date"
+                  value={insuranceForm.expiryDate ?? ''}
+                  onChange={(event) =>
+                    setInsuranceForm((form) => ({ ...form, expiryDate: event.target.value }))
+                  }
+                  className="mt-1 block w-full rounded-lg border border-gray-300 p-2"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700 sm:col-span-2">
+                Coverage summary
+                <textarea
+                  value={insuranceForm.coverageSummary ?? ''}
+                  onChange={(event) =>
+                    setInsuranceForm((form) => ({ ...form, coverageSummary: event.target.value }))
+                  }
+                  rows={3}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 p-2"
+                />
+              </label>
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={isSavingInsurance}
+                  className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {isSavingInsurance ? 'Saving…' : 'Save insurance details'}
+                </button>
+                {insuranceMessage && (
+                  <p role="status" className="mt-2 text-sm text-gray-700">{insuranceMessage}</p>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -316,6 +529,14 @@ function getAge(dateOfBirth: string): string | null {
     return `${months} month${months === 1 ? '' : 's'} old`;
   }
   return `${years} year${years === 1 ? '' : 's'} old`;
+}
+
+function getDaysUntil(date: string): number | null {
+  const expiryDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(expiryDate.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((expiryDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 }
 
 function capitalize(value: string): string {

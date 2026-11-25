@@ -23,6 +23,7 @@ import {
 } from "@/components/PWAInstallPrompt";
 import RouteMetadata from "@/components/RouteMetadata";
 import AccessibilityAnnouncer from "@/components/Accessibility/AccessibilityAnnouncer";
+import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useWebVitals } from "@/hooks/useWebVitals";
 import { buildReport, sendToAnalytics, sendToGoogleAnalytics, getRating } from "@/lib/webVitalsReporter";
 
@@ -153,6 +154,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               <NotificationCenter />
               {/* Live-region announcements for assistive technology */}
               <AccessibilityAnnouncer />
+              <KeyboardShortcutsHelp />
               {getLayout(<Component {...pageProps} />)}
               <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
             </RouteErrorBoundaryWithRouter>
