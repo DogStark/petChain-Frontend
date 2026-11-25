@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './NotificationPreferences.module.css';
+import { useQuietHours } from '@/hooks/useQuietHours';
 
 export type NotificationLanguage =
   | 'en'
@@ -80,6 +81,8 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
   onDirtyChange,
   isLoading = false,
 }) => {
+  const { config: quietHours, update: updateQuietHours, isActive: quietActive } = useQuietHours();
+
   const [settings, setSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     smsNotifications: false,
@@ -305,6 +308,85 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
                 </label>
               </div>
             </>
+          )}
+        </div>
+
+        {/* ── Quiet Hours ── */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Quiet Hours</h3>
+
+          <div className={styles.preference}>
+            <div className={styles.preferenceContent}>
+              <div className={styles.preferenceName}>Enable Quiet Hours</div>
+              <p className={styles.preferenceDescription}>
+                Suppress push notifications during a chosen time range.
+                {quietActive && (
+                  <span className="ml-2 text-amber-600 font-semibold text-xs">(Active now)</span>
+                )}
+              </p>
+            </div>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={quietHours.enabled}
+                onChange={(e) => updateQuietHours({ enabled: e.target.checked })}
+              />
+              <span className={styles.toggleSlider} />
+            </label>
+          </div>
+
+          {quietHours.enabled && (
+            <div className="mt-4 space-y-4 pl-2">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <label className="flex flex-col gap-1 flex-1">
+                  <span className="text-xs font-semibold text-gray-600">Start time</span>
+                  <input
+                    type="time"
+                    value={quietHours.startTime}
+                    onChange={(e) => updateQuietHours({ startTime: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 flex-1">
+                  <span className="text-xs font-semibold text-gray-600">End time</span>
+                  <input
+                    type="time"
+                    value={quietHours.endTime}
+                    onChange={(e) => updateQuietHours({ endTime: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-gray-600">Timezone</span>
+                <input
+                  type="text"
+                  value={quietHours.timezone}
+                  onChange={(e) => updateQuietHours({ timezone: e.target.value })}
+                  placeholder="e.g. America/New_York"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-xs text-gray-400">IANA timezone (auto-detected from your device)</span>
+              </label>
+
+              <div className={styles.preference}>
+                <div className={styles.preferenceContent}>
+                  <div className={styles.preferenceName}>Allow urgent alerts</div>
+                  <p className={styles.preferenceDescription}>
+                    Urgent notifications (emergencies, critical health alerts) bypass quiet hours.
+                  </p>
+                </div>
+                <label className={styles.toggle}>
+                  <input
+                    type="checkbox"
+                    checked={quietHours.allowUrgent}
+                    onChange={(e) => updateQuietHours({ allowUrgent: e.target.checked })}
+                  />
+                  <span className={styles.toggleSlider} />
+                </label>
+              </div>
+            </div>
           )}
         </div>
 
