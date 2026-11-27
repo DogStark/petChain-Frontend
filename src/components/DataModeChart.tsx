@@ -19,6 +19,11 @@ interface DataModeChartProps {
    */
   summary?: string;
   /**
+   * Optional structured text summary rendered in place of the chart in reduced mode.
+   * When provided, the chart is replaced by this summary (no "View Chart" button).
+   */
+  textSummary?: ReactNode;
+  /**
    * Minimum height for the chart container
    */
   minHeight?: string | number;
@@ -43,12 +48,29 @@ export default function DataModeChart({
   priority = false,
   title,
   summary,
+  textSummary,
   minHeight = '300px',
 }: DataModeChartProps) {
   const { isReducedMode } = useDataMode();
   const [userOptedIn, setUserOptedIn] = useState(false);
 
   const shouldRender = !isReducedMode || priority || userOptedIn;
+
+  // In reduced mode, a structured text summary fully replaces the chart.
+  if (isReducedMode && !priority && textSummary) {
+    return (
+      <div
+        className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm"
+        style={{ minHeight }}
+        role="region"
+        aria-label={`${title} text summary (chart replaced to save bandwidth)`}
+      >
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
+        <div className="text-sm text-gray-700">{textSummary}</div>
+        <p className="mt-3 text-xs text-gray-500">Reduced data mode • Text summary</p>
+      </div>
+    );
+  }
 
   const handleViewChart = () => {
     setUserOptedIn(true);

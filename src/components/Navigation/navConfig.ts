@@ -8,11 +8,11 @@ export interface NavItem {
 
 // Bottom tab items (mobile) — max 5
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: 'home' },
+  { label: 'Dashboard', href: '/dashboard', icon: 'grid', authRequired: true },
   { label: 'Pets', href: '/pets', icon: 'paw', authRequired: true },
   { label: 'Appointments', href: '/appointments', icon: 'calendar', authRequired: true },
-  { label: 'Search', href: '/search', icon: 'search' },
-  { label: 'Profile', href: '/profile', icon: 'user', authRequired: true },
+  { label: 'Wallet', href: '/wallet', icon: 'wallet', authRequired: true },
+  { label: 'Notifications', href: '/notifications', icon: 'bell', authRequired: true },
 ];
 
 // Full sidebar items (desktop)

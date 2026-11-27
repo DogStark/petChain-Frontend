@@ -37,6 +37,7 @@ export interface UseRecurringPaymentReviewResult {
   selectIntent: (intent: RecurringPaymentIntent | null) => void;
   fetchIntents: () => Promise<void>;
   cancelIntent: (intentId: string, reason?: string) => Promise<boolean>;
+  setIntentPaused: (intentId: string, paused: boolean) => Promise<boolean>;
   recordConsent: (intentId: string, action: 'grant' | 'deny') => Promise<boolean>;
   clearError: () => void;
 }
@@ -156,6 +157,53 @@ export function useRecurringPaymentReview({
     [announce]
   );
 
+  const setIntentPaused = useCallback(
+    async (intentId: string, paused: boolean): Promise<boolean> => {
+      setActionInProgress(true);
+      setError(null);
+      try {
+        const result = await recurringPaymentAPI.setRecurringIntentPaused(intentId, paused);
+        if (result.success && isMountedRef.current) {
+          setIntents((prev) =>
+            prev.map((item) =>
+              item.id === intentId
+                ? {
+                    ...item,
+                    status: paused ? ('paused' as const) : ('active' as const),
+                    statusReason: paused
+                      ? 'Paused by user prior to signing'
+                      : 'Resumed by user',
+                  }
+                : item
+            )
+          );
+          announce(
+            paused
+              ? 'Recurring payment schedule paused'
+              : 'Recurring payment schedule resumed'
+          );
+          return true;
+        }
+        return false;
+      } catch (err: unknown) {
+        if (isMountedRef.current) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : `Failed to ${paused ? 'pause' : 'resume'} recurring intent`;
+          setError(message);
+          announce(`Schedule update failed: ${message}`, 'error');
+        }
+        return false;
+      } finally {
+        if (isMountedRef.current) {
+          setActionInProgress(false);
+        }
+      }
+    },
+    [announce]
+  );
+
   const recordConsent = useCallback(
     async (intentId: string, action: 'grant' | 'deny'): Promise<boolean> => {
       setActionInProgress(true);
@@ -203,6 +251,7 @@ export function useRecurringPaymentReview({
     selectIntent,
     fetchIntents,
     cancelIntent,
+    setIntentPaused,
     recordConsent,
     clearError,
   };

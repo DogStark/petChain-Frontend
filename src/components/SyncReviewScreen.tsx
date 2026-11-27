@@ -2,13 +2,14 @@
  * SyncReviewScreen component
  *
  * Displays a summary of queued offline changes before they are replayed to the
- * server. Users can cancel individual items and see any existing conflicts that
- * need resolution. Issue #1142.
+ * server. Users can cancel individual items and resolve any existing conflicts
+ * (keep local, keep server, or merge field by field). Issue #1142, #1412.
  *
  * Accessibility:
- * - Live regions announce loading and error states.
+ * - Live regions announce loading, error and resolution states.
  * - Each action row is a labelled listitem with a clearly labelled cancel button.
- * - Conflict links describe their destination inline.
+ * - Conflicts are rendered as a captioned comparison table with labelled
+ *   radio groups and per-conflict action buttons.
  * - Keyboard navigation follows natural DOM order; no focus traps.
  */
 
@@ -16,7 +17,8 @@ import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, Clock, RefreshCw, Wifi, WifiOff, X } from 'lucide-react';
 import { useSyncReview } from '@/hooks/useSyncReview';
-import type { SyncQueueItem } from '@/lib/offline/indexedDB';
+import type { SyncQueueItem, SyncConflictSnapshot } from '@/lib/offline/indexedDB';
+import type { ConflictResolutionStrategy } from '@/lib/offline/syncManager';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,153 @@ function formatTimestamp(timestamp: number): string {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function displayValue(value: unknown): string {
+  if (value === undefined) return 'Not present';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value, null, 2) ?? 'Not present';
+  } catch {
+    return 'Value cannot be displayed';
+  }
+}
+
+interface ConflictCardProps {
+  conflict: SyncConflictSnapshot;
+  index: number;
+  isResolving: boolean;
+  onResolve: (
+    conflictId: string,
+    strategy: ConflictResolutionStrategy,
+    fieldChoices?: Record<string, 'local' | 'server'>,
+  ) => void;
+}
+
+function ConflictCard({ conflict, index, isResolving, onResolve }: ConflictCardProps) {
+  const fields = React.useMemo(
+    () =>
+      Array.from(
+        new Set([...Object.keys(conflict.localData), ...Object.keys(conflict.serverData)]),
+      ).sort(),
+    [conflict],
+  );
+  const [choices, setChoices] = useState<Record<string, 'local' | 'server'>>({});
+  const displayEndpoint = conflict.endpoint.replace(/^\/api\/v\d+/, '');
+  const headingId = `conflict-${index}-heading`;
+
+  return (
+    <li className="rounded-lg border border-amber-200 bg-white p-4">
+      <h3 id={headingId} className="text-sm font-semibold text-gray-900">
+        Conflict {index + 1}
+        <span className="ml-2 font-normal text-gray-500">{displayEndpoint}</span>
+      </h3>
+
+      {fields.length === 0 ? (
+        <p className="mt-2 text-sm text-gray-600">
+          No comparable fields were included with this conflict.
+        </p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
+            <caption className="sr-only">
+              Local and server values for conflict {index + 1} on {displayEndpoint}
+            </caption>
+            <thead>
+              <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+                <th scope="col" className="py-2 pr-3 font-semibold">
+                  Field
+                </th>
+                <th scope="col" className="py-2 pr-3 font-semibold">
+                  Local value
+                </th>
+                <th scope="col" className="py-2 pr-3 font-semibold">
+                  Server value
+                </th>
+                <th scope="col" className="py-2 font-semibold">
+                  Keep
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {fields.map((field) => {
+                const selected = choices[field] ?? 'server';
+                return (
+                  <tr key={field} className="border-b border-gray-100 align-top">
+                    <th scope="row" className="py-2 pr-3 font-medium text-gray-800">
+                      {field}
+                    </th>
+                    <td className="py-2 pr-3">
+                      <pre className="whitespace-pre-wrap break-words font-sans text-gray-700">
+                        {displayValue(conflict.localData[field])}
+                      </pre>
+                    </td>
+                    <td className="py-2 pr-3">
+                      <pre className="whitespace-pre-wrap break-words font-sans text-gray-700">
+                        {displayValue(conflict.serverData[field])}
+                      </pre>
+                    </td>
+                    <td className="py-2">
+                      <fieldset className="flex gap-3">
+                        <legend className="sr-only">Keep which value for {field}</legend>
+                        {(['local', 'server'] as const).map((source) => (
+                          <label
+                            key={source}
+                            className="flex cursor-pointer items-center gap-1 text-xs text-gray-700"
+                          >
+                            <input
+                              type="radio"
+                              name={`conflict-${index}-field-${field}`}
+                              value={source}
+                              checked={selected === source}
+                              onChange={() =>
+                                setChoices((current) => ({ ...current, [field]: source }))
+                              }
+                            />
+                            {source === 'local' ? 'Local' : 'Server'}
+                          </label>
+                        ))}
+                      </fieldset>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={isResolving}
+          onClick={() => onResolve(conflict.conflictId, 'local')}
+          aria-label={`Keep local values for conflict ${index + 1} on ${displayEndpoint}`}
+          className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Keep local
+        </button>
+        <button
+          type="button"
+          disabled={isResolving}
+          onClick={() => onResolve(conflict.conflictId, 'server')}
+          aria-label={`Keep server values for conflict ${index + 1} on ${displayEndpoint}`}
+          className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Keep server
+        </button>
+        <button
+          type="button"
+          disabled={isResolving || fields.length === 0}
+          onClick={() => onResolve(conflict.conflictId, 'merge', choices)}
+          aria-label={`Merge selected values for conflict ${index + 1} on ${displayEndpoint}`}
+          className="rounded bg-amber-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Merge selected
+        </button>
+      </div>
+    </li>
+  );
+}
 
 interface QueueItemRowProps {
   item: SyncQueueItem;
@@ -123,10 +272,41 @@ export default function SyncReviewScreen({
   onDismiss,
   className = '',
 }: SyncReviewScreenProps) {
-  const { pendingItems, conflicts, isOnline, isLoading, error, cancelItem, refresh } =
+  const { pendingItems, conflicts, isOnline, isLoading, error, cancelItem, refresh, resolveConflict } =
     useSyncReview();
   const [cancellingIds, setCancellingIds] = useState<Set<number>>(new Set());
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set());
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [resolvedCount, setResolvedCount] = useState(0);
+
+  const handleResolve = useCallback(
+    async (
+      conflictId: string,
+      strategy: ConflictResolutionStrategy,
+      fieldChoices?: Record<string, 'local' | 'server'>,
+    ) => {
+      setResolvingIds((prev) => new Set(prev).add(conflictId));
+      setResolveError(null);
+      try {
+        await resolveConflict(conflictId, strategy, fieldChoices);
+        setResolvedCount((count) => count + 1);
+      } catch (err) {
+        setResolveError(
+          err instanceof Error
+            ? err.message
+            : 'Unable to resolve this conflict. Please try again.',
+        );
+      } finally {
+        setResolvingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(conflictId);
+          return next;
+        });
+      }
+    },
+    [resolveConflict],
+  );
 
   const handleCancel = useCallback(
     async (id: number) => {
@@ -200,12 +380,18 @@ export default function SyncReviewScreen({
       )}
 
       {/* ── Load error ── */}
-      {(error || cancelError) && (
+      {(error || cancelError || resolveError) && (
         <p
           role="alert"
           className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
         >
-          {cancelError ?? error}
+          {resolveError ?? cancelError ?? error}
+        </p>
+      )}
+
+      {resolvedCount > 0 && (
+        <p role="status" aria-live="polite" className="text-sm text-green-700">
+          {resolvedCount} conflict{resolvedCount === 1 ? '' : 's'} resolved and logged.
         </p>
       )}
 
@@ -221,29 +407,31 @@ export default function SyncReviewScreen({
           </h2>
           <p className="mt-1 text-sm text-gray-600">
             These items have conflicting server versions and cannot be replayed until resolved.
-            Resolve each conflict before starting sync.
+            Compare the local and server values, then keep one side or merge field by field.
           </p>
-          <nav aria-label="Unresolved sync conflicts" className="mt-3">
-            <ul className="space-y-2">
-              {conflicts.map((conflict, index) => (
-                <li key={conflict.conflictId}>
-                  <Link
-                    href={{
-                      pathname: '/sync/conflicts/[id]',
-                      query: { id: conflict.conflictId },
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    Resolve conflict {index + 1}
-                    {conflict.endpoint && (
-                      <span className="text-amber-600"> — {conflict.endpoint.replace(/^\/api\/v\d+/, '')}</span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <ul className="mt-3 space-y-3" aria-label="Unresolved sync conflicts">
+            {conflicts.map((conflict, index) => (
+              <ConflictCard
+                key={conflict.conflictId}
+                conflict={conflict}
+                index={index}
+                isResolving={resolvingIds.has(conflict.conflictId)}
+                onResolve={handleResolve}
+              />
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-gray-500">
+            Prefer a full page?{' '}
+            <Link
+              href={{
+                pathname: '/sync/conflicts/[id]',
+                query: { id: conflicts[0].conflictId },
+              }}
+              className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              Open the detailed comparison for conflict 1
+            </Link>
+          </p>
         </section>
       )}
 

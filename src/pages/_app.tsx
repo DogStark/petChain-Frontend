@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
+import BottomNav from "@/components/Navigation/BottomNav";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
 import ToastContainer from "@/components/Notifications/ToastContainer";
 import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorBoundary";
@@ -18,7 +19,7 @@ import { I18nProvider } from "@/i18n";
 import { usePWA } from "@/hooks/usePWA";
 import {
   OfflineBanner,
-  PWAInstallPrompt,
+  PWAInstallGate,
   PWAUpdateBanner,
 } from "@/components/PWAInstallPrompt";
 import RouteMetadata from "@/components/RouteMetadata";
@@ -71,13 +72,7 @@ function initBrowserCapabilities(): void {
 
 function PWAManager() {
   const { isInstallable, isOffline, isUpdateAvailable, promptInstall, applyUpdate } = usePWA();
-  const [installDismissed, setInstallDismissed] = useState(false);
   const [updateDismissed, setUpdateDismissed] = useState(false);
-
-  const handleInstall = async () => {
-    await promptInstall();
-    setInstallDismissed(true);
-  };
 
   return (
     <>
@@ -88,12 +83,7 @@ function PWAManager() {
           onDismiss={() => setUpdateDismissed(true)}
         />
       )}
-      {isInstallable && !installDismissed && (
-        <PWAInstallPrompt
-          onInstall={handleInstall}
-          onDismiss={() => setInstallDismissed(true)}
-        />
-      )}
+      <PWAInstallGate isInstallable={isInstallable} onInstall={promptInstall} />
     </>
   );
 }
@@ -154,6 +144,8 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               {/* Live-region announcements for assistive technology */}
               <AccessibilityAnnouncer />
               {getLayout(<Component {...pageProps} />)}
+              {/* Mobile-only bottom navigation */}
+              <BottomNav />
               <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
             </RouteErrorBoundaryWithRouter>
           </NotificationProvider>

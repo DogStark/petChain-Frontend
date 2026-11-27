@@ -213,7 +213,7 @@ export default function ResultsDashboard({
                 href="/lab-results"
                 className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >
-                View All <ArrowRight className="w-4 h-4" />
+                View All <ArrowRight className="w-4 h-4 rtl-flip" />
               </Link>
             </div>
             <ResultList

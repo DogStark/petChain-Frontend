@@ -84,13 +84,13 @@ export default function CalendarView() {
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
           <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ChevronLeft className="w-6 h-6 text-gray-600" />
+            <ChevronLeft className="w-6 h-6 text-gray-600 rtl-flip" />
           </button>
           <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
             Today
           </button>
           <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ChevronRight className="w-6 h-6 text-gray-600" />
+            <ChevronRight className="w-6 h-6 text-gray-600 rtl-flip" />
           </button>
         </div>
       </div>

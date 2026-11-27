@@ -18,6 +18,20 @@ export interface CreateVaccinationRecord {
   administeredDate: string;
 }
 
+export type ReminderChannel = 'push' | 'email' | 'sms';
+
+export interface VaccinationReminderInput {
+  petId: string;
+  vaccinationId: string;
+  reminderDate: string;
+  channel: ReminderChannel;
+}
+
+export interface VaccinationReminder extends VaccinationReminderInput {
+  id: string;
+  createdAt: string;
+}
+
 const api = axios.create({
   baseURL: `${getApiBaseUrl()}/vaccinations`,
   withCredentials: true,
@@ -41,6 +55,11 @@ export const vaccinationsAPI = {
 
   async create(data: CreateVaccinationRecord): Promise<VaccinationRecord> {
     const response = await api.post<VaccinationRecord>('', data);
+    return response.data;
+  },
+
+  async createReminder(data: VaccinationReminderInput): Promise<VaccinationReminder> {
+    const response = await api.post<VaccinationReminder>('/reminders', data);
     return response.data;
   },
 };
