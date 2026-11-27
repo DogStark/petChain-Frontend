@@ -1,101 +1,108 @@
-import React from 'react';
-import { useBlockchainSync } from '@/hooks/useBlockchainSync';
-import { CheckCircle, XCircle, Loader2, Clock } from 'lucide-react';
+'use client';
 
-export const BlockchainSyncStatus: React.FC = () => {
-  const { syncStatuses, syncError } = useBlockchainSync();
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-  // Derived counts
-  const syncedCount   = syncStatuses.filter((s) => s.status === 'success').length;
-  const syncingCount  = syncStatuses.filter((s) => s.status === 'syncing' || s.status === 'retrying').length;
-  const failedCount   = syncStatuses.filter((s) => s.status === 'failed').length;
-  const pendingCount  = syncStatuses.filter((s) => s.status !== 'success' && s.status !== 'failed' && s.status !== 'syncing' && s.status !== 'retrying').length;
+export type SyncState = 'synced' | 'syncing' | 'error';
 
-  // True when at least one item is actively syncing or retrying
-  const isAnySyncing = syncingCount > 0;
+export interface BlockchainSyncStatusProps {
+  /** Optional controlled sync state. When omitted, the component manages its own state. */
+  state?: SyncState;
+  /** Optional controlled last sync timestamp. */
+  lastSyncAt?: Date | null;
+  /** Called when the user requests a manual sync. Return a promise to keep the syncing state until it resolves. */
+  onSync?: () => void | Promise<void>;
+}
 
-  // Build the summary string from non-zero counts only
-  const summaryParts: string[] = [];
-  if (syncedCount  > 0) summaryParts.push(`${syncedCount} synced`);
-  if (syncingCount > 0) summaryParts.push(`${syncingCount} syncing`);
-  if (failedCount  > 0) summaryParts.push(`${failedCount} failed`);
-  if (pendingCount > 0) summaryParts.push(`${pendingCount} pending`);
-  const summaryLine = summaryParts.join(' · ');
+const STATE_CONFIG: Record<
+  SyncState,
+  { label: string; dotClass: string; ariaLabel: string }
+> = {
+  synced: {
+    label: 'Synced',
+    dotClass: 'bg-green-400',
+    ariaLabel: 'Blockchain data is in sync',
+  },
+  syncing: {
+    label: 'Syncing',
+    dotClass: 'bg-yellow-300 animate-pulse',
+    ariaLabel: 'Blockchain data is syncing',
+  },
+  error: {
+    label: 'Sync error',
+    dotClass: 'bg-red-400',
+    ariaLabel: 'Blockchain sync error',
+  },
+};
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'syncing':
-      case 'retrying':
-        return <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />;
-      default:
-        return <Clock className="w-5 h-5 text-gray-400" />;
+function formatLastSync(lastSyncAt: Date | null): string {
+  if (!lastSyncAt) {
+    return 'Never synced';
+  }
+  return `Last synced: ${lastSyncAt.toLocaleString()}`;
+}
+
+export default function BlockchainSyncStatus({
+  state: controlledState,
+  lastSyncAt: controlledLastSyncAt,
+  onSync,
+}: BlockchainSyncStatusProps) {
+  const [internalState, setInternalState] = useState<SyncState>('synced');
+  const [internalLastSyncAt, setInternalLastSyncAt] = useState<Date | null>(
+    new Date()
+  );
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const state = controlledState ?? internalState;
+  const lastSyncAt =
+    controlledLastSyncAt !== undefined ? controlledLastSyncAt : internalLastSyncAt;
+
+  const handleManualSync = useCallback(async () => {
+    if (state === 'syncing') {
+      return;
     }
-  };
 
-  const getRowClassName = (status: string) => {
-    const base = 'flex items-center justify-between p-3 border rounded';
-    if (status === 'syncing' || status === 'retrying') {
-      return `${base} border-l-4 border-l-blue-400 bg-blue-50`;
+    if (controlledState === undefined) {
+      setInternalState('syncing');
     }
-    return base;
-  };
+
+    try {
+      await onSync?.();
+      if (isMounted.current && controlledState === undefined) {
+        setInternalState('synced');
+        setInternalLastSyncAt(new Date());
+      }
+    } catch {
+      if (isMounted.current && controlledState === undefined) {
+        setInternalState('error');
+      }
+    }
+  }, [controlledState, onSync, state]);
+
+  const config = STATE_CONFIG[state];
+  const tooltip = `${config.ariaLabel}. ${formatLastSync(lastSyncAt)}. Click to sync now.`;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-1">Blockchain Sync Status</h2>
-
-      {/* Status summary line */}
-      {syncStatuses.length > 0 && (
-        <p className="text-sm text-gray-500 mb-3">{summaryLine}</p>
-      )}
-
-      {/* Top-level syncing banner */}
-      {isAnySyncing && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-blue-50 border border-blue-200 text-blue-600 text-sm font-medium">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Sync in progress...</span>
-        </div>
-      )}
-
-      {syncError && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-4 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
-          <XCircle className="w-4 h-4" />
-          <span>{syncError}</span>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {syncStatuses.map((sync) => (
-          <div key={sync.recordId} className={getRowClassName(sync.status)}>
-            <div className="flex items-center gap-3">
-              {getStatusIcon(sync.status)}
-              <div>
-                <p className="font-medium">Record {sync.recordId}</p>
-                {sync.txHash && (
-                  <p className="text-sm text-gray-500">TX: {sync.txHash.substring(0, 16)}...</p>
-                )}
-                {sync.ipfsHash && (
-                  <p className="text-sm text-gray-500">IPFS: {sync.ipfsHash.substring(0, 16)}...</p>
-                )}
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium capitalize">{sync.status}</p>
-              <p className="text-xs text-gray-500">Fee: {sync.fee} stroops</p>
-              {sync.attempts > 0 && (
-                <p className="text-xs text-orange-500">Attempts: {sync.attempts}</p>
-              )}
-            </div>
-          </div>
-        ))}
-        {syncStatuses.length === 0 && (
-          <p className="text-gray-500 text-center py-4">No sync operations yet</p>
-        )}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={handleManualSync}
+      disabled={state === 'syncing'}
+      title={tooltip}
+      aria-label={tooltip}
+      aria-live="polite"
+      className="flex items-center gap-1.5 rounded px-2 py-1 text-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-80"
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-block h-2.5 w-2.5 rounded-full ${config.dotClass}`}
+      />
+      <span className="hidden sm:inline">{config.label}</span>
+    </button>
   );
-};
+}
