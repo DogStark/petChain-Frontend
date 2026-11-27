@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteProgressBar from "@/components/Navigation/RouteProgressBar";
+import BottomNav from "@/components/Navigation/BottomNav";
 import NotificationCenter from "@/components/Notifications/NotificationCenter";
 import ToastContainer from "@/components/Notifications/ToastContainer";
 import RouteErrorBoundaryWithRouter from "@/components/ErrorHandling/RouteErrorBoundary";
@@ -143,6 +144,8 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               {/* Live-region announcements for assistive technology */}
               <AccessibilityAnnouncer />
               {getLayout(<Component {...pageProps} />)}
+              {/* Mobile-only bottom navigation */}
+              <BottomNav />
               <RouteMetadata pathname={router.pathname} asPath={router.asPath} />
             </RouteErrorBoundaryWithRouter>
           </NotificationProvider>
