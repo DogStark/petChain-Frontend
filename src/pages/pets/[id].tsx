@@ -12,6 +12,7 @@ import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
 import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
 import PrescriptionRefillButton from '@/components/Pets/PrescriptionRefillButton';
 import PetIdentityCard from '@/components/PetIdentityCard';
+import PetTransferTimeline from '@/components/Pets/PetTransferTimeline';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
 import { calculatePetAge } from '@/utils/petAge';
@@ -443,6 +444,12 @@ export default function PetDetailPage() {
         {/* Pet Documents Section */}
         <div className={styles.section}>
           <PetDocumentsManager petId={pet.id} />
+        </div>
+
+        {/* Ownership Transfer History */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Ownership History</h2>
+          <PetTransferTimeline petId={pet.id} />
         </div>
 
         {/* Pet Details Section */}

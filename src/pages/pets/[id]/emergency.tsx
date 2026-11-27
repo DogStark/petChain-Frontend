@@ -342,17 +342,34 @@ export default function EmergencyAccessPage() {
             <div className="space-y-3">
               {(activeData?.contacts ?? data.contacts)
                 .sort((a: EmergencyContact, b: EmergencyContact) => a.priority - b.priority)
-                .map((contact: EmergencyContact) => (
+                .map((contact: EmergencyContact, index: number) => (
                   <a
                     key={contact.id}
                     href={`tel:${contact.phone}`}
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-red-50 transition-all active:scale-95 shadow-sm"
                   >
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-base sm:text-lg">{contact.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-500 font-bold">
-                        {contact.relationship.toUpperCase()}
-                      </p>
+                    <div className="flex items-start gap-3">
+                      {/* Priority badge */}
+                      <span
+                        className={`flex-shrink-0 mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${
+                          index === 0
+                            ? 'bg-red-600 text-white'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}
+                        aria-label={`Priority ${index + 1}`}
+                        title={index === 0 ? 'Call first' : `Call ${index === 1 ? 'second' : index === 2 ? 'third' : `${index + 1}th`}`}
+                      >
+                        {index + 1}
+                      </span>
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-base sm:text-lg">{contact.name}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 font-bold">
+                          {contact.relationship.toUpperCase()}
+                        </p>
+                        {index === 0 && (
+                          <p className="text-xs text-red-600 font-bold mt-0.5">Call first</p>
+                        )}
+                      </div>
                     </div>
                     <div className="bg-red-600 text-white p-3 rounded-full shadow-lg">
                       <Phone size={22} fill="currentColor" />

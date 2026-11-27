@@ -27,6 +27,8 @@ import { getExplorerUrl } from '../../lib/blockchain/network';
 import { receiptService } from '../../lib/wallet/receiptService';
 import type { WalletIntent } from '../../lib/wallet/walletReceipts';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
+import ConfirmationDialog from './ConfirmationDialog';
+import WalletSendConfirmation, { type SendConfirmationPayload } from './WalletSendConfirmation';
 
 interface Props {
   wallet: WalletAccount | null;
@@ -122,6 +124,7 @@ export default function TransactionSigning({
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showSendConfirmation, setShowSendConfirmation] = useState(false);
   const [receiptCreated, setReceiptCreated] = useState<WalletIntent['idempotencyKey'] | null>(null);
 
   // Refs for duplicate submission guards
@@ -231,12 +234,13 @@ export default function TransactionSigning({
       return;
     }
 
-    setShowConfirmDialog(true);
+    setShowSendConfirmation(true);
   }
 
   async function handleConfirmSend() {
     if (!wallet) return;
     setShowConfirmDialog(false);
+    setShowSendConfirmation(false);
 
     const formKey = deriveFormKey(
       wallet.publicKey,
@@ -313,6 +317,31 @@ export default function TransactionSigning({
       <div className="text-center py-12 text-gray-400">
         Select a wallet to send a transaction.
       </div>
+    );
+  }
+
+  // ── Full-screen fee-breakdown confirmation step (issue #1363) ──────────
+  if (showSendConfirmation && wallet) {
+    const confirmPayload: SendConfirmationPayload = {
+      sourcePublicKey: wallet.publicKey,
+      destination,
+      amount,
+      asset: selectedAsset,
+      memo: memo.trim() || undefined,
+      feeLevel,
+      feeEstimate,
+      isTestnet,
+    };
+    return (
+      <WalletSendConfirmation
+        payload={confirmPayload}
+        onConfirm={handleConfirmSend}
+        onBack={() => {
+          setShowSendConfirmation(false);
+          formKeyRef.current = null;
+        }}
+        loading={loading}
+      />
     );
   }
 

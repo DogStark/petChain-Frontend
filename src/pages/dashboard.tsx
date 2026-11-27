@@ -12,6 +12,7 @@ import { petAPI } from '@/lib/api/petAPI';
 import { userAPI } from '@/lib/api/userAPI';
 import { formatNumber } from '@/utils/formatCurrency';
 import PetSharingSummary from '@/components/Pets/PetSharingSummary';
+import DraggablePetList from '@/components/Dashboard/DraggablePetList';
 import {
   HealthSparkline,
   buildPetHealthTrend,
@@ -222,6 +223,21 @@ function DashboardContent({ user }: { user: User }) {
       </div>
 
       <PetSharingSummary pets={pets} />
+
+      {/* Draggable pet list */}
+      {pets.length > 0 && (
+        <div className="mt-8 bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">My Pets</h2>
+            <Link href="/pets" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+              View all
+            </Link>
+          </div>
+          <div className="px-6 py-4">
+            <DraggablePetList pets={pets} />
+          </div>
+        </div>
+      )}
 
       <div className="mt-8">
         <DataFreshnessPanel
