@@ -12,6 +12,7 @@ export interface ReportScheduleInput {
   startsAt: string;
   timezone: string;
   recipientScope: ReportRecipientScope;
+  recipientEmails?: string[];
   expiresAt: string;
 }
 
@@ -36,5 +37,14 @@ export const reportSchedulesAPI = {
   async create(input: ReportScheduleInput): Promise<ReportSchedule> {
     const response = await api.post<ReportSchedule>('', input);
     return response.data;
+  },
+
+  async update(id: string, input: ReportScheduleInput): Promise<ReportSchedule> {
+    const response = await api.put<ReportSchedule>(`/${encodeURIComponent(id)}`, input);
+    return response.data;
+  },
+
+  async remove(id: string): Promise<void> {
+    await api.delete(`/${encodeURIComponent(id)}`);
   },
 };

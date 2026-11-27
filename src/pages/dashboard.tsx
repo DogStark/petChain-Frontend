@@ -13,6 +13,12 @@ import { userAPI } from '@/lib/api/userAPI';
 import { formatNumber } from '@/utils/formatCurrency';
 import PetSharingSummary from '@/components/Pets/PetSharingSummary';
 import DraggablePetList from '@/components/Dashboard/DraggablePetList';
+import {
+  HealthSparkline,
+  buildPetHealthTrend,
+  type HealthScorePoint,
+  type PetHealthTrend,
+} from '@/components/analytics/PetHealthChart';
 import { useDataFreshness } from '@/hooks/useDataFreshness';
 
 export default function DashboardPage() {
@@ -63,6 +69,7 @@ function DashboardContent({ user }: { user: User }) {
   const [pets, setPets] = useState<Array<{ id: string; name: string }>>([]);
   const [medicalRecordCount, setMedicalRecordCount] = useState<number | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
+  const [healthTrends, setHealthTrends] = useState<PetHealthTrend[]>([]);
 
   // Data freshness: first pet id (if any) drives per-pet probes
   const [firstPetId, setFirstPetId] = useState<string | undefined>(undefined);
@@ -91,6 +98,16 @@ function DashboardContent({ user }: { user: User }) {
           )
         );
         if (!cancelled) setMedicalRecordCount(recordCounts.reduce((a, b) => a + b, 0));
+
+        const trends = await Promise.all(
+          pets.map((pet) =>
+            petAPI
+              .getHealthScoreHistory(pet.id)
+              .then((history: HealthScorePoint[]) => buildPetHealthTrend(pet.id, pet.name, history))
+              .catch(() => buildPetHealthTrend(pet.id, pet.name, []))
+          )
+        );
+        if (!cancelled) setHealthTrends(trends);
       })
       .catch(() => {
         if (!cancelled) {
@@ -139,6 +156,10 @@ function DashboardContent({ user }: { user: User }) {
             <div className="text-sm">
               <Link href="/pets" className="font-medium text-blue-600 hover:text-blue-500">
                 View all pets
+              </Link>
+              <span className="mx-2 text-gray-400" aria-hidden="true">|</span>
+              <Link href="/pets/new" className="font-medium text-blue-600 hover:text-blue-500">
+                Add a pet
               </Link>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -13,7 +13,7 @@ import {
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon, X } from 'lucide-react';
 import { PhotoCard } from './PhotoCard';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
 import type { PetPhoto } from '@/lib/api/petPhotosAPI';
@@ -33,6 +33,8 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   onReorder,
 }) => {
   const { announce } = useAnnouncement();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -41,6 +43,34 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const openLightbox = useCallback((index: number) => {
+    setLightboxIndex(index);
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+  }, []);
+
+  const prevPhoto = useCallback(() => {
+    setLightboxIndex((i) => (i === null ? null : (i - 1 + photos.length) % photos.length));
+  }, [photos.length]);
+
+  const nextPhoto = useCallback(() => {
+    setLightboxIndex((i) => (i === null ? null : (i + 1) % photos.length));
+  }, [photos.length]);
+
+  // Keyboard navigation for the lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'ArrowRight') nextPhoto();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
   /**
    * Move a photo one position with the keyboard-accessible controls. Screen
@@ -88,26 +118,86 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     );
   }
 
+  const activeLightboxPhoto = lightboxIndex !== null ? photos[lightboxIndex] : null;
+
   return (
-    <div className={styles.gallerySection}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
-          <div className={styles.galleryGrid}>
-            {photos.map((photo, index) => (
-              <PhotoCard
-                key={photo.id}
-                photo={photo}
-                position={index + 1}
-                total={photos.length}
-                onSetPrimary={onSetPrimary}
-                onDelete={onDelete}
-                onMoveUp={() => movePhoto(index, -1)}
-                onMoveDown={() => movePhoto(index, 1)}
-              />
-            ))}
+    <>
+      <div className={styles.gallerySection}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
+            <div className={styles.galleryGrid}>
+              {photos.map((photo, index) => (
+                <PhotoCard
+                  key={photo.id}
+                  photo={photo}
+                  position={index + 1}
+                  total={photos.length}
+                  onSetPrimary={onSetPrimary}
+                  onDelete={onDelete}
+                  onMoveUp={() => movePhoto(index, -1)}
+                  onMoveDown={() => movePhoto(index, 1)}
+                  onOpenLightbox={() => openLightbox(index)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {/* Lightbox overlay (issue #1391) */}
+      {activeLightboxPhoto !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo ${(lightboxIndex ?? 0) + 1} of ${photos.length}`}
+          className={styles.lightboxOverlay}
+          onClick={closeLightbox}
+        >
+          <button
+            className={styles.lightboxClose}
+            aria-label="Close lightbox"
+            onClick={closeLightbox}
+          >
+            <X size={28} />
+          </button>
+
+          {photos.length > 1 && (
+            <button
+              className={`${styles.lightboxNav} ${styles.lightboxNavPrev}`}
+              aria-label="Previous photo"
+              onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
+            >
+              <ChevronLeft size={36} />
+            </button>
+          )}
+
+          <div
+            className={styles.lightboxContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={activeLightboxPhoto.photoUrl}
+              alt={`Pet photo ${(lightboxIndex ?? 0) + 1} of ${photos.length}`}
+              className={styles.lightboxImage}
+              draggable={false}
+            />
+            <p className={styles.lightboxCounter}>
+              {(lightboxIndex ?? 0) + 1} / {photos.length}
+            </p>
           </div>
-        </SortableContext>
-      </DndContext>
-    </div>
+
+          {photos.length > 1 && (
+            <button
+              className={`${styles.lightboxNav} ${styles.lightboxNavNext}`}
+              aria-label="Next photo"
+              onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
+            >
+              <ChevronRight size={36} />
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 };

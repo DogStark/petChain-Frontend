@@ -152,7 +152,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           )}
 
           <button className={styles.finishBtn} onClick={onFinish}>
-            Go to Dashboard <ArrowRight size={16} />
+            Go to Dashboard <ArrowRight size={16} className="rtl-flip" />
           </button>
         </div>
       </div>
@@ -237,7 +237,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           disabled={currentIndex === 0 || completing}
           aria-label="Go to previous step"
         >
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} className="rtl-flip" /> Back
         </button>
         <button
           className={styles.nextBtn}

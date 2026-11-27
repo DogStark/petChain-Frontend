@@ -13,7 +13,10 @@ import { useAnnouncement } from '@/hooks/useAnnouncement';
 import { useHaptic } from '@/hooks/useHaptic';
 import {
   appointmentsAPI,
+  getRecurringAppointmentDates,
   normalizeAppointmentBookingError,
+  type UpcomingAppointmentView,
+  type AppointmentRecurrence,
 } from '@/lib/api/appointmentsAPI';
 import {
   validateNotFuture,
@@ -90,6 +93,20 @@ export default function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [conflictSlots, setConflictSlots] = useState<string[]>([]);
+  const [petConflict, setPetConflict] = useState<UpcomingAppointmentView | null>(null);
+  const [overrideConflict, setOverrideConflict] = useState(false);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointmentView[]>([]);
+  const [recurrence, setRecurrence] = useState<'none' | AppointmentRecurrence>('none');
+  const [occurrences, setOccurrences] = useState(4);
+
+  const recurringDates = React.useMemo(() => {
+    if (recurrence === 'none' || !formData.date) return [];
+    try {
+      return getRecurringAppointmentDates(formData.date, recurrence, occurrences);
+    } catch {
+      return [];
+    }
+  }, [formData.date, recurrence, occurrences]);
 
   const dynamicTimeOptions = React.useMemo(() => {
     const options = [...TIME_OPTIONS];
@@ -127,19 +144,36 @@ export default function BookingModal({
       trigger('error');
       return;
     }
+    if (petConflict && !overrideConflict) {
+      trigger('error');
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await appointmentsAPI.createAppointment({
+      const booking = {
         petId: formData.petId,
         vetId: formData.vetId,
         appointmentType: formData.appointmentType,
-        date: formData.date,
         time: formData.time,
         notes: formData.notes || undefined,
-      });
+      };
+      if (recurrence === 'none') {
+        await appointmentsAPI.createAppointment({ ...booking, date: formData.date });
+      } else {
+        await appointmentsAPI.createRecurringAppointments(
+          { ...booking, date: formData.date },
+          recurrence,
+          occurrences,
+        );
+      }
       trigger('success');
-      announce('Appointment booked successfully.', 'success');
+      announce(
+        recurrence === 'none'
+          ? 'Appointment booked successfully.'
+          : `${occurrences} appointments booked successfully.`,
+        'success',
+      );
       onClose();
     } catch (err: unknown) {
       const bookingError = normalizeAppointmentBookingError(err);
@@ -170,6 +204,30 @@ export default function BookingModal({
       setIsSubmitting(false);
     }
   };
+
+  // Load upcoming appointments once for conflict detection
+  useEffect(() => {
+    appointmentsAPI.getUpcomingAppointments().then(setUpcomingAppointments).catch(() => {});
+  }, []);
+
+  // Detect pet-level appointment conflict whenever pet, date, or time changes
+  useEffect(() => {
+    const { petId, date, time } = formData;
+    if (!petId || !date || !time) {
+      setPetConflict(null);
+      return;
+    }
+    const selectedStart = new Date(`${date}T${time}:00`);
+    const selectedEnd = new Date(selectedStart.getTime() + 30 * 60 * 1000);
+    const conflict = upcomingAppointments.find((entry) => {
+      if (entry.appointment.petId !== petId) return false;
+      const apptStart = new Date(entry.appointment.scheduledAt);
+      const apptEnd = new Date(apptStart.getTime() + (entry.appointment.duration ?? 30) * 60 * 1000);
+      return selectedStart < apptEnd && selectedEnd > apptStart;
+    });
+    setPetConflict(conflict ?? null);
+    if (!conflict) setOverrideConflict(false);
+  }, [formData.petId, formData.date, formData.time, upcomingAppointments]);
 
   // Close on backdrop tap
   const handleBackdrop = (e: React.MouseEvent) => {
@@ -359,6 +417,83 @@ export default function BookingModal({
             />
           </div>
 
+          {petConflict && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm space-y-2"
+            >
+              <p className="font-semibold text-amber-800">⚠️ Appointment conflict detected</p>
+              <p className="text-amber-700 text-xs">
+                <strong>{petConflict.petName}</strong> already has a{' '}
+                <strong>{petConflict.appointment.appointmentType}</strong> appointment with{' '}
+                <strong>{petConflict.vetName}</strong> at this time (
+                {new Date(petConflict.appointment.scheduledAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+                ).
+              </p>
+              {!overrideConflict ? (
+                <button
+                  type="button"
+                  onClick={() => setOverrideConflict(true)}
+                  className="text-xs font-medium text-amber-800 underline hover:no-underline"
+                >
+                  Book anyway (I understand the conflict)
+                </button>
+              ) : (
+                <p className="text-xs text-amber-600 font-medium">
+                  ✓ You have confirmed the override. Proceeding with booking.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-gray-700">
+              Repeat
+              <select
+                value={recurrence}
+                onChange={(event) =>
+                  setRecurrence(event.target.value as 'none' | AppointmentRecurrence)
+                }
+                className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"
+              >
+                <option value="none">Does not repeat</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            {recurrence !== 'none' && (
+              <>
+                <label className="block text-sm font-bold text-gray-700">
+                  Number of appointments
+                  <select
+                    value={occurrences}
+                    onChange={(event) => setOccurrences(Number(event.target.value))}
+                    className="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm"
+                  >
+                    {Array.from({ length: 11 }, (_, index) => index + 2).map((count) => (
+                      <option key={count} value={count}>{count}</option>
+                    ))}
+                  </select>
+                </label>
+                {recurringDates.length > 0 && (
+                  <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+                    <p className="font-semibold">Upcoming appointment dates</p>
+                    <ol className="mt-2 list-inside list-decimal space-y-1">
+                      {recurringDates.map((date) => (
+                        <li key={date}>
+                          {new Date(`${date}T12:00:00`).toLocaleDateString()}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {initialClinicId && initialClinicName ? (
             /* Clinic pre-selected — show as a read-only "Veterinarian / Clinic" field */
             <div>
@@ -403,7 +538,7 @@ export default function BookingModal({
             loading={isSubmitting}
             haptic="medium"
           >
-            Confirm booking
+            {recurrence === 'none' ? 'Confirm booking' : `Confirm ${occurrences} appointments`}
           </TouchButton>
         </div>
       </div>

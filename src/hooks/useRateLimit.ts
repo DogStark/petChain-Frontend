@@ -1,68 +1,82 @@
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface RateLimitConfig {
-  limit: number;
-  windowMs: number;
+interface RateLimitState {
+  isRateLimited: boolean;
+  retryAfterSeconds: number;
 }
 
-export interface UseRateLimitReturn {
-  isLimited: boolean;
-  remainingRequests: number;
-  resetTime: Date | null;
-  checkLimit: () => boolean;
+interface UseRateLimitOptions {
+  onRetry?: () => void;
+}
+
+interface UseRateLimitResult extends RateLimitState {
+  startCountdown: (retryAfterSeconds: number) => void;
   reset: () => void;
 }
 
-export function useRateLimit(config: RateLimitConfig = { limit: 5, windowMs: 60_000 }): UseRateLimitReturn {
-  const { limit, windowMs } = config;
-  const timestamps = useRef<number[]>([]);
-  const [isLimited, setIsLimited] = useState(false);
-  const [remainingRequests, setRemainingRequests] = useState(limit);
-  const [resetTime, setResetTime] = useState<Date | null>(null);
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const DEFAULT_RETRY_AFTER_SECONDS = 5;
 
-  const getValidTimestamps = useCallback(() => {
-    const now = Date.now();
-    return timestamps.current.filter(t => now - t < windowMs);
-  }, [windowMs]);
+/**
+ * Detects HTTP 429 rate limit errors and exposes a countdown that auto-retries
+ * the provided callback once the countdown reaches zero.
+ */
+export function useRateLimit({ onRetry }: UseRateLimitOptions = {}): UseRateLimitResult {
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
+  const onRetryRef = useRef(onRetry);
 
-  const checkLimit = useCallback((): boolean => {
-    const valid = getValidTimestamps();
-    timestamps.current = valid;
+  useEffect(() => {
+    onRetryRef.current = onRetry;
+  }, [onRetry]);
 
-    if (valid.length >= limit) {
-      const oldest = Math.min(...valid);
-      const reset = new Date(oldest + windowMs);
-      setIsLimited(true);
-      setRemainingRequests(0);
-      setResetTime(reset);
+  useEffect(() => {
+    if (!isRateLimited || retryAfterSeconds <= 0) return;
 
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => {
-        timestamps.current = [];
-        setIsLimited(false);
-        setRemainingRequests(limit);
-        setResetTime(null);
-      }, oldest + windowMs - Date.now());
+    const timer = setTimeout(() => {
+      setRetryAfterSeconds((prev) => prev - 1);
+    }, 1000);
 
-      return false;
+    return () => clearTimeout(timer);
+  }, [isRateLimited, retryAfterSeconds]);
+
+  useEffect(() => {
+    if (isRateLimited && retryAfterSeconds === 0) {
+      setIsRateLimited(false);
+      onRetryRef.current?.();
     }
+  }, [isRateLimited, retryAfterSeconds]);
 
-    timestamps.current = [...valid, Date.now()];
-    const remaining = limit - timestamps.current.length;
-    setIsLimited(false);
-    setRemainingRequests(remaining);
-    setResetTime(null);
-    return true;
-  }, [limit, windowMs, getValidTimestamps]);
+  const startCountdown = useCallback((seconds: number) => {
+    const safeSeconds = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : DEFAULT_RETRY_AFTER_SECONDS;
+    setIsRateLimited(true);
+    setRetryAfterSeconds(safeSeconds);
+  }, []);
 
   const reset = useCallback(() => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    timestamps.current = [];
-    setIsLimited(false);
-    setRemainingRequests(limit);
-    setResetTime(null);
-  }, [limit]);
+    setIsRateLimited(false);
+    setRetryAfterSeconds(0);
+  }, []);
 
-  return { isLimited, remainingRequests, resetTime, checkLimit, reset };
+  return { isRateLimited, retryAfterSeconds, startCountdown, reset };
+}
+
+/**
+ * Returns the retry-after delay (in seconds) when the given error is a 429
+ * rate limit response, otherwise null.
+ */
+export function getRateLimitRetryAfter(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null;
+
+  const candidate = error as {
+    status?: number;
+    response?: { status?: number; headers?: Record<string, string> };
+  };
+
+  const status = candidate.status ?? candidate.response?.status;
+  if (status !== 429) return null;
+
+  const headerValue = candidate.response?.headers?.['retry-after'];
+  const parsed = headerValue ? Number.parseInt(headerValue, 10) : NaN;
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_RETRY_AFTER_SECONDS;
 }

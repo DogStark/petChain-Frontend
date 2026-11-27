@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGdpr } from '@/hooks/useGdpr';
 import { ACTIVE_DELETION_STATUSES, type ConsentType } from '@/lib/gdpr';
+import DataExportStatusTracker from './DataExportStatusTracker';
 
 interface GdprSettingsProps {
   userId: string;
@@ -147,6 +148,11 @@ export default function GdprSettings({ userId }: GdprSettingsProps) {
             </div>
           );
         })}
+      </div>
+
+      {/* Data export status tracker */}
+      <div className="mb-4">
+        <DataExportStatusTracker userId={userId} />
       </div>
 
       {/* Data rights actions */}

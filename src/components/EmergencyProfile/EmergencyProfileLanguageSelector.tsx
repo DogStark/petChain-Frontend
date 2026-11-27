@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { AlertTriangle, Globe, Check } from 'lucide-react';
 import { supportedLanguages, type LanguageCode } from '@/i18n';
-import { resolveProfileLanguage } from '@/utils/profileLanguage';
+import { resolveProfileLanguage, type LanguageResolution } from '@/utils/profileLanguage';
 import en from '@/i18n/locales/en.json';
 import es from '@/i18n/locales/es.json';
 import fr from '@/i18n/locales/fr.json';
@@ -36,6 +36,79 @@ export interface EmergencyProfileLanguageSelectorProps {
   onChange: (code: LanguageCode) => void | Promise<void>;
   /** Optional id so the section can be referenced by aria-labelledby. */
   id?: string;
+  /** Emergency profile fields to render translated (optional). */
+  fields?: readonly EmergencyProfileField[];
+  /** Translations for the profile fields, keyed by locale (optional). */
+  translations?: EmergencyProfileTranslations;
+}
+
+/** A single translatable field of the emergency profile. */
+export interface EmergencyProfileField {
+  /** Stable key, e.g. `allergies`. */
+  key: string;
+  /** English (baseline) text for the field. */
+  value: string;
+}
+
+/** Translation lookup for one locale: field key -> translated text. */
+export type EmergencyProfileTranslation = Record<string, string>;
+
+/** Translations keyed by locale; missing locales/keys fall back to English. */
+export type EmergencyProfileTranslations = Partial<
+  Record<LanguageCode, EmergencyProfileTranslation>
+>;
+
+/** A profile field after language resolution. */
+export interface TranslatedProfileField extends EmergencyProfileField {
+  /** Text to render (translated, or the English baseline). */
+  text: string;
+  /** True when no translation was available and English was used. */
+  usedFallback: boolean;
+}
+
+export interface TranslatedEmergencyProfile {
+  /** Locale actually used to render the profile. */
+  language: LanguageCode;
+  /** True when the requested locale could not be honoured. */
+  usedFallback: boolean;
+  /** Text direction for the rendered locale. */
+  dir: 'ltr' | 'rtl';
+  fields: TranslatedProfileField[];
+}
+
+/**
+ * Translate emergency profile fields into `requested`, falling back to the
+ * English baseline per field (and entirely when the locale is unsupported or
+ * too incomplete). Pure and framework-free so it is trivially testable.
+ */
+export function translateEmergencyProfile(
+  fields: readonly EmergencyProfileField[],
+  requested: LanguageCode,
+  translations: EmergencyProfileTranslations = {},
+  reference: Record<string, unknown> = REFERENCE_DICT,
+): TranslatedEmergencyProfile {
+  const resolution: LanguageResolution = resolveProfileLanguage(
+    requested,
+    reference,
+    (translations[requested] ?? {}) as Record<string, unknown>,
+  );
+  const dict = translations[resolution.resolved] ?? {};
+  const dir = supportedLanguages.find((l) => l.code === resolution.resolved)?.dir ?? 'ltr';
+
+  return {
+    language: resolution.resolved,
+    usedFallback: resolution.usedFallback,
+    dir,
+    fields: fields.map((field) => {
+      const translated = dict[field.key];
+      const hasTranslation = typeof translated === 'string' && translated.trim() !== '';
+      return {
+        ...field,
+        text: hasTranslation ? translated : field.value,
+        usedFallback: !hasTranslation,
+      };
+    }),
+  };
 }
 
 /**
@@ -50,6 +123,8 @@ export function EmergencyProfileLanguageSelector({
   current,
   onChange,
   id = 'emergency-profile-language',
+  fields,
+  translations,
 }: EmergencyProfileLanguageSelectorProps) {
   const selectId = `${id}-select`;
   const statusId = `${id}-status`;
@@ -57,6 +132,14 @@ export function EmergencyProfileLanguageSelector({
   const resolution = useMemo(
     () => resolveProfileLanguage(current, REFERENCE_DICT, LOCALE_DICTS[current]),
     [current],
+  );
+
+  const translatedProfile = useMemo(
+    () =>
+      fields && fields.length > 0
+        ? translateEmergencyProfile(fields, current, translations)
+        : null,
+    [fields, current, translations],
   );
 
   const coveragePct = Math.round(resolution.coverage * 100);
@@ -112,6 +195,25 @@ export function EmergencyProfileLanguageSelector({
           </>
         )}
       </p>
+
+      {translatedProfile && (
+        <dl
+          lang={translatedProfile.language}
+          dir={translatedProfile.dir}
+          className="mt-3 space-y-1 rounded-xl bg-gray-50 p-3 text-sm text-gray-800"
+        >
+          {translatedProfile.fields.map((field) => (
+            <div key={field.key} className="flex items-start justify-between gap-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {field.key}
+              </dt>
+              <dd className={field.usedFallback ? 'text-gray-500 italic' : undefined}>
+                {field.text}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </section>
   );
 }

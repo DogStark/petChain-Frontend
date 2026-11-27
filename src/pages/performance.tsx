@@ -41,7 +41,7 @@ export default function PerformancePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <p className="text-sm text-gray-500">
-            Monitoring LCP, FID, CLS, TTFB, and INP metrics collected from real users.
+            Monitoring LCP, FID, CLS, TTFB, FCP, and INP metrics collected from real users.
             Metrics are reported on page load and page transitions.
           </p>
         </div>

@@ -34,6 +34,7 @@ export interface ClinicService {
   description: string;
   priceRange: string;
   duration?: number;
+  category?: string;
 }
 
 export interface ClinicReview {

@@ -64,10 +64,24 @@ export class SmsController {
   }
 
   /**
+   * Admin: Delivery statistics (sent/delivered/failed/pending) with a daily
+   * delivery-rate trend for the requested date range.
+   * GET /sms/admin/delivery-stats?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+   */
+  @Get('admin/delivery-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.Admin)
+  async getAdminDeliveryStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.smsCostService.getDeliveryStats(startDate, endDate);
+  }
+
+  /**
    * Admin: Set spending limit for a user
    * PATCH /sms/admin/limits/:userId
-   */
-  @Patch('admin/limits/:userId')
+   */  @Patch('admin/limits/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleName.Admin)
   async setUserLimit(

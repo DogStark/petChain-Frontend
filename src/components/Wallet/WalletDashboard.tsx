@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import WalletAddressQR from './WalletAddressQR';
 import {
   Copy,
   RefreshCw,
@@ -211,6 +212,8 @@ export default function WalletDashboard({
                 Backup not verified. Export your backup before using this wallet with real funds.
               </div>
             )}
+
+            <WalletAddressQR address={selectedWallet.publicKey} />
           </div>
 
           {/* Balance Cards */}

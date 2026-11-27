@@ -2,6 +2,7 @@ import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
 import { Appointment, AppointmentStatus, AppointmentType } from '@/types/appointments';
+import type { AppointmentHistoryPage, AppointmentHistoryTab } from '@/types/appointments';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -37,6 +38,12 @@ export interface UpcomingAppointmentView {
   vetName: string;
 }
 
+export interface PetAppointmentsPage {
+  data: BackendAppointment[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
 const STATUS_MAP: Record<string, AppointmentStatus> = {
   SCHEDULED: 'Scheduled',
   CONFIRMED: 'Scheduled',
@@ -91,6 +98,47 @@ export interface CreateAppointmentDto {
   date: string;
   time: string;
   notes?: string;
+}
+
+export type AppointmentRecurrence = 'weekly' | 'monthly';
+
+export function getRecurringAppointmentDates(
+  startDate: string,
+  recurrence: AppointmentRecurrence,
+  occurrences: number,
+): string[] {
+  if (!Number.isInteger(occurrences) || occurrences < 2 || occurrences > 12) {
+    throw new RangeError('Recurring appointments must include 2 to 12 occurrences');
+  }
+
+  const [year, month, day] = startDate.split('-').map(Number);
+  const firstDate = new Date(year, month - 1, day, 12);
+  if (
+    Number.isNaN(firstDate.getTime()) ||
+    firstDate.getFullYear() !== year ||
+    firstDate.getMonth() !== month - 1 ||
+    firstDate.getDate() !== day
+  ) {
+    throw new RangeError('A valid start date is required');
+  }
+
+  return Array.from({ length: occurrences }, (_, index) => {
+    const date = new Date(firstDate);
+    if (recurrence === 'weekly') {
+      date.setDate(firstDate.getDate() + index * 7);
+    } else {
+      const targetMonth = firstDate.getMonth() + index;
+      const targetYear = firstDate.getFullYear() + Math.floor(targetMonth / 12);
+      const normalizedMonth = targetMonth % 12;
+      const lastDay = new Date(targetYear, normalizedMonth + 1, 0).getDate();
+      date.setFullYear(targetYear, normalizedMonth, Math.min(day, lastDay));
+    }
+
+    const dateYear = date.getFullYear();
+    const dateMonth = String(date.getMonth() + 1).padStart(2, '0');
+    const dateDay = String(date.getDate()).padStart(2, '0');
+    return `${dateYear}-${dateMonth}-${dateDay}`;
+  });
 }
 
 export interface CreateAppointmentPayload {
@@ -175,6 +223,26 @@ class AppointmentsAPI {
     return response.data.map(mapAppointment);
   }
 
+  async getPetAppointments(
+    petId: string,
+    params: { status?: AppointmentHistoryTab; page?: number; limit?: number } = {},
+  ): Promise<AppointmentHistoryPage> {
+    const response = await this.api.get<BackendAppointment[] | PetAppointmentsPage>(
+      `/pet/${encodeURIComponent(petId)}`,
+      { params },
+    );
+
+    const payload = response.data;
+    const items = Array.isArray(payload) ? payload : payload?.data ?? [];
+    const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
+    const page = Array.isArray(payload) ? params.page ?? 1 : payload?.page ?? params.page ?? 1;
+    const limit = Array.isArray(payload)
+      ? params.limit ?? items.length
+      : payload?.limit ?? params.limit ?? items.length;
+
+    return { entries: items.map(mapAppointment), total, page, limit };
+  }
+
   async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
     const payload: CreateAppointmentPayload = {
       petId: dto.petId,
@@ -192,6 +260,17 @@ class AppointmentsAPI {
     } catch (error: unknown) {
       throw normalizeBookingError(error);
     }
+  }
+
+  async createRecurringAppointments(
+    dto: CreateAppointmentDto,
+    recurrence: AppointmentRecurrence,
+    occurrences: number,
+  ): Promise<Appointment[]> {
+    const dates = getRecurringAppointmentDates(dto.date, recurrence, occurrences);
+    return Promise.all(
+      dates.map((date) => this.createAppointment({ ...dto, date })),
+    );
   }
 
   async getWaitlist(): Promise<Array<{ id: string; petName: string; type: string; joinedAt: string }>> {

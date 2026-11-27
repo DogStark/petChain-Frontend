@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-interface BeforeInstallPromptEvent extends Event {
+export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-interface PWAState {
+export interface PWAState {
   isInstallable: boolean;
   isInstalled: boolean;
   isOffline: boolean;
@@ -13,6 +13,55 @@ interface PWAState {
   promptInstall: () => Promise<boolean>;
   applyUpdate: () => void;
   emergencyReset: () => Promise<void>;
+}
+
+/** localStorage key persisting the user's dismissal of the install prompt. */
+export const PWA_INSTALL_DISMISSED_KEY = 'petchain-pwa-install-dismissed';
+
+/** Number of page views required before the install prompt is offered. */
+export const PWA_INSTALL_ENGAGEMENT_THRESHOLD = 3;
+
+/** localStorage key counting page views used for the engagement threshold. */
+export const PWA_ENGAGEMENT_COUNT_KEY = 'petchain-pwa-engagement-count';
+
+function readStorage(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage may be unavailable (private mode); ignore.
+  }
+}
+
+export function isInstallPromptDismissed(): boolean {
+  if (typeof window === 'undefined') return false;
+  return readStorage(PWA_INSTALL_DISMISSED_KEY) === 'true';
+}
+
+export function dismissInstallPrompt(): void {
+  if (typeof window === 'undefined') return;
+  writeStorage(PWA_INSTALL_DISMISSED_KEY, 'true');
+}
+
+export function getEngagementCount(): number {
+  if (typeof window === 'undefined') return 0;
+  const raw = readStorage(PWA_ENGAGEMENT_COUNT_KEY);
+  const parsed = raw === null ? 0 : Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+export function recordEngagement(): number {
+  if (typeof window === 'undefined') return 0;
+  const next = getEngagementCount() + 1;
+  writeStorage(PWA_ENGAGEMENT_COUNT_KEY, String(next));
+  return next;
 }
 
 export function usePWA(): PWAState {
@@ -43,7 +92,9 @@ export function usePWA(): PWAState {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       deferredPrompt.current = e as BeforeInstallPromptEvent;
-      setIsInstallable(true);
+      if (!isInstallPromptDismissed()) {
+        setIsInstallable(true);
+      }
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
@@ -52,6 +103,7 @@ export function usePWA(): PWAState {
       setIsInstalled(true);
       setIsInstallable(false);
       deferredPrompt.current = null;
+      dismissInstallPrompt();
     };
     window.addEventListener('appinstalled', handleAppInstalled);
 
@@ -103,6 +155,9 @@ export function usePWA(): PWAState {
     const { outcome } = await deferredPrompt.current.userChoice;
     deferredPrompt.current = null;
     setIsInstallable(false);
+    if (outcome === 'dismissed') {
+      dismissInstallPrompt();
+    }
     return outcome === 'accepted';
   }, []);
 
