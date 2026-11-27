@@ -136,6 +136,28 @@ const getSafeApiUsageData = () =>
     errors: 0,
   }));
 
+const getDemoApiEndpointUsage = () => [
+  { endpoint: '/api/pets', calls: 18420, errors: 132 },
+  { endpoint: '/api/appointments', calls: 12980, errors: 214 },
+  { endpoint: '/api/vaccinations', calls: 9640, errors: 58 },
+  { endpoint: '/api/auth/login', calls: 8120, errors: 341 },
+  { endpoint: '/api/records', calls: 7350, errors: 96 },
+  { endpoint: '/api/search', calls: 6210, errors: 187 },
+  { endpoint: '/api/notifications', calls: 4980, errors: 42 },
+  { endpoint: '/api/payments', calls: 3120, errors: 265 },
+];
+
+const getSafeApiEndpointUsage = () => [
+  { endpoint: '/api/pets', calls: 0, errors: 0 },
+  { endpoint: '/api/appointments', calls: 0, errors: 0 },
+  { endpoint: '/api/vaccinations', calls: 0, errors: 0 },
+  { endpoint: '/api/auth/login', calls: 0, errors: 0 },
+  { endpoint: '/api/records', calls: 0, errors: 0 },
+  { endpoint: '/api/search', calls: 0, errors: 0 },
+  { endpoint: '/api/notifications', calls: 0, errors: 0 },
+  { endpoint: '/api/payments', calls: 0, errors: 0 },
+];
+
 export const getDemoRevenueBreakdown = (): RevenueBreakdownPoint[] => [
   { month: 'Jan', subscriptions: 18000, transactions: 21000, services: 4500, other: 1500 },
   { month: 'Feb', subscriptions: 19500, transactions: 24500, services: 5200, other: 1800 },
@@ -215,6 +237,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
   let healthData: Array<{ name: string; value: number; color: string }>;
   let geoData: Array<{ region: string; users: number; pets?: number }>;
   let apiUsageData: Array<{ time: string; requests: number; errors: number }>;
+  let apiEndpointUsage: Array<{ endpoint: string; calls: number; errors: number }>;
 
   // DEMO MODE
   if (DEMO_MODE_ENABLED) {
@@ -222,6 +245,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
     healthData = getDemoHealthData();
     geoData = getDemoGeoData();
     apiUsageData = getDemoApiUsageData();
+    apiEndpointUsage = getDemoApiEndpointUsage();
   } else {
     try {
       // Fetch real engagement data from backend
@@ -242,7 +266,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
-
+      apiEndpointUsage = getSafeApiEndpointUsage();
       // Geographic distribution is optional: fall back to the safe zeros above
       // when the backend does not expose it.
       try {
@@ -263,6 +287,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
+      apiEndpointUsage = getSafeApiEndpointUsage();
     }
   }
 
@@ -284,6 +309,7 @@ export const generateAnalyticsData = async (dateRange?: { startDate: string; end
     nonCompliantPets: getNonCompliantPets(),
     geoData,
     apiUsageData,
+    apiEndpointUsage,
     revenueData: DEMO_MODE_ENABLED ? getDemoRevenueBreakdown() : getSafeRevenueBreakdown(),
     timestamp: new Date().toISOString(),
   };

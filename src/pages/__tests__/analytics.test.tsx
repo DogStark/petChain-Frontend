@@ -24,6 +24,14 @@ jest.mock('@/lib/analyticsUserData', () => ({
   ],
 }));
 
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'admin-1', email: 'admin@petchain.test', role: 'admin' },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
+}));
+
 const generateAnalyticsDataMock = generateAnalyticsData as jest.MockedFunction<typeof generateAnalyticsData>;
 const generateUserEngagementMock = generateUserEngagement as jest.MockedFunction<typeof generateUserEngagement>;
 const sampleData: Awaited<ReturnType<typeof generateAnalyticsData>> = {
@@ -35,6 +43,7 @@ const sampleData: Awaited<ReturnType<typeof generateAnalyticsData>> = {
   vaccinationData: [{ month: 'Jan', compliant: 85, nonCompliant: 15 }],
   geoData: [{ region: 'North America', users: 42, pets: 60 }],
   apiUsageData: [{ time: '9:00', requests: 100, errors: 3 }],
+  apiEndpointUsage: [{ endpoint: '/api/pets', calls: 100, errors: 3 }],
   timestamp: '2026-01-01T00:00:00.000Z',
 };
 
