@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { userAPI } from '../../lib/api/userAPI';
+import type { SmsDeliveryStatsResponse } from '../../types/sms';
 import styles from './SMSDashboard.module.css';
 
 interface GlobalStats {
@@ -28,12 +38,27 @@ const now = new Date();
 const currentMonth = now.getMonth() + 1;
 const currentYear = now.getFullYear();
 
+const toISODate = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const defaultRangeStart = toISODate(new Date(currentYear, currentMonth - 1, 1));
+const defaultRangeEnd = toISODate(now);
+
 export const SMSDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminSMSStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [month, setMonth] = useState(currentMonth);
   const [year, setYear] = useState(currentYear);
+  const [startDate, setStartDate] = useState(defaultRangeStart);
+  const [endDate, setEndDate] = useState(defaultRangeEnd);
+  const [deliveryStats, setDeliveryStats] = useState<SmsDeliveryStatsResponse | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = useState(true);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const descId = 'sms-dashboard-description';
 
   const fetchStats = async () => {
@@ -53,9 +78,48 @@ export const SMSDashboard: React.FC = () => {
     }
   };
 
+  const fetchDeliveryStats = async () => {
+    if (!startDate || !endDate || startDate > endDate) {
+      setDeliveryError('Start date must be on or before end date');
+      return;
+    }
+    setDeliveryLoading(true);
+    setDeliveryError(null);
+    try {
+      const data = await userAPI.getAdminSMSDeliveryStats(startDate, endDate);
+      setDeliveryStats(data);
+    } catch (err: any) {
+      setDeliveryError(
+        err.response?.status === 403
+          ? 'Admin access required'
+          : err.message || 'Failed to load delivery stats'
+      );
+    } finally {
+      setDeliveryLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
   }, [month, year]);
+
+  useEffect(() => {
+    fetchDeliveryStats();
+  }, [startDate, endDate]);
+
+  const trendData = useMemo(
+    () =>
+      (deliveryStats?.trend ?? []).map((point) => ({
+        ...point,
+        label: point.date,
+        deliveryRate: Number(point.deliveryRate.toFixed(1)),
+      })),
+    [deliveryStats]
+  );
+
+  const totals = deliveryStats?.totals;
+  const overallRate =
+    totals && totals.sent > 0 ? ((totals.delivered / totals.sent) * 100).toFixed(1) : '0.0';
 
   if (loading && !stats) {
     return <div className={styles.loading}>Loading SMS dashboard...</div>;
@@ -72,7 +136,7 @@ export const SMSDashboard: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>SMS Usage & Cost</h1>
-        <p className={styles.description}>
+        <p className={styles.description} id={descId}>
           Monthly SMS delivery and spending. Configure Twilio and enable SMS in backend to send
           alerts.
         </p>
@@ -132,6 +196,112 @@ export const SMSDashboard: React.FC = () => {
           {error}
         </div>
       )}
+
+      <section className={styles.section} aria-labelledby="sms-delivery-heading">
+        <h2 className={styles.sectionTitle} id="sms-delivery-heading">
+          Delivery statistics
+        </h2>
+
+        <div className={styles.filters}>
+          <label htmlFor="sms-filter-start-date">
+            <span className={styles.label}>From</span>
+          </label>
+          <input
+            id="sms-filter-start-date"
+            name="startDate"
+            type="date"
+            value={startDate}
+            max={endDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={styles.select}
+          />
+
+          <label htmlFor="sms-filter-end-date">
+            <span className={styles.label}>To</span>
+          </label>
+          <input
+            id="sms-filter-end-date"
+            name="endDate"
+            type="date"
+            value={endDate}
+            min={startDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={styles.select}
+          />
+
+          <button
+            type="button"
+            onClick={fetchDeliveryStats}
+            className={styles.refresh}
+            aria-label="Refresh delivery statistics"
+            disabled={deliveryLoading}
+          >
+            Refresh
+          </button>
+        </div>
+
+        {deliveryError && (
+          <div role="alert" aria-live="assertive" className={styles.error}>
+            {deliveryError}
+          </div>
+        )}
+
+        {deliveryLoading && !deliveryStats ? (
+          <div className={styles.loading}>Loading delivery statistics...</div>
+        ) : (
+          <>
+            <div
+              className={styles.cards}
+              role="region"
+              aria-label="SMS delivery status statistics"
+            >
+              <div className={styles.card}>
+                <div className={styles.cardLabel}>Sent</div>
+                <div className={styles.cardValue}>{totals?.sent ?? 0}</div>
+              </div>
+              <div className={styles.card}>
+                <div className={styles.cardLabel}>Delivered</div>
+                <div className={styles.cardValue}>{totals?.delivered ?? 0}</div>
+              </div>
+              <div className={styles.card}>
+                <div className={styles.cardLabel}>Failed</div>
+                <div className={styles.cardValue}>{totals?.failed ?? 0}</div>
+              </div>
+              <div className={styles.card}>
+                <div className={styles.cardLabel}>Pending</div>
+                <div className={styles.cardValue}>{totals?.pending ?? 0}</div>
+              </div>
+              <div className={styles.card}>
+                <div className={styles.cardLabel}>Delivery rate</div>
+                <div className={styles.cardValue}>{overallRate}%</div>
+              </div>
+            </div>
+
+            <div className={styles.chart} role="img" aria-label="Delivery rate over time">
+              {trendData.length === 0 ? (
+                <p className={styles.empty}>No SMS activity in the selected date range.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={trendData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(value: number) => [`${value}%`, 'Delivery rate']} />
+                    <Line
+                      type="monotone"
+                      dataKey="deliveryRate"
+                      name="Delivery rate"
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </>
+        )}
+      </section>
 
       {stats && (
         <>

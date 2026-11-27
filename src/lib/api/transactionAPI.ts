@@ -71,6 +71,33 @@ export interface TransactionFilters {
   endDate?: string;
   limit?: number;
   offset?: number;
+  /** Opaque cursor for cursor-based pagination (replaces `offset`). */
+  cursor?: string;
+  /** Direction of traversal relative to `cursor`. */
+  direction?: CursorDirection;
+}
+
+export type CursorDirection = 'next' | 'prev';
+
+/** Cursor-based pagination request parameters. */
+export interface CursorPaginationParams {
+  cursor?: string;
+  direction?: CursorDirection;
+  limit?: number;
+}
+
+/** Cursor-based pagination metadata returned by the history endpoint. */
+export interface CursorPageInfo {
+  nextCursor: string | null;
+  prevCursor: string | null;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+/** A page of transactions plus its cursor metadata. */
+export interface CursorPage<T> {
+  items: T[];
+  pageInfo: CursorPageInfo;
 }
 
 /**
@@ -120,6 +147,46 @@ class TransactionAPI {
   async getTransactionHistory(filters?: TransactionFilters): Promise<Transaction[]> {
     const response = await this.api.get('/history', { params: filters });
     return response.data;
+  }
+
+  /**
+   * Fetch a page of transaction history using cursor-based pagination.
+   *
+   * Falls back to wrapping a plain array response (legacy backend) so callers
+   * always receive a `CursorPage`.
+   */
+  async getTransactionHistoryPage(
+    filters?: TransactionFilters,
+    pagination?: CursorPaginationParams
+  ): Promise<CursorPage<Transaction>> {
+    const response = await this.api.get('/history', {
+      params: { ...filters, ...pagination },
+    });
+    const data = response.data;
+
+    if (Array.isArray(data)) {
+      return {
+        items: data as Transaction[],
+        pageInfo: {
+          nextCursor: null,
+          prevCursor: null,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
+    }
+
+    const items: Transaction[] = data?.items ?? data?.data ?? [];
+    const pageInfo = data?.pageInfo ?? {};
+    return {
+      items,
+      pageInfo: {
+        nextCursor: pageInfo.nextCursor ?? null,
+        prevCursor: pageInfo.prevCursor ?? null,
+        hasNextPage: Boolean(pageInfo.hasNextPage ?? pageInfo.nextCursor),
+        hasPreviousPage: Boolean(pageInfo.hasPreviousPage ?? pageInfo.prevCursor),
+      },
+    };
   }
 
   async getTransactionById(id: string): Promise<Transaction> {

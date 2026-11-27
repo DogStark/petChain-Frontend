@@ -77,7 +77,7 @@ export default function RecurringPaymentReviewPage() {
           ) : (
             <RecurringPaymentReview
               sourcePublicKey={selectedWallet?.publicKey || (wallets[0]?.publicKey ?? '')}
-              onProceedToSign={(intent) => {
+              onProceedToSign={() => {
                 void router.push('/wallet?tab=send');
               }}
               onClose={() => {

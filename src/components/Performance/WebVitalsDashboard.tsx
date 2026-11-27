@@ -4,6 +4,7 @@ import {
   AreaChart,
   CartesianGrid,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,6 +28,7 @@ interface WebVitalsSummary {
   cls: MetricSummary;
   ttfb: MetricSummary;
   inp: MetricSummary;
+  fcp: MetricSummary;
   totalReports: number;
 }
 
@@ -36,13 +38,44 @@ interface RecentReport {
   timestamp: string;
 }
 
-const METRIC_LABELS: Record<string, string> = {
-  lcp: 'LCP',
-  fid: 'FID',
-  cls: 'CLS',
-  ttfb: 'TTFB',
-  inp: 'INP',
-};
+interface TrendPoint {
+  time: string;
+  value: number;
+}
+
+interface TrendSeries {
+  metric: string;
+  label: string;
+  unit: string;
+  data: TrendPoint[];
+}
+
+const TREND_METRICS = ['LCP', 'FID', 'CLS', 'TTFB', 'FCP'] as const;
+
+const TREND_LIMIT = 20;
+
+function getBudget(metric: string): PerformanceBudget | undefined {
+  return PERFORMANCE_BUDGETS.find((b) => b.metric === metric);
+}
+
+function getUnit(metric: string): string {
+  return metric === 'CLS' ? '' : ' ms';
+}
+
+function buildTrendSeries(reports: RecentReport[]): TrendSeries[] {
+  return TREND_METRICS.map((metric) => ({
+    metric,
+    label: metric,
+    unit: getUnit(metric),
+    data: reports
+      .filter((r) => r.metric.name === metric)
+      .slice(-TREND_LIMIT)
+      .map((r) => ({
+        time: new Date(r.timestamp).toLocaleTimeString(),
+        value: r.metric.value,
+      })),
+  }));
+}
 
 function RatingBadge({ rating }: { rating: string }) {
   const colors: Record<string, string> = {
@@ -111,7 +144,7 @@ function MetricGauge({ label, summary, budget }: { label: string; summary: Metri
   );
 }
 
-function TrendChart({ data, dataKey, label, unit }: { data: any[]; dataKey: string; label: string; unit: string }) {
+function TrendChart({ data, dataKey, label, unit, budget }: { data: TrendPoint[]; dataKey: string; label: string; unit: string; budget?: PerformanceBudget }) {
   if (!data?.length) {
     return (
       <div className="h-48 flex items-center justify-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-sm">
@@ -135,6 +168,22 @@ function TrendChart({ data, dataKey, label, unit }: { data: any[]; dataKey: stri
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} unit={unit} />
           <Tooltip />
           <Legend />
+          {budget && (
+            <ReferenceLine
+              y={budget.good}
+              stroke="#22c55e"
+              strokeDasharray="4 4"
+              label={{ value: 'Good', position: 'insideTopRight', fontSize: 10, fill: '#22c55e' }}
+            />
+          )}
+          {budget && (
+            <ReferenceLine
+              y={budget.needsImprovement}
+              stroke="#ef4444"
+              strokeDasharray="4 4"
+              label={{ value: 'Poor', position: 'insideTopRight', fontSize: 10, fill: '#ef4444' }}
+            />
+          )}
           <Area type="monotone" dataKey={dataKey} stroke="#3b82f6" strokeWidth={2} fill={`url(#gradient-${dataKey})`} name={label} unit={unit} />
         </AreaChart>
       </ResponsiveContainer>
@@ -174,7 +223,7 @@ export default function WebVitalsDashboard() {
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendSeries, setTrendSeries] = useState<TrendSeries[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -188,15 +237,7 @@ export default function WebVitalsDashboard() {
 
         setSummary(data.summary);
         setRecentReports((data.reports || []).reverse());
-
-        const trends = (data.reports || [])
-          .filter((r: RecentReport) => r.metric.name === 'LCP')
-          .slice(-20)
-          .map((r: RecentReport) => ({
-            time: new Date(r.timestamp).toLocaleTimeString(),
-            value: r.metric.value,
-          }));
-        setTrendData(trends);
+        setTrendSeries(buildTrendSeries(data.reports || []));
         setError(null);
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load data');
@@ -235,16 +276,28 @@ export default function WebVitalsDashboard() {
             <MetricGauge label="FID" summary={summary.fid} budget={PERFORMANCE_BUDGETS.find((b) => b.metric === 'FID')} />
             <MetricGauge label="CLS" summary={summary.cls} budget={PERFORMANCE_BUDGETS.find((b) => b.metric === 'CLS')} />
             <MetricGauge label="TTFB" summary={summary.ttfb} budget={PERFORMANCE_BUDGETS.find((b) => b.metric === 'TTFB')} />
+            <MetricGauge label="FCP" summary={summary.fcp} budget={PERFORMANCE_BUDGETS.find((b) => b.metric === 'FCP')} />
             <MetricGauge label="INP" summary={summary.inp} budget={PERFORMANCE_BUDGETS.find((b) => b.metric === 'INP')} />
           </>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">LCP Trend (Last 20)</h3>
-          <TrendChart data={trendData} dataKey="value" label="LCP" unit=" ms" />
-        </div>
+        {trendSeries.map((series) => (
+          <div key={series.metric} className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">{series.label} Trend (Last {TREND_LIMIT})</h3>
+              <span className="text-xs text-gray-400">Dashed lines mark pass/fail thresholds</span>
+            </div>
+            <TrendChart
+              data={series.data}
+              dataKey="value"
+              label={series.label}
+              unit={series.unit}
+              budget={getBudget(series.metric)}
+            />
+          </div>
+        ))}
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Budgets</h3>

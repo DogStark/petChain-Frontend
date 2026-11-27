@@ -4,12 +4,18 @@ import { attachCorrelationInterceptor } from './correlationInterceptor';
 import {
   PaymentRequest,
   CreatePaymentRequestInput,
+  VetServicePaymentRequestInput,
+  VetServicePaymentRequestResult,
 } from '@/types/paymentRequest';
 import {
   isSafePublicAddress,
   isValidPaymentAmount,
   decodePaymentRequestPayload,
+  buildPaymentRequestUrl,
 } from '@/utils/paymentRequest';
+
+/** Maximum length of a Stellar text memo. */
+export const MAX_PAYMENT_MEMO_LENGTH = 28;
 
 export interface PaymentExecutionResult {
   success: boolean;
@@ -78,6 +84,33 @@ class PaymentRequestAPI {
         status: 'active',
       };
     }
+  }
+
+  /**
+   * Generates a vet/clinic payment request with amount and memo, returning the
+   * created request together with its shareable link and QR code payload.
+   */
+  async generateVetServiceRequest(
+    input: VetServicePaymentRequestInput
+  ): Promise<VetServicePaymentRequestResult> {
+    const memo = input.memo?.trim();
+    if (memo && memo.length > MAX_PAYMENT_MEMO_LENGTH) {
+      throw new Error(`Memo must be ${MAX_PAYMENT_MEMO_LENGTH} characters or fewer.`);
+    }
+
+    const request = await this.createRequest({
+      asset: input.asset,
+      amount: input.amount,
+      destination: input.destination,
+      expiresInMinutes: input.expiresInMinutes,
+      memo: memo || undefined,
+      memoType: memo ? 'text' : undefined,
+      note: input.note?.trim() || undefined,
+    });
+
+    const shareableUrl = buildPaymentRequestUrl(request);
+
+    return { request, shareableUrl, qrValue: shareableUrl };
   }
 
   /**

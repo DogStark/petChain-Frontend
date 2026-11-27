@@ -135,6 +135,44 @@ describe('DataModeChart Component', () => {
     });
   });
 
+  describe('Reduced Mode - Text Summary', () => {
+    it('should replace the chart with the text summary in reduced mode', () => {
+      renderWithDataMode(
+        <DataModeChart title="API Usage" textSummary={<p>120 requests, 3 errors</p>}>
+          <TestChart />
+        </DataModeChart>,
+        'reduced'
+      );
+
+      expect(screen.queryByTestId('test-chart')).not.toBeInTheDocument();
+      expect(screen.getByText('120 requests, 3 errors')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /view.*chart/i })).not.toBeInTheDocument();
+    });
+
+    it('should render the chart in full mode even when a text summary is provided', () => {
+      renderWithDataMode(
+        <DataModeChart title="API Usage" textSummary={<p>120 requests, 3 errors</p>}>
+          <TestChart />
+        </DataModeChart>,
+        'full'
+      );
+
+      expect(screen.getByTestId('test-chart')).toBeInTheDocument();
+      expect(screen.queryByText('120 requests, 3 errors')).not.toBeInTheDocument();
+    });
+
+    it('should keep priority charts rendered in reduced mode', () => {
+      renderWithDataMode(
+        <DataModeChart title="Critical Alerts" priority textSummary={<p>Summary</p>}>
+          <TestChart />
+        </DataModeChart>,
+        'reduced'
+      );
+
+      expect(screen.getByTestId('test-chart')).toBeInTheDocument();
+    });
+  });
+
   describe('Reduced Mode - Priority Charts', () => {
     it('should always render priority charts', () => {
       renderWithDataMode(

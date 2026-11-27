@@ -145,7 +145,7 @@ export default function AttachmentQueueView({ petId }: AttachmentQueueViewProps)
         <ul className={styles.list} aria-label="Queued attachments">
           {attachments.map((item) => {
             const isItemUploading = item.status === 'uploading';
-            const canRemove = !isProcessing && !isItemUploading;
+            const canRemove = !isItemUploading;
             return (
               <li key={item.id} className={styles.item}>
                 <div className={styles.itemHeader}>
@@ -176,10 +176,14 @@ export default function AttachmentQueueView({ petId }: AttachmentQueueViewProps)
                       className={styles.removeButton}
                       onClick={() => void removeAttachment(item.id)}
                       disabled={!canRemove}
-                      aria-label={`Remove ${item.name} from the upload queue`}
+                      aria-label={
+                        isItemUploading
+                          ? `Cancel upload of ${item.name}`
+                          : `Remove ${item.name} from the upload queue`
+                      }
                     >
                       <Trash2 size={14} aria-hidden="true" />
-                      Remove
+                      {isItemUploading ? 'Cancel' : 'Remove'}
                     </button>
                   </div>
                 </div>

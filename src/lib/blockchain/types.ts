@@ -33,6 +33,23 @@ export interface SubmitOptions {
   rebuild?: () => Promise<StellarSdk.Transaction | StellarSdk.FeeBumpTransaction>;
 }
 
+export interface SigningRequest {
+  /** Base64 transaction envelope XDR to sign. */
+  envelopeXdr: string;
+  /** Stellar public key expected to sign. */
+  publicKey: string;
+  networkPassphrase: string;
+}
+
+export interface SigningResult {
+  /** Base64 envelope XDR of the signed transaction. */
+  envelopeXdr: string;
+  /** Hex transaction hash of the signed envelope. */
+  hash: string;
+  /** Public keys that produced signatures. */
+  signers: string[];
+}
+
 export interface MedicalRecord {
   id: string;
   petId: string;
