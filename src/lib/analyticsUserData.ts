@@ -1,4 +1,5 @@
 import { analyticsAPI, DateRange, UserEngagement } from './api/analyticsAPI';
+import type { RevenueBreakdownPoint } from '@/components/analytics/FinancialReportChart';
 
 const DEMO_MODE_ENABLED = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -104,12 +105,12 @@ const getSafeHealthData = () => [
 ];
 
 const getDemoGeoData = () => [
-  { region: 'North America', users: 850 },
-  { region: 'Europe', users: 620 },
-  { region: 'Asia', users: 480 },
-  { region: 'South America', users: 220 },
-  { region: 'Africa', users: 110 },
-  { region: 'Oceania', users: 85 },
+  { region: 'North America', users: 850, pets: 1240 },
+  { region: 'Europe', users: 620, pets: 910 },
+  { region: 'Asia', users: 480, pets: 705 },
+  { region: 'South America', users: 220, pets: 330 },
+  { region: 'Africa', users: 110, pets: 165 },
+  { region: 'Oceania', users: 85, pets: 120 },
 ];
 
 const getDemoApiUsageData = () =>
@@ -120,12 +121,12 @@ const getDemoApiUsageData = () =>
   }));
 
 const getSafeGeoData = () => [
-  { region: 'North America', users: 0 },
-  { region: 'Europe', users: 0 },
-  { region: 'Asia', users: 0 },
-  { region: 'South America', users: 0 },
-  { region: 'Africa', users: 0 },
-  { region: 'Oceania', users: 0 },
+  { region: 'North America', users: 0, pets: 0 },
+  { region: 'Europe', users: 0, pets: 0 },
+  { region: 'Asia', users: 0, pets: 0 },
+  { region: 'South America', users: 0, pets: 0 },
+  { region: 'Africa', users: 0, pets: 0 },
+  { region: 'Oceania', users: 0, pets: 0 },
 ];
 
 const getSafeApiUsageData = () =>
@@ -133,6 +134,24 @@ const getSafeApiUsageData = () =>
     time: `${i}:00`,
     requests: 0,
     errors: 0,
+  }));
+
+export const getDemoRevenueBreakdown = (): RevenueBreakdownPoint[] => [
+  { month: 'Jan', subscriptions: 18000, transactions: 21000, services: 4500, other: 1500 },
+  { month: 'Feb', subscriptions: 19500, transactions: 24500, services: 5200, other: 1800 },
+  { month: 'Mar', subscriptions: 21000, transactions: 22800, services: 4900, other: 1300 },
+  { month: 'Apr', subscriptions: 22500, transactions: 27600, services: 6100, other: 2100 },
+  { month: 'May', subscriptions: 24000, transactions: 26400, services: 5800, other: 1900 },
+  { month: 'Jun', subscriptions: 25800, transactions: 31200, services: 6900, other: 2400 },
+];
+
+export const getSafeRevenueBreakdown = (): RevenueBreakdownPoint[] =>
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month) => ({
+    month,
+    subscriptions: 0,
+    transactions: 0,
+    services: 0,
+    other: 0,
   }));
 
 const getVaccinationBreakdown = () => [
@@ -191,10 +210,10 @@ const getNonCompliantPets = () => [
   },
 ];
 
-export const generateAnalyticsData = async () => {
+export const generateAnalyticsData = async (dateRange?: { startDate: string; endDate: string }) => {
   let engagementData: Array<{ date: string; activeUsers: number; newSignups: number }>;
   let healthData: Array<{ name: string; value: number; color: string }>;
-  let geoData: Array<{ region: string; users: number }>;
+  let geoData: Array<{ region: string; users: number; pets?: number }>;
   let apiUsageData: Array<{ time: string; requests: number; errors: number }>;
 
   // DEMO MODE
@@ -223,6 +242,21 @@ export const generateAnalyticsData = async () => {
       healthData = getSafeHealthData();
       geoData = getSafeGeoData();
       apiUsageData = getSafeApiUsageData();
+
+      // Geographic distribution is optional: fall back to the safe zeros above
+      // when the backend does not expose it.
+      try {
+        const distribution = await analyticsAPI.getGeographicDistribution(dateRange);
+        if (Array.isArray(distribution) && distribution.length) {
+          geoData = distribution.map((entry) => ({
+            region: entry.region || entry.country,
+            users: entry.users ?? 0,
+            pets: entry.pets ?? 0,
+          }));
+        }
+      } catch {
+        // Keep safe zeros.
+      }
     } catch (error) {
       // Fetch failed, return safe zero values
       engagementData = getSafeEngagementData();
@@ -250,6 +284,7 @@ export const generateAnalyticsData = async () => {
     nonCompliantPets: getNonCompliantPets(),
     geoData,
     apiUsageData,
+    revenueData: DEMO_MODE_ENABLED ? getDemoRevenueBreakdown() : getSafeRevenueBreakdown(),
     timestamp: new Date().toISOString(),
   };
 };

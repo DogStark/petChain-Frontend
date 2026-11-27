@@ -8,6 +8,7 @@ import type { UserEngagement } from '../lib/api/analyticsAPI';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
 import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
+import type { RevenueBreakdownPoint } from '@/components/analytics/FinancialReportChart';
 
 const UserEngagementChart = dynamic(() => import('../components/analytics/UserEngagementChart'), {
   ssr: false,
@@ -22,6 +23,9 @@ const GeoDistributionChart = dynamic(() => import('../components/analytics/GeoDi
   ssr: false,
 });
 const ApiUsageChart = dynamic(() => import('../components/analytics/ApiUsageChart'), {
+  ssr: false,
+});
+const FinancialReportChart = dynamic(() => import('../components/analytics/FinancialReportChart'), {
   ssr: false,
 });
 
@@ -39,8 +43,9 @@ interface AnalyticsData {
     dueDate: string;
     daysOverdue: number;
   }[];
-  geoData: { region: string; users: number }[];
+  geoData: { region: string; users: number; pets?: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
+  revenueData: RevenueBreakdownPoint[];
   timestamp: string;
 }
 
@@ -115,6 +120,11 @@ const AnalyticsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [geoDateRange, setGeoDateRange] = useState<{ startDate: string; endDate: string }>({
+    startDate: '',
+    endDate: '',
+  });
+  const [geoLoading, setGeoLoading] = useState(false);
   const [engagementRange, setEngagementRange] = useState<EngagementRange>('7d');
   const [engagement, setEngagement] = useState<UserEngagement | null>(null);
 
@@ -130,6 +140,23 @@ const AnalyticsPage = () => {
       setError('Analytics data could not be loaded. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGeoDateRangeChange = async (range: { startDate: string; endDate: string }) => {
+    setGeoDateRange(range);
+    if (!range.startDate || !range.endDate) {
+      return;
+    }
+    try {
+      setGeoLoading(true);
+      const filtered = await generateAnalyticsData(range);
+      setData((previous) => (previous ? { ...previous, geoData: filtered.geoData } : filtered));
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to fetch geographic distribution:', error);
+    } finally {
+      setGeoLoading(false);
     }
   };
 
@@ -200,6 +227,8 @@ const AnalyticsPage = () => {
   const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const apiUsageData = useMemo(() => data?.apiUsageData ?? [], [JSON.stringify(data?.apiUsageData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const revenueData = useMemo(() => data?.revenueData ?? [], [JSON.stringify(data?.revenueData)]);
 
   if (loading) {
     return (
@@ -342,12 +371,38 @@ const AnalyticsPage = () => {
               summary="User distribution across regions"
               minHeight="350px"
             >
-              <GeoDistributionChart data={geoData} />
+              <GeoDistributionChart
+                data={geoData}
+                dateRange={geoDateRange}
+                onDateRangeChange={handleGeoDateRangeChange}
+                loading={geoLoading}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="Geographic distribution"
-              columns={['Region', 'Users']}
-              rows={geoData.map((entry) => [entry.region, entry.users])}
+              columns={['Region', 'Users', 'Pets']}
+              rows={geoData.map((entry) => [entry.region, entry.users, entry.pets ?? 0])}
+            />
+          </section>
+
+          <section className="lg:col-span-12" aria-label="Financial report analytics">
+            <DataModeChart
+              title="Revenue Breakdown"
+              summary="Revenue by category over time"
+              minHeight="350px"
+            >
+              <FinancialReportChart data={revenueData} />
+            </DataModeChart>
+            <AccessibleDataTable
+              caption="Revenue breakdown"
+              columns={['Period', 'Subscriptions', 'Transactions', 'Services', 'Other']}
+              rows={revenueData.map((entry) => [
+                entry.month,
+                entry.subscriptions,
+                entry.transactions,
+                entry.services,
+                entry.other,
+              ])}
             />
           </section>
 
