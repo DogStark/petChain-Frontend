@@ -4,7 +4,7 @@ import type { FormEvent } from 'react';
 
 import { appointmentsAPI } from '@/lib/api/appointmentsAPI';
 import { petAPI } from '@/lib/api/petAPI';
-import { vaccinationsAPI, type VaccinationRecord } from '@/lib/api/vaccinationsAPI';
+import { vaccinationsAPI, type ReminderChannel, type VaccinationRecord } from '@/lib/api/vaccinationsAPI';
 import type { PetEmergencyInfo } from '@/types/pet';
 
 interface CareSetupChecklistProps {
@@ -37,6 +37,12 @@ export default function CareSetupChecklist({
   const [administeredDate, setAdministeredDate] = useState('');
   const [isSavingVaccination, setIsSavingVaccination] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [reminderFor, setReminderFor] = useState<VaccinationRecord | null>(null);
+  const [reminderDate, setReminderDate] = useState('');
+  const [reminderChannel, setReminderChannel] = useState<ReminderChannel>('email');
+  const [isSavingReminder, setIsSavingReminder] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [reminderSuccess, setReminderSuccess] = useState<string | null>(null);
 
   const loadChecklist = useCallback(async () => {
     setIsLoading(true);
@@ -100,6 +106,38 @@ export default function CareSetupChecklist({
       setSaveError(error instanceof Error ? error.message : 'Unable to save vaccination history.');
     } finally {
       setIsSavingVaccination(false);
+    }
+  };
+
+  const openReminderForm = (record: VaccinationRecord) => {
+    setReminderFor(record);
+    setReminderDate(record.nextDueDate ? record.nextDueDate.slice(0, 10) : '');
+    setReminderChannel('email');
+    setReminderError(null);
+    setReminderSuccess(null);
+  };
+
+  const saveReminder = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!reminderFor || !reminderDate) return;
+    setIsSavingReminder(true);
+    setReminderError(null);
+    setReminderSuccess(null);
+    try {
+      await vaccinationsAPI.createReminder({
+        petId,
+        vaccinationId: reminderFor.id,
+        reminderDate,
+        channel: reminderChannel,
+      });
+      setReminderSuccess(
+        `Reminder set for ${reminderFor.vaccineName} on ${reminderDate} via ${reminderChannel}.`
+      );
+      setReminderFor(null);
+    } catch (error) {
+      setReminderError(error instanceof Error ? error.message : 'Unable to set vaccination reminder.');
+    } finally {
+      setIsSavingReminder(false);
     }
   };
 
@@ -196,6 +234,84 @@ export default function CareSetupChecklist({
               </button>
               {saveError && <p className="text-sm text-red-700 sm:col-span-3" role="alert">{saveError}</p>}
             </form>
+          )}
+          {vaccinations.length > 0 && (
+            <div className="mt-4 rounded-xl border border-gray-200 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Vaccination reminders</h3>
+              <ul className="mt-2 grid gap-2">
+                {vaccinations.map((record) => (
+                  <li
+                    key={record.id}
+                    className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-3 text-sm"
+                  >
+                    <span className="font-medium text-gray-800">{record.vaccineName}</span>
+                    <span className="text-gray-600">
+                      {record.nextDueDate ? `Due ${record.nextDueDate.slice(0, 10)}` : 'No due date'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openReminderForm(record)}
+                      className="ml-auto rounded-lg border border-blue-700 px-3 py-1 font-semibold text-blue-700"
+                      aria-label={`Set reminder for ${record.vaccineName}`}
+                    >
+                      Set reminder
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              {reminderFor && (
+                <form
+                  onSubmit={saveReminder}
+                  className="mt-3 grid gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 sm:grid-cols-[180px_180px_auto] sm:items-end"
+                >
+                  <label className="text-sm font-medium text-gray-700">
+                    Reminder date
+                    <input
+                      required
+                      type="date"
+                      value={reminderDate}
+                      onChange={(event) => setReminderDate(event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Notification channel
+                    <select
+                      value={reminderChannel}
+                      onChange={(event) => setReminderChannel(event.target.value as ReminderChannel)}
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2"
+                    >
+                      <option value="push">Push</option>
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                    </select>
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={isSavingReminder}
+                      type="submit"
+                      className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {isSavingReminder ? 'Saving…' : 'Save reminder'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReminderFor(null)}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {reminderError && (
+                    <p className="text-sm text-red-700 sm:col-span-3" role="alert">{reminderError}</p>
+                  )}
+                </form>
+              )}
+              {reminderSuccess && (
+                <p className="mt-2 text-sm font-medium text-green-800" role="status">{reminderSuccess}</p>
+              )}
+            </div>
           )}
           {completedCount === steps.length && (
             <p className="mt-4 text-sm font-medium text-green-800" role="status">
