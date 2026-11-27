@@ -14,9 +14,14 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { usePaymentRequest } from '@/hooks/usePaymentRequest';
 import { SUPPORTED_PAYMENT_ASSETS } from '@/utils/paymentRequest';
+import { MAX_PAYMENT_MEMO_LENGTH } from '@/lib/api/paymentRequestAPI';
 
 interface Props {
   defaultDestination?: string;
+  /** Optional vet/clinic identifier the request is generated for. */
+  clinicId?: string;
+  /** Optional vet/clinic display name shown in the header. */
+  clinicName?: string;
   onSuccess?: (url: string) => void;
 }
 
@@ -27,7 +32,12 @@ const EXPIRY_OPTIONS = [
   { label: '7 Days', value: 10080 },
 ];
 
-export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = '', onSuccess }) => {
+export const PaymentRequestGenerator: React.FC<Props> = ({
+  defaultDestination = '',
+  clinicId,
+  clinicName,
+  onSuccess,
+}) => {
   const {
     loading,
     error,
@@ -49,12 +59,18 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedMemo = memo.trim();
+    if (trimmedMemo.length > MAX_PAYMENT_MEMO_LENGTH) {
+      return;
+    }
+
     const req = await createPaymentRequest({
       asset,
       amount,
       destination,
       expiresInMinutes,
-      memo: memo.trim() || undefined,
+      memo: trimmedMemo || undefined,
+      memoType: trimmedMemo ? 'text' : undefined,
       note: note.trim() || undefined,
     });
 
@@ -86,7 +102,9 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
             Payment Request Link
           </h2>
           <p className="text-xs text-gray-500">
-            Create an expiring link to request funds directly into your wallet.
+            {clinicName
+              ? `Generate a Stellar payment request for ${clinicName}.`
+              : 'Create an expiring link to request funds directly into your wallet.'}
           </p>
         </div>
       </div>
@@ -202,9 +220,13 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
                 placeholder="e.g. Pet medication"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                maxLength={28}
+                maxLength={MAX_PAYMENT_MEMO_LENGTH}
+                aria-describedby="req-memo-hint"
                 className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+              <p id="req-memo-hint" className="mt-1 text-[11px] text-gray-400">
+                {memo.length}/{MAX_PAYMENT_MEMO_LENGTH} characters
+              </p>
             </div>
             <div>
               <label htmlFor="req-note" className="block text-xs font-semibold text-gray-700 mb-1">
@@ -271,6 +293,20 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
                 <span className="text-gray-800 italic">{activeRequest.note}</span>
               </div>
             )}
+            {activeRequest.memo && (
+              <div className="flex justify-between items-center text-gray-600">
+                <span>Memo:</span>
+                <span className="font-mono text-gray-800">{activeRequest.memo}</span>
+              </div>
+            )}
+            {clinicId && (
+              <div className="flex justify-between items-center text-gray-600">
+                <span>Clinic:</span>
+                <span className="font-mono text-gray-700 truncate max-w-[220px]" title={clinicId}>
+                  {clinicName || clinicId}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Shareable Link Box */}
@@ -314,6 +350,14 @@ export const PaymentRequestGenerator: React.FC<Props> = ({ defaultDestination = 
               <div className="mt-3 flex flex-col items-center p-4 bg-white border border-gray-200 rounded-xl shadow-inner">
                 <QRCodeSVG value={shareableUrl} size={150} level="M" />
                 <p className="mt-2 text-[11px] text-gray-400">Scan with a mobile camera or wallet</p>
+                <a
+                  href={shareableUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 text-[11px] text-blue-600 hover:text-blue-800 font-medium underline"
+                >
+                  Open payment request
+                </a>
               </div>
             )}
           </div>

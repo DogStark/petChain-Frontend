@@ -97,6 +97,93 @@ function toSafeEntry(raw: RawAccessEntry | null | undefined): SafeAccessEntry {
   };
 }
 
+export interface PaginateQrAccessHistoryOptions {
+  /** 1-based page number. Values below 1 are clamped to 1. */
+  page?: number;
+  /** Rows per page. Values below 1 fall back to DEFAULT_PAGE_SIZE. */
+  pageSize?: number;
+}
+
+export interface PaginatedQrAccessHistory {
+  /** Entries on the requested page. */
+  entries: SafeAccessEntry[];
+  /** Clamped 1-based page number. */
+  page: number;
+  /** Effective page size. */
+  pageSize: number;
+  /** Total number of pages (at least 1). */
+  totalPages: number;
+  /** Total number of entries across all pages. */
+  total: number;
+  /** 1-based index of the first entry on this page (0 when empty). */
+  startIndex: number;
+  /** 1-based index of the last entry on this page (0 when empty). */
+  endIndex: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+export const DEFAULT_PAGE_SIZE = 10;
+
+/**
+ * Slice a coarse access history into a single page. Never throws; out-of-range
+ * pages are clamped so the UI can never render an empty page by accident.
+ */
+export function paginateQrAccessHistory(
+  entries: SafeAccessEntry[] | null | undefined,
+  options: PaginateQrAccessHistoryOptions = {},
+): PaginatedQrAccessHistory {
+  const list = Array.isArray(entries) ? entries : [];
+  const total = list.length;
+  const requestedSize = options.pageSize;
+  const pageSize =
+    typeof requestedSize === 'number' && Number.isFinite(requestedSize) && requestedSize >= 1
+      ? Math.floor(requestedSize)
+      : DEFAULT_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const requestedPage = options.page;
+  const rawPage =
+    typeof requestedPage === 'number' && Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1;
+  const page = Math.min(Math.max(1, rawPage), totalPages);
+  const offset = (page - 1) * pageSize;
+  const pageEntries = list.slice(offset, offset + pageSize);
+
+  return {
+    entries: pageEntries,
+    page,
+    pageSize,
+    totalPages,
+    total,
+    startIndex: pageEntries.length > 0 ? offset + 1 : 0,
+    endIndex: pageEntries.length > 0 ? offset + pageEntries.length : 0,
+    hasPrevious: page > 1,
+    hasNext: page < totalPages,
+  };
+}
+
+const CSV_HEADERS = ['Timestamp (UTC)', 'Region'] as const;
+
+function csvCell(value: string): string {
+  // Guard against spreadsheet formula injection, then quote/escape.
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Serialise coarse access entries to CSV. Only the privacy-preserving fields
+ * (time bucket + region) are ever written, so exports cannot leak identity or
+ * precise location.
+ */
+export function toQrAccessHistoryCsv(entries: SafeAccessEntry[] | null | undefined): string {
+  const list = Array.isArray(entries) ? entries : [];
+  const rows = list.map((entry) =>
+    [csvCell(entry.bucketLabel), csvCell(entry.regionAvailable && entry.region ? entry.region : '')].join(
+      ',',
+    ),
+  );
+  return [CSV_HEADERS.join(','), ...rows].join('\r\n');
+}
+
 export interface BuildQrAccessHistoryOptions {
   /** When true, the owner has not enabled history or the backend denied access. */
   denied?: boolean;
@@ -147,4 +234,36 @@ export function buildQrAccessHistory(
     summary,
     note,
   };
+}
+
+export interface QrAccessHistoryExportOptions {
+  /** Base filename (without extension or date). */
+  filename?: string;
+  /** Injectable clock for deterministic filenames in tests. */
+  now?: Date;
+}
+
+/**
+ * Trigger a browser download of the coarse access history as CSV.
+ * Returns false (and does nothing) when no DOM is available, e.g. during SSR.
+ */
+export function downloadQrAccessHistoryCsv(
+  entries: SafeAccessEntry[] | null | undefined,
+  options: QrAccessHistoryExportOptions = {},
+): boolean {
+  if (typeof document === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
+    return false;
+  }
+  const csv = toQrAccessHistoryCsv(entries);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const base = options.filename ?? 'qr-access-history';
+  const date = (options.now ?? new Date()).toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `${base}_${date}.csv`;
+  link.rel = 'noopener';
+  link.click();
+  URL.revokeObjectURL(url);
+  return true;
 }
