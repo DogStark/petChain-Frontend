@@ -1,20 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useZkp } from '@/hooks/useZkp';
-import { ZkpProof, VerifyResult } from '@/lib/zkp';
+import type { ZkpProof, VerifyResult } from '@/lib/zkp';
 import { formatDate } from '@/utils/formatDate';
 
 interface Props {
   vaccinationId: string;
   vaccineName: string;
+  existingProof?: ZkpProof;
+  proofStatusUnavailable?: boolean;
 }
 
-export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Props) {
+export default function ZkpVaccinationProof({
+  vaccinationId,
+  vaccineName,
+  existingProof,
+  proofStatusUnavailable = false,
+}: Props) {
   const { generateProof, verifyProof, isGenerating, isVerifying, error } = useZkp();
   const [proof, setProof] = useState<ZkpProof | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [handlerError, setHandlerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setProof(existingProof ?? null);
+    setVerifyResult(null);
+  }, [existingProof]);
 
   const handleGenerate = async () => {
     setHandlerError(null);
@@ -41,18 +53,53 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
   };
 
   const displayError = handlerError ?? error;
+  const isVerified =
+    verifyResult?.valid ?? Boolean(proof?.isValid && proof.verifiedAt);
+  const proofDetailsId = `vaccination-proof-${vaccinationId}`;
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900 dark:text-white">ZK Proof — {vaccineName}</h3>
-        <span className="text-xs text-gray-500 dark:text-gray-400">Privacy-preserving</span>
+        <span
+          title="ZKP verification checks vaccination validity without revealing sensitive medical details."
+          aria-label="ZKP verification checks vaccination validity without revealing sensitive medical details"
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+            proofStatusUnavailable
+              ? 'bg-gray-100 text-gray-700'
+              : isVerified
+                ? 'bg-green-100 text-green-800'
+                : 'bg-amber-100 text-amber-800'
+          }`}
+        >
+          {proofStatusUnavailable
+            ? 'Status unavailable'
+            : isVerified
+              ? 'Verified'
+              : 'Unverified'}
+        </span>
       </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-300">
-        Generate a cryptographic proof that this vaccination is valid without revealing sensitive
-        medical details.
-      </p>
+      <a
+        href={`#${proofDetailsId}`}
+        className="text-sm font-medium text-blue-700 underline"
+      >
+        View proof details
+      </a>
+
+      <div id={proofDetailsId} className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+        {proofStatusUnavailable ? (
+          <p>Proof status could not be loaded.</p>
+        ) : proof ? (
+          <>
+            <p>Proof ID: <span className="break-all font-mono">{proof.id}</span></p>
+            <p className="mt-1">Status: {isVerified ? 'Verified on-chain' : 'Not verified'}</p>
+            {proof.expiresAt && <p className="mt-1">Expires: {formatDate(proof.expiresAt)}</p>}
+          </>
+        ) : (
+          <p>No ZKP proof is associated with this vaccination.</p>
+        )}
+      </div>
 
       {displayError && (
         <div
@@ -60,34 +107,6 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
           className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2"
         >
           {displayError}
-        </div>
-      )}
-
-      {proof && (
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-1 text-xs font-mono break-all">
-          <p className="text-gray-500 dark:text-gray-400">
-            Proof ID: <span className="text-gray-800 dark:text-gray-200">{proof.id}</span>
-          </p>
-          <p className="text-gray-500 dark:text-gray-400">
-            Status:{' '}
-            <span
-              className={
-                proof.isValid
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
-              }
-            >
-              {proof.isValid ? 'Valid' : 'Revoked'}
-            </span>
-          </p>
-          {proof.expiresAt && (
-            <p className="text-gray-500 dark:text-gray-400">
-              Expires:{' '}
-              <span className="text-gray-800 dark:text-gray-200">
-                {formatDate(proof.expiresAt)}
-              </span>
-            </p>
-          )}
         </div>
       )}
 
@@ -111,7 +130,7 @@ export default function ZkpVaccinationProof({ vaccinationId, vaccineName }: Prop
           disabled={isGenerating || isVerifying}
           className="flex-1 py-2 px-3 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
         >
-          {isGenerating ? 'Generating…' : 'Generate Proof'}
+          {isGenerating ? 'Generating…' : proof ? 'Generate New Proof' : 'Generate Proof'}
         </button>
         {proof && (
           <button
