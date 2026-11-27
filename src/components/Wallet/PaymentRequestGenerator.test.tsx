@@ -103,8 +103,7 @@ describe('PaymentRequestGenerator Component', () => {
     expect(alert).toHaveTextContent(/cannot be a secret key/i);
   });
 
-  it('renders created shareable link and copy action once activeRequest is created', async () => {
-    const mockReq = {
+  it('renders created shareable link and copy action once activeRequest is created', async () => {    const mockReq = {
       id: 'req_created',
       asset: 'XLM',
       amount: '50',

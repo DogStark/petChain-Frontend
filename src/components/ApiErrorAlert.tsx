@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from '@/i18n';
 import { translateApiError } from '@/lib/apiError';
+import { getRateLimitRetryAfter, useRateLimit } from '@/hooks/useRateLimit';
 
 interface ApiErrorAlertProps {
   error: unknown;
   id?: string;
+  onRetry?: () => void;
 }
 
-export default function ApiErrorAlert({ error, id }: ApiErrorAlertProps) {
+export default function ApiErrorAlert({ error, id, onRetry }: ApiErrorAlertProps) {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const translatedError = translateApiError(error, t);
+  const { isRateLimited, retryAfterSeconds, startCountdown } = useRateLimit({ onRetry });
+
+  useEffect(() => {
+    const retryAfter = getRateLimitRetryAfter(error);
+    if (retryAfter !== null) {
+      startCountdown(retryAfter);
+    }
+  }, [error, startCountdown]);
 
   const copyCorrelationId = async () => {
     if (!translatedError.correlationId) return;
@@ -32,6 +42,11 @@ export default function ApiErrorAlert({ error, id }: ApiErrorAlertProps) {
       className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
     >
       <p>{translatedError.message}</p>
+      {isRateLimited && (
+        <p role="status" aria-live="polite" className="mt-2 font-medium">
+          {t('errors.api.rateLimited', { seconds: retryAfterSeconds })}
+        </p>
+      )}
       {translatedError.correlationId && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span>{t('errors.api.correlationIdLabel')}:</span>

@@ -243,3 +243,50 @@ body {
 [dir='rtl'] .animate-marquee {
   animation-direction: reverse;
 }
+
+/* ── RTL layout support ──────────────────────────────────────────────────────
+ * The document direction is set on <html> by the i18n provider (see
+ * `applyDocumentAttributes` in src/i18n/index.tsx) and by the `useRTL` hook.
+ * These rules keep the mirrored layout from breaking in RTL mode.
+ */
+[dir='rtl'] body {
+  text-align: right;
+}
+
+/* Keep identifiers (wallet addresses, hashes, emails, phone numbers) LTR. */
+[dir='rtl'] .ltr-embed {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+/* Directional icons (chevrons/arrows) mirror; fixed-meaning icons do not. */
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Scrollbars and horizontal scrollers start from the reading edge. */
+[dir='rtl'] .no-scrollbar {
+  direction: rtl;
+}
+
+/* Form controls inherit the page direction instead of the UA default. */
+[dir='rtl'] input,
+[dir='rtl'] textarea,
+[dir='rtl'] select {
+  text-align: right;
+}
+
+/* Machine-readable values stay LTR even inside RTL forms. */
+[dir='rtl'] input[type='email'],
+[dir='rtl'] input[type='tel'],
+[dir='rtl'] input[type='url'],
+[dir='rtl'] input[type='number'] {
+  direction: ltr;
+  text-align: right;
+}
+
+/* Fallback for `space-x-*` utilities that rely on the physical left margin. */
+[dir='rtl'] .rtl-space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}

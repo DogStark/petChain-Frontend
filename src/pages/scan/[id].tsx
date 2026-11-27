@@ -1,4 +1,4 @@
-import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink } from 'lucide-react';
+import { AlertOctagon, Phone, MapPin, Stethoscope, Dna, ExternalLink, SearchX, PlusCircle } from 'lucide-react';
 import type { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -32,6 +32,7 @@ export default function ScanPage({
   const { id } = router.query;
   const [profile, setProfile] = useState(initialProfile ?? null);
   const [error, setError] = useState(initialError ?? null);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -39,6 +40,7 @@ export default function ScanPage({
     const load = async () => {
       setLoading(true);
       setError(null);
+      setNotFound(false);
       try {
         // Record the scan without collecting precise identity or location data.
         const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
@@ -79,6 +81,8 @@ export default function ScanPage({
             : undefined;
         if (status === 429) {
           setError('Too many requests. Please wait a moment and try again.');
+        } else if (status === 404) {
+          setNotFound(true);
         } else {
           setError(
             'This QR tag is invalid, revoked, or no longer active. No private pet details are available from this tag.',
@@ -101,6 +105,47 @@ export default function ScanPage({
             aria-hidden="true"
           />
           <span className="sr-only">Loading current tag status</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Issue #1390: helpful fallback for unregistered / not-found QR codes
+  if (notFound) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-amber-50 text-center">
+        <Head>
+          <title>Pet Not Found — PetChain</title>
+        </Head>
+        <SearchX size={72} className="text-amber-500 mb-4" />
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Pet Not Registered</h1>
+        <p className="text-gray-600 mb-2 max-w-sm">
+          This QR code doesn&apos;t match any pet registered in PetChain. The tag may belong to
+          another service, or the pet may not have been set up yet.
+        </p>
+        <p className="text-gray-500 text-sm mb-8 max-w-xs">
+          If you found a lost animal and this tag is their only identification, please contact your
+          local animal shelter.
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={() => router.push('/lost-and-found/report')}
+            className="flex items-center justify-center gap-2 bg-amber-500 text-white px-8 py-3 rounded-full font-bold"
+          >
+            <AlertOctagon size={18} /> Report a Lost Pet
+          </button>
+          <button
+            onClick={() => router.push('/register')}
+            className="flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-3 rounded-full font-bold"
+          >
+            <PlusCircle size={18} /> Register a New Pet
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="text-gray-500 underline text-sm mt-1"
+          >
+            Return Home
+          </button>
         </div>
       </div>
     );

@@ -52,6 +52,14 @@ export interface RecurringPaymentReviewConsentResponse {
   message?: string;
 }
 
+export interface RecurringPaymentPauseResponse {
+  success: boolean;
+  intentId: string;
+  pausedAt: string;
+  status: 'paused' | 'active';
+  message?: string;
+}
+
 export interface RecurringPaymentCancellationResponse {
   success: boolean;
   intentId: string;

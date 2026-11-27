@@ -41,6 +41,13 @@ export interface PetEmergencyInfo {
   visibility?: EmergencyFieldVisibility;
 }
 
+export interface PetInsuranceDetails {
+  provider?: string;
+  policyNumber?: string;
+  expiryDate?: string;
+  coverageSummary?: string;
+}
+
 export interface Pet {
   id: string;
   name: string;
@@ -51,4 +58,5 @@ export interface Pet {
   ownerId: string;
   status: 'active' | 'missing' | 'deceased';
   emergencyInfo?: PetEmergencyInfo;
+  insuranceDetails?: PetInsuranceDetails;
 }

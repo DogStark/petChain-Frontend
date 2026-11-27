@@ -111,6 +111,8 @@ export class AttachmentQueueManager {
   private readonly isOnline: () => boolean;
   private readonly now: () => number;
   private isProcessing = false;
+  /** Ids cancelled by the user while their upload was in flight. */
+  private readonly cancelledIds = new Set<number>();
 
   constructor(
     store: AttachmentQueueStore,
@@ -164,8 +166,8 @@ export class AttachmentQueueManager {
   }
 
   /**
-   * Remove an attachment from the queue before it is uploaded. Active uploads
-   * cannot be removed because their bytes are already in flight.
+   * Remove an attachment from the queue. An upload that is already in flight is
+   * cancelled: its result is discarded and the local file is dropped.
    */
   async remove(id: number, petId?: string): Promise<void> {
     const record = await this.store.get(id);
@@ -173,7 +175,7 @@ export class AttachmentQueueManager {
       throw new Error('This attachment is no longer in the queue.');
     }
     if (record.status === 'uploading') {
-      throw new Error('Wait for the current upload to finish before removing this attachment.');
+      this.cancelledIds.add(id);
     }
     // Deleting the record also drops the local blob.
     await this.store.delete(id);
@@ -229,6 +231,7 @@ export class AttachmentQueueManager {
       };
 
       for (const record of records) {
+        if (this.cancelledIds.has(record.id)) continue;
         // A record left in "uploading" by a reload is retried from scratch.
         if (record.status === 'uploading') {
           record.status = 'queued';
@@ -256,8 +259,14 @@ export class AttachmentQueueManager {
           // Upload succeeded: drop the record and its local file.
           await this.store.delete(record.id);
           deletedIds.add(record.id);
+          if (this.cancelledIds.delete(record.id)) continue;
           result.uploaded += 1;
         } catch (error) {
+          // A cancelled upload must not be resurrected as a failed record.
+          if (this.cancelledIds.delete(record.id)) {
+            deletedIds.add(record.id);
+            continue;
+          }
           record.status = 'failed';
           record.progress = 0;
           record.attempts += 1;
@@ -273,6 +282,7 @@ export class AttachmentQueueManager {
       return result;
     } finally {
       this.isProcessing = false;
+      this.cancelledIds.clear();
     }
   }
 }

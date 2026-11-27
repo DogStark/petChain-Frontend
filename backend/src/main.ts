@@ -10,7 +10,34 @@ import { AppModule } from './app.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditService } from './audit/audit.service';
 
+const MIN_JWT_SECRET_LENGTH = 32;
+
+/**
+ * Fail fast if JWT_SECRET is missing or too weak. A weak/absent secret allows
+ * anyone who reads the source to forge tokens, so we refuse to boot.
+ */
+function validateJwtSecret(): void {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim().length === 0) {
+    throw new Error(
+      'JWT_SECRET is not set. Refusing to start: configure a strong JWT_SECRET (min 32 chars).',
+    );
+  }
+  if (secret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new Error(
+      `JWT_SECRET is too short (${secret.length} chars). It must be at least ${MIN_JWT_SECRET_LENGTH} characters.`,
+    );
+  }
+  if (new Set(secret).size < 8) {
+    throw new Error(
+      'JWT_SECRET has insufficient entropy. Use a randomly generated secret with a variety of characters.',
+    );
+  }
+}
+
 async function bootstrap() {
+  validateJwtSecret();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const auditService = app.get(AuditService);

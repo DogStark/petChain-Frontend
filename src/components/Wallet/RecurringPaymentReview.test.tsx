@@ -145,6 +145,35 @@ describe('RecurringPaymentReview Component', () => {
     });
   });
 
+  it('allows user to pause and resume a recurring payment intent', async () => {
+    mockedAPI.setRecurringIntentPaused.mockResolvedValueOnce({
+      success: true,
+      intentId: 'intent-1',
+      pausedAt: '2026-10-25T10:00:00.000Z',
+      status: 'paused',
+    });
+
+    render(
+      <RecurringPaymentReview
+        sourcePublicKey="GBZXN3Z3XWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXW"
+        initialIntents={mockIntents}
+      />
+    );
+
+    const pauseBtn = screen.getByRole('button', { name: /Pause recurring payment schedule intent-1/i });
+    fireEvent.click(pauseBtn);
+
+    await waitFor(() => {
+      expect(mockedAPI.setRecurringIntentPaused).toHaveBeenCalledWith('intent-1', true);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Resume recurring payment schedule intent-1/i })
+      ).toBeInTheDocument();
+    });
+  });
+
   it('supports privacy masking for sensitive destination addresses and amounts', async () => {
     render(
       <RecurringPaymentReview

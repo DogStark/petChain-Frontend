@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Trash2, AlertTriangle, CheckCircle, Eye, EyeOff, Info } from 'lucide-react';
 import type {
   WalletAccount,
@@ -7,6 +7,11 @@ import type {
   BroadcastResult,
   WalletMonitoringData,
 } from '../../types/wallet';
+import {
+  validateMultisigConfig,
+  buildConfigSummary,
+  type ValidationWarning,
+} from '../../utils/multisigValidation';
 import ConfirmationDialog from './ConfirmationDialog';
 
 interface Props {
@@ -22,6 +27,14 @@ interface Props {
 const STELLAR_KEY_LENGTH = 56;
 const STELLAR_KEY_PREFIX = 'G';
 const MAX_WEIGHT = 255;
+
+type WizardStep = 1 | 2 | 3;
+
+const WIZARD_STEPS: { step: WizardStep; title: string; description: string }[] = [
+  { step: 1, title: 'Add co-signers', description: 'Choose the keys that can approve transactions.' },
+  { step: 2, title: 'Set threshold', description: 'Define the signing weight required per operation type.' },
+  { step: 3, title: 'Confirm and activate', description: 'Review and submit the configuration on-chain.' },
+];
 
 export default function MultiSigSetup({
   wallet,
@@ -44,6 +57,7 @@ export default function MultiSigSetup({
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const [showSetupConfirm, setShowSetupConfirm] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
+  const [step, setStep] = useState<WizardStep>(1);
 
   // Cleanup sensitive state on unmount
   useEffect(() => {
@@ -107,6 +121,42 @@ export default function MultiSigSetup({
 
   const totalWeight = signers.reduce((sum, s) => sum + (s.weight || 0), 0) + masterWeight;
 
+  const signerErrors = useMemo(
+    () =>
+      validateMultisigConfig(
+        signers,
+        masterWeight,
+        lowThreshold,
+        medThreshold,
+        highThreshold,
+        wallet?.publicKey ?? '',
+        accountData,
+      ).errors.filter((e) => /signer|co-signer|key/i.test(e)),
+    [signers, masterWeight, lowThreshold, medThreshold, highThreshold, wallet?.publicKey, accountData],
+  );
+
+  const thresholdErrors = useMemo(
+    () => validation.errors.filter((e) => !signerErrors.includes(e)),
+    [validation.errors, signerErrors],
+  );
+
+  const stepErrors = step === 1 ? signerErrors : step === 2 ? thresholdErrors : validation.errors;
+
+  function goToStep(next: WizardStep) {
+    onClearError();
+    setStep(next);
+  }
+
+  function handleNext() {
+    if (stepErrors.length > 0) return;
+    goToStep(step === 1 ? 2 : 3);
+  }
+
+  function handleBack() {
+    if (step === 1) return;
+    goToStep((step - 1) as WizardStep);
+  }
+
   function addSigner() {
     setSigners((prev) => [...prev, { publicKey: '', weight: 1 }]);
   }
@@ -147,6 +197,16 @@ export default function MultiSigSetup({
     setShowSetupConfirm(true);
   }
 
+  function validateSigners(): string | null {
+    if (signers.some((s) => !s.publicKey.trim())) {
+      return 'Every co-signer row needs a Stellar public key.';
+    }
+    if (validation.errors.length > 0) {
+      return validation.errors[0];
+    }
+    return null;
+  }
+
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
     onClearError();
@@ -162,6 +222,7 @@ export default function MultiSigSetup({
       setResult(res);
       // Zero sensitive state immediately after success
       setPin('');
+      setStep(1);
     } catch {
       // error shown via hook, also zero sensitive state on failure
       setPin('');
@@ -285,12 +346,49 @@ export default function MultiSigSetup({
       >
         <h3 className="font-semibold text-gray-900">Configure Multi-Sig</h3>
 
+        {/* Wizard progress */}
+        <ol className="flex items-center gap-2" aria-label="Multi-signature setup steps">
+          {WIZARD_STEPS.map((s) => {
+            const isActive = s.step === step;
+            const isDone = s.step < step;
+            return (
+              <li key={s.step} className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => (s.step < step ? goToStep(s.step) : undefined)}
+                  disabled={s.step > step}
+                  aria-current={isActive ? 'step' : undefined}
+                  className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                    isActive
+                      ? 'border-purple-400 bg-purple-50'
+                      : isDone
+                        ? 'border-green-200 bg-green-50'
+                        : 'border-gray-200 bg-gray-50'
+                  } ${s.step > step ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                    {isDone ? (
+                      <CheckCircle size={13} className="text-green-600" />
+                    ) : (
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px]">
+                        {s.step}
+                      </span>
+                    )}
+                    {s.title}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-gray-500">{s.description}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
         {/* Validation Errors */}
-        {validation.errors.length > 0 && (
+        {stepErrors.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
             <p className="font-medium mb-1">Please fix the following:</p>
             <ul className="list-disc list-inside space-y-0.5">
-              {validation.errors.map((err, i) => (
+              {stepErrors.map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
             </ul>
@@ -309,7 +407,8 @@ export default function MultiSigSetup({
           </div>
         )}
 
-        {/* Co-signers */}
+        {/* Step 1: Co-signers */}
+        {step === 1 && (
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">Co-Signers</label>
           {signers.map((signer, idx) => {
@@ -365,8 +464,10 @@ export default function MultiSigSetup({
             <Plus size={15} /> Add signer
           </button>
         </div>
+        )}
 
-        {/* Thresholds */}
+        {/* Step 2: Thresholds */}
+        {step === 2 && (
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Master Weight</label>

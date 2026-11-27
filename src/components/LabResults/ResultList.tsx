@@ -293,7 +293,7 @@ export default function ResultList({
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" /> Previous
+            <ChevronLeft className="w-4 h-4 rtl-flip" /> Previous
           </button>
           <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
           <button
@@ -301,7 +301,7 @@ export default function ResultList({
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Next <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-4 h-4 rtl-flip" />
           </button>
         </div>
       )}

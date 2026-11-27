@@ -493,16 +493,11 @@ export default function ClinicProfile() {
             aria-labelledby="tab-reviews"
             hidden={activeTab !== "reviews"}
           >
-            {clinic.reviews && clinic.reviews.length > 0 ? (
-              <ReviewSection
-                reviews={clinic.reviews}
-                averageRating={clinic.rating}
-              />
-            ) : (
-              <p className="text-center text-gray-400 py-12 font-medium">
-                No reviews yet. Be the first to review this clinic.
-              </p>
-            )}
+            <ReviewSection
+              clinicId={clinic.id}
+              reviews={clinic.reviews ?? []}
+              averageRating={clinic.rating}
+            />
           </div>
 
           <div

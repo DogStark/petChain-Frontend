@@ -329,6 +329,28 @@ class UserManagementAPI {
     return response.data;
   }
 
+  async getAdminSMSDeliveryStats(
+    startDate: string,
+    endDate: string
+  ): Promise<{
+    range: { startDate: string; endDate: string };
+    totals: { sent: number; delivered: number; failed: number; pending: number };
+    trend: Array<{
+      date: string;
+      sent: number;
+      delivered: number;
+      failed: number;
+      pending: number;
+      deliveryRate: number;
+    }>;
+  }> {
+    const params = new URLSearchParams();
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+    const response = await this.api.get(`/sms/admin/delivery-stats?${params.toString()}`);
+    return response.data;
+  }
+
   async getPrivacySettings() {
     const response = await this.api.get('/me/preferences/privacy');
     return response.data;

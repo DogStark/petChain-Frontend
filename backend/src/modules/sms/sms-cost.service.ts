@@ -237,6 +237,126 @@ export class SmsCostService {
     };
   }
 
+  async getDeliveryStats(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{
+    range: { startDate: string; endDate: string };
+    totals: {
+      sent: number;
+      delivered: number;
+      failed: number;
+      pending: number;
+    };
+    trend: Array<{
+      date: string;
+      sent: number;
+      delivered: number;
+      failed: number;
+      pending: number;
+      deliveryRate: number;
+    }>;
+  }> {
+    const toISODate = (date: Date): string =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+        date.getDate(),
+      ).padStart(2, '0')}`;
+
+    const now = new Date();
+    const parsedStart = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
+    const parsedEnd = endDate ? new Date(`${endDate}T00:00:00.000Z`) : null;
+    const start =
+      parsedStart && !isNaN(parsedStart.getTime())
+        ? parsedStart
+        : new Date(now.getFullYear(), now.getMonth(), 1);
+    const end =
+      parsedEnd && !isNaN(parsedEnd.getTime())
+        ? parsedEnd
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const rangeStart = start <= end ? start : end;
+    const rangeEnd = start <= end ? end : start;
+
+    const logs = await this.smsLogRepository
+      .createQueryBuilder('log')
+      .select('log.status', 'status')
+      .addSelect('DATE(log.createdAt)', 'day')
+      .addSelect('COUNT(*)', 'count')
+      .where('log.createdAt >= :from', {
+        from: new Date(
+          rangeStart.getFullYear(),
+          rangeStart.getMonth(),
+          rangeStart.getDate(),
+        ),
+      })
+      .andWhere('log.createdAt < :to', {
+        to: new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate() + 1),
+      })
+      .groupBy('log.status')
+      .addGroupBy('DATE(log.createdAt)')
+      .getRawMany<{ status: SmsStatus; day: string; count: string }>();
+
+    const buckets = new Map<
+      string,
+      { sent: number; delivered: number; failed: number; pending: number }
+    >();
+    const cursor = new Date(
+      rangeStart.getFullYear(),
+      rangeStart.getMonth(),
+      rangeStart.getDate(),
+    );
+    const last = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+    while (cursor <= last) {
+      buckets.set(toISODate(cursor), { sent: 0, delivered: 0, failed: 0, pending: 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    for (const row of logs) {
+      const day = String(row.day).slice(0, 10);
+      const bucket = buckets.get(day);
+      if (!bucket) continue;
+      const count = parseInt(row.count, 10) || 0;
+      switch (row.status) {
+        case SmsStatus.DELIVERED:
+          bucket.delivered += count;
+          break;
+        case SmsStatus.FAILED:
+          bucket.failed += count;
+          break;
+        case SmsStatus.SENT:
+          bucket.sent += count;
+          break;
+        default:
+          bucket.pending += count;
+      }
+    }
+
+    const trend = Array.from(buckets.entries()).map(([date, counts]) => {
+      const sent = counts.sent + counts.delivered + counts.failed;
+      return {
+        date,
+        ...counts,
+        deliveryRate: sent > 0 ? (counts.delivered / sent) * 100 : 0,
+      };
+    });
+
+    const totals = trend.reduce(
+      (acc, point) => ({
+        sent: acc.sent + point.sent,
+        delivered: acc.delivered + point.delivered,
+        failed: acc.failed + point.failed,
+        pending: acc.pending + point.pending,
+      }),
+      { sent: 0, delivered: 0, failed: 0, pending: 0 },
+    );
+
+    return {
+      range: { startDate: toISODate(rangeStart), endDate: toISODate(rangeEnd) },
+      totals,
+      trend,
+    };
+  }
+
   async setUserSpendingLimit(
     userId: string,
     limitCents: number,

@@ -114,7 +114,7 @@ export default function TransactionHistory() {
                       Retry
                     </button>
                   )}
-                  {tx.status === 'confirmed' && tx.type === 'transfer' && (
+                  {tx.status === 'confirmed' && (
                     <button
                       type="button"
                       onClick={() =>
@@ -129,7 +129,7 @@ export default function TransactionHistory() {
                       title={
                         isReceiptEligibleTransaction(tx)
                           ? 'Download PDF receipt'
-                          : 'Receipt unavailable without a confirmed ledger and transaction hash'
+                          : 'Receipt unavailable without a transaction hash'
                       }
                     >
                       Download receipt PDF
