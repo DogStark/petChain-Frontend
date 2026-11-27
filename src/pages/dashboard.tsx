@@ -156,6 +156,10 @@ function DashboardContent({ user }: { user: User }) {
               <Link href="/pets" className="font-medium text-blue-600 hover:text-blue-500">
                 View all pets
               </Link>
+              <span className="mx-2 text-gray-400" aria-hidden="true">|</span>
+              <Link href="/pets/new" className="font-medium text-blue-600 hover:text-blue-500">
+                Add a pet
+              </Link>
             </div>
           </div>
         </div>

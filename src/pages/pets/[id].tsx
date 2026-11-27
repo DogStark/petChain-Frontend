@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { GetStaticProps, GetStaticPaths } from 'next';
-import { ArrowLeft, QrCode, Printer } from 'lucide-react';
+import { ArrowLeft, Check, QrCode, Printer } from 'lucide-react';
 import { PetPhotosManager } from '@/components/PetPhotos';
 import Avatar from '@/components/Avatar';
 import { EmergencyQR } from '@/components/Profile/EmergencyQR';
@@ -14,6 +13,7 @@ import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
 import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
+import { petAPI, type PetRecord, type PetUpsertPayload } from '@/lib/api/petAPI';
 import ZkpVaccinationProof from '@/components/ZkpVaccinationProof';
 import { vaccinationsAPI, type VaccinationRecord } from '@/lib/api/vaccinationsAPI';
 import { zkpService, type ZkpProof } from '@/lib/zkp';
@@ -49,9 +49,10 @@ export default function PetDetailPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [pet, setPet] = useState<Pet | null>(null);
+  const [pet, setPet] = useState<PetRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [insuranceForm, setInsuranceForm] = useState<PetInsuranceDetails>({});
   const [isSavingInsurance, setIsSavingInsurance] = useState(false);
   const [insuranceMessage, setInsuranceMessage] = useState<string | null>(null);
@@ -62,18 +63,30 @@ export default function PetDetailPage() {
   const [vaccinationError, setVaccinationError] = useState<string | null>(null);
   const [proofError, setProofError] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const isNewPet = id === 'new';
 
   useEffect(() => {
     // Router not yet hydrated — stay in loading state until id is available
     if (!id || typeof id !== 'string') return;
 
+    if (id === 'new') {
+      setPet(null);
+      setError(null);
+      setIsEditing(true);
+      setIsLoading(false);
+      return;
+    }
+
     // id is present but not a valid UUID — stop loading and surface an error
     if (!UUID_RE.test(id)) {
       setIsLoading(false);
+      setIsEditing(false);
       setError('Invalid pet id');
       return;
     }
 
+    setIsEditing(false);
+    setError(null);
     // Use sanitized copy to break taint flow
     const safeId = id.replace(/[^0-9a-f-]/gi, '');
 
@@ -93,13 +106,13 @@ export default function PetDetailPage() {
           throw new Error(res.status === 404 ? 'Pet not found' : 'Failed to load pet');
         }
 
-        const data = await res.json();
+        const data: PetRecord = await res.json();
         if (cancelled) return;
         setPet(data);
         setInsuranceForm(data.insuranceDetails ?? {});
       } catch (err: unknown) {
-        if (cancelled || err?.name === 'AbortError') return;
-        setError(err.message);
+        if (cancelled || (err instanceof Error && err.name === 'AbortError')) return;
+        setError(err instanceof Error ? err.message : 'Failed to load pet');
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -163,6 +176,26 @@ export default function PetDetailPage() {
     );
   }
 
+  if (isEditing) {
+    return (
+      <PetEditor
+        pet={pet}
+        onCancel={() => {
+          if (isNewPet) {
+            void router.push('/dashboard');
+          } else {
+            setIsEditing(false);
+          }
+        }}
+        onSaved={(savedPet) => {
+          setPet(savedPet);
+          setIsEditing(false);
+          if (isNewPet) void router.replace(`/pets/${savedPet.id}`);
+        }}
+      />
+    );
+  }
+
   if (error || !pet) {
     return (
       <div className={styles.container}>
@@ -176,6 +209,7 @@ export default function PetDetailPage() {
 
   const primaryPhoto = pet.photos?.find((p) => p.isPrimary);
   const age = getAge(pet.dateOfBirth);
+  const breedName = getBreedName(pet.breed);
 
   const handlePrintCard = () => {
     if (typeof window === 'undefined') return;
@@ -239,6 +273,13 @@ export default function PetDetailPage() {
           <ArrowLeft size={16} />
           Back
         </button>
+        <button
+          type="button"
+          onClick={() => setIsEditing(true)}
+          className="mb-5 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
+        >
+          Edit pet
+        </button>
 
         <div className={styles.petHeader}>
           <Avatar
@@ -253,8 +294,8 @@ export default function PetDetailPage() {
           <div className={styles.petInfo}>
             <h1>{pet.name}</h1>
             <div className={styles.petMeta}>
-              <span className={styles.metaItem}>{capitalize(pet.species)}</span>
-              {pet.breed && <span className={styles.metaItem}>{pet.breed.name}</span>}
+              <span className={styles.metaItem}>{capitalize(pet.species.toLowerCase())}</span>
+              {breedName && <span className={styles.metaItem}>{breedName}</span>}
               {age && <span className={styles.metaItem}>{age}</span>}
             </div>
           </div>
@@ -352,7 +393,7 @@ export default function PetDetailPage() {
                 id: pet.id,
                 name: pet.name,
                 species: capitalize(pet.species),
-                breed: pet.breed,
+                breed: breedName ? { name: breedName } : null,
                 photoUrl: primaryPhoto?.photoUrl || primaryPhoto?.thumbnailUrl || null,
                 microchipNumber: pet.microchipNumber,
               }}
@@ -395,6 +436,16 @@ export default function PetDetailPage() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Details</h2>
           <div className={styles.detailGrid}>
+            <div className={styles.detailItem}>
+              <span className={styles.detailLabel}>Species</span>
+              <span className={styles.detailValue}>{capitalize(pet.species)}</span>
+            </div>
+            {breedName && (
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Breed</span>
+                <span className={styles.detailValue}>{breedName}</span>
+              </div>
+            )}
             <div className={styles.detailItem}>
               <span className={styles.detailLabel}>Gender</span>
               <span className={styles.detailValue}>{capitalize(pet.gender)}</span>
@@ -510,6 +561,12 @@ function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
+}
+
+function getBreedName(breed: PetRecord['breed']): string {
+  if (typeof breed === 'string') return breed;
+  return breed?.name ?? '';
+}
 }
 
 function getAge(dateOfBirth: string): string | null {

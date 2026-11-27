@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
-import {
-  transactionAPI,
+import type {
   Transaction,
   TransactionReceipt,
   TransactionCost,
 } from '@/lib/api/transactionAPI';
 import { formatDateTime } from '@/utils/formatDate';
+import { useTransactions } from '@/hooks/useTransactions';
+import { isTestnetNetwork } from '@/lib/blockchain/network';
+import {
+  downloadTransactionReceiptPdf,
+  isReceiptEligibleTransaction,
+} from '@/lib/wallet/transactionReceiptPdf';
 
 interface TransactionDetailsProps {
   transactionId: string;
@@ -13,11 +18,12 @@ interface TransactionDetailsProps {
 }
 
 export default function TransactionDetails({ transactionId, onClose }: TransactionDetailsProps) {
-  const { getTransaction, getTransactionReceipt, getTransactionCost, loading: hookLoading } = useTransactions();
+  const { getTransaction, getTransactionReceipt, getTransactionCost } = useTransactions();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
   const [cost, setCost] = useState<TransactionCost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [receiptDownloadError, setReceiptDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTransactionDetails();
@@ -41,8 +47,27 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
     }
   };
 
+  const handleReceiptDownload = () => {
+    if (!transaction) return;
+    try {
+      downloadTransactionReceiptPdf(
+        { ...transaction, blockNumber: transaction.blockNumber ?? receipt?.blockNumber },
+        isTestnetNetwork() ? 'TESTNET' : 'PUBLIC',
+      );
+      setReceiptDownloadError(null);
+    } catch (error) {
+      setReceiptDownloadError(
+        error instanceof Error ? error.message : 'Unable to download transaction receipt',
+      );
+    }
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (!transaction) return <div className="p-4">Transaction not found</div>;
+  const receiptTransaction = {
+    ...transaction,
+    blockNumber: transaction.blockNumber ?? receipt?.blockNumber,
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -56,6 +81,19 @@ export default function TransactionDetails({ transactionId, onClose }: Transacti
           </div>
 
           <div className="space-y-4">
+            {isReceiptEligibleTransaction(receiptTransaction) && (
+              <button
+                type="button"
+                onClick={handleReceiptDownload}
+                aria-label={`Download PDF receipt for transaction ${transaction.id}`}
+                className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+              >
+                Download receipt PDF
+              </button>
+            )}
+            {receiptDownloadError && (
+              <p role="alert" className="text-sm text-red-700">{receiptDownloadError}</p>
+            )}
             <div>
               <label className="font-semibold">Hash:</label>
               <p className="font-mono text-sm break-all">{transaction.hash}</p>
