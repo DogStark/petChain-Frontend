@@ -16,6 +16,7 @@ import type {
   RecurringPaymentIntent,
   RecurringPaymentCancellationResponse,
   RecurringPaymentReviewConsentResponse,
+  RecurringPaymentPauseResponse,
 } from '../../types/recurringPayment';
 
 class RecurringPaymentManagementAPI {
@@ -77,6 +78,19 @@ class RecurringPaymentManagementAPI {
     const response = await this.api.post<RecurringPaymentReviewConsentResponse>(
       `/${intentId}/consent`,
       { action }
+    );
+    return response.data;
+  }
+
+  /**
+   * Pause or resume an active recurring payment intent.
+   */
+  async setRecurringIntentPaused(
+    intentId: string,
+    paused: boolean
+  ): Promise<RecurringPaymentPauseResponse> {
+    const response = await this.api.post<RecurringPaymentPauseResponse>(
+      `/${intentId}/${paused ? 'pause' : 'resume'}`
     );
     return response.data;
   }
