@@ -14,6 +14,7 @@ import PrescriptionRefillButton from '@/components/Pets/PrescriptionRefillButton
 import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
+import { calculatePetAge } from '@/utils/petAge';
 import { petAPI, type PetRecord, type PetUpsertPayload } from '@/lib/api/petAPI';
 import ZkpVaccinationProof from '@/components/ZkpVaccinationProof';
 import { vaccinationsAPI, type VaccinationRecord } from '@/lib/api/vaccinationsAPI';
@@ -209,7 +210,8 @@ export default function PetDetailPage() {
   }
 
   const primaryPhoto = pet.photos?.find((p) => p.isPrimary);
-  const age = getAge(pet.dateOfBirth);
+  const petAge = calculatePetAge(pet.dateOfBirth);
+  const age = petAge?.display ?? getAge(pet.dateOfBirth);
   const breedName = getBreedName(pet.breed);
 
   const handlePrintCard = () => {
@@ -301,6 +303,16 @@ export default function PetDetailPage() {
             </div>
           </div>
         </div>
+
+        {petAge?.isBirthday && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 bg-pink-50 border border-pink-200 rounded-lg px-4 py-2 text-sm text-pink-700 font-medium mb-2"
+          >
+            🎂 Happy birthday, {pet.name}! {petAge.years > 0 ? `Turning ${petAge.years} today!` : 'First birthday!'}
+          </div>
+        )}
 
         <CareSetupChecklist petId={pet.id} petName={pet.name} createdAt={pet.createdAt} />
 
