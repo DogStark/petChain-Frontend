@@ -65,6 +65,30 @@ describe('useRecurringPaymentReview hook', () => {
     expect(result.current.privacyMask).toBe(false);
   });
 
+  it('pauses and resumes an intent via the API', async () => {
+    mockedAPI.setRecurringIntentPaused.mockResolvedValueOnce({
+      success: true,
+      intentId: 'intent-abc',
+      pausedAt: '2026-10-25T10:00:00.000Z',
+      status: 'paused',
+    });
+
+    const { result } = renderHook(() =>
+      useRecurringPaymentReview({
+        sourcePublicKey: 'GBZXN3Z3XWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXWXW',
+        initialIntents: [sampleIntent],
+        autoFetch: false,
+      })
+    );
+
+    await act(async () => {
+      await result.current.setIntentPaused('intent-abc', true);
+    });
+
+    expect(mockedAPI.setRecurringIntentPaused).toHaveBeenCalledWith('intent-abc', true);
+    expect(result.current.intents[0].status).toBe('paused');
+  });
+
   it('fetches intents from API successfully', async () => {
     mockedAPI.getRecurringIntents.mockResolvedValueOnce([sampleIntent]);
 

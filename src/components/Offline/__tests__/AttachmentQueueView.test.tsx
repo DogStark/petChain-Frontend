@@ -72,10 +72,10 @@ describe('AttachmentQueueView', () => {
     expect(progress).toHaveAttribute('aria-valuenow', '42');
     expect(progress).toHaveAttribute('aria-valuetext', '42% uploaded');
 
-    // Removal is unavailable while bytes are in flight.
+    // Removal is available while bytes are in flight so the upload can be cancelled.
     expect(
-      screen.getByRole('button', { name: /remove bloodwork\.pdf from the upload queue/i }),
-    ).toBeDisabled();
+      screen.getByRole('button', { name: /cancel upload of bloodwork\.pdf/i }),
+    ).toBeEnabled();
   });
 
   it('removes a queued attachment before upload starts', () => {

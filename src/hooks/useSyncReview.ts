@@ -17,6 +17,7 @@ import {
   type SyncQueueItem,
 } from '@/lib/offline/indexedDB';
 import { syncManager } from '@/lib/offline/syncManager';
+import type { ConflictResolutionStrategy } from '@/lib/offline/syncManager';
 import type { SyncConflictSnapshot } from '@/lib/offline/indexedDB';
 
 export interface SyncReviewState {
@@ -40,14 +41,22 @@ export interface SyncReviewActions {
   cancelItem: (id: number) => Promise<void>;
   /** Refresh counts from IndexedDB (useful after external mutations). */
   refresh: () => Promise<void>;
+  /**
+   * Resolve a conflict with the chosen strategy and refresh the list.
+   * `merge` uses the per-field selections; `local`/`server` take that snapshot.
+   */
+  resolveConflict: (
+    conflictId: string,
+    strategy: ConflictResolutionStrategy,
+    fieldChoices?: Record<string, 'local' | 'server'>,
+  ) => Promise<void>;
 }
 
 export type UseSyncReviewResult = SyncReviewState & SyncReviewActions;
 
 export function useSyncReview(): UseSyncReviewResult {
-  const { user } = useAuth();
+  const { user, tokens } = useAuth();
   const ownerId = user?.id ?? null;
-
   const [state, setState] = useState<SyncReviewState>({
     pendingItems: [],
     conflicts: [],
@@ -125,9 +134,54 @@ export function useSyncReview(): UseSyncReviewResult {
     [],
   );
 
+  const resolveConflict = useCallback(
+    async (
+      conflictId: string,
+      strategy: ConflictResolutionStrategy,
+      fieldChoices: Record<string, 'local' | 'server'> = {},
+    ) => {
+      const conflict = state.conflicts.find((item) => item.conflictId === conflictId);
+      if (!conflict) {
+        throw new Error('This conflict is no longer available.');
+      }
+
+      const resolvedData: Record<string, unknown> = {};
+      if (strategy === 'local') {
+        Object.assign(resolvedData, conflict.localData);
+      } else if (strategy === 'server') {
+        Object.assign(resolvedData, conflict.serverData);
+      } else {
+        const fields = new Set([
+          ...Object.keys(conflict.localData),
+          ...Object.keys(conflict.serverData),
+        ]);
+        for (const field of fields) {
+          const source = fieldChoices[field] ?? 'server';
+          const value =
+            source === 'local' ? conflict.localData[field] : conflict.serverData[field];
+          if (value !== undefined) resolvedData[field] = value;
+        }
+      }
+
+      await syncManager.resolveConflict(
+        conflictId,
+        resolvedData,
+        ownerId ?? undefined,
+        tokens?.accessToken,
+        strategy,
+      );
+      setState((prev) => ({
+        ...prev,
+        conflicts: prev.conflicts.filter((item) => item.conflictId !== conflictId),
+      }));
+    },
+    [state.conflicts, ownerId, tokens?.accessToken],
+  );
+
   return {
     ...state,
     cancelItem,
     refresh: load,
+    resolveConflict,
   };
 }

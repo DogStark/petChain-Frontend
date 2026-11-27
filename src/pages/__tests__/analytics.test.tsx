@@ -1,9 +1,9 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import AnalyticsPage from '../analytics';
-import { generateAnalyticsData } from '@/lib/analyticsUserData';
+import { generateAnalyticsData, generateUserEngagement } from '@/lib/analyticsUserData';
 import { DataModeProvider } from '@/contexts/DataModeContext';
 
 jest.mock('next/dynamic', () => {
@@ -16,9 +16,16 @@ jest.mock('next/dynamic', () => {
 
 jest.mock('@/lib/analyticsUserData', () => ({
   generateAnalyticsData: jest.fn(),
+  generateUserEngagement: jest.fn(),
+  ENGAGEMENT_RANGE_OPTIONS: [
+    { value: '7d', label: 'Last 7 days', days: 7 },
+    { value: '30d', label: 'Last 30 days', days: 30 },
+    { value: '90d', label: 'Last 90 days', days: 90 },
+  ],
 }));
 
 const generateAnalyticsDataMock = generateAnalyticsData as jest.MockedFunction<typeof generateAnalyticsData>;
+const generateUserEngagementMock = generateUserEngagement as jest.MockedFunction<typeof generateUserEngagement>;
 const sampleData: Awaited<ReturnType<typeof generateAnalyticsData>> = {
   engagementData: [{ date: 'Mon', activeUsers: 120, newSignups: 12 }],
   healthData: [
@@ -42,6 +49,10 @@ describe('AnalyticsPage accessibility', () => {
 
   beforeEach(() => {
     generateAnalyticsDataMock.mockResolvedValue(sampleData);
+    generateUserEngagementMock.mockResolvedValue({
+      trends: [{ date: 'Mon', dau: 120, wau: 480 }],
+      featureUsage: [{ feature: 'Pet Records', users: 90 }],
+    });
   });
 
   afterEach(() => {
@@ -58,7 +69,13 @@ describe('AnalyticsPage accessibility', () => {
     engagementSummary.focus();
     await user.keyboard(' ');
     const engagementTable = within(engagementSection).getByRole('table', { name: 'User engagement' });
-    expect(within(engagementTable).getByRole('row', { name: 'Mon 120 12' })).toBeInTheDocument();
+    expect(within(engagementTable).getByRole('row', { name: 'Mon 120 480' })).toBeInTheDocument();
+    fireEvent.click(within(engagementSection).getByText('View data table: Feature usage'));
+    expect(within(engagementSection).getByRole('table', { name: 'Feature usage' })).toHaveTextContent(
+      'Pet Records',
+    );
+    fireEvent.change(within(engagementSection).getByLabelText('Date range'), { target: { value: '30d' } });
+    await waitFor(() => expect(generateUserEngagementMock).toHaveBeenLastCalledWith('30d'));
 
     const healthSection = screen.getByRole('region', { name: 'Pet health analytics' });
     fireEvent.click(within(healthSection).getByText('View data table: Pet health distribution'));

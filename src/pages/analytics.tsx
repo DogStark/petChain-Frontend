@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { Download, RefreshCw } from 'lucide-react';
-import { generateAnalyticsData } from '../lib/analyticsUserData';
+import { generateAnalyticsData, generateUserEngagement, ENGAGEMENT_RANGE_OPTIONS } from '../lib/analyticsUserData';
+import type { EngagementRange } from '../lib/analyticsUserData';
+import type { UserEngagement } from '../lib/api/analyticsAPI';
 import { GetServerSideProps } from 'next';
 import DataModeChart from '@/components/DataModeChart';
 import AnalyticsExportPreview from '@/components/analytics/AnalyticsExportPreview';
@@ -31,6 +33,16 @@ interface AnalyticsData {
   engagementData: { date: string; activeUsers: number; newSignups: number }[];
   healthData: { name: string; value: number; color: string }[];
   vaccinationData: { month: string; compliant: number; nonCompliant: number }[];
+  vaccinationBreakdown: { vaccineType: string; compliant: number; nonCompliant: number }[];
+  nonCompliantPets: {
+    id: string;
+    name: string;
+    species: string;
+    ownerName: string;
+    vaccineType: string;
+    dueDate: string;
+    daysOverdue: number;
+  }[];
   geoData: { region: string; users: number; pets?: number }[];
   apiUsageData: { time: string; requests: number; errors: number }[];
   revenueData: RevenueBreakdownPoint[];
@@ -113,6 +125,8 @@ const AnalyticsPage = () => {
     endDate: '',
   });
   const [geoLoading, setGeoLoading] = useState(false);
+  const [engagementRange, setEngagementRange] = useState<EngagementRange>('7d');
+  const [engagement, setEngagement] = useState<UserEngagement | null>(null);
 
   const fetchData = async () => {
     try {
@@ -156,6 +170,20 @@ const AnalyticsPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    generateUserEngagement(engagementRange)
+      .then((result) => {
+        if (!cancelled) setEngagement(result);
+      })
+      .catch(() => {
+        if (!cancelled) setEngagement(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [engagementRange]);
+
   // Exporting goes through the privacy-aware preview dialog: it shows the
   // exact fields and date range, masks identifiers by default, and only
   // unmounts personal data once the backend authorises it.
@@ -164,6 +192,13 @@ const AnalyticsPage = () => {
   // slice hasn't changed between 30s polls.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const engagementData = useMemo(() => data?.engagementData ?? [], [JSON.stringify(data?.engagementData)]);
+  const engagementTrends = useMemo(
+    () =>
+      engagement?.trends ??
+      engagementData.map((entry) => ({ date: entry.date, dau: entry.activeUsers, wau: entry.newSignups })),
+    [engagement, engagementData],
+  );
+  const featureUsage = useMemo(() => engagement?.featureUsage ?? [], [engagement]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const healthData = useMemo(
     () =>
@@ -178,6 +213,16 @@ const AnalyticsPage = () => {
   const totalHealthPets = healthData.reduce((sum, entry) => sum + entry.value, 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const vaccinationData = useMemo(() => data?.vaccinationData ?? [], [JSON.stringify(data?.vaccinationData)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const vaccinationBreakdown = useMemo(
+    () => data?.vaccinationBreakdown ?? [],
+    [JSON.stringify(data?.vaccinationBreakdown)],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const nonCompliantPets = useMemo(
+    () => data?.nonCompliantPets ?? [],
+    [JSON.stringify(data?.nonCompliantPets)],
+  );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const geoData = useMemo(() => data?.geoData ?? [], [JSON.stringify(data?.geoData)]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -259,13 +304,26 @@ const AnalyticsPage = () => {
               summary={`${engagementData[engagementData.length - 1]?.activeUsers || 0} active users today`}
               minHeight="400px"
             >
-              <UserEngagementChart data={engagementData} />
+              <UserEngagementChart
+                data={engagementTrends}
+                featureUsage={featureUsage}
+                range={engagementRange}
+                onRangeChange={(value) => setEngagementRange(value as EngagementRange)}
+                rangeOptions={ENGAGEMENT_RANGE_OPTIONS.map(({ value, label }) => ({ value, label }))}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="User engagement"
-              columns={['Date', 'Active users', 'New signups']}
-              rows={engagementData.map((entry) => [entry.date, entry.activeUsers, entry.newSignups])}
+              columns={['Date', 'Daily active users', 'Weekly active users']}
+              rows={engagementTrends.map((entry) => [entry.date, entry.dau, entry.wau])}
             />
+            {featureUsage.length > 0 && (
+              <AccessibleDataTable
+                caption="Feature usage"
+                columns={['Feature', 'Users']}
+                rows={featureUsage.map((entry) => [entry.feature, entry.users])}
+              />
+            )}
           </section>
 
           <section className="lg:col-span-4" aria-label="Pet health analytics">
@@ -294,7 +352,11 @@ const AnalyticsPage = () => {
               summary="Track vaccination status across your pets"
               minHeight="350px"
             >
-              <VaccinationChart data={vaccinationData} />
+              <VaccinationChart
+                data={vaccinationData}
+                breakdown={vaccinationBreakdown}
+                nonCompliantPets={nonCompliantPets}
+              />
             </DataModeChart>
             <AccessibleDataTable
               caption="Vaccination compliance"
@@ -394,6 +456,14 @@ const AnalyticsPage = () => {
         }
         .analytics-chart--vaccination .recharts-rectangle[fill="#ef4444"] {
           fill: #b91c1c !important;
+        }
+        .analytics-chart--vaccination .recharts-line-curve[stroke="#10b981"] {
+          stroke: #166534 !important;
+          stroke-width: 3px;
+        }
+        .analytics-chart--vaccination .recharts-line-curve[stroke="#ef4444"] {
+          stroke: #b91c1c !important;
+          stroke-width: 3px;
         }
         .analytics-chart--geographic .recharts-rectangle[fill="#8884d8"] {
           fill: #1d4ed8 !important;

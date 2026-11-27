@@ -29,6 +29,8 @@ import {
   Lock,
   DollarSign,
   AlertTriangle,
+  Pause,
+  Play,
 } from 'lucide-react';
 import type { RecurringPaymentIntent } from '../types/recurringPayment';
 import { useRecurringPaymentReview } from '../hooks/useRecurringPaymentReview';
@@ -88,6 +90,7 @@ export default function RecurringPaymentReview({
     selectIntent,
     fetchIntents,
     cancelIntent,
+    setIntentPaused,
     recordConsent,
     clearError,
   } = useRecurringPaymentReview({
@@ -101,6 +104,11 @@ export default function RecurringPaymentReview({
 
   const handleCancelClick = () => {
     setConfirmCancelOpen(true);
+  };
+
+  const handleTogglePause = async () => {
+    if (!selectedIntent) return;
+    await setIntentPaused(selectedIntent.id, selectedIntent.status !== 'paused');
   };
 
   const handleConfirmCancel = async () => {
@@ -292,6 +300,45 @@ export default function RecurringPaymentReview({
                         <Clock size={11} aria-hidden="true" />
                         <span>Next: {formatDateTime(intent.nextExecutionTime)}</span>
                       </div>
+                      {intent.status !== 'cancelled' && intent.status !== 'completed' && (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void setIntentPaused(intent.id, intent.status !== 'paused');
+                            }}
+                            disabled={actionInProgress}
+                            aria-label={
+                              intent.status === 'paused'
+                                ? `Resume recurring payment to ${intent.recipientLabel || intent.destinationAddress}`
+                                : `Pause recurring payment to ${intent.recipientLabel || intent.destinationAddress}`
+                            }
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                          >
+                            {intent.status === 'paused' ? (
+                              <Play size={11} aria-hidden="true" />
+                            ) : (
+                              <Pause size={11} aria-hidden="true" />
+                            )}
+                            <span>{intent.status === 'paused' ? 'Resume' : 'Pause'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              selectIntent(intent);
+                              setConfirmCancelOpen(true);
+                            }}
+                            disabled={actionInProgress}
+                            aria-label={`Cancel recurring payment to ${intent.recipientLabel || intent.destinationAddress}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          >
+                            <Ban size={11} aria-hidden="true" />
+                            <span>Cancel</span>
+                          </button>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -319,6 +366,11 @@ export default function RecurringPaymentReview({
                       {selectedIntent.status === 'cancelled' && (
                         <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-800">
                           <Ban size={13} aria-hidden="true" /> Cancelled
+                        </span>
+                      )}
+                      {selectedIntent.status === 'paused' && (
+                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold bg-gray-200 text-gray-800">
+                          <Pause size={13} aria-hidden="true" /> Paused
                         </span>
                       )}
                       {selectedIntent.consentDenied && (
@@ -470,7 +522,27 @@ export default function RecurringPaymentReview({
 
                 {/* Action Buttons */}
                 <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                  <div>
+                  <div className="flex items-center gap-2">
+                    {selectedIntent.status !== 'cancelled' && selectedIntent.status !== 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => void handleTogglePause()}
+                        disabled={actionInProgress}
+                        aria-label={
+                          selectedIntent.status === 'paused'
+                            ? `Resume recurring payment schedule ${selectedIntent.id}`
+                            : `Pause recurring payment schedule ${selectedIntent.id}`
+                        }
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {selectedIntent.status === 'paused' ? (
+                          <Play size={13} aria-hidden="true" />
+                        ) : (
+                          <Pause size={13} aria-hidden="true" />
+                        )}
+                        <span>{selectedIntent.status === 'paused' ? 'Resume Schedule' : 'Pause Schedule'}</span>
+                      </button>
+                    )}
                     {selectedIntent.status !== 'cancelled' && !confirmCancelOpen && (
                       <button
                         type="button"
@@ -520,6 +592,7 @@ export default function RecurringPaymentReview({
                         disabled={
                           actionInProgress ||
                           selectedIntent.status === 'cancelled' ||
+                          selectedIntent.status === 'paused' ||
                           selectedIntent.consentDenied ||
                           !selectedIntent.backendAuthorized
                         }

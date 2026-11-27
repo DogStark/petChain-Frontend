@@ -1,8 +1,66 @@
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Info } from 'lucide-react';
 
 import { getLabResults } from '@/lib/api/labResultsAPI';
 import type { LabResultItem } from '@/types/lab-results';
+
+export interface HealthScoreFactor {
+  /** Stable identifier used for React keys and anchors. */
+  id: string;
+  /** Human readable factor name. */
+  label: string;
+  /** What the factor measures and how it contributes to the score. */
+  description: string;
+  /** Relative weight of the factor in the overall score (0–1). */
+  weight: number;
+  /** In-page anchor of the record section that feeds this factor. */
+  sectionId: string;
+  /** Link to the full record list for this factor. */
+  href: string;
+}
+
+export interface HealthScoreExplanationProps {
+  petId: string;
+  /** Optional score to display next to the info button. */
+  score?: number | null;
+}
+
+export const HEALTH_SCORE_FACTORS: HealthScoreFactor[] = [
+  {
+    id: 'lab-results',
+    label: 'Lab results',
+    description:
+      'Recent blood work and other lab measurements, weighted by how far values sit outside their reference range.',
+    weight: 0.4,
+    sectionId: 'pet-health-title',
+    href: '/lab-results',
+  },
+  {
+    id: 'vaccinations',
+    label: 'Vaccination compliance',
+    description: 'Whether core vaccinations are up to date for the pet’s species and age.',
+    weight: 0.3,
+    sectionId: 'pet-health-title',
+    href: '/medical-records',
+  },
+  {
+    id: 'medical-records',
+    label: 'Medical history',
+    description: 'Recorded conditions, treatments and check-ups, including how recently they were updated.',
+    weight: 0.2,
+    sectionId: 'pet-health-title',
+    href: '/medical-records',
+  },
+  {
+    id: 'care-setup',
+    label: 'Care profile completeness',
+    description: 'Profile, weight and care details that keep the score accurate over time.',
+    weight: 0.1,
+    sectionId: 'pet-health-title',
+    href: '/pets',
+  },
+];
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -16,10 +74,13 @@ function valueWithUnit(item: LabResultItem): string {
   return `${item.value}${unit ? ` ${unit}` : ''}`;
 }
 
-export default function HealthScoreExplanation({ petId }: { petId: string }) {
+export default function HealthScoreExplanation({ petId, score }: HealthScoreExplanationProps) {
   const [results, setResults] = useState<LabResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
+  const panelId = 'health-score-explanation-panel';
 
   useEffect(() => {
     let cancelled = false;

@@ -1,5 +1,12 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { StellarConfig, TransactionResult, AccountDetails, SubmitOptions } from './types';
+import {
+  StellarConfig,
+  TransactionResult,
+  AccountDetails,
+  SubmitOptions,
+  SigningRequest,
+  SigningResult,
+} from './types';
 
 export class StellarService {
   private server: StellarSdk.Horizon.Server;
@@ -85,6 +92,64 @@ export class StellarService {
 
     const timeout = options?.timeoutSeconds ?? 30;
     return builder.setTimeout(timeout).build();
+  }
+
+  /**
+   * Signs a transaction envelope with a software keypair (secret key).
+   * The secret key is never persisted or returned.
+   */
+  signWithKeypair(request: SigningRequest, secretKey: string): SigningResult {
+    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    if (keypair.publicKey() !== request.publicKey) {
+      throw new Error('Secret key does not match the transaction source account');
+    }
+
+    const transaction = StellarSdk.TransactionBuilder.fromXDR(
+      request.envelopeXdr,
+      request.networkPassphrase
+    ) as StellarSdk.Transaction;
+    transaction.sign(keypair);
+
+    return {
+      envelopeXdr: transaction.toEnvelope().toXDR('base64'),
+      hash: transaction.hash().toString('hex'),
+      signers: [keypair.publicKey()],
+    };
+  }
+
+  /**
+   * Adds a signature produced by an external signer (e.g. a hardware wallet)
+   * to a transaction envelope.
+   */
+  addSignature(request: SigningRequest, signatureBase64: string, publicKey: string): SigningResult {
+    const transaction = StellarSdk.TransactionBuilder.fromXDR(
+      request.envelopeXdr,
+      request.networkPassphrase
+    ) as StellarSdk.Transaction;
+    transaction.addSignature(publicKey, signatureBase64);
+
+    return {
+      envelopeXdr: transaction.toEnvelope().toXDR('base64'),
+      hash: transaction.hash().toString('hex'),
+      signers: [publicKey],
+    };
+  }
+
+  /**
+   * Parses a base64 envelope XDR into a transaction for the given network.
+   */
+  transactionFromXdr(
+    envelopeXdr: string,
+    networkPassphrase: string
+  ): StellarSdk.Transaction | StellarSdk.FeeBumpTransaction {
+    return StellarSdk.TransactionBuilder.fromXDR(envelopeXdr, networkPassphrase);
+  }
+
+  /**
+   * Computes the hex transaction hash of a signed envelope XDR.
+   */
+  hashEnvelope(envelopeXdr: string, networkPassphrase: string): string {
+    return this.transactionFromXdr(envelopeXdr, networkPassphrase).hash().toString('hex');
   }
 
   /**

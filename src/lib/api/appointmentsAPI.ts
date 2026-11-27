@@ -2,6 +2,7 @@ import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getApiBaseUrl } from './apiBaseUrl';
 import { attachCorrelationInterceptor } from './correlationInterceptor';
 import { Appointment, AppointmentStatus, AppointmentType } from '@/types/appointments';
+import type { AppointmentHistoryPage, AppointmentHistoryTab } from '@/types/appointments';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -37,6 +38,12 @@ export interface UpcomingAppointmentView {
   vetName: string;
 }
 
+export interface PetAppointmentsPage {
+  data: BackendAppointment[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
 const STATUS_MAP: Record<string, AppointmentStatus> = {
   SCHEDULED: 'Scheduled',
   CONFIRMED: 'Scheduled',
@@ -173,6 +180,26 @@ class AppointmentsAPI {
   async getUpcomingAppointments(): Promise<UpcomingAppointmentView[]> {
     const response = await this.api.get<BackendAppointment[]>('/upcoming');
     return response.data.map(mapAppointment);
+  }
+
+  async getPetAppointments(
+    petId: string,
+    params: { status?: AppointmentHistoryTab; page?: number; limit?: number } = {},
+  ): Promise<AppointmentHistoryPage> {
+    const response = await this.api.get<BackendAppointment[] | PetAppointmentsPage>(
+      `/pet/${encodeURIComponent(petId)}`,
+      { params },
+    );
+
+    const payload = response.data;
+    const items = Array.isArray(payload) ? payload : payload?.data ?? [];
+    const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
+    const page = Array.isArray(payload) ? params.page ?? 1 : payload?.page ?? params.page ?? 1;
+    const limit = Array.isArray(payload)
+      ? params.limit ?? items.length
+      : payload?.limit ?? params.limit ?? items.length;
+
+    return { entries: items.map(mapAppointment), total, page, limit };
   }
 
   async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> {

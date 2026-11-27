@@ -1,21 +1,32 @@
 import { registerAs } from '@nestjs/config';
 
-export const authConfig = registerAs('auth', () => ({
-  jwtSecret:
-    process.env.JWT_SECRET ||
-    'your-secret-key-min-32-chars-change-in-production',
-  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '15m',
-  jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
-  bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
-  maxConcurrentSessions: parseInt(
-    process.env.MAX_CONCURRENT_SESSIONS || '3',
-    10,
-  ),
-  accountLockoutDuration: process.env.ACCOUNT_LOCKOUT_DURATION || '30m',
-  passwordResetExpiration: process.env.PASSWORD_RESET_EXPIRATION || '1h',
-  emailVerificationExpiration:
-    process.env.EMAIL_VERIFICATION_EXPIRATION || '24h',
-  phoneVerificationExpiration:
-    process.env.PHONE_VERIFICATION_EXPIRATION || '24h',
-  maxFailedLoginAttempts: 5,
+const MIN_SECRET_LENGTH = 32;
+
+function resolveJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret || secret.trim().length === 0) {
+    throw new Error(
+      'JWT_SECRET environment variable is required and must be set to a strong, unique value.',
+    );
+  }
+
+  if (secret.length < MIN_SECRET_LENGTH) {
+    throw new Error(
+      `JWT_SECRET must be at least ${MIN_SECRET_LENGTH} characters long.`,
+    );
+  }
+
+  if (new Set(secret).size < 8) {
+    throw new Error(
+      'JWT_SECRET appears to have insufficient entropy; use a longer, more random value.',
+    );
+  }
+
+  return secret;
+}
+
+export default registerAs('auth', () => ({
+  jwtSecret: resolveJwtSecret(),
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
 }));
