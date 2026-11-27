@@ -10,6 +10,7 @@ import PetSharingSummary from '@/components/Pets/PetSharingSummary';
 import ResultsDashboard from '@/components/LabResults/ResultsDashboard';
 import AttachmentQueueView from '@/components/Offline/AttachmentQueueView';
 import PetDocumentsManager from '@/components/Pets/PetDocumentsManager';
+import PrescriptionRefillButton from '@/components/Pets/PrescriptionRefillButton';
 import PetIdentityCard from '@/components/PetIdentityCard';
 import styles from '@/styles/pages/PetDetailPage.module.css';
 import { getApiBaseUrl } from '@/lib/api/apiBaseUrl';
