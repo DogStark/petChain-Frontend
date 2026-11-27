@@ -25,6 +25,12 @@ export interface RouteErrorBoundaryProps {
    * `reset` callback that recovers without a full page reload.
    */
   fallback?: (state: RouteErrorBoundaryState, reset: () => void) => ReactNode;
+  /**
+   * Called on every manual retry, before the subtree re-renders. Async data
+   * pages use it to re-run their fetch; a rejection thrown from here is caught
+   * by the boundary and keeps the fallback visible.
+   */
+  onRetry?: () => void | Promise<void>;
   children: ReactNode;
 }
 
@@ -82,7 +88,7 @@ export default class RouteErrorBoundary extends Component<
       this.setState({ correlationId });
     }
 
-     
+    // eslint-disable-next-line no-console
     console.error('[RouteErrorBoundary]', { correlationId, routeGroup, error, errorInfo });
 
     recordErrorDiagnostic({
@@ -108,18 +114,43 @@ export default class RouteErrorBoundary extends Component<
    * that already completed are not re-run.
    */
   private handleRetry = () => {
+    const { onRetry } = this.props;
+
     this.setState((prev) => ({
       hasError: false,
       error: null,
       retryCount: prev.retryCount + 1,
     }));
+
+    if (!onRetry) return;
+
+    const failRetry = (retryError: unknown) => {
+      this.setState({
+        hasError: true,
+        error: retryError instanceof Error ? retryError : new Error(String(retryError)),
+        correlationId: generateCorrelationId(this.props.routeGroup ?? 'server'),
+      });
+    };
+
+    try {
+      const result = onRetry();
+      if (result && typeof (result as Promise<void>).catch === 'function') {
+        // A rejected re-fetch is a new incident: surface it in the fallback.
+        (result as Promise<void>).catch(failRetry);
+      }
+    } catch (retryError) {
+      failRetry(retryError);
+    }
   };
 
   public render() {
     const { hasError, error, correlationId } = this.state;
     const { fallback, routeGroup = 'server', segmentName, children } = this.props;
 
-    if (!hasError) return children;
+    if (!hasError) {
+      // Remount the subtree on retry so async pages re-run their fetch effects.
+      return <React.Fragment key={this.state.retryCount}>{children}</React.Fragment>;
+    }
 
     if (fallback) {
       return fallback(this.state, this.handleRetry);

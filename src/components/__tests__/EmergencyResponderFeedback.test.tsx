@@ -20,21 +20,44 @@ describe('EmergencyResponderFeedback', () => {
     render(<EmergencyResponderFeedback qrCodeId="tag-1" />);
 
     expect(screen.getByRole('button', { name: 'Send report' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('radio', { name: 'The pet is safe' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'I found this pet' }));
     fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
 
     await waitFor(() => {
-      expect(qrcodeAPI.submitEmergencyFeedback).toHaveBeenCalledWith('tag-1', 'pet_safe');
+      expect(qrcodeAPI.submitEmergencyFeedback).toHaveBeenCalledWith('tag-1', 'found', '');
     });
-    expect(await screen.findByRole('status')).toHaveTextContent(/report was sent/i);
+    expect(await screen.findByRole('status')).toHaveTextContent(/feedback was sent/i);
     expect(screen.getByRole('button', { name: 'Report sent' })).toBeDisabled();
+  });
+
+  it('sends optional notes with the selected feedback', async () => {
+    (qrcodeAPI.submitEmergencyFeedback as jest.Mock).mockResolvedValue(undefined);
+    render(<EmergencyResponderFeedback qrCodeId="tag-1" />);
+
+    fireEvent.click(screen.getByRole('radio', { name: 'The pet was treated' }));
+    fireEvent.change(screen.getByLabelText(/notes \(optional\)/i), {
+      target: { value: '  Treated at the clinic on Main St.  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
+
+    await waitFor(() => {
+      expect(qrcodeAPI.submitEmergencyFeedback).toHaveBeenCalledWith(
+        'tag-1',
+        'treated',
+        '  Treated at the clinic on Main St.  ',
+      );
+    });
   });
 
   it('does not submit until a feedback option is selected', () => {
     render(<EmergencyResponderFeedback qrCodeId="tag-1" />);
 
-    expect(screen.getByRole('radio', { name: /contact details are out of date/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'The pet is safe' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'I found this pet' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'The pet was treated' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('radio', { name: 'The pet was returned to its owner' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/notes \(optional\)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send report' })).toBeDisabled();
     expect(qrcodeAPI.submitEmergencyFeedback).not.toHaveBeenCalled();
   });
@@ -45,7 +68,7 @@ describe('EmergencyResponderFeedback', () => {
     });
     render(<EmergencyResponderFeedback qrCodeId="tag-1" />);
 
-    fireEvent.click(screen.getByRole('radio', { name: 'The pet is safe' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'The pet was returned to its owner' }));
     fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -59,7 +82,7 @@ describe('EmergencyResponderFeedback', () => {
     });
     render(<EmergencyResponderFeedback qrCodeId="tag-1" />);
 
-    const safeOption = screen.getByRole('radio', { name: 'The pet is safe' });
+    const safeOption = screen.getByRole('radio', { name: 'I found this pet' });
     fireEvent.click(safeOption);
     fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
 

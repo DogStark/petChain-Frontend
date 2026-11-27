@@ -213,7 +213,7 @@ describe('AttachmentQueueManager', () => {
     expect(await store.get(queued.id)).not.toBeNull();
   });
 
-  it('does not remove an attachment while its upload is in flight', async () => {
+  it('cancels an in-flight upload and drops its local file', async () => {
     const store = new MemoryAttachmentStore();
     let finishUpload: (() => void) | undefined;
     const uploader = jest.fn<Promise<void>, Parameters<AttachmentUploader>>(
@@ -228,10 +228,34 @@ describe('AttachmentQueueManager', () => {
     const processing = queue.process('pet-1');
 
     await new Promise((resolve) => setTimeout(resolve, 0));
-    await expect(queue.remove(queued.id, 'pet-1')).rejects.toThrow(/current upload/i);
+    await queue.remove(queued.id, 'pet-1');
+    expect(await store.get(queued.id)).toBeNull();
 
     finishUpload?.();
-    await processing;
+    await expect(processing).resolves.toEqual({ uploaded: 0, failed: 0 });
+    expect(await queue.list('pet-1')).toEqual([]);
+  });
+
+  it('does not resurrect a cancelled upload that fails', async () => {
+    const store = new MemoryAttachmentStore();
+    let failUpload: ((error: Error) => void) | undefined;
+    const uploader = jest.fn<Promise<void>, Parameters<AttachmentUploader>>(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          failUpload = reject;
+        }),
+    );
+    const queue = createQueue(store, uploader);
+
+    const queued = await queue.enqueue(pdfFile('report.pdf'), 'pet-1');
+    const processing = queue.process('pet-1');
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await queue.remove(queued.id, 'pet-1');
+
+    failUpload?.(new Error('Network unavailable'));
+    await expect(processing).resolves.toEqual({ uploaded: 0, failed: 0 });
+    expect(await queue.list('pet-1')).toEqual([]);
   });
 
   it('does nothing while offline', async () => {

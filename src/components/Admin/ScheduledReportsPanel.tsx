@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { isAxiosError } from 'axios';
-import { AlertCircle, Calendar, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, Pencil, Trash2, X } from 'lucide-react';
 import type {
   ReportRecipientScope,
   ReportSchedule,
@@ -54,6 +54,19 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function parseRecipientEmails(value: string): string[] {
+  return value
+    .split(/[\s,;]+/)
+    .map((email) => email.trim())
+    .filter(Boolean);
+}
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_PATTERN.test(email);
+}
+
 export default function ScheduledReportsPanel() {
   const [schedules, setSchedules] = useState<ReportSchedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +79,10 @@ export default function ScheduledReportsPanel() {
   const [startsAt, setStartsAt] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [recipientScope, setRecipientScope] = useState<ReportRecipientScope>('requesting_admin');
+  const [recipientEmails, setRecipientEmails] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -101,6 +117,44 @@ export default function ScheduledReportsPanel() {
     };
   }, []);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setReportType('activity');
+    setFrequency('weekly');
+    setRecipientScope('requesting_admin');
+    setRecipientEmails('');
+    setSubmitError(null);
+  };
+
+  const handleEdit = (schedule: ReportSchedule) => {
+    setEditingId(schedule.id);
+    setReportType(schedule.reportType);
+    setFrequency(schedule.frequency);
+    setStartsAt(localDateTimeValue(new Date(schedule.startsAt)));
+    setTimezone(schedule.timezone);
+    setRecipientScope(schedule.recipientScope);
+    setRecipientEmails((schedule.recipientEmails ?? []).join(', '));
+    setExpiresAt(localDateTimeValue(new Date(schedule.expiresAt)));
+    setSubmitError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleDelete = async (schedule: ReportSchedule) => {
+    setSubmitError(null);
+    setSuccessMessage(null);
+    setDeletingId(schedule.id);
+    try {
+      await reportSchedulesAPI.remove(schedule.id);
+      setSchedules((current) => current.filter((item) => item.id !== schedule.id));
+      if (editingId === schedule.id) resetForm();
+      setSuccessMessage('Report schedule deleted.');
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, 'The report schedule could not be deleted.'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
@@ -118,20 +172,35 @@ export default function ScheduledReportsPanel() {
       return;
     }
 
+    const emails = parseRecipientEmails(recipientEmails);
+    const invalidEmail = emails.find((email) => !isValidEmail(email));
+    if (invalidEmail) {
+      setSubmitError(`"${invalidEmail}" is not a valid email address.`);
+      return;
+    }
+
     const input: ReportScheduleInput = {
       reportType,
       frequency,
       startsAt,
       timezone,
       recipientScope,
+      recipientEmails: emails,
       expiresAt,
     };
 
     setSubmitting(true);
     try {
-      const created = await reportSchedulesAPI.create(input);
-      setSchedules((current) => [...current, created]);
-      setSuccessMessage('Report schedule created.');
+      if (editingId) {
+        const updated = await reportSchedulesAPI.update(editingId, input);
+        setSchedules((current) => current.map((item) => (item.id === editingId ? updated : item)));
+        setSuccessMessage('Report schedule updated.');
+        setEditingId(null);
+      } else {
+        const created = await reportSchedulesAPI.create(input);
+        setSchedules((current) => [...current, created]);
+        setSuccessMessage('Report schedule created.');
+      }
     } catch (error) {
       setSubmitError(getErrorMessage(error, 'The report schedule could not be saved.'));
     } finally {
@@ -266,6 +335,25 @@ export default function ScheduledReportsPanel() {
             </p>
           </fieldset>
 
+          <div>
+            <label htmlFor="scheduled-report-recipients" className="block text-sm font-medium text-slate-700 mb-1">
+              Email recipients
+            </label>
+            <input
+              id="scheduled-report-recipients"
+              type="text"
+              value={recipientEmails}
+              onChange={(event) => setRecipientEmails(event.target.value)}
+              placeholder="admin@example.com, ops@example.com"
+              autoComplete="off"
+              aria-describedby="scheduled-report-recipients-hint"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+            <p id="scheduled-report-recipients-hint" className="text-xs text-slate-500 mt-1">
+              Optional. Separate multiple addresses with commas. Leave empty to deliver to the selected scope only.
+            </p>
+          </div>
+
           {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
           {successMessage && (
             <p role="status" className="flex items-center gap-2 text-sm text-green-700">
@@ -274,14 +362,32 @@ export default function ScheduledReportsPanel() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting || !startsAt || !expiresAt || !timezone.trim()}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-medium inline-flex items-center gap-2"
-          >
-            <Calendar aria-hidden="true" className="w-4 h-4" />
-            {submitting ? 'Creating schedule...' : 'Schedule report'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitting || !startsAt || !expiresAt || !timezone.trim()}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-medium inline-flex items-center gap-2"
+            >
+              <Calendar aria-hidden="true" className="w-4 h-4" />
+              {submitting
+                ? editingId
+                  ? 'Saving changes...'
+                  : 'Creating schedule...'
+                : editingId
+                  ? 'Save changes'
+                  : 'Schedule report'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-600 border border-slate-300 hover:bg-slate-50"
+              >
+                <X aria-hidden="true" className="w-4 h-4" />
+                Cancel edit
+              </button>
+            )}
+          </div>
         </form>
       )}
 
@@ -304,7 +410,29 @@ export default function ScheduledReportsPanel() {
                 </p>
                 <p className="text-sm text-slate-600">
                   Recipients: {schedule.recipientScope === 'admin_team' ? 'authorized administrators' : 'requesting administrator'}
+                  {schedule.recipientEmails && schedule.recipientEmails.length > 0
+                    ? ` (${schedule.recipientEmails.join(', ')})`
+                    : ''}
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(schedule)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-700 border border-blue-200 hover:bg-blue-50"
+                  >
+                    <Pencil aria-hidden="true" className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(schedule)}
+                    disabled={deletingId === schedule.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 aria-hidden="true" className="w-4 h-4" />
+                    {deletingId === schedule.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

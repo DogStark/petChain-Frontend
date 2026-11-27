@@ -18,7 +18,18 @@ interface DataModeImageProps extends Omit<ImageProps, 'src' | 'onError'> {
    * Size category helps determine loading strategy
    */
   sizeCategory?: 'thumbnail' | 'medium' | 'large';
+  /**
+   * Optional lower-resolution source used in reduced mode.
+   * Falls back to `src` when not provided.
+   */
+  reducedSrc?: string;
 }
+
+/**
+ * Maximum rendered width (px) for images in reduced mode.
+ * Keeps bandwidth usage low while preserving aspect ratio.
+ */
+const REDUCED_MODE_MAX_WIDTH = 320;
 
 /**
  * Image component that respects reduced-data mode.
@@ -39,6 +50,7 @@ export default function DataModeImage({
   fallbackSrc,
   priority = false,
   sizeCategory = 'medium',
+  reducedSrc,
   alt,
   ...props
 }: DataModeImageProps) {
@@ -94,9 +106,12 @@ export default function DataModeImage({
 
   return (
     <SafeImage
-      src={src}
+      src={isReducedMode && reducedSrc ? reducedSrc : src}
       fallbackSrc={fallbackSrc}
       alt={alt}
+      {...(isReducedMode && !props.fill && typeof props.width === 'number'
+        ? { width: Math.min(props.width, REDUCED_MODE_MAX_WIDTH) }
+        : {})}
       {...props}
     />
   );

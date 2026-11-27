@@ -166,6 +166,20 @@ const icons: Record<string, ReactElement> = {
       <line x1="1" y1="10" x2="23" y2="10" />
     </svg>
   ),
+  wallet: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12V7H5a2 2 0 010-4h14v4" />
+      <path d="M3 5v14a2 2 0 002 2h16v-5" />
+      <path d="M18 12a2 2 0 000 4h4v-4z" />
+    </svg>
+  ),
   sliders: (
     <svg
       viewBox="0 0 24 24"

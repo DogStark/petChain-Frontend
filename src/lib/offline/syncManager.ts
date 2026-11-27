@@ -67,6 +67,21 @@ export interface DeadLetterItem {
   reason: string;
 }
 
+/** How a sync conflict was resolved by the user. */
+export type ConflictResolutionStrategy = 'local' | 'server' | 'merge';
+
+/** Audit record of a resolved sync conflict (issue #1412). */
+export interface ConflictResolutionLogEntry {
+  conflictId: string;
+  endpoint: string;
+  strategy: ConflictResolutionStrategy;
+  /** Fields whose value came from the local (offline) snapshot. */
+  localFields: string[];
+  /** Fields whose value came from the server snapshot. */
+  serverFields: string[];
+  resolvedAt: number;
+}
+
 export interface QueueStats {
   /** Current number of items in the live sync queue. */
   queueSize: number;
@@ -96,6 +111,9 @@ class SyncManager {
 
   /** In-memory dead-letter store. Items here are visible to the UI. */
   private deadLetterStore: DeadLetterItem[] = [];
+
+  /** In-memory log of resolved conflicts (issue #1412). */
+  private conflictResolutionLog: ConflictResolutionLogEntry[] = [];
 
   constructor(config: SyncManagerConfig = {}) {
     this.config = {
@@ -133,6 +151,18 @@ class SyncManager {
   /** Remove all items from the dead-letter store. */
   clearDeadLetterStore(): void {
     this.deadLetterStore = [];
+  }
+
+  // ─── Conflict resolution log API (issue #1412) ──────────────────────────
+
+  /** Return all logged conflict resolutions (read-only snapshot). */
+  getConflictResolutionLog(): Readonly<ConflictResolutionLogEntry[]> {
+    return [...this.conflictResolutionLog];
+  }
+
+  /** Remove all logged conflict resolutions. */
+  clearConflictResolutionLog(): void {
+    this.conflictResolutionLog = [];
   }
 
   /**
@@ -298,6 +328,7 @@ class SyncManager {
     resolvedData: Record<string, unknown>,
     ownerId?: string,
     accessToken?: string,
+    strategy: ConflictResolutionStrategy = 'merge',
   ): Promise<void> {
     const conflict = await getSyncConflict(conflictId);
     if (!conflict || (ownerId != null && conflict.ownerId !== ownerId)) {
@@ -326,7 +357,34 @@ class SyncManager {
       await removeSyncAction(conflict.queueItemId);
     }
     await removeSyncConflict(conflictId);
+    this.logConflictResolution(conflict, resolvedData, strategy);
     this.notify('success', 'Conflict resolved');
+  }
+
+  /** Record which snapshot each resolved field came from (issue #1412). */
+  private logConflictResolution(
+    conflict: SyncConflictSnapshot,
+    resolvedData: Record<string, unknown>,
+    strategy: ConflictResolutionStrategy,
+  ): void {
+    const localFields: string[] = [];
+    const serverFields: string[] = [];
+    for (const field of Object.keys(resolvedData)) {
+      const value = resolvedData[field];
+      if (value === conflict.localData[field]) {
+        localFields.push(field);
+      } else if (value === conflict.serverData[field]) {
+        serverFields.push(field);
+      }
+    }
+    this.conflictResolutionLog.push({
+      conflictId: conflict.conflictId,
+      endpoint: conflict.endpoint,
+      strategy,
+      localFields,
+      serverFields,
+      resolvedAt: Date.now(),
+    });
   }
 
   // ─── executeSync ─────────────────────────────────────────────────────────

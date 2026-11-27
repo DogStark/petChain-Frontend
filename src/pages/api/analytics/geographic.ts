@@ -16,10 +16,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       headers['Authorization'] = req.headers.authorization;
     }
 
-    const response = await fetch(`${BACKEND}/analytics/geographic`, {
-      method: 'GET',
-      headers,
-    });
+    // Forward only the date-range params the dashboard map supports.
+    const query = new URLSearchParams();
+    for (const key of ['startDate', 'endDate'] as const) {
+      const value = req.query[key];
+      if (typeof value === 'string' && value) {
+        query.set(key, value);
+      }
+    }
+    const queryString = query.toString();
+
+    const response = await fetch(
+      `${BACKEND}/analytics/geographic${queryString ? `?${queryString}` : ''}`,
+      {
+        method: 'GET',
+        headers,
+      },
+    );
 
     const data = await response.json();
     res.status(response.status).json(data);

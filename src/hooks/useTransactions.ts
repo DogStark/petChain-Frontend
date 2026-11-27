@@ -5,6 +5,8 @@ import {
   TransactionType,
   TransactionFilters,
   EstimateData,
+  CursorPage,
+  CursorPaginationParams,
 } from '@/lib/api/transactionAPI';
 import {
   generateIdempotencyKey,
@@ -149,6 +151,31 @@ export function useTransactions() {
       setLoading(false);
     }
   }, []);
+
+  /**
+   * Fetch a single cursor page of transaction history. Returns the page so
+   * callers (e.g. `useCursorPagination`) can read the cursor metadata.
+   */
+  const fetchTransactionPage = useCallback(
+    async (
+      filters?: TransactionFilters,
+      pagination?: CursorPaginationParams
+    ): Promise<CursorPage<Transaction>> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const page = await transactionAPI.getTransactionHistoryPage(filters, pagination);
+        setTransactions(page.items);
+        return page;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch transactions');
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const getTransaction = useCallback(async (id: string) => {
     setLoading(true);
@@ -313,6 +340,7 @@ export function useTransactions() {
     loading,
     error,
     fetchTransactions,
+    fetchTransactionPage,
     getTransaction,
     getTransactionReceipt,
     getTransactionCost,

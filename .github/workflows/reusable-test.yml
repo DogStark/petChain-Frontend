@@ -80,6 +80,30 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  contract-test:
+    name: API Contract Tests
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-frontend && !inputs.skip-backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Run frontend/backend contract tests
+        run: npm run test:contracts -- --ci
+
   backend-test:
     name: Backend Tests
     runs-on: ubuntu-latest

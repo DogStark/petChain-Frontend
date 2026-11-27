@@ -1,17 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import type { WebVitalReport } from '@/lib/webVitalsReporter';
+import { getRating, type WebVitalReport } from '@/lib/webVitalsReporter';
 
 const MAX_REPORTS = 1000;
 
 const reports: WebVitalReport[] = [];
 
+export interface MetricSummary {
+  good: number;
+  needsImprovement: number;
+  poor: number;
+  avg: number;
+  p75: number;
+  p95: number;
+}
+
 export interface WebVitalsSummary {
-  lcp: { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number };
-  fid: { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number };
-  cls: { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number };
-  ttfb: { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number };
-  inp: { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number };
+  lcp: MetricSummary;
+  fid: MetricSummary;
+  cls: MetricSummary;
+  ttfb: MetricSummary;
+  inp: MetricSummary;
+  fcp: MetricSummary;
   totalReports: number;
 }
 
@@ -21,10 +31,16 @@ function getPercentile(sorted: number[], p: number): number {
   return sorted[Math.max(0, index)];
 }
 
-function computeMetricSummary(values: number[]): { good: number; needsImprovement: number; poor: number; avg: number; p75: number; p95: number } {
-  const good = values.filter((v) => v <= 0).length;
-  const needsImprovement = 0;
-  const poor = 0;
+function computeMetricSummary(values: number[], metricName: string): MetricSummary {
+  let good = 0;
+  let needsImprovement = 0;
+  let poor = 0;
+  for (const v of values) {
+    const rating = getRating(v, metricName);
+    if (rating === 'good') good += 1;
+    else if (rating === 'needs-improvement') needsImprovement += 1;
+    else poor += 1;
+  }
   const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   const sorted = [...values].sort((a, b) => a - b);
   const p75 = getPercentile(sorted, 75);
@@ -39,6 +55,7 @@ export function getSummary(): WebVitalsSummary {
     CLS: [],
     TTFB: [],
     INP: [],
+    FCP: [],
   };
 
   for (const r of reports) {
@@ -50,7 +67,7 @@ export function getSummary(): WebVitalsSummary {
 
   const summary = {} as WebVitalsSummary;
   for (const [key, vals] of Object.entries(byMetric)) {
-    const s = computeMetricSummary(vals);
+    const s = computeMetricSummary(vals, key);
     const metricKey = key.toLowerCase() as keyof Omit<WebVitalsSummary, 'totalReports'>;
     summary[metricKey] = s;
   }
@@ -75,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     case 'GET': {
       const summary = getSummary();
-      return res.status(200).json({ summary, reports: reports.slice(-50) });
+      return res.status(200).json({ summary, reports: reports.slice(-200) });
     }
 
     case 'DELETE': {
