@@ -1,8 +1,9 @@
 /**
  * /sync/review — Offline sync review page (issue #1142)
  *
- * Shows queued offline changes and conflicts before replay. Accessible and
- * protected; requires an active session.
+ * Shows queued offline changes and conflicts before replay. Conflicts can be
+ * resolved inline (keep local / keep server / merge). Accessible and
+ * protected; requires an active session. Issues #1142, #1412.
  */
 
 import React, { useCallback } from 'react';
