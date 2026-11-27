@@ -81,6 +81,51 @@ export interface BackupData {
   checksum: string;
 }
 
+/** How a transaction is signed before broadcast. */
+export type SigningMethod = 'software' | 'hardware';
+
+/** Connection state of a hardware wallet device. */
+export type HardwareWalletStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+/** Supported hardware wallet vendors. */
+export type HardwareWalletVendor = 'ledger' | 'trezor';
+
+export interface HardwareWalletDevice {
+  vendor: HardwareWalletVendor;
+  /** Human readable device name, e.g. "Ledger Nano X". */
+  name: string;
+  /** Stellar public key exposed by the device. */
+  publicKey: string;
+  /** BIP-44 derivation path used to derive the Stellar key. */
+  derivationPath: string;
+}
+
+/** Minimal transport contract a hardware wallet adapter must implement. */
+export interface HardwareWalletAdapter {
+  vendor: HardwareWalletVendor;
+  connect(): Promise<HardwareWalletDevice>;
+  disconnect(): Promise<void>;
+  /** Signs a base64 transaction envelope XDR and returns the signed envelope XDR. */
+  signTransaction(envelopeXdr: string, derivationPath: string): Promise<string>;
+}
+
+/** Preview of a signed transaction shown before broadcast. */
+export interface SignedTransactionPreview {
+  signingMethod: SigningMethod;
+  /** Base64 envelope XDR of the signed transaction. */
+  envelopeXdr: string;
+  /** Transaction hash (hex) of the signed envelope. */
+  hash: string;
+  sourcePublicKey: string;
+  networkPassphrase: string;
+  fee: string;
+  operationCount: number;
+  /** Signer public keys present on the envelope. */
+  signers: string[];
+  /** Ledger sequence after which the transaction is invalid. */
+  validUntilLedger?: number;
+}
+
 export interface FeeEstimate {
   base: string;
   recommended: string;

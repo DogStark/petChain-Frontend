@@ -42,7 +42,12 @@ export interface ScanEventMeta {
   emergencyContact?: string;
 }
 
-export type EmergencyResponderFeedbackType = 'contact_details_stale' | 'pet_safe';
+export type EmergencyResponderFeedbackType = 'found' | 'treated' | 'returned';
+
+export interface EmergencyResponderFeedbackPayload {
+  feedbackType: EmergencyResponderFeedbackType;
+  notes?: string;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QRID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
@@ -131,10 +136,14 @@ export class QRCodeAPI {
 
   async submitEmergencyFeedback(
     qrCodeId: string,
-    feedbackType: EmergencyResponderFeedbackType
+    feedbackType: EmergencyResponderFeedbackType,
+    notes?: string
   ): Promise<void> {
     const safe = safeQrId(qrCodeId);
-    await this.api.post(`/${safe}/feedback`, { feedbackType });
+    const payload: EmergencyResponderFeedbackPayload = { feedbackType };
+    const trimmedNotes = typeof notes === 'string' ? notes.trim() : '';
+    if (trimmedNotes) payload.notes = trimmedNotes;
+    await this.api.post(`/${safe}/feedback`, payload);
   }
 
   async update(

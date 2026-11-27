@@ -76,7 +76,7 @@ export default function ClinicCard({ clinic }: ClinicCardProps) {
           href={`/clinics/${clinic.id}`}
           className="flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          View Profile <ArrowRight className="w-4 h-4" />
+          View Profile <ArrowRight className="w-4 h-4 rtl-flip" />
         </Link>
       </div>
     </div>

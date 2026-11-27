@@ -40,10 +40,13 @@ function formatPrice(value: number): string {
 function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null;
   const value = payload[0]?.value;
+  const numericValue = typeof value === 'number' ? value : undefined;
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-100 px-3 py-2 text-xs">
       <p className="text-gray-500 mb-1">{label}</p>
-      <p className="font-bold text-blue-700">{value !== undefined ? formatPrice(value) : '—'}</p>
+      <p className="font-bold text-blue-700">
+        {numericValue !== undefined ? formatPrice(numericValue) : '—'}
+      </p>
     </div>
   );
 }

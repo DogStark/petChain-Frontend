@@ -19,6 +19,22 @@ export interface UserMetrics {
   retentionRate: number;
 }
 
+export interface FeatureUsage {
+  feature: string;
+  users: number;
+}
+
+export interface EngagementTrendPoint {
+  date: string;
+  dau: number;
+  wau: number;
+}
+
+export interface UserEngagement {
+  trends: EngagementTrendPoint[];
+  featureUsage: FeatureUsage[];
+}
+
 export interface PetRegistrationTrend {
   date: string;
   registrations: number;
@@ -81,6 +97,11 @@ class AnalyticsAPI {
 
   async getUserMetrics(dateRange?: DateRange): Promise<UserMetrics> {
     const response = await this.api.get('/users', { params: dateRange });
+    return response.data;
+  }
+
+  async getUserEngagement(dateRange?: DateRange): Promise<UserEngagement> {
+    const response = await this.api.get('/engagement', { params: dateRange });
     return response.data;
   }
 
